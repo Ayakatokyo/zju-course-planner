@@ -1,0 +1,471 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "prepared_on": "2026-10-09",
+    "data_kind": "curriculum_registry_sample",
+    "page_numbering": "PDF物理页码，从1开始",
+    "official_current_version_confirmed": false,
+    "user_applicability_confirmed": false,
+    "scope_note": "来源为用户上传的2026级培养方案；上传和文字核对不等于已确认当前官方生效版本，也不等于已确认适用于某一学生。"
+  },
+  "record_count": 3,
+  "records": [
+    {
+      "plan_id": "zju_business_big_data_2026",
+      "identifier_kind": "本样本包分配的内部标识，非学校API标识",
+      "university": "浙江大学",
+      "cohort": 2026,
+      "program_name": "商务大数据分析（信息管理与信息系统-统计学）",
+      "official_program_code": null,
+      "plan_version_label": "2026级",
+      "official_revision_number": null,
+      "degree_names": [
+        "管理学学士",
+        "理学学士"
+      ],
+      "recommended_duration_years": 4,
+      "minimum_graduation_credits_raw": "168+8",
+      "base_credit_total_from_headings": 168,
+      "extra_classroom_credit_total": 8,
+      "base_modules": [
+        {
+          "name": "通识课程",
+          "credits": 60.5,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "name": "专业基础课程",
+          "credits": 12,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "name": "专业课程",
+          "credits": 80.5,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                4,
+                5,
+                6
+              ]
+            }
+          ]
+        },
+        {
+          "name": "个性修读课程",
+          "credits": 15,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                6
+              ]
+            }
+          ]
+        }
+      ],
+      "general_submodule_credits": {
+        "通识必修课程": 50,
+        "通识选修课程": 10.5
+      },
+      "major_submodule_credits": {
+        "专业必修课程": 53,
+        "专业选修课程": 12.5,
+        "实践教学环节": 9,
+        "毕业论文（设计）": 6
+      },
+      "extra_classrooms": [
+        {
+          "name": "第二课堂",
+          "credits": 4,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第三课堂",
+          "credits": 2,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第四课堂",
+          "credits": 2,
+          "sources": [
+            {
+              "file_name": "document (1).pdf",
+              "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+              "pdf_pages": [
+                7
+              ]
+            }
+          ]
+        }
+      ],
+      "source_document": {
+        "file_name": "document (1).pdf",
+        "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+        "pdf_page_count": 12,
+        "title_and_graduation_summary_pages": [
+          1
+        ]
+      },
+      "source_evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            1
+          ],
+          "excerpt": "2026级商务大数据分析（信息管理与信息系统-统计学）专业培养方案；最低毕业学分 168+8"
+        }
+      ],
+      "review_status": "uploaded_content_checked_current_official_status_unconfirmed",
+      "sample_course_count": 12,
+      "sample_requirement_candidate_count": 15,
+      "is_complete_course_catalog": false,
+      "is_complete_requirement_catalog": false,
+      "credit_accounting_note": "基础模块与二三四课堂分账；父子模块不重复加总；认定型条件另行检查，不机械再加学分。"
+    },
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "identifier_kind": "本样本包分配的内部标识，非学校API标识",
+      "university": "浙江大学",
+      "cohort": 2026,
+      "program_name": "材料科学与工程",
+      "official_program_code": null,
+      "plan_version_label": "2026级",
+      "official_revision_number": null,
+      "degree_names": [
+        "工学学士"
+      ],
+      "recommended_duration_years": 4,
+      "minimum_graduation_credits_raw": "149+8",
+      "base_credit_total_from_headings": 149,
+      "extra_classroom_credit_total": 8,
+      "base_modules": [
+        {
+          "name": "通识课程",
+          "credits": 68.5,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "name": "专业基础课程",
+          "credits": 2.5,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "name": "专业课程",
+          "credits": 63,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                4,
+                5,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "name": "个性修读课程",
+          "credits": 15,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                7,
+                8
+              ]
+            }
+          ]
+        }
+      ],
+      "general_submodule_credits": {
+        "通识必修课程": 58,
+        "通识选修课程": 10.5
+      },
+      "major_submodule_credits": {
+        "专业必修课程": 41,
+        "专业模块课程": 8,
+        "实践教学环节": 8,
+        "毕业论文（设计）": 6
+      },
+      "extra_classrooms": [
+        {
+          "name": "第二课堂",
+          "credits": 4,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                8,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第三课堂",
+          "credits": 2,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                8,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第四课堂",
+          "credits": 2,
+          "sources": [
+            {
+              "file_name": "document-2.pdf",
+              "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+              "pdf_pages": [
+                8,
+                9
+              ]
+            }
+          ]
+        }
+      ],
+      "source_document": {
+        "file_name": "document-2.pdf",
+        "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+        "pdf_page_count": 15,
+        "title_and_graduation_summary_pages": [
+          1
+        ]
+      },
+      "source_evidence": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            1
+          ],
+          "excerpt": "2026级材料科学与工程专业培养方案；最低毕业学分 149+8"
+        }
+      ],
+      "review_status": "uploaded_content_checked_current_official_status_unconfirmed",
+      "sample_course_count": 4,
+      "sample_requirement_candidate_count": 4,
+      "is_complete_course_catalog": false,
+      "is_complete_requirement_catalog": false,
+      "credit_accounting_note": "基础模块与二三四课堂分账；父子模块不重复加总；认定型条件另行检查，不机械再加学分。"
+    },
+    {
+      "plan_id": "zju_journalism_2026",
+      "identifier_kind": "本样本包分配的内部标识，非学校API标识",
+      "university": "浙江大学",
+      "cohort": 2026,
+      "program_name": "新闻学",
+      "official_program_code": null,
+      "plan_version_label": "2026级",
+      "official_revision_number": null,
+      "degree_names": [
+        "文学学士"
+      ],
+      "recommended_duration_years": 4,
+      "minimum_graduation_credits_raw": "138+8",
+      "base_credit_total_from_headings": 138,
+      "extra_classroom_credit_total": 8,
+      "base_modules": [
+        {
+          "name": "通识课程",
+          "credits": 44,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                4,
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "name": "专业基础课程",
+          "credits": 4,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                5
+              ]
+            }
+          ]
+        },
+        {
+          "name": "专业课程",
+          "credits": 75,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                5,
+                6,
+                7
+              ]
+            }
+          ]
+        },
+        {
+          "name": "个性修读课程",
+          "credits": 15,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                7,
+                8
+              ]
+            }
+          ]
+        }
+      ],
+      "general_submodule_credits": {
+        "通识必修课程": 33.5,
+        "通识选修课程": 10.5
+      },
+      "major_submodule_credits": {
+        "专业必修课程": 33,
+        "专业方向课程": 15,
+        "专业选修课程": 8,
+        "实践教学环节": 11,
+        "毕业论文（设计）": 8
+      },
+      "extra_classrooms": [
+        {
+          "name": "第二课堂",
+          "credits": 4,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                8,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第三课堂",
+          "credits": 2,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                8,
+                9
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第四课堂",
+          "credits": 2,
+          "sources": [
+            {
+              "file_name": "document-3.pdf",
+              "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+              "pdf_pages": [
+                8,
+                9
+              ]
+            }
+          ]
+        }
+      ],
+      "source_document": {
+        "file_name": "document-3.pdf",
+        "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+        "pdf_page_count": 15,
+        "title_and_graduation_summary_pages": [
+          1
+        ]
+      },
+      "source_evidence": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            1
+          ],
+          "excerpt": "2026级新闻学专业培养方案；最低毕业学分 138+8"
+        }
+      ],
+      "review_status": "uploaded_content_checked_current_official_status_unconfirmed",
+      "sample_course_count": 3,
+      "sample_requirement_candidate_count": 4,
+      "is_complete_course_catalog": false,
+      "is_complete_requirement_catalog": false,
+      "credit_accounting_note": "基础模块与二三四课堂分账；父子模块不重复加总；认定型条件另行检查，不机械再加学分。"
+    }
+  ]
+}

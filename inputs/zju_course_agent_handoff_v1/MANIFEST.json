@@ -1,0 +1,164 @@
+{
+  "bundle_name": "zju_course_agent_handoff_v1",
+  "version": "1.0",
+  "prepared_on": "2026-10-09",
+  "timezone": "Asia/Shanghai",
+  "purpose": "Codex开发交接：分析结论、交接摘要、上一轮产物及来源资料",
+  "implementation_status": "design_and_sample_data_only_no_application_code",
+  "counts": {
+    "curriculum_plans": 3,
+    "course_samples": 19,
+    "candidate_requirements": 23,
+    "source_issues": 12,
+    "proposed_import_entities": 11,
+    "actual_offering_records": 0,
+    "source_pdfs": 4,
+    "prior_artifacts": 2,
+    "markdown_documents": 4,
+    "listed_files_excluding_manifest": 17,
+    "total_files_including_manifest": 18
+  },
+  "source_aliases": [
+    {
+      "source_id": "S1",
+      "original_file_name": "大数据信息系统分析与设计课件.pdf",
+      "bundled_path": "sources/course_slides.pdf",
+      "pdf_page_count": 331,
+      "sha256": "567a4becf36d428af631cd17d2548b46190385c6f37f6ebed0e34f335868cb44",
+      "content_modified": false
+    },
+    {
+      "source_id": "S2",
+      "original_file_name": "document-3.pdf",
+      "bundled_path": "sources/journalism_2026.pdf",
+      "pdf_page_count": 15,
+      "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+      "content_modified": false
+    },
+    {
+      "source_id": "S3",
+      "original_file_name": "document-2.pdf",
+      "bundled_path": "sources/materials_2026.pdf",
+      "pdf_page_count": 15,
+      "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+      "content_modified": false
+    },
+    {
+      "source_id": "S4",
+      "original_file_name": "document (1).pdf",
+      "bundled_path": "sources/business_analytics_2026.pdf",
+      "pdf_page_count": 12,
+      "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+      "content_modified": false
+    }
+  ],
+  "sample_rule_status": {
+    "human_review_required": true,
+    "enforce_automatically": false
+  },
+  "integrity_note": "原DOCX、原数据ZIP、原PDF按字节保留；data为原数据ZIP的逐文件展开副本。files记录除MANIFEST.json自身外的哈希，校验不代表已实现应用或校方规则审核。",
+  "files": [
+    {
+      "path": "ANALYSIS.md",
+      "category": "documentation",
+      "bytes": 24848,
+      "sha256": "d24fae8dc39e483938a94b831ef6c85842f3265019c2d9e1257d6eea27c9b47e"
+    },
+    {
+      "path": "CODEX_HANDOFF.md",
+      "category": "documentation",
+      "bytes": 7892,
+      "sha256": "6663b530293c573de1791f7368dcf65c570f88704652367fc0e4a3b09f940656"
+    },
+    {
+      "path": "README.md",
+      "category": "documentation",
+      "bytes": 4706,
+      "sha256": "cfbbbedc0a3b472d444d3df50198973acf089a40c8cd240f40d07c57996dc517"
+    },
+    {
+      "path": "SOURCE_INDEX.md",
+      "category": "documentation",
+      "bytes": 5116,
+      "sha256": "5fbbf528569527525b8ee415f723268fbc35a1a97d5bbebc408f486e6fba348f"
+    },
+    {
+      "path": "artifacts/选课助手初步设计_v1.docx",
+      "category": "artifacts",
+      "bytes": 55952,
+      "sha256": "3a1f93c4e0fd54672a2f53eb2d29b5d25e1764787319b71fe27457ef744548ee"
+    },
+    {
+      "path": "artifacts/选课助手数据样本_v1.zip",
+      "category": "artifacts",
+      "bytes": 30855,
+      "sha256": "a93be885f44f34fcbc1902425749053606218468d2de2c4d7cb566018162c64c"
+    },
+    {
+      "path": "data/README.txt",
+      "category": "data",
+      "bytes": 4424,
+      "sha256": "8b063700562280332cbf86d34c276f02ebbe909826da10636164821883f30ecd"
+    },
+    {
+      "path": "data/course_samples.json",
+      "category": "data",
+      "bytes": 37165,
+      "sha256": "909da5dc939fa3bafe5877e25da6ca5eb6135cbd5fe5a8fef6ef666bc8f876c8"
+    },
+    {
+      "path": "data/import_data_dictionary.json",
+      "category": "data",
+      "bytes": 50996,
+      "sha256": "ca87ea2bc74f7961c93e137edc114abfbc3d2da8e718f3db0c25b2c7e50fbd5c"
+    },
+    {
+      "path": "data/offering_snapshot_template.json",
+      "category": "data",
+      "bytes": 1565,
+      "sha256": "b7d48bac46a93f177eb0ee9e9757c5e4ce55c03f044c6831e2cef8c5b8bddbef"
+    },
+    {
+      "path": "data/plan_registry.json",
+      "category": "data",
+      "bytes": 14120,
+      "sha256": "04f7440ef22fd31f51e036ebeffec514680b9dfb71665c883d531724e784268d"
+    },
+    {
+      "path": "data/requirement_candidates.json",
+      "category": "data",
+      "bytes": 43814,
+      "sha256": "4dcd530a1b8439edd1d00d9dbcdeb212f31ff55728dca62e0ceabab295822a67"
+    },
+    {
+      "path": "data/source_issues.json",
+      "category": "data",
+      "bytes": 14489,
+      "sha256": "88a535f5d39b2a71cc4432dfc3949cb6d420210402dc2463e8e9de1e48d56995"
+    },
+    {
+      "path": "sources/business_analytics_2026.pdf",
+      "category": "sources",
+      "bytes": 364828,
+      "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e"
+    },
+    {
+      "path": "sources/course_slides.pdf",
+      "category": "sources",
+      "bytes": 7858673,
+      "sha256": "567a4becf36d428af631cd17d2548b46190385c6f37f6ebed0e34f335868cb44"
+    },
+    {
+      "path": "sources/journalism_2026.pdf",
+      "category": "sources",
+      "bytes": 648434,
+      "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b"
+    },
+    {
+      "path": "sources/materials_2026.pdf",
+      "category": "sources",
+      "bytes": 454900,
+      "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f"
+    }
+  ]
+}

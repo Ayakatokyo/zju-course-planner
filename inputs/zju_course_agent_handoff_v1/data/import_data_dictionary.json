@@ -1,0 +1,1529 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "prepared_on": "2026-10-09",
+    "data_kind": "proposed_import_data_dictionary",
+    "page_numbering": "PDF物理页码，从1开始",
+    "official_current_version_confirmed": false,
+    "user_applicability_confirmed": false,
+    "scope_note": "来源为用户上传的2026级培养方案；上传和文字核对不等于已确认当前官方生效版本，也不等于已确认适用于某一学生。"
+  },
+  "implementation_status": "field_design_only_not_school_api_schema",
+  "entity_count": 11,
+  "global_conventions": {
+    "unknowns": "未提供值用null并配合field_states；unknown不等于false、0、无先修或无冲突。",
+    "field_state_enum": [
+      "known",
+      "unknown",
+      "not_provided",
+      "not_applicable",
+      "pending_verification",
+      "conflicting"
+    ],
+    "identifiers": "内部键与原始学校标识分开；课程号保持字符串，不按近似名称合并。",
+    "credit_units": "credits、hours、points、course_count分别建模。",
+    "candidate_rule_execution": "23条培养规则全部待人工审核，不能作为已生效官方规则自动执行。",
+    "week_semantics": "真实周集合须与学年、学季和校历版本对应；单双周不得只用区间近似。",
+    "official_vs_candidates": "正式课表与备选志愿分开；先判断组和状态，再对可能同时生效的教学班做冲突检查。",
+    "raw_status_preservation": "保留官方页面原始状态；拟议归一枚举需通过实际来源核验，不宣称是学校API枚举。",
+    "data_minimization": "不需要密码、Cookie、账户凭据或带身份/会话参数的链接；本包无个人真实学业数据。",
+    "evidence": "源文件名+SHA256+PDF页码，或脱敏来源+快照ID+原文；生成解释与事实来源分开。"
+  },
+  "support_types": {
+    "SourceReference": {
+      "fields": {
+        "file_name": "string|null",
+        "sha256": "string|null",
+        "pdf_pages": "array<positive integer>|null",
+        "excerpt": "string|null",
+        "snapshot_id": "string|null",
+        "locator_redacted": "string|null"
+      },
+      "note": "网页来源只保存不含身份与会话信息的定位；文件页码按PDF物理页。"
+    },
+    "ConstraintResult": {
+      "fields": {
+        "rule_id": "string",
+        "result": "pass|fail|unknown",
+        "reason": "string",
+        "source_refs": "array<SourceReference>"
+      }
+    },
+    "CreditAllocation": {
+      "fields": {
+        "academic_record_id": "string",
+        "requirement_id": "string",
+        "allocated_credits": "number",
+        "allocation_status": "pending|approved"
+      }
+    }
+  },
+  "design_reference": {
+    "title": "浙江大学选课操作手册",
+    "evidence_used": [
+      "PDF第6页：非通识同课程多班志愿；通识按上课时间组织多班志愿。",
+      "PDF第8页：区分已选上和待定。"
+    ],
+    "public_url": "https://zdbk.zju.edu.cn/jwglxt/zjdxFilemgr/file_download.html?uid=569CF3B93BFFD98CE0632AB3CA0A55C6",
+    "reference_scope": "仅用于志愿组与状态的概念设计；学校实际字段、阶段规则和状态映射需从真实数据核验。"
+  },
+  "entities": [
+    {
+      "entity_name": "Course",
+      "primary_key": [
+        "course_id"
+      ],
+      "purpose": "课程定义；与培养方案归属映射及真实开课教学班分开。",
+      "fields": [
+        {
+          "name": "course_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部稳定主键，不冒充学校API ID。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "institution_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "学校内部标识。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "course_code",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "学校课程号，保留前导零；作为精确匹配依据。",
+          "value_source": "培养方案或课程资料"
+        },
+        {
+          "name": "course_name",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "去除脚注标记后的正式课程名称。",
+          "value_source": "培养方案或课程资料"
+        },
+        {
+          "name": "course_name_raw",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "来源中的原始名称，保留可审计原文。",
+          "value_source": "原始课程行"
+        },
+        {
+          "name": "source_markers",
+          "type": "array<string>",
+          "required": false,
+          "nullable": true,
+          "description": "例如材料课程的*、**，与名称分开存储。",
+          "value_source": "原文脚注标记"
+        },
+        {
+          "name": "credits",
+          "type": "number",
+          "required": true,
+          "nullable": true,
+          "description": "课程学分；不同来源不一致时保留版本并标记冲突。",
+          "value_source": "课程资料"
+        },
+        {
+          "name": "official_course_version",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "官方课程版本标识；来源未提供则未知。",
+          "value_source": "正式课程资料"
+        },
+        {
+          "name": "offering_department",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "开课学院；不可由课程代码前缀直接猜测。",
+          "value_source": "学校课程资料"
+        },
+        {
+          "name": "category_tags",
+          "type": "array<object>|null",
+          "required": false,
+          "nullable": true,
+          "description": "官方类别、通识核心及认定标签；含来源与适用版本。",
+          "value_source": "官方课程分类/认定清单"
+        },
+        {
+          "name": "plan_memberships",
+          "type": "array<object>",
+          "required": false,
+          "nullable": true,
+          "description": "plan_id、requirement_path、credits_source、suggested_year_term_raw；同一课可关联多个方案。",
+          "value_source": "培养方案"
+        },
+        {
+          "name": "prerequisite_expression",
+          "type": "object|null",
+          "required": false,
+          "nullable": true,
+          "description": "正式先修条件、关系类型及依据；未知不是无先修。",
+          "value_source": "正式先修规则"
+        },
+        {
+          "name": "field_states",
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "description": "逐字段状态，使用全局未知值语义。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "原文件页码或脱敏页面来源、快照ID与证据。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "course_samples.json为便于查看，将Course和一条培养方案映射放在同一行。"
+      ]
+    },
+    {
+      "entity_name": "Section",
+      "primary_key": [
+        "section_id"
+      ],
+      "purpose": "某学期的一个教学班，可有多位教师及多个Meeting。",
+      "fields": [
+        {
+          "name": "section_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部教学班键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_section_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源实际教学班ID；未提供时不编造官方ID。",
+          "value_source": "真实选课数据"
+        },
+        {
+          "name": "course_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "关联课程。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "academic_year",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "真实开课学年。",
+          "value_source": "真实选课数据"
+        },
+        {
+          "name": "term_code",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "真实开课学期/学季；保留来源原值。",
+          "value_source": "真实选课数据"
+        },
+        {
+          "name": "section_name_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源教学班名称。",
+          "value_source": "真实选课数据"
+        },
+        {
+          "name": "instructors",
+          "type": "array<string>|null",
+          "required": false,
+          "nullable": true,
+          "description": "真实授课教师；null表示尚未获取。",
+          "value_source": "真实选课数据"
+        },
+        {
+          "name": "capacity",
+          "type": "integer|null",
+          "required": false,
+          "nullable": true,
+          "description": "教学班容量，未知不填0。",
+          "value_source": "采集快照"
+        },
+        {
+          "name": "available_seats",
+          "type": "integer|null",
+          "required": false,
+          "nullable": true,
+          "description": "快照时刻显示的余量；实际0与未知null区分。",
+          "value_source": "采集快照"
+        },
+        {
+          "name": "eligibility_expression",
+          "type": "object|null",
+          "required": false,
+          "nullable": true,
+          "description": "年级/专业/阶段等限选条件及证据。",
+          "value_source": "学校选课规则与页面"
+        },
+        {
+          "name": "student_key_for_status",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "以下个人选课状态的匿名学生范围；通用教学班目录中为空，正式存储可拆为学生与教学班关系表。",
+          "value_source": "经授权的本人视图"
+        },
+        {
+          "name": "official_enrollment_status_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "个人在该教学班的页面原始选课状态；缺失保留未知。",
+          "value_source": "经授权的本人选课页面"
+        },
+        {
+          "name": "official_enrollment_status",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "拟议归一状态，映射须实源验证；不是声称学校API使用这些枚举。",
+          "value_source": "由原始状态经审核映射",
+          "enum": [
+            "unknown",
+            "tentative",
+            "selected",
+            "preloaded",
+            "expired",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "official_status_mapping_version",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "已审核的状态映射版本。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "confirmed_schedule_membership",
+          "type": "boolean|null",
+          "required": false,
+          "nullable": true,
+          "description": "是否已确认纳入正式课表；未知或仅待定不能直接当选中。",
+          "value_source": "已选上/正式课表来源"
+        },
+        {
+          "name": "meeting_ids",
+          "type": "array<string>|null",
+          "required": false,
+          "nullable": true,
+          "description": "一个班可有多个上课时段或实验安排。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "snapshot_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "关联采集时刻和范围。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "field_states",
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "description": "未知、冲突等逐字段状态。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "证据来源。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "课程培养方案中无教学班和教师信息，不能用建议学期合成Section。",
+        "个人选课状态仅属于学生与教学班的关系；为表达导入视图在此列出，正式存储应按student_key与section_id关联，不能作为全体学生共用的教学班属性。",
+        "状态字段是拟议模型；人工智能基础等近似课名的不同代码不能合并。"
+      ]
+    },
+    {
+      "entity_name": "Meeting",
+      "primary_key": [
+        "meeting_id"
+      ],
+      "purpose": "教学班内的一个真实上课时段；包含明确周集合与具体日程上下文。",
+      "fields": [
+        {
+          "name": "meeting_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部时段键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "section_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "关联教学班。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "day_of_week",
+          "type": "integer|null",
+          "required": true,
+          "nullable": true,
+          "description": "星期1至7；不是建议学年或课程序号。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "period_indices",
+          "type": "array<integer>|null",
+          "required": true,
+          "nullable": true,
+          "description": "明确节次集合；不要仅用起止节次推断非连续节次。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "start_time_local",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "实际开始时间；来源未给出时须有校历节次映射才能派生。",
+          "value_source": "实际节次时间表"
+        },
+        {
+          "name": "end_time_local",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "实际结束时间。",
+          "value_source": "实际节次时间表"
+        },
+        {
+          "name": "week_numbers",
+          "type": "array<integer>|null",
+          "required": true,
+          "nullable": true,
+          "description": "经校历解释后的明确周集合；null为未知，空数组须说明含义。",
+          "value_source": "原始周次+适用校历"
+        },
+        {
+          "name": "week_pattern_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源周次原文，保留单/双周、区间等写法。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "season_codes",
+          "type": "array<string>|null",
+          "required": true,
+          "nullable": true,
+          "description": "实际秋/冬/春/夏/短学期等编码；不得用培养方案建议字段代替。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "academic_calendar_id",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "周编号所依据的校历版本；跨学季冲突判定需要。",
+          "value_source": "校历"
+        },
+        {
+          "name": "campus",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "实际上课校区。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "building_room",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "教学地点。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "attendance_mode",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源确认的线下/线上/混合模式。",
+          "value_source": "真实排课资料"
+        },
+        {
+          "name": "schedule_state",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "时间地点信息完整度。",
+          "value_source": "导入核验结果",
+          "enum": [
+            "known",
+            "unknown",
+            "not_provided",
+            "not_applicable",
+            "pending_verification",
+            "conflicting"
+          ]
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "来源证据。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "冲突需在同一校历下比较实际周集合、日期或星期与节次；缺字段则返回unknown。",
+        "校区间通勤约束需要可靠时间和用户阈值；不假定所有同日跨校区都可行或都冲突。"
+      ]
+    },
+    {
+      "entity_name": "AcademicRecord",
+      "primary_key": [
+        "record_id"
+      ],
+      "purpose": "学生课程完成与认定事实；本包仅定义字段，不含真实或模拟个人成绩。",
+      "fields": [
+        {
+          "name": "record_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "记录主键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "student_key",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "匿名内部学生键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "course_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "关联课程；非课程型活动认定可为空。",
+          "value_source": "已授权记录"
+        },
+        {
+          "name": "record_kind",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "课程、转学分、活动或其他认定。",
+          "value_source": "已授权记录",
+          "enum": [
+            "course",
+            "transfer_credit",
+            "activity",
+            "recognition"
+          ]
+        },
+        {
+          "name": "academic_year_term",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "记录所属学年学期。",
+          "value_source": "成绩或修读记录"
+        },
+        {
+          "name": "completion_status",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "通过/未通过/在修/未修/未知，不能从报名推断通过。",
+          "value_source": "实际学业记录",
+          "enum": [
+            "passed",
+            "failed",
+            "in_progress",
+            "not_taken",
+            "unknown"
+          ]
+        },
+        {
+          "name": "recognition_status",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "认定结果与课程通过状态分开。",
+          "value_source": "认定记录",
+          "enum": [
+            "not_applicable",
+            "pending",
+            "recognized",
+            "rejected",
+            "unknown"
+          ]
+        },
+        {
+          "name": "grade_raw",
+          "type": "string|number|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源成绩；可选，按需求最小化导入。",
+          "value_source": "实际学业记录"
+        },
+        {
+          "name": "earned_credits",
+          "type": "number|null",
+          "required": false,
+          "nullable": true,
+          "description": "实际已获得且认可的学分。",
+          "value_source": "正式学业记录"
+        },
+        {
+          "name": "recognized_hours",
+          "type": "number|null",
+          "required": false,
+          "nullable": true,
+          "description": "劳动教育等已认定学时，与学分分开。",
+          "value_source": "认定记录"
+        },
+        {
+          "name": "classroom_points",
+          "type": "number|null",
+          "required": false,
+          "nullable": true,
+          "description": "第二/三课堂记点，与学分分开。",
+          "value_source": "活动认定记录"
+        },
+        {
+          "name": "recognition_tags",
+          "type": "array<object>|null",
+          "required": false,
+          "nullable": true,
+          "description": "美育等认定标签及其版本。",
+          "value_source": "认定记录"
+        },
+        {
+          "name": "credit_allocations",
+          "type": "array<object>|null",
+          "required": false,
+          "nullable": true,
+          "description": "requirement_id与分配学分；多标签满足和实际学分分账。",
+          "value_source": "审核后的分配规则"
+        },
+        {
+          "name": "attempt_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "课程修读次数或考试尝试的标识，避免重复计算。",
+          "value_source": "实际学业记录"
+        },
+        {
+          "name": "snapshot_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "记录来源快照。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "证据。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "entity_name": "CurriculumRequirement",
+      "primary_key": [
+        "rule_id"
+      ],
+      "purpose": "带适用范围、版本和证据的培养约束；本包23条均为待审核候选。",
+      "fields": [
+        {
+          "name": "rule_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "规则内部主键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "plan_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "关联培养方案。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "parent_rule_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "规则层级；父子学分不重复加总。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "rule_type",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "额度、门数、任选、条件、认定、路径或建议等拟议分类。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "applicability_expression",
+          "type": "object|null",
+          "required": false,
+          "nullable": true,
+          "description": "年级、项目、方向、外语层次等适用条件。",
+          "value_source": "正式规则"
+        },
+        {
+          "name": "candidate_expression",
+          "type": "object",
+          "required": true,
+          "nullable": false,
+          "description": "可审阅的候选结构表达，不等于已上线约束代码。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "hardness",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "经审核区分硬性要求、修读建议、未确认。",
+          "value_source": "原文+审核",
+          "enum": [
+            "hard",
+            "advisory",
+            "unconfirmed"
+          ]
+        },
+        {
+          "name": "course_pool",
+          "type": "array<string>|null",
+          "required": false,
+          "nullable": true,
+          "description": "适用课程号或带来源的课程池定义。",
+          "value_source": "官方课程池"
+        },
+        {
+          "name": "threshold_unit",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "学分、门、学时、记点或其他；不同单位不可混算。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "草稿候选、审核通过、退回、过期等规则生命周期。",
+          "value_source": "项目审核",
+          "enum": [
+            "candidate_pending_human_review",
+            "approved",
+            "rejected",
+            "superseded"
+          ]
+        },
+        {
+          "name": "human_review_required",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "description": "本包全部true。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "enforce_automatically",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "description": "本包全部false；只有另行审核发布才可改变。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "effective_version",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "确认生效的规则版本，未知为空。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_quotes",
+          "type": "array<string>",
+          "required": true,
+          "nullable": false,
+          "description": "保留原文片段，与解释区分。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "原文页码与哈希证据。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "linked_issue_ids",
+          "type": "array<string>|null",
+          "required": false,
+          "nullable": true,
+          "description": "依赖的来源差异与缺失信息。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "entity_name": "StudentProfile",
+      "primary_key": [
+        "student_key"
+      ],
+      "purpose": "学生主动确认的身份范围与规划条件；本包不含个人实例。",
+      "fields": [
+        {
+          "name": "student_key",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "匿名内部键，无需真实学号。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "university",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "学生确认的学校。",
+          "value_source": "学生确认"
+        },
+        {
+          "name": "cohort",
+          "type": "integer|null",
+          "required": true,
+          "nullable": true,
+          "description": "入学年级，不能由网站参数猜测。",
+          "value_source": "学生确认或教务资料"
+        },
+        {
+          "name": "major_or_program",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "专业或双学位项目。",
+          "value_source": "学生确认或教务资料"
+        },
+        {
+          "name": "plan_id",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "经确认适用的培养方案。",
+          "value_source": "匹配并核验"
+        },
+        {
+          "name": "plan_binding_status",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "未确认、学生确认、教务资料核验等。",
+          "value_source": "核验结果",
+          "enum": [
+            "unknown",
+            "student_confirmed",
+            "official_record_verified"
+          ]
+        },
+        {
+          "name": "specialization",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "专业方向。",
+          "value_source": "学生确认或教务资料"
+        },
+        {
+          "name": "individualized_path",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "个性修读路径；未选或待确认保持未知。",
+          "value_source": "学生确认或教务资料"
+        },
+        {
+          "name": "language_level",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "外语L1/L2/L3，未知时不默认。",
+          "value_source": "正式分层记录",
+          "enum": [
+            "L1",
+            "L2",
+            "L3",
+            "unknown"
+          ]
+        },
+        {
+          "name": "target_term",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "本次选课目标学期，应由学生明确。",
+          "value_source": "学生输入"
+        },
+        {
+          "name": "current_campus",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "用于通勤规划的校区。",
+          "value_source": "学生输入"
+        },
+        {
+          "name": "academic_record_snapshot_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "经授权的修读记录快照。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "profile_field_states",
+          "type": "object",
+          "required": false,
+          "nullable": true,
+          "description": "各身份与规则输入字段的未知状态。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "confirmed_at",
+          "type": "ISO8601_datetime|null",
+          "required": false,
+          "nullable": true,
+          "description": "确认时间。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "本包不包含姓名、学号、真实成绩、身份参数或任何账户凭据。"
+      ]
+    },
+    {
+      "entity_name": "Preference",
+      "primary_key": [
+        "preference_id"
+      ],
+      "purpose": "学生对课程与时间的偏好，与学校硬规则分开。",
+      "fields": [
+        {
+          "name": "preference_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "偏好内部键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "student_key",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "关联匿名学生。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "target_term",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "偏好适用学期。",
+          "value_source": "学生输入"
+        },
+        {
+          "name": "dimension",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "如兴趣主题、学分范围、空闲日、校区、上课时段。",
+          "value_source": "学生输入"
+        },
+        {
+          "name": "value",
+          "type": "any",
+          "required": true,
+          "nullable": true,
+          "description": "偏好值或明确结构。",
+          "value_source": "学生输入"
+        },
+        {
+          "name": "hardness",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "学生确认的硬限制或可让步偏好；不可静默把学校硬规则降为软偏好。",
+          "value_source": "学生确认",
+          "enum": [
+            "hard",
+            "soft",
+            "needs_confirmation"
+          ]
+        },
+        {
+          "name": "weight",
+          "type": "number|null",
+          "required": false,
+          "nullable": true,
+          "description": "仅软偏好排序时使用的权重，需说明来源。",
+          "value_source": "学生输入或公开默认设定"
+        },
+        {
+          "name": "raw_user_statement",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "用户原始表达，用于核实转译。",
+          "value_source": "用户对话"
+        },
+        {
+          "name": "confirmed",
+          "type": "boolean",
+          "required": true,
+          "nullable": false,
+          "description": "该偏好是否经用户确认。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "revision",
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "description": "偏好修订序号。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "entity_name": "Snapshot",
+      "primary_key": [
+        "snapshot_id"
+      ],
+      "purpose": "一次可追溯的数据采集或导入，记录时间、范围与完整性。",
+      "fields": [
+        {
+          "name": "snapshot_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部快照键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_kind",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "授权页面、人工导出、上传PDF等。",
+          "value_source": "采集记录"
+        },
+        {
+          "name": "captured_at",
+          "type": "ISO8601_datetime|null",
+          "required": true,
+          "nullable": true,
+          "description": "真实采集时间；模板没有采集则null，不用包制作时间替代。",
+          "value_source": "实际采集事件"
+        },
+        {
+          "name": "timezone",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "时间戳时区，教学时间通常需Asia/Shanghai但应明示。",
+          "value_source": "采集或校历"
+        },
+        {
+          "name": "academic_year",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "采集数据所属学年。",
+          "value_source": "来源页面/文件"
+        },
+        {
+          "name": "term_code",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "采集数据所属实际学期。",
+          "value_source": "来源页面/文件"
+        },
+        {
+          "name": "selection_stage_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源中的选课阶段原文。",
+          "value_source": "真实页面"
+        },
+        {
+          "name": "filter_scope",
+          "type": "object|null",
+          "required": true,
+          "nullable": true,
+          "description": "院系、课程类别、关键词、校区、分页等实际筛选条件；缺失不可声称全量。",
+          "value_source": "采集参数与页面"
+        },
+        {
+          "name": "pagination_state",
+          "type": "object|null",
+          "required": false,
+          "nullable": true,
+          "description": "已读页数、总页数（若可知）、是否结束。",
+          "value_source": "真实采集过程"
+        },
+        {
+          "name": "completeness",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "模板无数据、范围内完整、部分、未知。",
+          "value_source": "导入核验",
+          "enum": [
+            "awaiting_import",
+            "complete_within_scope",
+            "partial",
+            "unknown"
+          ]
+        },
+        {
+          "name": "available_count",
+          "type": "integer",
+          "required": true,
+          "nullable": false,
+          "description": "本次已取得的记录数量，不是学校课程总量或余量。",
+          "value_source": "导入计数"
+        },
+        {
+          "name": "source_locator_redacted",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "无身份/会话参数的来源定位；不得保存Cookie或凭据。",
+          "value_source": "脱敏来源定位"
+        },
+        {
+          "name": "file_sha256",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "文件导入时的SHA256。",
+          "value_source": "实际文件内容"
+        },
+        {
+          "name": "import_warnings",
+          "type": "array<string>",
+          "required": false,
+          "nullable": true,
+          "description": "字段缺失、冲突或解析警告。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "entity_name": "Recommendation",
+      "primary_key": [
+        "recommendation_id"
+      ],
+      "purpose": "带约束检查、证据、解释和待确认项的选课草案。",
+      "fields": [
+        {
+          "name": "recommendation_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部推荐主键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "student_key",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "匿名用户。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "plan_id",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "已确认的适用方案。",
+          "value_source": "用户方案绑定"
+        },
+        {
+          "name": "target_term",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "目标学期，不凭当前日期自动填入。",
+          "value_source": "学生确认"
+        },
+        {
+          "name": "section_ids",
+          "type": "array<string>",
+          "required": true,
+          "nullable": false,
+          "description": "草案中的具体教学班；缺真实开课时不能填造。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "wish_group_ids",
+          "type": "array<string>|null",
+          "required": false,
+          "nullable": true,
+          "description": "备选志愿组，不等同于所有班都已加入正式课表。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "constraint_results",
+          "type": "array<object>",
+          "required": true,
+          "nullable": false,
+          "description": "每项规则的pass/fail/unknown、证据、版本及失败原因。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "conflict_checks",
+          "type": "array<object>",
+          "required": true,
+          "nullable": false,
+          "description": "区分正式课表冲突与备选组合可行性；保留unknown。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "preference_scores",
+          "type": "array<object>|null",
+          "required": false,
+          "nullable": true,
+          "description": "软偏好得分及权重来源。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "credit_allocation",
+          "type": "array<object>|null",
+          "required": false,
+          "nullable": true,
+          "description": "所用课程学分的归属，避免重复累计。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "explanation",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "面向学生的解释及来源。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "open_issues",
+          "type": "array<string>",
+          "required": true,
+          "nullable": false,
+          "description": "缺少的资料或待确认条件。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_snapshot_ids",
+          "type": "array<string>",
+          "required": true,
+          "nullable": false,
+          "description": "使用的教学班/学业记录快照ID。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "rule_version_ids",
+          "type": "array<string>",
+          "required": true,
+          "nullable": false,
+          "description": "使用的已审核规则版本。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "草案、待确认、已确认、失效；不是报名结果。",
+          "value_source": "系统状态",
+          "enum": [
+            "draft",
+            "needs_information",
+            "user_confirmed",
+            "stale"
+          ]
+        },
+        {
+          "name": "created_at",
+          "type": "ISO8601_datetime",
+          "required": true,
+          "nullable": false,
+          "description": "草案生成时间。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "本包没有真实教学班，因此不提供任何个体Recommendation实例或声称可提交的课表。"
+      ]
+    },
+    {
+      "entity_name": "WishGroup",
+      "primary_key": [
+        "wish_group_id"
+      ],
+      "purpose": "一组备选志愿的容器，保留组织依据与选课阶段。",
+      "fields": [
+        {
+          "name": "wish_group_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部志愿组键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "student_key",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "匿名学生。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "target_term",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "实际目标学期。",
+          "value_source": "真实选课页面/学生确认"
+        },
+        {
+          "name": "selection_stage_raw",
+          "type": "string|null",
+          "required": true,
+          "nullable": true,
+          "description": "来源选课阶段。",
+          "value_source": "真实选课页面"
+        },
+        {
+          "name": "group_type",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "拟议归类：非通识同课程多班、通识按上课时间组织、其他或未知；映射须核验。",
+          "value_source": "手册语义及真实来源",
+          "enum": [
+            "same_course_sections",
+            "general_education_time_group",
+            "other",
+            "unknown"
+          ]
+        },
+        {
+          "name": "grouping_basis_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源中的课程或上课时间组织依据原文。",
+          "value_source": "真实选课页面"
+        },
+        {
+          "name": "wish_item_ids",
+          "type": "array<string>",
+          "required": true,
+          "nullable": false,
+          "description": "组内备选项及顺序。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "selection_limit",
+          "type": "integer|null",
+          "required": false,
+          "nullable": true,
+          "description": "该组可中选数量或互斥规则；未知不擅定。",
+          "value_source": "阶段规则"
+        },
+        {
+          "name": "source_snapshot_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "对应选课快照。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "手册与页面证据。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "官方手册第6页支持区分两类志愿组织方式，但此字段结构不是学校API。",
+        "不能把组内互斥备选班全当已选课程做正式课表冲突判断。"
+      ]
+    },
+    {
+      "entity_name": "WishItem",
+      "primary_key": [
+        "wish_item_id"
+      ],
+      "purpose": "志愿组中的一个候选教学班、排序和状态。",
+      "fields": [
+        {
+          "name": "wish_item_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "内部志愿项键。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "wish_group_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "所属志愿组。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "section_id",
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "对应真实教学班。",
+          "value_source": "导入教学班"
+        },
+        {
+          "name": "rank",
+          "type": "integer|null",
+          "required": false,
+          "nullable": true,
+          "description": "来源志愿顺序；不知道时保留未知，不能假装已提交排序。",
+          "value_source": "真实页面/用户草案"
+        },
+        {
+          "name": "selection_stage_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "此项适用选课阶段。",
+          "value_source": "真实页面"
+        },
+        {
+          "name": "official_enrollment_status_raw",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "页面原始状态。",
+          "value_source": "本人经授权选课页面"
+        },
+        {
+          "name": "official_enrollment_status",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "拟议归一状态，映射未验证时unknown。",
+          "value_source": "审核后的状态映射",
+          "enum": [
+            "unknown",
+            "tentative",
+            "selected",
+            "preloaded",
+            "expired",
+            "cancelled"
+          ]
+        },
+        {
+          "name": "is_submitted",
+          "type": "boolean|null",
+          "required": false,
+          "nullable": true,
+          "description": "是否实际提交学校；草案不等于提交。",
+          "value_source": "实际操作结果"
+        },
+        {
+          "name": "confirmed_schedule_membership",
+          "type": "boolean|null",
+          "required": false,
+          "nullable": true,
+          "description": "是否已确认属于正式课表。",
+          "value_source": "已选上/正式课表证据"
+        },
+        {
+          "name": "status_snapshot_id",
+          "type": "string|null",
+          "required": false,
+          "nullable": true,
+          "description": "状态采集快照。",
+          "value_source": "拟议系统内部字段"
+        },
+        {
+          "name": "source_refs",
+          "type": "array<SourceReference>",
+          "required": true,
+          "nullable": false,
+          "description": "来源证据。",
+          "value_source": "拟议系统内部字段"
+        }
+      ],
+      "notes": [
+        "官方手册第8页区分已选上与待定；状态未证实时不声称已经选上。"
+      ]
+    }
+  ]
+}

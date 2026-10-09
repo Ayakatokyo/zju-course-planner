@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "prepared_on": "2026-10-09",
+    "data_kind": "empty_offering_snapshot_template",
+    "page_numbering": "PDF物理页码，从1开始",
+    "official_current_version_confirmed": false,
+    "user_applicability_confirmed": false,
+    "scope_note": "来源为用户上传的2026级培养方案；上传和文字核对不等于已确认当前官方生效版本，也不等于已确认适用于某一学生。"
+  },
+  "status": "awaiting_import",
+  "snapshot_id": null,
+  "source_kind": null,
+  "captured_at": null,
+  "timezone": null,
+  "academic_year": null,
+  "term_code": null,
+  "selection_stage_raw": null,
+  "filter_scope": null,
+  "pagination_state": null,
+  "completeness": "awaiting_import",
+  "available_count": 0,
+  "records": [],
+  "wish_groups": [],
+  "wish_items": [],
+  "count_meaning": "available_count是本样本包已取得的真实教学班记录数，不是学校开课数或余量；当前为0。",
+  "unknown_fields_policy": "教师、周次、星期、节次、校区、容量、余量、开课学期等未取得，不生成占位事实。",
+  "next_import_requirements": [
+    "目标学年与学期",
+    "实际采集时间和筛选范围",
+    "真实教学班及课程号",
+    "实际教学时段与校历解释",
+    "数据覆盖范围与分页状态",
+    "若导入本人志愿：原始选课状态、志愿组与排序"
+  ],
+  "source_locator_redacted": null,
+  "import_warnings": [
+    "尚无当前学期真实教学班；培养方案建议学期不能代替开课数据。"
+  ]
+}

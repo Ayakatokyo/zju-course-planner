@@ -1,0 +1,377 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "prepared_on": "2026-10-09",
+    "data_kind": "source_differences_and_missing_evidence",
+    "page_numbering": "PDF物理页码，从1开始",
+    "official_current_version_confirmed": false,
+    "user_applicability_confirmed": false,
+    "scope_note": "来源为用户上传的2026级培养方案；上传和文字核对不等于已确认当前官方生效版本，也不等于已确认适用于某一学生。"
+  },
+  "record_count": 12,
+  "issue_policy": "差异和信息缺口不是自动判定源文件错误；对依赖缺失信息的结论标为待确认。",
+  "records": [
+    {
+      "issue_id": "SRC-001",
+      "title": "新闻学个性修读总标题15与进阶模块16的差异",
+      "plan_ids": [
+        "zju_journalism_2026"
+      ],
+      "status": "needs_policy_confirmation_not_declared_error",
+      "evidence": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            7
+          ],
+          "excerpt": "四、个性修读课程 15学分；1)本专业进阶模块 16学分。该分支列8门各2学分课程。"
+        }
+      ],
+      "impact": "进阶路径的实际最低要求未能由总标题唯一确定，不能替用户选取15或16作为正式阈值。",
+      "proposed_resolution": "请教务或方案负责人解释路径要求及超额学分计入方式；保留原始两个数字和来源。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-002",
+      "title": "新闻学CS1243G课程性质在主表与指导性计划中存在差异",
+      "plan_ids": [
+        "zju_journalism_2026"
+      ],
+      "status": "needs_policy_confirmation_not_declared_error",
+      "evidence": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "CS1243G 人工智能基础（C）列于通识必修课程之计算机类，2学分。"
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            10
+          ],
+          "excerpt": "指导性计划中CS1243G 人工智能基础（C），备注为选修。"
+        }
+      ],
+      "impact": "不能仅凭任一位置自动判定该课的强制性；会影响缺课检查。",
+      "proposed_resolution": "保留两处证据，核对适用版本及教务解释后发布课程性质；不擅改源文件。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-003",
+      "title": "外语分层与模块总量的差额计入规则未提供",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "external_policy_missing",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "L1应修6学分，L2应修4.5学分，L3应修3学分。"
+        },
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "外语类3-6学分；通识必修课程58学分。"
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "外语类3-6学分；通识必修课程33.5学分。"
+        }
+      ],
+      "impact": "学生层次未知时不能固定外语学分，也不能推定差额直接提高毕业总额或自动挤占通识选修。",
+      "proposed_resolution": "补充学生适用外语层次及《浙江大学本科生外语类通识课程修读管理办法》对应版本。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-004",
+      "title": "商务双学位统计学相关平均绩点门槛未提供",
+      "plan_ids": [
+        "zju_business_big_data_2026"
+      ],
+      "status": "threshold_and_course_set_missing",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            1
+          ],
+          "excerpt": "如果与统计学相关专业课程的平均绩点未达到要求，学生将退出本双学位项目。"
+        }
+      ],
+      "impact": "无法判定双学位继续资格；不能编造阈值或统计学课程集合。",
+      "proposed_resolution": "取得项目正式门槛、课程集合、计算办法和适用年级。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-005",
+      "title": "认定型课程清单及学生认定记录未提供",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "official_lists_and_records_missing",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6,
+            7
+          ],
+          "excerpt": "美育2学分、劳动教育32学时、创新创业2学分、心理健康2学分，均引用本科生院课程清单。"
+        },
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            8
+          ]
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            8
+          ]
+        }
+      ],
+      "impact": "不能根据课名直接认定美育、劳动教育、创新创业或心理健康达标；学时与学分须分开。",
+      "proposed_resolution": "按适用版本补充官方课程标签清单及经授权的个人认定状态。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-006",
+      "title": "上传版本及学生适用培养方案尚未确认",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "current_official_version_and_applicability_unconfirmed",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            1
+          ]
+        },
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            1
+          ]
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            1
+          ]
+        }
+      ],
+      "impact": "三份均为2026级示例，不能自动绑定到当前对话学生，也不能证明是当前官方生效版本。",
+      "proposed_resolution": "以学生确认及可核验的教务培养方案版本匹配，保留来源SHA256及版本状态。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-007",
+      "title": "当前学期真实教学班尚未取得",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "awaiting_import",
+      "evidence": [],
+      "impact": "本包当前实际教学班0，无法判断实时可选性、教师、课程冲突、余量或形成可提交的正式选课方案。",
+      "proposed_resolution": "导入经授权页面或导出的真实数据；记录采集时间、学期、页面筛选范围和完整性。不得用培养方案建议学期补造开课。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-008",
+      "title": "商务个性修读路径间的选择和混修办法未完整说明",
+      "plan_ids": [
+        "zju_business_big_data_2026"
+      ],
+      "status": "path_policy_missing",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "顶层个性修读课程15学分，下设本专业进阶、跨专业学习、学生自主修读三个15学分模块。"
+        }
+      ],
+      "impact": "不能加成45学分，也不能自行增加无条件三选一或自由混修规定。",
+      "proposed_resolution": "核对路径选择规则、跨路径学分归属及替代办法。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-009",
+      "title": "新闻学专业方向的混选与替代细则未说明",
+      "plan_ids": [
+        "zju_journalism_2026"
+      ],
+      "status": "direction_policy_missing",
+      "evidence": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "专业方向课程15学分，国际新闻与传播15学分，数字新闻15学分。"
+        }
+      ],
+      "impact": "无法假定任意跨方向课程都可计入同一方向，也不能强制两方向都修。",
+      "proposed_resolution": "取得学生已选方向及方向调整、跨选、替代认定细则。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-010",
+      "title": "先修、选课资格、校区与排课字段不能由修读建议推出",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "operational_data_missing",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4,
+            5,
+            6,
+            12
+          ],
+          "excerpt": "建议学年学期及课程修读示意图"
+        },
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3,
+            6
+          ]
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            5,
+            7
+          ]
+        }
+      ],
+      "impact": "建议顺序不能当强制先修条件；具体资格及冲突判断缺少教学班数据时应返回未知。",
+      "proposed_resolution": "从适用学期选课资料补充正式先修、限选条件、教学班及明确周次/星期/节次。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-011",
+      "title": "同课的多条件满足与学分归属需要分别处理",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "credit_allocation_policy_needs_review",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4,
+            6
+          ],
+          "excerpt": "通识核心允许交叉满足；认定型美育可使用部分通识课程。"
+        },
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "多修读的模块课程可作为个性课程学分。"
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "核心课程可同时满足第2）或3）项要求。"
+        }
+      ],
+      "impact": "多标签满足不等于实际学分重复累加；超额学分分配和课程替代不能由语义相似度决定。",
+      "proposed_resolution": "保存课程完成事实、标签满足事实与学分分配记录；对分配办法进行审核。",
+      "resolved_automatically": false
+    },
+    {
+      "issue_id": "SRC-012",
+      "title": "近似课名的课程不能合并为同一课程",
+      "plan_ids": [
+        "zju_business_big_data_2026",
+        "zju_materials_science_engineering_2026",
+        "zju_journalism_2026"
+      ],
+      "status": "identity_mapping_requires_exact_codes",
+      "evidence": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1001G C程序设计基础及实验 4学分"
+        },
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1002G C程序设计基础 3学分"
+        },
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            4,
+            5
+          ],
+          "excerpt": "CS1243G 人工智能基础（C）与CS0400G 人工智能初步为不同课程代码。"
+        }
+      ],
+      "impact": "按名称近似匹配会错误合并课程、学分和必修替代关系。",
+      "proposed_resolution": "先按学校+课程代码匹配，名称用于辅助检索；无正式等价认定时不自动替代。",
+      "resolved_automatically": false
+    }
+  ]
+}

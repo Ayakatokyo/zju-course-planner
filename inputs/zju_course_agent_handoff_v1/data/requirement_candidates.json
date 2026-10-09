@@ -1,0 +1,1102 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "prepared_on": "2026-10-09",
+    "data_kind": "candidate_curriculum_requirements",
+    "page_numbering": "PDF物理页码，从1开始",
+    "official_current_version_confirmed": false,
+    "user_applicability_confirmed": false,
+    "scope_note": "来源为用户上传的2026级培养方案；上传和文字核对不等于已确认当前官方生效版本，也不等于已确认适用于某一学生。"
+  },
+  "record_count": 23,
+  "count_by_plan": {
+    "zju_business_big_data_2026": 15,
+    "zju_materials_science_engineering_2026": 4,
+    "zju_journalism_2026": 4
+  },
+  "execution_policy": "全部为候选规则，须经教务或项目规则审核后发布正式版本；本样本不自动执行、不输出正式毕业资格结论。",
+  "coverage_note": "商务15条、材料4条、新闻4条，均为代表性样本，不等于完整培养要求。",
+  "records": [
+    {
+      "rule_id": "BDA26-R01",
+      "title": "适用范围与双学位毕业基本条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        1
+      ],
+      "source_quotes": [
+        "2026级商务大数据分析（信息管理与信息系统-统计学）专业培养方案",
+        "学生在完成本双学位专业必修课程，总学分不低于168+8，并完成一篇能体现两个专业交叉的毕业论文后方可获得信息管理与信息系统和统计学双学士学位。",
+        "如果与统计学相关专业课程的平均绩点未达到要求，学生将退出本双学位项目，转入管理学院信息管理与信息系统专业普通项目。"
+      ],
+      "candidate_expression": {
+        "applies_to_cohort": 2026,
+        "applies_to_program": "商务大数据分析（信息管理与信息系统-统计学）",
+        "minimum_credits_raw": "168+8",
+        "complete_required_curriculum": true,
+        "interdisciplinary_thesis_required": true,
+        "statistics_course_gpa_threshold": null
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "168与+8分别建账；不能仅以总和176达标就判定毕业。",
+        "上传方案是2026级，不自动适用于其他年级、转专业或退出双学位后的学生。",
+        "平均绩点门槛未给出，相关课程集合也未完整定义，必须补充适用规则后方可判断。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            1
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R02",
+      "title": "主模块与子模块学分结构",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "source_quotes": [
+        "一、通识课程 60.5学分",
+        "1.通识必修课程 50学分",
+        "2.通识选修课程 10.5学分",
+        "二、专业基础课程 12学分",
+        "三、专业课程 80.5学分",
+        "(1)专业必修课程 53学分",
+        "(2)专业选修课程 12.5学分",
+        "(3)实践教学环节 9学分",
+        "(4)毕业论文（设计） 6学分",
+        "四、个性修读课程 15学分",
+        "六、第二课堂 +4学分",
+        "七、第三课堂 +2学分",
+        "八、第四课堂 +2学分"
+      ],
+      "candidate_expression": {
+        "base_modules": {
+          "通识课程": 60.5,
+          "专业基础课程": 12,
+          "专业课程": 80.5,
+          "个性修读课程": 15
+        },
+        "general_submodules": {
+          "通识必修课程": 50,
+          "通识选修课程": 10.5
+        },
+        "major_submodules": {
+          "专业必修课程": 53,
+          "专业选修课程": 12.5,
+          "实践教学环节": 9,
+          "毕业论文（设计）": 6
+        },
+        "extra_classroom_credits": {
+          "第二课堂": 4,
+          "第三课堂": 2,
+          "第四课堂": 2
+        },
+        "base_modules_sum": 168,
+        "extra_classroom_credits_sum": 8
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "这些是不同层级的同一学分结构，父节点和子节点不能重复相加。",
+        "第3页外语要求随层次变化，不能把通识必修50解释为所有学生明细固定相同；应补充层次对应办法和差额计入规则。",
+        "认定型学分条件独立检查，不能将其标题列出的学分再次机械叠加到168+8。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R03",
+      "title": "思政选择性必修至少2学分",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        3
+      ],
+      "source_quotes": [
+        "在思政类“选择性必修课程”中至少修读2学分，建议一年级、二年级学生修读。"
+      ],
+      "candidate_expression": {
+        "category": "思政类/选择性必修课程",
+        "minimum_credits": 2,
+        "suggested_years": [
+          1,
+          2
+        ]
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "至少2学分为要求，建议一年级/二年级为修读建议，不应误作只能在前两年选课的限制。",
+        "需补充当期思政选择性必修课程清单。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R04",
+      "title": "体育选修6学分及时间要求",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        3
+      ],
+      "source_quotes": [
+        "学生应于前三年在体育课中选修6学分。详见《浙江大学本科生体育课程修读办法》。"
+      ],
+      "candidate_expression": {
+        "category": "体育选修",
+        "credits": 6,
+        "finish_by_end_of_year": 3
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "需取得体育课程修读办法，确认重修、免修与同类项目限制；不将0.5学分体测与锻炼Ⅰ代替本条6学分。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R05",
+      "title": "外语分层学分要求",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        3
+      ],
+      "source_quotes": [
+        "外语类课程实行阶梯式学分修读要求，根据学生英语能力由低到高划分为L1、L2、L3三个层次，L1应修6学分，L2应修4.5学分，L3应修3学分。",
+        "各层次具体修读要求详见《浙江大学本科生外语类通识课程修读管理办法》。"
+      ],
+      "candidate_expression": {
+        "conditional_credit_minimum": {
+          "L1": 6,
+          "L2": 4.5,
+          "L3": 3
+        },
+        "student_language_level_required": true
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "未知学生英语层次时不能假定L3，也不能只按50学分总标题推断个人外语需求。",
+        "具体课程组合、免修、差额学分处理需另取得管理办法；本PDF不能独立完成最终判断。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R06",
+      "title": "通识选修门数、类别及交叉满足",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        4
+      ],
+      "source_quotes": [
+        "若1）项所修课程同时也属于第2）或3）项，则该课程也可同时满足第2）或3）项要求。",
+        "1)至少修读1门通识核心课程",
+        "2)至少修读1门“博雅技艺”类课程",
+        "3)理工农医学生在“中华传统”“世界文明”“当代社会”“文艺审美”四类中至少修读2门；"
+      ],
+      "candidate_expression": {
+        "minimum_general_core_courses": 1,
+        "minimum_boya_arts_courses": 1,
+        "conditional_humanities_count": {
+          "if_student_group_in": [
+            "理",
+            "工",
+            "农",
+            "医"
+          ],
+          "in_categories": [
+            "中华传统",
+            "世界文明",
+            "当代社会",
+            "文艺审美"
+          ],
+          "minimum_courses": 2
+        },
+        "one_course_can_satisfy_core_and_matching_category_count": true,
+        "duplicate_credit_award_from_tag_overlap": false
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "一门课程可满足多个类别条件，不意味着它的实际学分在总学分中计两遍。",
+        "条件中的理工农医属性须按学校对该双学位项目的适用认定核实，不能只因含统计学自行分类。",
+        "需要学校通识课程分类及核心课程标记清单；课程名称不能可靠替代官方分类。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R07",
+      "title": "个性修读15学分及路径相关规则",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        6
+      ],
+      "source_quotes": [
+        "四、个性修读课程 15学分",
+        "1)本专业进阶模块 15学分",
+        "2)跨专业学习模块 15学分",
+        "若修读的微辅修项目要求学分不足15学分，不足部分可用本专业“专业课程”或“本专业进阶模块”中的课程补足。",
+        "3)学生自主修读模块 15学分",
+        "其中，通识选修课程不得多于2学分，并需至少修读1门由其他学院开设的课程类别为“专业基础课程”或“专业课程”且不在本专业培养方案内的课程。"
+      ],
+      "candidate_expression": {
+        "parent_required_credits": 15,
+        "listed_paths": [
+          "本专业进阶模块",
+          "跨专业学习模块",
+          "学生自主修读模块"
+        ],
+        "path_selection_policy": "needs_confirmation; do_not_add_three_paths",
+        "cross_major_path": {
+          "micro_minor_can_fill_shortfall_from": [
+            "本专业/专业课程",
+            "本专业进阶模块"
+          ]
+        },
+        "self_directed_path": {
+          "maximum_general_elective_credits": 2,
+          "minimum_external_courses": 1,
+          "external_course_all_conditions": [
+            "由其他学院开设",
+            "类别为专业基础课程或专业课程",
+            "不在本专业培养方案内"
+          ]
+        }
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "顶层15学分不能把下面三个15学分相加成45。原文没有完整说明跨路径混修办法，不能补写成无条件三选一或可自由混修。",
+        "自主修读路径的通识上限与跨院课程条件不能自动套用到所有路径。",
+        "同一课程在专业课程与个性修读中的学分归属、微辅修替代需审核，不因课程同时出现在候选范围就重复计分。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R08",
+      "title": "美育认定条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        6
+      ],
+      "source_quotes": [
+        "五、其他必修环节（认定型学分）",
+        "要求学生修读2学分美育类课程。可修读通识选修课程中的“文艺审美”类课程、“博雅技艺”类中艺术类课程、艺术类专业课程，详见本科生院公布的美育类课程清单。"
+      ],
+      "candidate_expression": {
+        "requirement_kind": "recognition",
+        "minimum_credits": 2,
+        "recognized_category": "美育",
+        "authoritative_course_list_required": true
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "建立美育认定标签/完成条件，不另行把2学分叠加到基础总额；同一合格课程是否同时满足通识等条件以清单和认定为依据。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R09",
+      "title": "劳动教育认定条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        6
+      ],
+      "source_quotes": [
+        "要求学生修读32学时劳动教育类课程。可修读学校设置的公共劳动平台课程或院系开设的专业实践劳动课程，详见本科生院公布的劳动教育类课程清单。"
+      ],
+      "candidate_expression": {
+        "requirement_kind": "recognition",
+        "minimum_hours": 32,
+        "recognized_category": "劳动教育",
+        "authoritative_course_list_required": true
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "单位是学时，不是32学分；课程总学时不能直接当成劳动教育认定学时。",
+        "例如名称含劳动见习并不足以自动认定全部学时，需官方清单或认定记录。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R10",
+      "title": "创新创业认定条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        7
+      ],
+      "source_quotes": [
+        "要求学生修读2学分创新创业类课程，详见本科生院公布的创新创业类课程清单。"
+      ],
+      "candidate_expression": {
+        "requirement_kind": "recognition",
+        "minimum_credits": 2,
+        "recognized_category": "创新创业",
+        "authoritative_course_list_required": true
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "需要课程清单或认定记录，不按课程名字自行标注；不能另行把2学分重复加入168+8。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            7
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R11",
+      "title": "心理健康认定条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        7
+      ],
+      "source_quotes": [
+        "要求学生修读2学分心理健康类课程，详见本科生院公布的心理健康类课程清单。"
+      ],
+      "candidate_expression": {
+        "requirement_kind": "recognition",
+        "minimum_credits": 2,
+        "recognized_category": "心理健康",
+        "authoritative_course_list_required": true
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "需要课程清单或认定记录；不能另行把2学分重复加入168+8。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            7
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R12",
+      "title": "第二课堂4学分获得条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        7
+      ],
+      "source_quotes": [
+        "参加二课堂项目累计记点≥4，且该记点中参加基础必修类项目累计记点≥2.5者，可获得二课堂4学分。",
+        "基础必修类项目：包括理想信念教育（如新生导论课0.5记点，学院理想信念类教育1记点）和文化艺术活动类（记点≥1）。"
+      ],
+      "candidate_expression": {
+        "ledger": "第二课堂",
+        "minimum_total_points": 4,
+        "minimum_basic_required_points": 2.5,
+        "awarded_credits": 4,
+        "cultural_art_activities_minimum_points": 1
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "记点和学分不是同一单位，累计6记点不应直接变成6个第二课堂学分。",
+        "需要活动类别和学校认定结果；总记点达标但基础必修未达标不能直接判定通过。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            7
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R13",
+      "title": "第三课堂2学分获得条件",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        7
+      ],
+      "source_quotes": [
+        "参加三课堂项目累计记点≥2，且该记点中参加基础必修类项目累计记点≥0.5者，可获得三课堂2学分。",
+        "基础必修类项目：参与社会实践活动，且实践时间累计一周以上并通过考核可获1记点，考核结果为校级优秀及以上的可获1.5记点。"
+      ],
+      "candidate_expression": {
+        "ledger": "第三课堂",
+        "minimum_total_points": 2,
+        "minimum_basic_required_points": 0.5,
+        "awarded_credits": 2
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "第三课堂与第二课堂记点分账；需以已认定项目及等级判断，不能从普通选课记录中直接推断。",
+        "第三课堂剩余记点若用于第四课堂，需要满足R14中的附加条件并防止重复使用。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            7
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R14",
+      "title": "第四课堂2学分的替代完成路径",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        7
+      ],
+      "source_quotes": [
+        "学生可通过以下任一修读方式获得“第四课堂”学分：",
+        "1.赴国（境）外高校等参加并完成与我校共建的2+2、3+X等联合培养项目；",
+        "2.赴国（境）外高校等参加交流项目并获得有效课程学分；",
+        "3.赴国（境）外高校等参加4周及以上的各类交流项目并提供修读证明等相关材料；",
+        "4.赴国（境）外高校等参加少于4周的交流项目且没有获得有效课程学分的，需再修读1门经学校认定的国际化课程且考核通过；",
+        "5.参加线上境外交流项目并达到《浙江大学本科生线上境外交流与合作项目管理办法（试行）》（浙大本发〔2022〕4号）中关于“国际化模块”的要求；",
+        "6.参加线上境外交流项目，但未达到《浙江大学本科生线上境外交流与合作项目管理办法（试行）》（浙大本发〔2022〕4号）中关于“国际化模块”要求的，需再修读1门经学校认定的国际化课程且考核通过；",
+        "7.已获得第三课堂2学分并认定等级者，使用其多余记点中的2记点替换“第四课堂”学分的，需再修读1门经学校认定的国际化课程且考核通过。"
+      ],
+      "candidate_expression": {
+        "ledger": "第四课堂",
+        "awarded_credits": 2,
+        "satisfy_any_verified_path": [
+          "完成指定境外联合培养项目",
+          "境外交流并取得有效课程学分",
+          "境外交流至少4周且有修读证明",
+          "不足4周且无有效课程学分的境外交流 + 至少1门认可国际化课程通过",
+          "线上境外交流达到所引用管理办法国际化模块要求",
+          "线上境外交流未达所引用要求 + 至少1门认可国际化课程通过",
+          "第三课堂已获2学分且已认定等级 + 其剩余2记点 + 至少1门认可国际化课程通过"
+        ]
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "不能简单总结为必须出国；本页有线上交流和第三课堂剩余记点的附加条件路径。",
+        "引用的2022年管理办法、课程认定及材料审核仍需补齐；本样本不宣称这些路径在学生当前身份及学期均适用。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            7
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "BDA26-R15",
+      "title": "培养方案修读建议与真实开课数据分离",
+      "plan_id": "zju_business_big_data_2026",
+      "source_file": "document (1).pdf",
+      "source_pages": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        12
+      ],
+      "source_quotes": [
+        "建议学年学期",
+        "培养方案修读指导性计划",
+        "2026级商务大数据分析（信息管理与信息系统-统计学）课程修读示意图"
+      ],
+      "candidate_expression": {
+        "field_type": "advisory_curriculum_sequence",
+        "hard_offering_constraint": false,
+        "real_section_schedule_status": "not_in_this_pdf",
+        "prerequisite_status": "not_established_by_suggested_order"
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "review_notes": [
+        "这是根据字段标题与版面用途作出的建模解释，保留候选状态。",
+        "不得把二(秋冬)变成某个教学班周二上午，也不能保证建议学期一定开课。",
+        "课程修读示意图中的先后位置不得直接转成强制先修关系；需引用正式先修要求。"
+      ],
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            12
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "official_current_version_confirmed": false
+    },
+    {
+      "rule_id": "MSE26-R01",
+      "title": "计算机类两门课程任选一门，完成3学分",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "source_file": "document-2.pdf",
+      "source_pages": [
+        3
+      ],
+      "source_quotes": [
+        "学校对计算机类通识课程实施分层教学。本专业根据培养目标，要求学生在如下计算机类通识课程中任选一门修读：",
+        "CS1002G C程序设计基础 3.0 2.0-2.0 64 一(春夏)",
+        "CS1006G Python程序设计 3.0 2.0-2.0 64 一(春夏)"
+      ],
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "requirement_path": [
+          "通识课程",
+          "通识必修课程",
+          "计算机类"
+        ],
+        "required_credits": 3,
+        "choose_one_from": [
+          "CS1002G",
+          "CS1006G"
+        ]
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "这两门是同一计算机类要求中的选择关系，不自动要求全部修读。",
+        "不能将其他专业的C程序设计基础及实验（CS1001G，4学分）按名称近似替代，替代关系须经正式认定。"
+      ]
+    },
+    {
+      "rule_id": "MSE26-R02",
+      "title": "专业模块池内可跨模块选课并修满8学分",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "source_file": "document-2.pdf",
+      "source_pages": [
+        5
+      ],
+      "source_quotes": [
+        "本专业设信息材料类、能源材料类、生物材料类、结构材料类、计算材料模块、其他专业模块，学生可按照其中一个模块修读，也可以修读任意课程，修满8学分即可，多修读的模块课程可作为个性课程学分。"
+      ],
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            5
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "requirement_path": [
+          "专业课程",
+          "专业模块课程"
+        ],
+        "minimum_credits": 8,
+        "cross_module_selection_allowed": true,
+        "course_pool_scope": "第5至7页列示的本专业专业模块课程池",
+        "extra_module_courses_may_count_toward": "个性修读课程",
+        "same_course_credits_cannot_be_duplicated_in_total": true
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "这里的任意课程应在专业模块课程上下文中解释，不能扩大为全校任意课程。",
+        "多修课程可另作个性课程分配；同一学分不可同时重复累加进专业模块及个性修读总量。",
+        "具体分配、超额处理和替代流程须审核。"
+      ]
+    },
+    {
+      "rule_id": "MSE26-R03",
+      "title": "博雅技艺要求包含四种大学写作课程之一",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "source_file": "document-2.pdf",
+      "source_pages": [
+        4
+      ],
+      "source_quotes": [
+        "至少修读1门“博雅技艺”类课程；本专业要求在以下《大学写作》课程中必修1门",
+        "PHIL0701G 大学写作——写作·人 1.5 1.0-1.0 32 一(秋冬)",
+        "PHIL0702G 大学写作——写作·自然 1.5 1.0-1.0 32 一(秋冬)",
+        "PHIL0703G 大学写作——写作·社会 1.5 1.0-1.0 32 一(秋冬)",
+        "PHIL0704G 大学写作——创意写作 1.5 1.0-1.0 32 一(秋冬)"
+      ],
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            4
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "requirement_path": [
+          "通识课程",
+          "通识选修课程"
+        ],
+        "minimum_boya_course_count": 1,
+        "writing_requirement": {
+          "minimum_courses": 1,
+          "course_pool": [
+            "PHIL0701G",
+            "PHIL0702G",
+            "PHIL0703G",
+            "PHIL0704G"
+          ]
+        }
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "大学写作是本专业在此类别下的具体限制，不能只用任意博雅技艺课自动判定该写作要求达标。",
+        "同一写作课程可满足哪些其他门数或标签，以原文交叉满足规则和官方分类认定为准，不另行凭空增加总学分。"
+      ]
+    },
+    {
+      "rule_id": "MSE26-R04",
+      "title": "149+8学分结构与分账",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "source_file": "document-2.pdf",
+      "source_pages": [
+        1,
+        3,
+        4,
+        7,
+        8,
+        9
+      ],
+      "source_quotes": [
+        "最低毕业学分 149+8",
+        "一、通识课程 68.5学分",
+        "二、专业基础课程 2.5学分",
+        "三、专业课程 63学分",
+        "四、个性修读课程 15学分",
+        "六、第二课堂 +4学分",
+        "七、第三课堂 +2学分",
+        "八、第四课堂 +2学分"
+      ],
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            1,
+            3,
+            4,
+            7,
+            8,
+            9
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "base_modules": {
+          "通识课程": 68.5,
+          "专业基础课程": 2.5,
+          "专业课程": 63,
+          "个性修读课程": 15
+        },
+        "base_modules_sum": 149,
+        "extra_classroom_credits": {
+          "第二课堂": 4,
+          "第三课堂": 2,
+          "第四课堂": 2
+        },
+        "extra_classroom_credits_sum": 8
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "基础模块与二三四课堂分账；父模块与子模块不得重复相加。",
+        "第8页认定型要求应按完成条件检查，不机械再加入149+8。",
+        "外语层次导致的差额处理需补充管理办法，不能自动假定所有学生明细相同。"
+      ]
+    },
+    {
+      "rule_id": "JOUR26-R01",
+      "title": "138+8学分结构与分账",
+      "plan_id": "zju_journalism_2026",
+      "source_file": "document-3.pdf",
+      "source_pages": [
+        1,
+        4,
+        5,
+        7,
+        8,
+        9
+      ],
+      "source_quotes": [
+        "最低毕业学分 138+8",
+        "一、通识课程 44学分",
+        "二、专业基础课程 4学分",
+        "三、专业课程 75学分",
+        "四、个性修读课程 15学分",
+        "六、第二课堂 +4学分",
+        "七、第三课堂 +2学分",
+        "八、第四课堂 +2学分"
+      ],
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            1,
+            4,
+            5,
+            7,
+            8,
+            9
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "base_modules": {
+          "通识课程": 44,
+          "专业基础课程": 4,
+          "专业课程": 75,
+          "个性修读课程": 15
+        },
+        "base_modules_sum": 138,
+        "extra_classroom_credits": {
+          "第二课堂": 4,
+          "第三课堂": 2,
+          "第四课堂": 2
+        },
+        "extra_classroom_credits_sum": 8
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "基础模块与二三四课堂分账，认定型条件另行检查。",
+        "个性修读15与进阶模块16的差异记录于SRC-001；此处保留总标题，不擅自决定路径实际阈值。",
+        "外语层次的学分差额处理需补充管理办法。"
+      ]
+    },
+    {
+      "rule_id": "JOUR26-R02",
+      "title": "专业方向15学分含国际新闻与传播、数字新闻两个分支",
+      "plan_id": "zju_journalism_2026",
+      "source_file": "document-3.pdf",
+      "source_pages": [
+        6
+      ],
+      "source_quotes": [
+        "(2)专业方向课程 15学分",
+        "1)国际新闻与传播 15学分",
+        "2)数字新闻 15学分"
+      ],
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            6
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "requirement_path": [
+          "专业课程",
+          "专业方向课程"
+        ],
+        "parent_credits": 15,
+        "branches": [
+          "国际新闻与传播",
+          "数字新闻"
+        ],
+        "branch_credit_headings": {
+          "国际新闻与传播": 15,
+          "数字新闻": 15
+        },
+        "selection_policy": "需确认学生所选方向及混选认定细则，不能将两分支直接相加成30或按任意混选处理"
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "专业方向是条件分支，不能推荐两个方向的全部课程并声称都是必修。",
+        "本页没有说明跨方向混选、替代或改方向规则；这些条件须教务确认后转为可执行约束。"
+      ]
+    },
+    {
+      "rule_id": "JOUR26-R03",
+      "title": "通识选修10.5学分、类别门数及交叉满足",
+      "plan_id": "zju_journalism_2026",
+      "source_file": "document-3.pdf",
+      "source_pages": [
+        5
+      ],
+      "source_quotes": [
+        "2.通识选修课程 10.5学分",
+        "若1）项所修课程同时也属于第2）或3）项，则该课程也可同时满足第2）或3）项要求。",
+        "1)至少修读1门通识核心课程",
+        "2)至少修读1门“博雅技艺”类课程",
+        "3)人文社科学生在“科技创新”“生命探索”两类中至少修读2门"
+      ],
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            5
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "minimum_credits": 10.5,
+        "minimum_general_core_courses": 1,
+        "minimum_boya_courses": 1,
+        "conditional_course_count": {
+          "student_group": "人文社科",
+          "categories": [
+            "科技创新",
+            "生命探索"
+          ],
+          "minimum_courses": 2
+        },
+        "core_can_also_satisfy_matching_category_count": true,
+        "duplicate_credit_award_from_tag_overlap": false
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "通识核心课可同时满足对应类别门数，实际学分总量仍只计一次。",
+        "需要课程的官方类别和核心标记，不根据名字自行分类。",
+        "本页列出的人工智能初步（CS0400G）不能与人工智能基础（C）（CS1243G）合并为同一门。"
+      ]
+    },
+    {
+      "rule_id": "JOUR26-R04",
+      "title": "个性修读三选一及自主路径条件，15/16差异待确认",
+      "plan_id": "zju_journalism_2026",
+      "source_file": "document-3.pdf",
+      "source_pages": [
+        7,
+        8
+      ],
+      "source_quotes": [
+        "四、个性修读课程 15学分",
+        "学生可按照自身未来发展方向，自主选择以下3种模块中的一种进行修读。",
+        "1)本专业进阶模块 16学分",
+        "2)跨专业学习模块 15学分",
+        "3)学生自主修读模块 15学分",
+        "其中，通识选修课程不得多于2学分，并需至少修读1门由其他学院开设的课程类别为“专业基础课程”或“专业课程”且不在本专业培养方案内的课程。"
+      ],
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            7,
+            8
+          ]
+        }
+      ],
+      "source_quotes_note": "去除水印与版面空白后的原文片段；建模解释另列candidate_expression和review_notes。",
+      "candidate_expression": {
+        "parent_credit_heading": 15,
+        "choose_one_of": [
+          "本专业进阶模块",
+          "跨专业学习模块",
+          "学生自主修读模块"
+        ],
+        "path_credit_headings": {
+          "本专业进阶模块": 16,
+          "跨专业学习模块": 15,
+          "学生自主修读模块": 15
+        },
+        "advanced_path_final_credit_threshold": null,
+        "source_issue_id": "SRC-001",
+        "self_directed_path": {
+          "maximum_general_elective_credits": 2,
+          "minimum_external_courses": 1,
+          "external_course_all_conditions": [
+            "由其他学院开设",
+            "课程类别为专业基础课程或专业课程",
+            "不在本专业培养方案内"
+          ]
+        }
+      },
+      "status": "candidate_pending_human_review",
+      "human_review_required": true,
+      "enforce_automatically": false,
+      "official_current_version_confirmed": false,
+      "review_notes": [
+        "第7页总标题15与进阶模块16不一致，可能涉及课程组合或路径规则差异；保留待确认，不能直接判源文件错误。",
+        "确认前，不对选择进阶路径的学生作最终学分满足判断。",
+        "自主路径条件仅在选该路径时应用，不能推广到其他路径。"
+      ]
+    }
+  ]
+}

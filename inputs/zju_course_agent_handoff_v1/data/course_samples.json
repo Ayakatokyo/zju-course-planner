@@ -1,0 +1,935 @@
+{
+  "metadata": {
+    "schema_version": "1.0",
+    "prepared_on": "2026-10-09",
+    "data_kind": "curriculum_course_samples",
+    "page_numbering": "PDF物理页码，从1开始",
+    "official_current_version_confirmed": false,
+    "user_applicability_confirmed": false,
+    "scope_note": "来源为用户上传的2026级培养方案；上传和文字核对不等于已确认当前官方生效版本，也不等于已确认适用于某一学生。"
+  },
+  "record_count": 19,
+  "count_by_plan": {
+    "zju_business_big_data_2026": 12,
+    "zju_materials_science_engineering_2026": 4,
+    "zju_journalism_2026": 3
+  },
+  "schema_note": "为便于阅读，样本合并展示Course与某培养方案中的课程归属；正式数据库可拆为课程表及培养方案课程映射表。",
+  "records": [
+    {
+      "sample_id": "zju_business_big_data_2026:CS1001G",
+      "course_id": "zju:CS1001G",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "CS1001G",
+      "course_name": "C程序设计基础及实验",
+      "course_name_raw": "C程序设计基础及实验",
+      "source_markers": [],
+      "credits": 4.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "通识课程",
+        "通识必修课程",
+        "计算机类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(秋冬)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "秋",
+        "冬"
+      ],
+      "weekly_hours_raw": "3.0-2.0",
+      "total_hours_from_plan": 80,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1001G C程序设计基础及实验 4.0 3.0-2.0 80 一(秋冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:ECON1001F",
+      "course_id": "zju:ECON1001F",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "ECON1001F",
+      "course_name": "微观经济学（甲）",
+      "course_name_raw": "微观经济学（甲）",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业基础课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(春夏)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "3.0-0.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "ECON1001F 微观经济学（甲） 3.0 3.0-0.0 48 一(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT2041M",
+      "course_id": "zju:MGMT2041M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT2041M",
+      "course_name": "商业数据分析的Python基础",
+      "course_name_raw": "商业数据分析的Python基础",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(夏)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "夏"
+      ],
+      "weekly_hours_raw": "1.0-2.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "MGMT2041M 商业数据分析的Python基础 2.0 1.0-2.0 48 一(夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT2057M",
+      "course_id": "zju:MGMT2057M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT2057M",
+      "course_name": "数据库原理与智能应用",
+      "course_name_raw": "数据库原理与智能应用",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "二(秋)",
+      "suggested_study_year": 2,
+      "suggested_season_codes": [
+        "秋"
+      ],
+      "weekly_hours_raw": "1.0-2.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "MGMT2057M 数据库原理与智能应用 2.0 1.0-2.0 48 二(秋)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT2006M",
+      "course_id": "zju:MGMT2006M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT2006M",
+      "course_name": "数据结构",
+      "course_name_raw": "数据结构",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "二(秋冬)",
+      "suggested_study_year": 2,
+      "suggested_season_codes": [
+        "秋",
+        "冬"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "MGMT2006M 数据结构 3.0 2.0-2.0 64 二(秋冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT2054M",
+      "course_id": "zju:MGMT2054M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT2054M",
+      "course_name": "生成式人工智能原理及应用",
+      "course_name_raw": "生成式人工智能原理及应用",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "二(春)",
+      "suggested_study_year": 2,
+      "suggested_season_codes": [
+        "春"
+      ],
+      "weekly_hours_raw": "1.0-2.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            4
+          ],
+          "excerpt": "MGMT2054M 生成式人工智能原理及应用 2.0 1.0-2.0 48 二(春)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT3055M",
+      "course_id": "zju:MGMT3055M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT3055M",
+      "course_name": "商务数据挖掘",
+      "course_name_raw": "商务数据挖掘",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(秋冬)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "秋",
+        "冬"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "MGMT3055M 商务数据挖掘 3.0 2.0-2.0 64 三(秋冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT3074M",
+      "course_id": "zju:MGMT3074M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT3074M",
+      "course_name": "智能可视化分析",
+      "course_name_raw": "智能可视化分析",
+      "source_markers": [],
+      "credits": 1.5,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(春)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "春"
+      ],
+      "weekly_hours_raw": "1.5-0.0",
+      "total_hours_from_plan": 24,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "MGMT3074M 智能可视化分析 1.5 1.5-0.0 24 三(春)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT3034M",
+      "course_id": "zju:MGMT3034M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT3034M",
+      "course_name": "项目管理",
+      "course_name_raw": "项目管理",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业选修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "二(春)",
+      "suggested_study_year": 2,
+      "suggested_season_codes": [
+        "春"
+      ],
+      "weekly_hours_raw": "2.0-0.0",
+      "total_hours_from_plan": 32,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "MGMT3034M 项目管理 2.0 2.0-0.0 32 二(春)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT3073M",
+      "course_id": "zju:MGMT3073M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT3073M",
+      "course_name": "智能系统设计与开发",
+      "course_name_raw": "智能系统设计与开发",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "实践教学环节"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(春夏)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "MGMT3073M 智能系统设计与开发 3.0 2.0-2.0 64 三(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MATH3403M",
+      "course_id": "zju:MATH3403M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MATH3403M",
+      "course_name": "统计学习",
+      "course_name_raw": "统计学习",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "个性修读课程",
+        "本专业进阶模块"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(春夏)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "3.0-0.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "MATH3403M 统计学习 3.0 3.0-0.0 48 三(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_business_big_data_2026:MGMT4019M",
+      "course_id": "zju:MGMT4019M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_business_big_data_2026",
+      "course_code": "MGMT4019M",
+      "course_name": "毕业论文",
+      "course_name_raw": "毕业论文",
+      "source_markers": [],
+      "credits": 6.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "毕业论文（设计）"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "四(春夏)",
+      "suggested_study_year": 4,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "+10",
+      "total_hours_from_plan": 320,
+      "sources": [
+        {
+          "file_name": "document (1).pdf",
+          "sha256": "99bde939d96d367918b74092cd6973e95d39125d9e3da73521fadc19bd8bf87e",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "MGMT4019M 毕业论文 6.0 +10 320 四(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:CS1002G",
+      "course_id": "zju:CS1002G",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "CS1002G",
+      "course_name": "C程序设计基础",
+      "course_name_raw": "C程序设计基础",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "通识课程",
+        "通识必修课程",
+        "计算机类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(春夏)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1002G C程序设计基础 3.0 2.0-2.0 64 一(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:CS1006G",
+      "course_id": "zju:CS1006G",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "CS1006G",
+      "course_name": "Python程序设计",
+      "course_name_raw": "Python程序设计",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "通识课程",
+        "通识必修课程",
+        "计算机类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(春夏)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1006G Python程序设计 3.0 2.0-2.0 64 一(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:MSE3123M",
+      "course_id": "zju:MSE3123M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "MSE3123M",
+      "course_name": "基于机器学习的材料设计",
+      "course_name_raw": "基于机器学习的材料设计**",
+      "source_markers": [
+        "**"
+      ],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业模块课程",
+        "计算材料类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(冬)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "冬"
+      ],
+      "weekly_hours_raw": "3.0-0.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "MSE3123M 基于机器学习的材料设计** 3.0 3.0-0.0 48 三(冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。",
+      "marker_evidence": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            9
+          ],
+          "excerpt": "辅修专业：32学分，修读标注“*”号的课程。辅修学位：63学分，修读标注“*”和“**”号课程（修读专业模块8学分、实践教学环节8学分、毕业论文6学分）。"
+        }
+      ],
+      "marker_note": "星号是原文标记，含义见第9页辅修培养方案，不作为课程名称或课程代码的一部分。"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:MSE3124M",
+      "course_id": "zju:MSE3124M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "MSE3124M",
+      "course_name": "多尺度材料模拟",
+      "course_name_raw": "多尺度材料模拟**",
+      "source_markers": [
+        "**"
+      ],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业模块课程",
+        "计算材料类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(春)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "春"
+      ],
+      "weekly_hours_raw": "2.0-0.0",
+      "total_hours_from_plan": 32,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "MSE3124M 多尺度材料模拟** 2.0 2.0-0.0 32 三(春)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。",
+      "marker_evidence": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            9
+          ],
+          "excerpt": "辅修专业：32学分，修读标注“*”号的课程。辅修学位：63学分，修读标注“*”和“**”号课程（修读专业模块8学分、实践教学环节8学分、毕业论文6学分）。"
+        }
+      ],
+      "marker_note": "星号是原文标记，含义见第9页辅修培养方案，不作为课程名称或课程代码的一部分。"
+    },
+    {
+      "sample_id": "zju_journalism_2026:CS0400G",
+      "course_id": "zju:CS0400G",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_journalism_2026",
+      "course_code": "CS0400G",
+      "course_name": "人工智能初步",
+      "course_name_raw": "人工智能初步",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "通识课程",
+        "通识选修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "二(秋冬)",
+      "suggested_study_year": 2,
+      "suggested_season_codes": [
+        "秋",
+        "冬"
+      ],
+      "weekly_hours_raw": "2.0-0.0",
+      "total_hours_from_plan": 32,
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "CS0400G 人工智能初步 2.0 2.0-0.0 32 二(秋冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。 第5页该课程列于通识选修部分，具体强制性与类别认定仍以正式规则确认。"
+    },
+    {
+      "sample_id": "zju_journalism_2026:MIC1175M",
+      "course_id": "zju:MIC1175M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_journalism_2026",
+      "course_code": "MIC1175M",
+      "course_name": "智能传播导论",
+      "course_name_raw": "智能传播导论",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业必修课程"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(秋冬)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "秋",
+        "冬"
+      ],
+      "weekly_hours_raw": "2.0-0.0",
+      "total_hours_from_plan": 32,
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            5
+          ],
+          "excerpt": "MIC1175M 智能传播导论 2.0 2.0-0.0 32 一(秋冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    },
+    {
+      "sample_id": "zju_journalism_2026:MIC2158M",
+      "course_id": "zju:MIC2158M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_journalism_2026",
+      "course_code": "MIC2158M",
+      "course_name": "智能传播",
+      "course_name_raw": "智能传播",
+      "source_markers": [],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "个性修读课程",
+        "本专业进阶模块"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "二(春)",
+      "suggested_study_year": 2,
+      "suggested_season_codes": [
+        "春"
+      ],
+      "weekly_hours_raw": "2.0-0.0",
+      "total_hours_from_plan": 32,
+      "sources": [
+        {
+          "file_name": "document-3.pdf",
+          "sha256": "ebd050e4cfe529608f7d0187e413c967bf271de04be7e64bd770428d0c78486b",
+          "pdf_pages": [
+            7
+          ],
+          "excerpt": "MIC2158M 智能传播 2.0 2.0-0.0 32 二(春)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。"
+    }
+  ]
+}

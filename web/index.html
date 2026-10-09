@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#34335f">
+  <title>选课助手 · 浙江大学课程项目</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="app-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4h7a3 3 0 0 1 3 3v14a4 4 0 0 0-4-3H3z"/><path d="M13 7a3 3 0 0 1 3-3h5v14h-5a3 3 0 0 0-3 3"/></svg></span><div><strong>选课助手</strong><span>浙江大学 · 课程项目</span></div></div>
+    <div class="dataset-control"><label for="data-mode">数据模式</label><select id="data-mode"><option value="demo">合成演示</option><option value="source">原始资料</option></select><span id="mode-badge" class="badge synthetic">synthetic</span></div>
+  </header>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="工作区导航">
+      <p class="workspace-label">我的规划工作区</p>
+      <nav class="nav-tabs" role="tablist" aria-label="选课工作区">
+        <button id="tab-planning" class="nav-tab active" role="tab" aria-selected="true" aria-controls="panel-planning" data-tab="planning"><span aria-hidden="true">▦</span>选课规划</button>
+        <button id="tab-audit" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-audit" data-tab="audit"><span aria-hidden="true">≡</span>学业账本</button>
+        <button id="tab-sources" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-sources" data-tab="sources"><span aria-hidden="true">▤</span>资料与审核</button>
+        <button id="tab-saved" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-saved" data-tab="saved"><span aria-hidden="true">◷</span>已保存方案<span id="saved-count" class="nav-count">0</span></button>
+      </nav>
+      <div class="sidebar-note"><span class="tiny-dot" aria-hidden="true"></span><strong>本地规划，结果可复核</strong><p>保存方案后，仍需在官方系统完成选课并取得正式结果。</p></div>
+      <div class="sidebar-version">首版 P0 / P1<br><span>数据、规则与快照分开保存</span></div>
+    </aside>
+    <main id="main" tabindex="-1">
+      <div id="global-status" class="status-message" role="status" aria-live="polite" hidden></div>
+      <div id="boot-error" class="empty-state" hidden><h1>暂时无法读取本地数据</h1><p id="boot-error-text"></p><button id="retry-bootstrap" class="button primary">重新读取</button></div>
+      <div id="loading" class="loading-screen" aria-label="正在读取数据"><div class="skeleton wide"></div><div class="skeleton"></div><div class="skeleton block"></div></div>
+      <section id="panel-planning" class="tab-panel" role="tabpanel" aria-labelledby="tab-planning"></section>
+      <section id="panel-audit" class="tab-panel" role="tabpanel" aria-labelledby="tab-audit" hidden></section>
+      <section id="panel-sources" class="tab-panel" role="tabpanel" aria-labelledby="tab-sources" hidden></section>
+      <section id="panel-saved" class="tab-panel" role="tabpanel" aria-labelledby="tab-saved" hidden></section>
+      <footer class="main-footer">用于选课规划、比较、调整与导出。计算结果的适用范围取决于学生资料、规则版本和教学班快照。</footer>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,1443 @@
+{
+  "metadata": {
+    "data_kind": "synthetic",
+    "version": "DEMO-DATA-v1",
+    "description": "显式模拟演示：学生、教学班、规则、认定与校历均为synthetic；所引用真实课程定义来自只读原资料。",
+    "not_official": true
+  },
+  "student": {
+    "student_key": "DEMO-STUDENT-001",
+    "data_kind": "synthetic",
+    "plan_id": "zju_materials_science_engineering_2026",
+    "cohort": 2026,
+    "major_or_program": "材料科学与工程",
+    "plan_version": "2026级",
+    "plan_binding_status": "student_confirmed",
+    "language_level": null,
+    "individualized_path": null,
+    "target_term": "DEMO-2026-秋冬",
+    "profile_version": "DEMO-PROFILE-v1",
+    "confirmed_at": "2026-10-09T12:00:00+08:00"
+  },
+  "courses": [
+    {
+      "sample_id": "zju_materials_science_engineering_2026:CS1002G",
+      "course_id": "zju:CS1002G",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "CS1002G",
+      "course_name": "C程序设计基础",
+      "course_name_raw": "C程序设计基础",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "通识课程",
+        "通识必修课程",
+        "计算机类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(春夏)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1002G C程序设计基础 3.0 2.0-2.0 64 一(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "tags": [],
+      "demo_annotation_kind": "synthetic",
+      "ledger": "base"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:CS1006G",
+      "course_id": "zju:CS1006G",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "CS1006G",
+      "course_name": "Python程序设计",
+      "course_name_raw": "Python程序设计",
+      "source_markers": [],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "通识课程",
+        "通识必修课程",
+        "计算机类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "一(春夏)",
+      "suggested_study_year": 1,
+      "suggested_season_codes": [
+        "春",
+        "夏"
+      ],
+      "weekly_hours_raw": "2.0-2.0",
+      "total_hours_from_plan": 64,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            3
+          ],
+          "excerpt": "CS1006G Python程序设计 3.0 2.0-2.0 64 一(春夏)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "tags": [],
+      "demo_annotation_kind": "synthetic",
+      "ledger": "base"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:MSE3123M",
+      "course_id": "zju:MSE3123M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "MSE3123M",
+      "course_name": "基于机器学习的材料设计",
+      "course_name_raw": "基于机器学习的材料设计**",
+      "source_markers": [
+        "**"
+      ],
+      "credits": 3.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业模块课程",
+        "计算材料类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(冬)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "冬"
+      ],
+      "weekly_hours_raw": "3.0-0.0",
+      "total_hours_from_plan": 48,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "MSE3123M 基于机器学习的材料设计** 3.0 3.0-0.0 48 三(冬)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。",
+      "marker_evidence": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            9
+          ],
+          "excerpt": "辅修专业：32学分，修读标注“*”号的课程。辅修学位：63学分，修读标注“*”和“**”号课程（修读专业模块8学分、实践教学环节8学分、毕业论文6学分）。"
+        }
+      ],
+      "marker_note": "星号是原文标记，含义见第9页辅修培养方案，不作为课程名称或课程代码的一部分。",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "tags": [
+        "module"
+      ],
+      "demo_annotation_kind": "synthetic",
+      "ledger": "base"
+    },
+    {
+      "sample_id": "zju_materials_science_engineering_2026:MSE3124M",
+      "course_id": "zju:MSE3124M",
+      "identifier_kind": "course_id为本样本包的内部键；course_code取自原文",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "course_code": "MSE3124M",
+      "course_name": "多尺度材料模拟",
+      "course_name_raw": "多尺度材料模拟**",
+      "source_markers": [
+        "**"
+      ],
+      "credits": 2.0,
+      "credits_source": "所列培养方案课程行",
+      "requirement_path": [
+        "专业课程",
+        "专业模块课程",
+        "计算材料类"
+      ],
+      "requirement_assignment_status": "source_listing_verified_final_credit_allocation_pending_review",
+      "suggested_year_term_raw": "三(春)",
+      "suggested_study_year": 3,
+      "suggested_season_codes": [
+        "春"
+      ],
+      "weekly_hours_raw": "2.0-0.0",
+      "total_hours_from_plan": 32,
+      "sources": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            6
+          ],
+          "excerpt": "MSE3124M 多尺度材料模拟** 2.0 2.0-0.0 32 三(春)"
+        }
+      ],
+      "data_kind": "curriculum_course_sample_not_current_offering",
+      "offering_term": null,
+      "section_id": null,
+      "instructors": null,
+      "meetings": null,
+      "campus": null,
+      "capacity": null,
+      "available_seats": null,
+      "prerequisite_expression": null,
+      "current_offering_data_status": "awaiting_import",
+      "verification_status": "uploaded_pdf_text_and_render_checked",
+      "note": "建议学年学期与真实开课学期、教学班、周次/星期/节次不同；未提供的字段保持未知。此行出现在培养方案中不代表学生必须修读该池内全部课程。",
+      "marker_evidence": [
+        {
+          "file_name": "document-2.pdf",
+          "sha256": "21ee7cbd3a116cdac57804cb5e11d5bd72d13c39c26bed7c412db57c51b3ce2f",
+          "pdf_pages": [
+            9
+          ],
+          "excerpt": "辅修专业：32学分，修读标注“*”号的课程。辅修学位：63学分，修读标注“*”和“**”号课程（修读专业模块8学分、实践教学环节8学分、毕业论文6学分）。"
+        }
+      ],
+      "marker_note": "星号是原文标记，含义见第9页辅修培养方案，不作为课程名称或课程代码的一部分。",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "tags": [
+        "module"
+      ],
+      "demo_annotation_kind": "synthetic",
+      "ledger": "base"
+    },
+    {
+      "course_id": "DEMO:MSE-SUP",
+      "course_code": "DEMO-MSE-SUP",
+      "course_name": "材料模块基础（演示）",
+      "credits": 3,
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "data_kind": "synthetic",
+      "tags": [
+        "module"
+      ],
+      "sources": [
+        {
+          "snapshot_id": "DEMO-COURSES-v1",
+          "excerpt": "合成课程定义，仅供算法演示"
+        }
+      ]
+    },
+    {
+      "course_id": "DEMO:ART",
+      "course_code": "DEMO-ART",
+      "course_name": "艺术与创作（演示）",
+      "credits": 2,
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "data_kind": "synthetic",
+      "tags": [
+        "general_core",
+        "boya",
+        "aesthetic"
+      ],
+      "sources": [
+        {
+          "snapshot_id": "DEMO-COURSES-v1",
+          "excerpt": "合成课程定义，仅供算法演示"
+        }
+      ]
+    },
+    {
+      "course_id": "DEMO:PE",
+      "course_code": "DEMO-PE",
+      "course_name": "体育固定课（演示）",
+      "credits": 1,
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "data_kind": "synthetic",
+      "tags": [
+        "pe"
+      ],
+      "sources": [
+        {
+          "snapshot_id": "DEMO-COURSES-v1",
+          "excerpt": "合成课程定义，仅供算法演示"
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "DEMO-COMPUTER",
+      "title": "演示：计算机任选一门",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "course_count",
+      "threshold": 1,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "course_pool": [
+        "zju:CS1002G",
+        "zju:CS1006G"
+      ],
+      "ledger": "base"
+    },
+    {
+      "rule_id": "DEMO-MODULE",
+      "title": "演示：专业模块学分",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "credits",
+      "threshold": 8,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "tag": "module",
+      "ledger": "base"
+    },
+    {
+      "rule_id": "DEMO-CORE",
+      "title": "演示：通识核心门数",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "course_count",
+      "threshold": 1,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "tag": "general_core",
+      "ledger": "base"
+    },
+    {
+      "rule_id": "DEMO-BOYA",
+      "title": "演示：博雅门数",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "course_count",
+      "threshold": 1,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "tag": "boya",
+      "ledger": "base"
+    },
+    {
+      "rule_id": "DEMO-LABOUR",
+      "title": "演示：劳动认定学时",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "hours",
+      "threshold": 32,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "tag": "labour",
+      "ledger": "recognition"
+    },
+    {
+      "rule_id": "DEMO-SECOND-CREDITS",
+      "title": "演示：第二课堂学分",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "credits",
+      "threshold": 4,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "ledger": "second"
+    },
+    {
+      "rule_id": "DEMO-SECOND-POINTS",
+      "title": "演示：第二课堂记点",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "points",
+      "threshold": 4,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "ledger": "second"
+    },
+    {
+      "rule_id": "DEMO-LANGUAGE",
+      "title": "演示：外语分层",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "credits",
+      "threshold": null,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "tag": "language",
+      "conditional_threshold": {
+        "field": "language_level",
+        "values": {
+          "L1": 6,
+          "L2": 4.5,
+          "L3": 3
+        }
+      }
+    },
+    {
+      "rule_id": "DEMO-ALLOCATION",
+      "title": "演示：来源归属待确认",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RULES-v1",
+      "status": "demo_active",
+      "metric": "credits",
+      "threshold": 2,
+      "scope": {
+        "cohort": 2026,
+        "program": "材料科学与工程",
+        "version": "2026级"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RULES-v1",
+          "excerpt": "合成计算夹具，阈值及认定不作为官方规则"
+        }
+      ],
+      "linked_issue_ids": [
+        "SRC-011"
+      ]
+    }
+  ],
+  "academic_snapshot": {
+    "snapshot_id": "DEMO-ACADEMIC-v1",
+    "version": "DEMO-ACADEMIC-v1",
+    "data_kind": "synthetic",
+    "completeness": "complete_within_scope",
+    "records": [
+      {
+        "record_id": "DEMO-PY-FAIL",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "zju:CS1006G",
+        "completion_status": "failed",
+        "recognition_status": "not_applicable",
+        "earned_credits": 0,
+        "ledger": "base",
+        "attempt_id": "DEMO-ATTEMPT-PY-FAIL",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ]
+      },
+      {
+        "record_id": "DEMO-PY-PASS",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "zju:CS1006G",
+        "completion_status": "passed",
+        "recognition_status": "not_applicable",
+        "earned_credits": 3,
+        "ledger": "base",
+        "attempt_id": "DEMO-ATTEMPT-PY-PASS",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ]
+      },
+      {
+        "record_id": "DEMO-MOD-PASS",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "DEMO:MSE-SUP",
+        "completion_status": "passed",
+        "recognition_status": "not_applicable",
+        "earned_credits": 3,
+        "ledger": "base",
+        "attempt_id": "DEMO-ATTEMPT-MOD-PASS",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ],
+        "tags": [
+          "module"
+        ]
+      },
+      {
+        "record_id": "DEMO-ART-PASS",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "DEMO:ART",
+        "completion_status": "passed",
+        "recognition_status": "not_applicable",
+        "earned_credits": 2,
+        "ledger": "base",
+        "attempt_id": "DEMO-ATTEMPT-ART-PASS",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ],
+        "tags": [
+          "general_core",
+          "boya",
+          "aesthetic"
+        ]
+      },
+      {
+        "record_id": "DEMO-C-INPROGRESS",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "zju:CS1002G",
+        "completion_status": "in_progress",
+        "recognition_status": "not_applicable",
+        "earned_credits": null,
+        "ledger": "base",
+        "attempt_id": "DEMO-ATTEMPT-C-INPROGRESS",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ],
+        "planned_credits": 3
+      },
+      {
+        "record_id": "DEMO-LABOUR",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "recognition",
+        "course_id": null,
+        "completion_status": "passed",
+        "recognition_status": "pending",
+        "earned_credits": null,
+        "ledger": "recognition",
+        "attempt_id": "DEMO-ATTEMPT-LABOUR",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ],
+        "recognized_hours": 32,
+        "tags": [
+          "labour"
+        ]
+      },
+      {
+        "record_id": "DEMO-SECOND",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "activity",
+        "course_id": null,
+        "completion_status": "passed",
+        "recognition_status": "recognized",
+        "earned_credits": 4,
+        "ledger": "second",
+        "attempt_id": "DEMO-ATTEMPT-SECOND",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ],
+        "classroom_points": 5,
+        "tags": [
+          "second_classroom"
+        ]
+      },
+      {
+        "record_id": "DEMO-PY-PASS",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "zju:CS1006G",
+        "completion_status": "passed",
+        "recognition_status": "not_applicable",
+        "earned_credits": 3,
+        "ledger": "base",
+        "attempt_id": "DEMO-ATTEMPT-PY-PASS",
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ACADEMIC-v1",
+            "excerpt": "合成学业记录，不属于当前用户"
+          }
+        ]
+      }
+    ]
+  },
+  "offering_snapshot": {
+    "snapshot_id": "DEMO-OFFERINGS-v1",
+    "version": "DEMO-OFFERINGS-v1",
+    "data_kind": "synthetic",
+    "source_kind": "synthetic",
+    "captured_at": "2026-10-09T12:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "academic_year": "DEMO-2026-2027",
+    "term_code": "DEMO-2026-秋冬",
+    "completeness": "complete_within_scope",
+    "freshness_state": "current",
+    "filter_scope": {
+      "course_ids": [
+        "DEMO:PE",
+        "zju:MSE3123M",
+        "zju:MSE3124M"
+      ],
+      "description": "仅演示列出的三门课程，不代表全校"
+    },
+    "pagination_state": {
+      "finished": true,
+      "pages_read": 1,
+      "total_pages": 1
+    },
+    "available_count": 7,
+    "records": [
+      {
+        "section_id": "DEMO-PE-A",
+        "course_id": "DEMO:PE",
+        "course_name": "体育固定课（演示）",
+        "section_name_raw": "模拟教学班 PE-A",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 PE-A"
+        ],
+        "credits": 1,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-PE",
+            "day_of_week": 1,
+            "period_indices": [
+              7,
+              8
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "DEMO-ML-A",
+        "course_id": "zju:MSE3123M",
+        "course_name": "基于机器学习的材料设计",
+        "section_name_raw": "模拟教学班 ML-A",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 ML-A"
+        ],
+        "credits": 3.0,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-ML-A1",
+            "day_of_week": 1,
+            "period_indices": [
+              1,
+              2
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          },
+          {
+            "meeting_id": "DEMO-M-ML-A2",
+            "day_of_week": 3,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              3,
+              5,
+              7
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "DEMO-ML-B",
+        "course_id": "zju:MSE3123M",
+        "course_name": "基于机器学习的材料设计",
+        "section_name_raw": "模拟教学班 ML-B",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 ML-B"
+        ],
+        "credits": 3.0,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-ML-B",
+            "day_of_week": 5,
+            "period_indices": [
+              1,
+              2
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "DEMO-ML-C",
+        "course_id": "zju:MSE3123M",
+        "course_name": "基于机器学习的材料设计",
+        "section_name_raw": "模拟教学班 ML-C",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 ML-C"
+        ],
+        "credits": 3.0,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-ML-C",
+            "day_of_week": 2,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "DEMO-SIM-A",
+        "course_id": "zju:MSE3124M",
+        "course_name": "多尺度材料模拟",
+        "section_name_raw": "模拟教学班 SIM-A",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 SIM-A"
+        ],
+        "credits": 2.0,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-SIM-A1",
+            "day_of_week": 2,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "秋"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          },
+          {
+            "meeting_id": "DEMO-M-SIM-A2",
+            "day_of_week": 4,
+            "period_indices": [
+              5,
+              6
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "DEMO-SIM-B",
+        "course_id": "zju:MSE3124M",
+        "course_name": "多尺度材料模拟",
+        "section_name_raw": "模拟教学班 SIM-B",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 SIM-B"
+        ],
+        "credits": 2.0,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-SIM-B",
+            "day_of_week": 5,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "section_id": "DEMO-SIM-C",
+        "course_id": "zju:MSE3124M",
+        "course_name": "多尺度材料模拟",
+        "section_name_raw": "模拟教学班 SIM-C",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "模拟教师 SIM-C"
+        ],
+        "credits": 2.0,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ]
+        },
+        "snapshot_id": "DEMO-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-OFFERINGS-v1",
+            "excerpt": "合成开课，时段/教师/容量不代表学校开课"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-M-SIM-C",
+            "day_of_week": 4,
+            "period_indices": [
+              1,
+              2
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "season_codes": [
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "模拟校区",
+            "building_room": "演示教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-OFFERINGS-v1"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "wish_items": [
+      {
+        "wish_item_id": "DEMO-W-PE",
+        "student_key": "DEMO-STUDENT-001",
+        "section_id": "DEMO-PE-A",
+        "official_enrollment_status": "preloaded",
+        "official_enrollment_status_raw": "模拟预置",
+        "confirmed_schedule_membership": true,
+        "status_mapping_verified": true,
+        "official_status_mapping_version": "DEMO-MAPPING-v1",
+        "status_snapshot_id": "DEMO-ENROLLMENT-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-ENROLLMENT-v1",
+            "excerpt": "合成正式结果测试，非学校结果"
+          }
+        ],
+        "data_kind": "synthetic"
+      },
+      {
+        "wish_item_id": "DEMO-W-A",
+        "wish_group_id": "DEMO-WG-ML",
+        "section_id": "DEMO-ML-A",
+        "rank": 1,
+        "official_enrollment_status": "tentative",
+        "official_enrollment_status_raw": "模拟待定",
+        "confirmed_schedule_membership": false,
+        "is_submitted": false,
+        "data_kind": "synthetic"
+      },
+      {
+        "wish_item_id": "DEMO-W-B",
+        "wish_group_id": "DEMO-WG-ML",
+        "section_id": "DEMO-ML-B",
+        "rank": 2,
+        "official_enrollment_status": "tentative",
+        "official_enrollment_status_raw": "模拟待定",
+        "confirmed_schedule_membership": false,
+        "is_submitted": false,
+        "data_kind": "synthetic"
+      }
+    ]
+  },
+  "constraints": {
+    "requested_course_ids": [
+      "zju:MSE3123M",
+      "zju:MSE3124M"
+    ],
+    "locked_section_ids": [
+      "DEMO-PE-A"
+    ],
+    "preloaded_section_ids": [
+      "DEMO-PE-A"
+    ],
+    "excluded_section_ids": [],
+    "fixed_meetings": [],
+    "friday_free": "soft",
+    "revision": 1
+  },
+  "wish_groups": [
+    {
+      "wish_group_id": "DEMO-WG-ML",
+      "selection_limit": 1,
+      "wish_item_ids": [
+        "DEMO-W-A",
+        "DEMO-W-B"
+      ],
+      "data_kind": "synthetic"
+    }
+  ],
+  "wish_items": [
+    {
+      "wish_item_id": "DEMO-W-PE",
+      "student_key": "DEMO-STUDENT-001",
+      "section_id": "DEMO-PE-A",
+      "official_enrollment_status": "preloaded",
+      "official_enrollment_status_raw": "模拟预置",
+      "confirmed_schedule_membership": true,
+      "status_mapping_verified": true,
+      "official_status_mapping_version": "DEMO-MAPPING-v1",
+      "status_snapshot_id": "DEMO-ENROLLMENT-v1",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-ENROLLMENT-v1",
+          "excerpt": "合成正式结果测试，非学校结果"
+        }
+      ],
+      "data_kind": "synthetic"
+    },
+    {
+      "wish_item_id": "DEMO-W-A",
+      "wish_group_id": "DEMO-WG-ML",
+      "section_id": "DEMO-ML-A",
+      "rank": 1,
+      "official_enrollment_status": "tentative",
+      "official_enrollment_status_raw": "模拟待定",
+      "confirmed_schedule_membership": false,
+      "is_submitted": false,
+      "data_kind": "synthetic"
+    },
+    {
+      "wish_item_id": "DEMO-W-B",
+      "wish_group_id": "DEMO-WG-ML",
+      "section_id": "DEMO-ML-B",
+      "rank": 2,
+      "official_enrollment_status": "tentative",
+      "official_enrollment_status_raw": "模拟待定",
+      "confirmed_schedule_membership": false,
+      "is_submitted": false,
+      "data_kind": "synthetic"
+    }
+  ],
+  "academic_calendar": {
+    "calendar_id": "DEMO-CALENDAR-v1",
+    "data_kind": "synthetic",
+    "timezone": "Asia/Shanghai",
+    "season_first_mondays": {
+      "秋": "2026-10-05",
+      "冬": "2026-11-30"
+    },
+    "period_times": {
+      "1": [
+        "08:00",
+        "08:45"
+      ],
+      "2": [
+        "08:50",
+        "09:35"
+      ],
+      "3": [
+        "10:00",
+        "10:45"
+      ],
+      "4": [
+        "10:50",
+        "11:35"
+      ],
+      "5": [
+        "13:00",
+        "13:45"
+      ],
+      "6": [
+        "13:50",
+        "14:35"
+      ],
+      "7": [
+        "15:00",
+        "15:45"
+      ],
+      "8": [
+        "15:50",
+        "16:35"
+      ]
+    }
+  }
+}
