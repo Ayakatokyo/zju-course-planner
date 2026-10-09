@@ -1,0 +1,364 @@
+- link "跳到主要内容":
+  - /url: "#main"
+- banner:
+  - strong: 选课助手
+  - generic: 浙江大学 · 课程项目
+  - generic: 模拟学生 B · synthetic
+  - button "退出"
+  - generic: 数据模式
+  - combobox "数据模式":
+    - option "本人合成演示" [selected]
+    - option "原交接资料"
+  - generic: synthetic
+- complementary "工作区导航":
+  - paragraph: 我的规划工作区
+  - tablist "选课工作区":
+    - tab "选课规划" [selected]:
+      - generic: ▦
+      - text: 选课规划
+    - tab "学业账本":
+      - generic: ≡
+      - text: 学业账本
+    - tab "资料与审核":
+      - generic: ▤
+      - text: 资料与审核
+    - tab "已保存方案 0":
+      - generic: ◷
+      - text: 已保存方案
+      - generic: "0"
+  - strong: 本地规划，结果可复核
+  - paragraph: 保存方案后，仍需在官方系统完成选课并取得正式结果。
+  - text: 首版 P0 / P1
+  - text: 数据、规则与快照分开保存
+- main:
+  - status: 已计算 3 个方案，锁定和固定条件已重新校验。
+  - tabpanel "选课规划":
+    - heading "规划本学期，比较每一种选择" [level=1]
+    - paragraph: 调整修读目标和时间条件，查看确定性计算生成的方案。
+    - generic: ⓘ
+    - paragraph: 当前为 synthetic 合成演示。学生、规则、教师、教学班、余量和校历仅用于计算验证，不能作为本人学业或学校当期开课事实。
+    - complementary:
+      - heading "我的规划条件" [level=2]
+      - paragraph: DEMO-2026-秋冬 · 版本 2
+      - generic: 周五空闲
+      - combobox "周五空闲":
+        - option "无此偏好"
+        - option "尽量空闲 · 可权衡" [selected]
+        - option "必须空闲 · 不可放宽"
+      - paragraph: 修改偏好后会保留锁定班、预置项与固定安排，并重新校验。
+      - generic: 计划修读课程
+      - checkbox "体育固定课（演示） 1 学分 · DEMO:PE" [disabled]
+      - text: 体育固定课（演示）
+      - generic: 1 学分 · DEMO:PE
+      - checkbox "基于机器学习的材料设计 3 学分 · zju:MSE3123M" [checked]
+      - text: 基于机器学习的材料设计
+      - generic: 3 学分 · zju:MSE3123M
+      - checkbox "多尺度材料模拟 2 学分 · zju:MSE3124M" [checked]
+      - text: 多尺度材料模拟
+      - generic: 2 学分 · zju:MSE3124M
+      - generic: 锁定教学班
+      - paragraph: 明确勾选表示必须保留。只查看方案不会锁定教学班。
+      - checkbox "DEMO-PE-A预置保留 体育固定课（演示） 秋/冬 · 1–8周 · 周一 · 7、8节" [checked] [disabled]
+      - text: DEMO-PE-A预置保留
+      - text: 体育固定课（演示）
+      - text: 秋/冬 · 1–8周 · 周一 · 7、8节
+      - checkbox "DEMO-ML-A 基于机器学习的材料设计 冬 · 1–8周 · 周一 · 1、2节 冬 · 1、3、5、7周 · 周三 · 3、4节"
+      - text: DEMO-ML-A
+      - text: 基于机器学习的材料设计
+      - text: 冬 · 1–8周 · 周一 · 1、2节
+      - text: 冬 · 1、3、5、7周 · 周三 · 3、4节
+      - checkbox "DEMO-ML-B 基于机器学习的材料设计 冬 · 1–8周 · 周五 · 1、2节"
+      - text: DEMO-ML-B
+      - text: 基于机器学习的材料设计
+      - text: 冬 · 1–8周 · 周五 · 1、2节
+      - checkbox "DEMO-ML-C 基于机器学习的材料设计 冬 · 1–8周 · 周二 · 3、4节"
+      - text: DEMO-ML-C
+      - text: 基于机器学习的材料设计
+      - text: 冬 · 1–8周 · 周二 · 3、4节
+      - checkbox "DEMO-SIM-A 多尺度材料模拟 秋 · 1–8周 · 周二 · 3、4节 冬 · 1–8周 · 周四 · 5、6节"
+      - text: DEMO-SIM-A
+      - text: 多尺度材料模拟
+      - text: 秋 · 1–8周 · 周二 · 3、4节
+      - text: 冬 · 1–8周 · 周四 · 5、6节
+      - checkbox "DEMO-SIM-B 多尺度材料模拟 冬 · 1–8周 · 周五 · 3、4节"
+      - text: DEMO-SIM-B
+      - text: 多尺度材料模拟
+      - text: 冬 · 1–8周 · 周五 · 3、4节
+      - checkbox "DEMO-SIM-C 多尺度材料模拟 冬 · 1–8周 · 周四 · 1、2节"
+      - text: DEMO-SIM-C
+      - text: 多尺度材料模拟
+      - text: 冬 · 1–8周 · 周四 · 1、2节
+      - generic: 固定安排
+      - paragraph: 当前无额外固定安排。预置班按当前条件保留。
+      - button "生成并校验方案"
+      - paragraph: 基于当前演示范围搜索，最多比较 3 个方案。
+      - generic "编辑完整条件 JSON"
+    - heading "候选方案" [level=2]
+    - paragraph: 每个方案包含一个具体教学班组合
+    - generic: DEMO-DATA-v1
+    - group "比较生成方案":
+      - button "方案 A 6 预计学分 · 3 个教学班 周五没有课程安排 PE-A · ML-A · SIM-A 满足" [pressed]:
+        - generic: 方案 A
+        - strong: "6"
+        - generic: 预计学分 · 3 个教学班
+        - paragraph:
+          - text: 周五没有课程安排
+          - text: PE-A · ML-A · SIM-A
+        - generic: 满足
+      - button "方案 B 6 预计学分 · 3 个教学班 周五没有课程安排 PE-A · ML-A · SIM-C 满足":
+        - generic: 方案 B
+        - strong: "6"
+        - generic: 预计学分 · 3 个教学班
+        - paragraph:
+          - text: 周五没有课程安排
+          - text: PE-A · ML-A · SIM-C
+        - generic: 满足
+      - button "方案 C 6 预计学分 · 3 个教学班 周五没有课程安排 PE-A · ML-C · SIM-A 满足":
+        - generic: 方案 C
+        - strong: "6"
+        - generic: 预计学分 · 3 个教学班
+        - paragraph:
+          - text: 周五没有课程安排
+          - text: PE-A · ML-C · SIM-A
+        - generic: 满足
+    - region "方案比较":
+      - heading "当前方案比较" [level=2]
+      - paragraph: 所有方案均按当前本人输入重算；比较与保存不代表正式中选或已获学分
+      - table:
+        - rowgroup:
+          - row "比较项 方案 A 方案 B 方案 C":
+            - columnheader "比较项"
+            - columnheader "方案 A"
+            - columnheader "方案 B"
+            - columnheader "方案 C"
+        - rowgroup:
+          - row "校验结果 满足 满足 满足":
+            - rowheader "校验结果"
+            - cell "满足":
+              - generic: 满足
+            - cell "满足":
+              - generic: 满足
+            - cell "满足":
+              - generic: 满足
+          - row "预计修读学分 6 6 6":
+            - rowheader "预计修读学分"
+            - cell "6"
+            - cell "6"
+            - cell "6"
+          - row "周五上课时段 0 0 0":
+            - rowheader "周五上课时段"
+            - cell "0"
+            - cell "0"
+            - cell "0"
+          - row "教学班组合 DEMO-PE-A DEMO-ML-A DEMO-SIM-A DEMO-PE-A DEMO-ML-A DEMO-SIM-C DEMO-PE-A DEMO-ML-C DEMO-SIM-A":
+            - rowheader "教学班组合"
+            - cell "DEMO-PE-A DEMO-ML-A DEMO-SIM-A":
+              - text: DEMO-PE-A
+              - text: DEMO-ML-A
+              - text: DEMO-SIM-A
+            - cell "DEMO-PE-A DEMO-ML-A DEMO-SIM-C":
+              - text: DEMO-PE-A
+              - text: DEMO-ML-A
+              - text: DEMO-SIM-C
+            - cell "DEMO-PE-A DEMO-ML-C DEMO-SIM-A":
+              - text: DEMO-PE-A
+              - text: DEMO-ML-C
+              - text: DEMO-SIM-A
+          - row "相对方案 A 的班次变化 比较基准 新增 DEMO-SIM-C 移除 DEMO-SIM-A 新增 DEMO-ML-C 移除 DEMO-ML-A":
+            - rowheader "相对方案 A 的班次变化"
+            - cell "比较基准"
+            - cell "新增 DEMO-SIM-C 移除 DEMO-SIM-A":
+              - text: 新增 DEMO-SIM-C
+              - text: 移除 DEMO-SIM-A
+            - cell "新增 DEMO-ML-C 移除 DEMO-ML-A":
+              - text: 新增 DEMO-ML-C
+              - text: 移除 DEMO-ML-A
+      - paragraph: 按校验结果及周五软偏好排序：方案 A → 方案 B → 方案 C。个人选择仍需核对详细依据。
+      - generic "查看比较依据与版本"
+    - article:
+      - heading "方案 A · 模拟课表" [level=2]
+      - paragraph: 规划草案，仅表示计算组合；保存不表示正式中选。
+      - button "重新校验"
+      - button "锁定本方案班次"
+      - button "保存方案"
+      - term: 校验结果
+      - definition:
+        - generic: 满足
+      - term: 预计修读学分
+      - definition: 6 学分
+      - term: 周五条件
+      - definition: 尽量空闲
+      - term: 保留项
+      - definition: 1 个锁定
+      - heading "每周安排" [level=3]
+      - generic: 分学期
+      - combobox "分学期":
+        - option "秋季"
+        - option "冬季" [selected]
+      - generic: 周次
+      - combobox "周次":
+        - option "第 1 周" [selected]
+        - option "第 2 周"
+        - option "第 3 周"
+        - option "第 4 周"
+        - option "第 5 周"
+        - option "第 6 周"
+        - option "第 7 周"
+        - option "第 8 周"
+      - table "冬季第1周模拟课表":
+        - rowgroup:
+          - row "节次 周一 周二 周三 周四 周五 周六 周日":
+            - columnheader "节次"
+            - columnheader "周一"
+            - columnheader "周二"
+            - columnheader "周三"
+            - columnheader "周四"
+            - columnheader "周五"
+            - columnheader "周六"
+            - columnheader "周日"
+        - rowgroup:
+          - row "1 基于机器学习的材料设计 DEMO-ML-A · 演示教室":
+            - cell "1"
+            - cell "基于机器学习的材料设计 DEMO-ML-A · 演示教室":
+              - generic "冬 · 1–8周 · 周一 · 1、2节":
+                - text: 基于机器学习的材料设计
+                - generic: DEMO-ML-A · 演示教室
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+          - row "2 基于机器学习的材料设计":
+            - cell "2"
+            - cell "基于机器学习的材料设计":
+              - generic "冬 · 1–8周 · 周一 · 1、2节": 基于机器学习的材料设计
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+          - row "3 基于机器学习的材料设计 DEMO-ML-A · 演示教室":
+            - cell "3"
+            - cell
+            - cell
+            - cell "基于机器学习的材料设计 DEMO-ML-A · 演示教室":
+              - generic "冬 · 1、3、5、7周 · 周三 · 3、4节":
+                - text: 基于机器学习的材料设计
+                - generic: DEMO-ML-A · 演示教室
+            - cell
+            - cell
+            - cell
+            - cell
+          - row "4 基于机器学习的材料设计":
+            - cell "4"
+            - cell
+            - cell
+            - cell "基于机器学习的材料设计":
+              - generic "冬 · 1、3、5、7周 · 周三 · 3、4节": 基于机器学习的材料设计
+            - cell
+            - cell
+            - cell
+            - cell
+          - row "5 多尺度材料模拟 DEMO-SIM-A · 演示教室":
+            - cell "5"
+            - cell
+            - cell
+            - cell
+            - cell "多尺度材料模拟 DEMO-SIM-A · 演示教室":
+              - generic "冬 · 1–8周 · 周四 · 5、6节":
+                - text: 多尺度材料模拟
+                - generic: DEMO-SIM-A · 演示教室
+            - cell
+            - cell
+            - cell
+          - row "6 多尺度材料模拟":
+            - cell "6"
+            - cell
+            - cell
+            - cell
+            - cell "多尺度材料模拟":
+              - generic "冬 · 1–8周 · 周四 · 5、6节": 多尺度材料模拟
+            - cell
+            - cell
+            - cell
+          - row "7 体育固定课（演示） DEMO-PE-A · 演示教室":
+            - cell "7"
+            - cell "体育固定课（演示） DEMO-PE-A · 演示教室":
+              - generic "秋/冬 · 1–8周 · 周一 · 7、8节":
+                - text: 体育固定课（演示）
+                - generic: DEMO-PE-A · 演示教室
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+          - row "8 体育固定课（演示）":
+            - cell "8"
+            - cell "体育固定课（演示）":
+              - generic "秋/冬 · 1–8周 · 周一 · 7、8节": 体育固定课（演示）
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+            - cell
+      - paragraph: 当前仅显示 冬季第 1 周。单双周与分学期以时段记录为准，全部时段见下表。校历 DEMO-CALENDAR-v1 来自合成演示；缺失周次或节次的安排不会被当作空闲，仍须核对校验明细。
+      - table:
+        - rowgroup:
+          - row "课程 / 教学班 全部上课时段 余量快照":
+            - columnheader "课程 / 教学班"
+            - columnheader "全部上课时段"
+            - columnheader "余量快照"
+        - rowgroup:
+          - row "体育固定课（演示）锁定 DEMO-PE-A · 1 学分 · 模拟预置 模拟教师 PE-A 秋/冬 · 1–8周 · 周一 · 7、8节 模拟校区 · 演示教室 10 旧快照不保证当前名额":
+            - cell "体育固定课（演示）锁定 DEMO-PE-A · 1 学分 · 模拟预置 模拟教师 PE-A":
+              - strong: 体育固定课（演示）
+              - text: 锁定
+              - text: DEMO-PE-A · 1 学分 · 模拟预置
+              - text: 模拟教师 PE-A
+            - cell "秋/冬 · 1–8周 · 周一 · 7、8节 模拟校区 · 演示教室":
+              - text: 秋/冬 · 1–8周 · 周一 · 7、8节
+              - generic: 模拟校区 · 演示教室
+            - cell "10 旧快照不保证当前名额":
+              - text: "10"
+              - generic: 旧快照不保证当前名额
+          - row "基于机器学习的材料设计 DEMO-ML-A · 3 学分 模拟教师 ML-A 冬 · 1–8周 · 周一 · 1、2节 模拟校区 · 演示教室 冬 · 1、3、5、7周 · 周三 · 3、4节 模拟校区 · 演示教室 10 旧快照不保证当前名额":
+            - cell "基于机器学习的材料设计 DEMO-ML-A · 3 学分 模拟教师 ML-A":
+              - strong: 基于机器学习的材料设计
+              - text: DEMO-ML-A · 3 学分
+              - text: 模拟教师 ML-A
+            - cell "冬 · 1–8周 · 周一 · 1、2节 模拟校区 · 演示教室 冬 · 1、3、5、7周 · 周三 · 3、4节 模拟校区 · 演示教室":
+              - text: 冬 · 1–8周 · 周一 · 1、2节
+              - generic: 模拟校区 · 演示教室
+              - text: 冬 · 1、3、5、7周 · 周三 · 3、4节
+              - generic: 模拟校区 · 演示教室
+            - cell "10 旧快照不保证当前名额":
+              - text: "10"
+              - generic: 旧快照不保证当前名额
+          - row "多尺度材料模拟 DEMO-SIM-A · 2 学分 模拟教师 SIM-A 秋 · 1–8周 · 周二 · 3、4节 模拟校区 · 演示教室 冬 · 1–8周 · 周四 · 5、6节 模拟校区 · 演示教室 10 旧快照不保证当前名额":
+            - cell "多尺度材料模拟 DEMO-SIM-A · 2 学分 模拟教师 SIM-A":
+              - strong: 多尺度材料模拟
+              - text: DEMO-SIM-A · 2 学分
+              - text: 模拟教师 SIM-A
+            - cell "秋 · 1–8周 · 周二 · 3、4节 模拟校区 · 演示教室 冬 · 1–8周 · 周四 · 5、6节 模拟校区 · 演示教室":
+              - text: 秋 · 1–8周 · 周二 · 3、4节
+              - generic: 模拟校区 · 演示教室
+              - text: 冬 · 1–8周 · 周四 · 5、6节
+              - generic: 模拟校区 · 演示教室
+            - cell "10 旧快照不保证当前名额":
+              - text: "10"
+              - generic: 旧快照不保证当前名额
+      - generic "校验明细与修改建议"
+      - generic "预计培养要求贡献"
+      - generic: 导出含 synthetic 标记与版本信息
+      - button "导出 JSON"
+      - button "导出 CSV"
+      - button "导出日历 ICS"
+    - generic "查看搜索范围与结果版本"
+    - generic: 演示快照 DEMO-B-OFFERINGS-v1
+    - generic: · 2026-10-09T12:00:00+08:00
+  - text: › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › ›
+  - generic: 用于选课规划、比较、调整与导出。计算结果的适用范围取决于学生资料、规则版本和教学班快照。

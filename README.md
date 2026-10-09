@@ -1,36 +1,54 @@
 # 浙江大学选课助手
 
-结合适用培养方案、个人学业与认定、选课偏好和当期教学班，提供可解释、可调整的选课规划、比较、保存及导出。RAG 检索依据，Agent 组织对话与工具调用，确定性程序负责学分、资格和冲突计算。
+通过与 Agent 对话表达需求、澄清条件并获得可解释的推荐课表，支持比较、锁定、调整、保存与导出。确定性程序负责计算；条件表单用于辅助校对。当前保留对话主入口，模型尚未接入，不能理解或发送自然语言草稿。基础计算稳定后接模型与工具调用，再接 RAG 及获准的数据。
 
-**当前是设计与代码草稿交接，尚未交付完成整体验收的应用。** 用户要求本轮补齐登录权限设计、整理交接并建立 Git/GitHub 仓库；业务代码实现留到新的对话。已有代码保留，不代表新字段结构、登录或真实学生检索已经实现。
+**当前版本 0.2.0：可运行的本机 synthetic 演示。** 已实现服务端会话、固定合成主体绑定、本人工作区与方案授权，以及 P0/P1 计算和原生 Web 联调。学校真实认证、本人档案/成绩/选课数据源仍未接入；不能用于真实学生审核或自动选课。
+
+## 启动
+
+仅需 Python 3.10+，应用运行不依赖第三方包。本轮在 Python 3.13.13 上验证。
+
+```sh
+cd /Users/shuzida/Desktop/大数据信息分析系统
+python3 -m course_assistant.server --enable-mock --port 8765
+```
+
+打开 [本机选课助手](http://127.0.0.1:8765/)，选择“模拟学生 A”或“模拟学生 B”。默认进入“Agent 对话”；模型未配置时发送禁用，可在页面中编辑需求草稿。点击“用当前合成条件预览课表”运行已有计算；该操作只使用当前服务端条件，不读取草稿。进入“条件与课表”可手动调整并“生成并校验方案”。这两位身份和学生绑定由服务端预置，只验证 synthetic 计算和资源隔离，不验证现实使用者身份。页面不会要求学校密码、姓名、学号或真实 Excel。
+
+按 `Ctrl+C` 停止服务。服务只绑定 `127.0.0.1`。默认数据库为 `runtime/planning.sqlite3`，自动创建并保存本人活动数据、偏好、会话和冻结方案；该目录被 Git 忽略。可用 `--db /本机路径/演示.sqlite3` 选择独立开发数据库。旧无归属表保留隔离，不会自动分配给任何登录用户。
+
+不加 `--enable-mock` 时，mock 默认关闭，仅显示认证尚未配置的入口，个人 API 拒绝访问。学校认证未配置不会自动降级为 mock 登录。HTTP 回环 Cookie 使用 HttpOnly、SameSite=Strict；这份配置和固定 mock 主体不构成生产认证方案。
+
+## 已实现的本机范围
+
+- Agent 对话主入口、页面内需求草稿、示例和未来对话流程说明。模型未配置时不发送草稿、不生成虚构的对话回复；退出、会话失效或主体变化清除草稿。辅助条件表单与当前合成课表计算继续可用。此项是交互设计保留，尚未实现模型理解、多轮对话或 RAG。
+- 每次个人请求验证服务端会话和有效绑定；会话轮换、退出、空闲/绝对到期；写接口验证 CSRF、Origin 和 Host。知道他人学号或方案编号不获得权限。工作区、偏好、保存、比较、重新校验和导出按 owner 与安全域查询；活动及冻结输入另核对内部归属、synthetic 属性和摘要。
+- P0 保留修读实例、课程身份和认定归属；实际获分与条件覆盖分开。失败、在修、待认定、被替代和未知不算已获学分。同码多次通过缺适用重复政策时保留 unknown，不统一折叠。学分使用 Decimal；需要原始小数精度时输入十进制字符串。
+- P1 检查专业/方案版本、明确资格、先修、余量、学期、周集合、分学期、多时段、考试及固定安排。缺班号、时段、考试或校历保留 unknown。负余量是已知不可用，零与未知分开。最多展示三个组合，比较使用相同当前输入重新计算。
+- 调整保留锁定、预置、正式来源成员和固定项，使用偏好版本防止旧条件覆盖。页面完整条件 JSON 可显式提供 `unlock_section_ids` 解除个人锁；不会解除预置/正式安排。缺失班次不会默认为空闲。无解说明包含范围、班次、条件与建议。
+- 保存版本冻结数据、规则、偏好和校验。查看历史保持只读；“按当前数据重新校验”继承当前偏好与当前/历史锁定，产生当前草案，不改历史。历史比较保留各自输入，不将不同版本视为同条件排名。
+- JSON、CSV、ICS 保留 synthetic、来源、冻结版本、未知/冲突及草案状态。ICS 仅导出显式校历映射的已知课时、固定安排和已知考试；无可靠校历正常拒绝。保存或导出不表示正式中选或已获学分。
+
+演示账本基础 8、课堂 4、在修 3、未知记录 1；演示规则独立于原 23 条待审核候选。原资料模式没有本人学业数据，不输出真实毕业或资格结论。开发者 JSON 入口只接受当前固定合成学生的数据；结构校验不能独立证明任意自由文本的真实性。
+
+## 验证和验收
+
+```sh
+python3 -m unittest discover -s tests -v
+python3 validation/run_checks.py --record-prefix agent_dialog_20261009
+```
+
+Node 仅用于 Web 契约测试和 `node --check web/app.js`，不是应用运行依赖。没有 Node 时相关测试会明确跳过，不能据此声称已验证 Web 契约。基线 57 项、恢复开发 129 项及最新对话入口纠偏 133 项分别固化在 `validation/`；重新验证时更换 `--record-prefix` 可独立保存日志和源码摘要。实际浏览器步骤、下载哈希及未覆盖项见 [最新 Agent 入口验收](validation/Agent对话入口验收_20261009.md)、[恢复开发验收记录](validation/验收记录_20261009.md)、[验收范围](validation/验收范围_20261009.md)与[开发进度](docs/开发进度.md)。
+
+原八项和新增十项权限验收仅完成文档所列 synthetic 切片，整体真实验收仍未完成。学校应用许可、具体认证协议/可信身份映射、个人数据源许可、真实重复修读/认定政策、完整教学班/周次/考试/校历均待确认。Agent 模型调用、多轮工具循环、RAG、个人检索缓存、后台任务、资料维护角色和学校页面解析尚未实现。模型服务可采用外部 API 或本地模型，当前未选型或配置；后续服务端接入方式与本人授权边界见 [Agent 对话与模型接入设计](docs/Agent对话与模型接入设计_v1.md)。
 
 ## 接手阅读顺序
 
-1. [本轮开发交接摘要](docs/开发交接摘要_20261009.md)：最新纠偏、已有产物、缺口和下一轮开发顺序。
-2. [登录认证与权限设计](docs/登录认证与权限设计_v1.md)：可信身份绑定、本人资源授权、模拟身份隔离和待实现安全验收。
-3. [开发进度](docs/开发进度.md)：统一进度入口，区分历史测试、当前验证及未完成验收。
-4. [数据结构与字段字典](docs/数据结构与字段字典_v1.md)与[模块和数据来源矩阵](docs/系统模块与数据来源矩阵_v2.md)：逻辑对象、字段、来源、未知状态和模块边界。
-5. 原输入依次阅读：[README](inputs/zju_course_agent_handoff_v1/README.md) → [CODEX_HANDOFF](inputs/zju_course_agent_handoff_v1/CODEX_HANDOFF.md) → [ANALYSIS](inputs/zju_course_agent_handoff_v1/ANALYSIS.md) → [data/README.txt](inputs/zju_course_agent_handoff_v1/data/README.txt)及七份 JSON，再核对 [SOURCE_INDEX](inputs/zju_course_agent_handoff_v1/SOURCE_INDEX.md) 和 [MANIFEST](inputs/zju_course_agent_handoff_v1/MANIFEST.json)。原包中的“尚无代码、未取得个人资料”是当时状态，以最新交接解释后续进展。
+1. [最新交接：数据接入与 RAG 入口](docs/开发交接摘要_20261009_数据接入与RAG入口.md)，再核对[当前开发进度](docs/开发进度.md)与本轮证据；[旧交接](docs/开发交接摘要_20261009.md)中的暂停状态属于前轮。
+2. [登录认证与权限设计](docs/登录认证与权限设计_v1.md)。学校登录与个人数据接入是两个独立依赖。
+3. [字段字典](docs/数据结构与字段字典_v1.md)与[模块矩阵](docs/系统模块与数据来源矩阵_v2.md)。逻辑对象不要求一对象一表，尚未全面实现每个对象。
+4. 原输入：[README](inputs/zju_course_agent_handoff_v1/README.md) → [CODEX_HANDOFF](inputs/zju_course_agent_handoff_v1/CODEX_HANDOFF.md) → [ANALYSIS](inputs/zju_course_agent_handoff_v1/ANALYSIS.md) → [data/README.txt](inputs/zju_course_agent_handoff_v1/data/README.txt)及七份 JSON → [SOURCE_INDEX](inputs/zju_course_agent_handoff_v1/SOURCE_INDEX.md) → [MANIFEST](inputs/zju_course_agent_handoff_v1/MANIFEST.json)。原输入保持原字节、23 候选待审核、真实教学班模板为空。
 
-## 当前目录
+`course_assistant/` 为标准库服务和计算，`web/` 为原生界面，`demo/` 为独立合成夹具，`tests/` 为回归，`validation/` 保存可复核代码/输入摘要、日志和合成页面证据。私有材料只放 `private/` 或外部目录；真实 Excel、截图、密码、Cookie、Token、会话、运行数据库和个人导出不得提交。Excel 与截图仅为字段参考，不规定用户上传。
 
-| 目录 / 文件 | 用途 |
-| --- | --- |
-| `inputs/zju_course_agent_handoff_v1/` | 原交接输入，保留原字节与清单；不得改写候选规则或空真实教学班模板 |
-| `course_assistant/`、`web/` | Python 标准库、SQLite、原生 Web 代码草稿，尚无认证与用户隔离 |
-| `demo/bundle.json` | 独立 synthetic 学生、规则、教学班和校历，不能作为官方记录 |
-| `tests/` | 57 个现有测试方法；历史局部结果不等于当前整体通过 |
-| `docs/`、`PRODUCT.md` | 设计、进度、资料盘点及交接 |
-| `validation/` | 后续保存可复核验证证据；当前没有应用整体验收日志 |
-| `private/`（忽略） | 本机私有资料定位，不上传 GitHub；实际样本仍在外部路径 |
-| `runtime/`、`tmp/`（忽略） | 数据库、运行产物及可重建临时文件 |
-
-## 开发入口与限制
-
-当前草稿入口是 `python3 -m course_assistant.server --port 8765`，服务绑定本机回环地址。新对话开发时可从本目录执行；本轮没有启动服务，也没有验证页面。这条命令是代码入口说明，不能作为“已经验证可运行”的验收结果。当前草稿只用于独立模拟数据开发，在完成认证、对象授权及多用户隔离之前不得接入真实学生个人记录或对外部署。
-
-测试入口为 `python3 -m unittest discover -s tests -v`。下一轮先运行并保存基线结果，再针对实际修复做验证。原八项验收和新增登录权限验收均仍待完成，详见进度与权限文档。
-
-Excel 与截图仅用作字段参考；未来用户登录后只能检索本人档案，姓名或学号输入不能授予访问他人数据的权限。学校身份验证和学业数据接入是两项依赖：不能假定学校已提供本项目可用的认证协议或档案 API，不能建立学校密码库。
-
-远端为 [Ayakatokyo/zju-course-planner](https://github.com/Ayakatokyo/zju-course-planner) 私有仓库，本地 main 已关联 origin/main 并推送；建立与核验记录见[开发进度](docs/开发进度.md)。每轮开发后同步该文件；原始输入、个人资料及凭据的保留边界见 [AGENTS.md](AGENTS.md)。
+远端为 [Ayakatokyo/zju-course-planner](https://github.com/Ayakatokyo/zju-course-planner) 私有仓库，交付前实际重新核对仍为 PRIVATE。恢复开发基线为 `main@716c70d`；用户已授权将当前代码、验证证据和新交接摘要作为一次交付提交并推送，交付提交用 `git log -1 -- docs/开发交接摘要_20261009_数据接入与RAG入口.md` 定位。实际执行结果以 Git 和本机忽略的 `local-only/git_delivery_20261009.json` 回执为准，不以文档预记推送成功。未打包、未创建 PR、未部署。每轮更新开发进度，分别记录实现、测试、页面验收和 Git/部署状态。

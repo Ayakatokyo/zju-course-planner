@@ -6,7 +6,7 @@ from pathlib import Path
 import unittest
 
 from course_assistant.planner import (
-    confirmed_enrollment, find_sections, generate_plans, revise_constraints,
+    compare_plans, confirmed_enrollment, find_sections, generate_plans, revise_constraints,
     validate_plan,
 )
 
@@ -236,6 +236,164 @@ class PlannerTests(unittest.TestCase):
         result = self.validate()
         self.check(result, "snapshot_structure", "unknown")
         self.assertNotEqual(before, result["provenance"]["snapshot_fingerprint"])
+
+    def test_major_and_curriculum_version_are_explicit_eligibility(self):
+        eligibility = self.section("DEMO-ML-A")["eligibility"]
+        eligibility["major_codes"] = ["DEMO-OTHER-MAJOR"]
+        self.check(self.validate(), "eligibility", "fail")
+        eligibility["major_codes"] = [self.student["major_code"]]
+        eligibility["plan_versions"] = ["other-version"]
+        self.check(self.validate(), "eligibility", "fail")
+        eligibility.pop("plan_versions")
+        self.check(self.validate(), "eligibility", "unknown")
+        self.student.pop("major_code")
+        self.check(self.validate(), "plan_binding", "unknown")
+
+    def test_decimal_strings_sum_exactly_and_nonfinite_values_remain_unknown(self):
+        for identifier, amount in (("DEMO-PE-A", "0.1"), ("DEMO-ML-A", "0.2"), ("DEMO-SIM-A", "0")):
+            self.section(identifier)["credits"] = amount
+        self.constraints.update(min_credits="0.3", max_credits="0.3")
+        result = self.validate()
+        self.assertEqual(result["result"], "pass")
+        self.assertEqual(result["total_credits_exact"], "0.3")
+        for invalid in (float("nan"), float("inf"), "-Infinity", "NaN", True):
+            self.section("DEMO-ML-A")["credits"] = invalid
+            result = self.validate()
+            self.assertIsNone(result["total_credits"])
+            self.check(result, "planned_credits", "unknown")
+            json.dumps(result, allow_nan=False)
+        self.constraints["min_credits"] = "Infinity"
+        self.check(self.validate(), "credit_range", "unknown")
+        with self.assertRaises(ValueError):
+            revise_constraints(self.constraints, {})
+
+    def test_declared_optional_and_unsupported_eligibility_never_silently_pass(self):
+        eligibility = self.section("DEMO-ML-A")["eligibility"]
+        eligibility["language_levels"] = ["DEMO-ADVANCED"]
+        self.check(self.validate(), "eligibility", "unknown")
+        self.student["language_level"] = "DEMO-BEGINNER"
+        self.check(self.validate(), "eligibility", "fail")
+        self.student["language_level"] = "DEMO-ADVANCED"
+        self.assertEqual(self.validate()["result"], "pass")
+        eligibility["unimplemented_gpa_limit"] = "3.5"
+        self.check(self.validate(), "eligibility", "unknown")
+
+    def test_prerequisite_from_explicit_other_plan_version_remains_unconfirmed(self):
+        self.section("DEMO-ML-A")["prerequisite_course_ids"] = ["zju:CS1006G"]
+        for record in self.records:
+            if record.get("course_id") == "zju:CS1006G":
+                record["plan_version"] = "other-version"
+        self.check(self.validate(), "prerequisites", "unknown")
+
+    def test_negative_seat_count_is_known_unavailable_and_fraction_is_unknown(self):
+        self.section("DEMO-ML-A")["available_seats"] = -4
+        self.check(self.validate(), "availability", "fail")
+        self.section("DEMO-ML-A")["available_seats"] = 0.5
+        self.check(self.validate(), "availability", "unknown")
+        self.section("DEMO-ML-A")["available_seats"] = float("inf")
+        result = self.validate()
+        self.check(result, "availability", "unknown")
+        json.dumps(result, allow_nan=False)
+
+    def test_long_decimal_total_is_exact_without_context_rounding_or_float_loss(self):
+        self.section("DEMO-PE-A")["credits"] = "0.123456789012345678901234567891"
+        self.section("DEMO-ML-A")["credits"] = "0.000000000000000000000000000009"
+        self.section("DEMO-SIM-A")["credits"] = "0"
+        self.constraints.update(min_credits="0.123456789012345678901234567900",
+                                max_credits="0.123456789012345678901234567900")
+        result = self.validate()
+        self.assertEqual(result["result"], "pass")
+        self.assertEqual(result["total_credits_exact"], "0.123456789012345678901234567900")
+        self.assertEqual(result["total_credits"], "0.123456789012345678901234567900")
+        self.section("DEMO-ML-A")["credits"] = "1e1000"
+        result = self.validate()
+        self.assertIsInstance(result["total_credits"], str)
+        json.dumps(result, allow_nan=False)
+
+    def exam(self, identifier, day="2026-12-01", start="18:00", end="19:00"):
+        return {"exam_id": identifier, "exam_date": day, "start_time_local": start,
+                "end_time_local": end, "timezone": "Asia/Shanghai",
+                "data_kind": "synthetic", "source_refs": [{"snapshot_id": "DEMO-EXAM-v1"}]}
+
+    def test_missing_exam_information_never_means_no_exam(self):
+        section = self.section("DEMO-ML-A")
+        section.pop("exam_state")
+        section.pop("exams")
+        result = self.validate()
+        self.assertEqual(result["result"], "unknown")
+        self.check(result, "exam_schedule", "unknown")
+        section.update(exam_state="none", exams=[self.exam("EXAM-A")])
+        self.check(self.validate(), "exam_schedule", "unknown")
+        section.update(exam_state="known", exams=[self.exam("EXAM-A")])
+        section["exams"][0].pop("timezone")
+        self.check(self.validate(), "exam_schedule", "unknown")
+
+    def test_exam_intersections_use_dates_clocks_and_half_open_intervals(self):
+        left, right = self.section("DEMO-ML-A"), self.section("DEMO-SIM-A")
+        left.update(exam_state="known", exams=[self.exam("EXAM-ML")])
+        right.update(exam_state="known", exams=[self.exam("EXAM-SIM", start="18:30", end="19:30")])
+        result = self.validate()
+        self.check(result, "exam_conflict", "fail")
+        right["exams"][0]["start_time_local"] = "19:00"
+        self.assertEqual(self.validate()["result"], "pass")
+        right["exams"][0]["exam_date"] = "2026-12-02"
+        self.assertEqual(self.validate()["result"], "pass")
+
+    def test_exam_against_class_requires_calendar_and_reports_actual_overlap(self):
+        section = self.section("DEMO-SIM-A")
+        section.update(exam_state="known", exams=[self.exam("EXAM-SIM", day="2026-11-30", start="08:30", end="09:00")])
+        result = self.validate()
+        self.check(result, "exam_class_conflict", "fail")
+        conflicts = [item for item in result["conflicts"] if item["code"] == "exam_class_conflict"]
+        self.assertIn("DEMO-ML-A", conflicts[0]["section_ids"])
+        section["exams"][0]["start_time_local"] = "18:00"
+        section["exams"][0]["end_time_local"] = "19:00"
+        self.assertEqual(self.validate()["result"], "pass")
+        self.snapshot.pop("academic_calendar")
+        self.check(self.validate(), "exam_class_conflict", "unknown")
+
+    def test_explicit_unlock_only_removes_personal_lock_and_versions_are_preserved(self):
+        self.constraints["locked_section_ids"].append("DEMO-ML-B")
+        self.constraints["input_version_refs"] = {"snapshot": "DEMO-OFFERINGS-v1"}
+        revised = revise_constraints(self.constraints, {"unlock_section_ids": ["DEMO-ML-B", "DEMO-PE-A"],
+                                                        "expected_revision": 1, "friday_free": "hard"})
+        self.assertEqual(revised["locked_section_ids"], [])
+        self.assertEqual(revised["preloaded_section_ids"], ["DEMO-PE-A"])
+        self.assertEqual(revised["input_version_refs"], self.constraints["input_version_refs"])
+        self.assertEqual(revised["previous_revision"], 1)
+        self.assertTrue(revised["validation_required"])
+        self.constraints = revised
+        self.assertEqual(self.generate()["status"], "feasible")
+        self.check(self.validate(["DEMO-ML-A", "DEMO-SIM-A"]), "protected_sections", "fail")
+        with self.assertRaises(ValueError):
+            revise_constraints(revised, {"expected_revision": 1})
+        with self.assertRaises(ValueError):
+            revise_constraints(revised, {"input_version_refs": {"snapshot": "fake"}})
+
+    def test_formal_members_are_preserved_without_client_lock(self):
+        self.constraints.update(locked_section_ids=[], preloaded_section_ids=[])
+        generated = self.generate()
+        self.assertTrue(all("DEMO-PE-A" in item["section_ids"] for item in generated["plans"]))
+        self.check(self.validate(["DEMO-ML-A", "DEMO-SIM-A"]), "protected_sections", "fail")
+        self.snapshot["wish_items"][0]["student_key"] = "DEMO-OTHER-STUDENT"
+        self.assertEqual(self.validate(["DEMO-ML-A", "DEMO-SIM-A"])["result"], "pass")
+
+    def test_comparison_recomputes_stale_results_and_handles_missing_classes(self):
+        old = self.validate()
+        self.section("DEMO-ML-A")["available_seats"] = 0
+        compared = compare_plans([old, ["DEMO-PE-A", "DEMO-ML-B", "DEMO-SIM-A"]],
+                                 self.snapshot, self.student, self.constraints, self.records)
+        self.assertEqual(compared["plans"][0]["previous_result"], "pass")
+        self.assertEqual(compared["plans"][0]["result"], "fail")
+        self.assertEqual(compared["ranking"], [1, 0])
+        self.assertEqual(compared["differences"][1]["added_section_ids"], ["DEMO-ML-B"])
+        self.assertTrue(compared["plans"][0]["changed_input_versions"])
+        self.snapshot["records"] = [item for item in self.snapshot["records"] if item["section_id"] != "DEMO-ML-A"]
+        compared = compare_plans([old, ["DEMO-PE-A", "DEMO-ML-B", "DEMO-SIM-A"]],
+                                 self.snapshot, self.student, self.constraints, self.records)
+        self.check(compared["plans"][0], "missing_section", "unknown")
+        self.assertEqual(compared["plans"][0]["result"], "unknown")
+        self.assertIsNone(compared["plans"][0]["planned_credits"])
 
 
 if __name__ == "__main__":

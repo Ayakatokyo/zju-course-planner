@@ -7,8 +7,10 @@ certification. The function does not mutate any input.
 """
 
 from collections import defaultdict
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, localcontext, MAX_EMAX, MIN_EMIN
 import json
+
+from .importer import ImportErrorDetail, number
 
 
 KNOWN_BINDINGS = {"student_confirmed", "official_record_verified"}
@@ -23,20 +25,34 @@ UNKNOWN_VALUES = {None, "", "unknown", "pending", "unconfirmed"}
 
 
 def _number(value):
-    """Reject bool, negative, missing and nonfinite values without inferring 0."""
-    if value is None or isinstance(value, bool):
-        return None
+    """Reject malformed, negative or nonfinite values without inferring zero."""
     try:
-        result = Decimal(str(value))
-    except (InvalidOperation, ValueError, TypeError):
+        return number(value, "计算数值", nullable=True)
+    except ImportErrorDetail:
         return None
-    return result if result.is_finite() and result >= 0 else None
+
+
+def _add(left, right):
+    # Decimal's default 28-place context can round an otherwise exact import.
+    # The importer bounds digits/exponent; size the local context for this sum.
+    exponent = min(left.as_tuple().exponent, right.as_tuple().exponent)
+    precision = max(left.adjusted(), right.adjusted()) - exponent + 3
+    with localcontext() as context:
+        context.prec = max(28, precision)
+        context.Emax, context.Emin = MAX_EMAX, MIN_EMIN
+        return left + right
 
 
 def _json_number(value):
+    """Keep ordinary JSON numbers; preserve longer decimals as decimal text."""
     if value is None:
         return None
-    return int(value) if value == value.to_integral_value() else float(value)
+    if value == value.to_integral_value():
+        return int(value)
+    converted = float(value)
+    if Decimal(str(converted)) == value:
+        return converted
+    return str(value)
 
 
 def _known(value):
@@ -145,8 +161,16 @@ def _course_index(courses, plan_id):
 
 def _fingerprint(record):
     # Source metadata can differ between repeated snapshots of the same fact.
-    provenance = {"record_id", "source_refs", "sources", "snapshot_id", "version", "imported_at", "data_kind"}
-    return json.dumps({key: val for key, val in record.items() if key not in provenance}, sort_keys=True, ensure_ascii=False)
+    provenance = {"record_id", "source_refs", "sources", "snapshot_id", "version", "imported_at", "data_kind",
+                  "ledger", "tags", "recognition_tags", "requirement_id", "membership_id", "allocation_id",
+                  "contribution_kind", "allocation_status", "policy_rule_version_id", *METRIC_FIELDS.values()}
+    fact = {key: val for key, val in record.items() if key not in provenance}
+    for key in (*METRIC_FIELDS.values(), "planned_credits", "grade_numeric"):
+        if key in fact and _number(fact[key]) is not None:
+            fact[key] = _json_number(_number(fact[key]))
+    if fact.get("record_kind", "course" if fact.get("course_id") else None) == "course" and fact.get("recognition_status") in {"not_applicable", "recognized"}:
+        fact["recognition_status"] = "confirmed_for_course"
+    return json.dumps(fact, sort_keys=True, ensure_ascii=False)
 
 
 def _deduplicate(records):
@@ -165,7 +189,10 @@ def _deduplicate(records):
         if _known(record.get("record_id")):
             keys.append(("record", record.get("student_key"), record["record_id"]))
         if _known(record.get("attempt_id")):
-            keys.append(("attempt", record.get("student_key"), record.get("plan_id"), record.get("course_id"), record["attempt_id"]))
+            keys.append(("attempt", record.get("student_key"),
+                         record.get("record_kind", "course" if record.get("course_id") else None), record["attempt_id"]))
+        if _known(record.get("recognition_id")):
+            keys.append(("recognition", record.get("student_key"), record["recognition_id"]))
         for key in keys:
             if key in seen:
                 parent[find(index)] = find(seen[key])
@@ -177,17 +204,39 @@ def _deduplicate(records):
     unique, duplicate_count = [], 0
     for group in groups.values():
         duplicate_count += len(group) - 1
-        row = dict(group[0])
+        # Requirement/recognition coverage is separate from the credit fact.
+        actual = [item for item in group if item.get("contribution_kind") not in {"condition_coverage", "report_only", "projection"}
+                  and item.get("ledger") != "recognition"]
+        row = dict((actual or group)[0])
+        actual_ledgers = {item.get("ledger") for item in actual or group}
+        if len(actual_ledgers) > 1:
+            row["ledger"] = None
+        row["_coverage_ledgers"] = {item.get("ledger") for item in group if item.get("ledger") in LEDGERS}
+        row["_coverage_metrics"] = {}
+        for ledger in row["_coverage_ledgers"]:
+            allocated = [item for item in group if item.get("ledger") == ledger]
+            row["_coverage_metrics"][ledger] = {
+                metric: next(iter(values)) if len(values) == 1 else None
+                for metric, field in METRIC_FIELDS.items()
+                for values in [{_number(item.get(field)) for item in allocated}]
+            }
+        tag_sets = [_first(item, "tags", "recognition_tags") for item in group]
+        if any(tags is not None and not isinstance(tags, list) for tags in tag_sets):
+            row["tags"] = "unresolved_malformed_tags"
+        else:
+            raw_tags = [tag for tags in tag_sets if tags for tag in tags]
+            if raw_tags:
+                row["tags"] = raw_tags
         row["_record_ids"] = sorted({str(item.get("record_id", "missing")) for item in group})
-        row["_duplicate_conflict"] = len({_fingerprint(item) for item in group}) > 1
+        row["_duplicate_conflict"] = (len({_fingerprint(item) for item in group}) > 1 or
+                                      any(len({_number(item.get(field)) for item in actual or group}) > 1
+                                          for field in METRIC_FIELDS.values()))
         if row["_duplicate_conflict"]:
             # Different identifiers or allocations in one duplicate group cannot
             # be safely filtered out using the arbitrarily retained first row.
-            for field in ("course_id", "ledger", "plan_id", "student_key"):
+            for field in ("course_id", "plan_id", "student_key"):
                 if len({item.get(field) for item in group}) > 1:
                     row[field] = None
-            if len({json.dumps(_first(item, "tags", "recognition_tags"), sort_keys=True) for item in group}) > 1:
-                row["tags"] = None
         row["_source_refs"] = _unique_refs([ref for item in group for ref in _refs(item)])
         unique.append(row)
     return unique, duplicate_count
@@ -238,6 +287,11 @@ def _normalize(record, student, index):
         issues.append("记录的学生归属未知")
     if not _known(record.get("record_id")):
         issues.append("记录缺少 record_id")
+    if kind == "course" and state not in {"failed", "not_taken", "replaced"}:
+        if not _known(record.get("attempt_id")):
+            issues.append("修读实例身份未知，不能由课程代码或成绩补造")
+        if record.get("resolution_status") is not None and record["resolution_status"] != "verified":
+            issues.append("修读实例尚未核验或存在冲突")
     if not _known(record.get("snapshot_id")):
         issues.append("记录缺少学业快照版本，无法追溯")
     for field in ("plan_id", "student_key", "ledger", "completion_status", "recognition_status"):
@@ -258,7 +312,7 @@ def _normalize(record, student, index):
     ledger = record.get("ledger")
     if ledger not in LEDGERS:
         issues.append("学分/认定账本归属未知")
-    if state in {"failed", "not_taken"} or recognition == "rejected":
+    if state in {"failed", "not_taken", "replaced"} or record.get("row_status") == "replaced" or recognition == "rejected":
         status = "excluded"
     elif state == "in_progress":
         status = "in_progress"
@@ -284,52 +338,70 @@ def _normalize(record, student, index):
         planned = None
     return {
         "course_id": course_id, "record_kind": kind, "record_ids": record["_record_ids"],
+        "attempt_id": record.get("attempt_id"), "recognition_id": record.get("recognition_id"),
+        "fact_id": record.get("academic_fact_ref") or record.get("attempt_id") or record.get("recognition_id") or record.get("record_id"),
+        "repeat_credit_policy_rule_id": record.get("repeat_credit_policy_rule_id"),
+        "contribution_kind": record.get("contribution_kind", "actual_credit"),
+        "coverage_ledgers": record.get("_coverage_ledgers", set()),
+        "coverage_metrics": record.get("_coverage_metrics", {}),
         "status": status, "issues": issues, "ledger": ledger, "metrics": metrics,
         "tags": tags, "pending_tags": pending_tags, "planned_credits": planned,
         "source_refs": _unique_refs(record["_source_refs"] + (course.get("_source_refs", []) if course else [])),
     }
 
 
-def _collapse_courses(entries):
-    """A repeat pass of one course never grants a second copy of its credits."""
-    groups, result = defaultdict(list), []
+def _repeat_policy(group, index, rules, fields):
+    course = index.get(group[0]["course_id"], {})
+    policies = [course["repeat_credit_policy"]] if isinstance(course.get("repeat_credit_policy"), dict) else []
+    refs = {entry["repeat_credit_policy_rule_id"] for entry in group if entry["repeat_credit_policy_rule_id"]}
+    policies.extend(rule for rule in rules if rule.get("rule_kind") == "repeat_credit_policy"
+                    and (rule.get("rule_id") in refs or group[0]["course_id"] in (rule.get("course_pool") or [])))
+    if refs - {policy.get("rule_id") for policy in policies}:
+        return None
+    modes = set()
+    for policy in policies:
+        scope = policy.get("scope")
+        if (policy.get("data_kind") != "synthetic" or policy.get("status") not in {"demo_active", "confirmed"}
+                or not str(policy.get("rule_id", "")).startswith("DEMO-")
+                or not str(policy.get("version", "")).startswith("DEMO-")
+                or policy.get("plan_id") != fields["plan_id"] or not isinstance(scope, dict)
+                or any(not _known(scope.get(key)) or scope[key] != fields[key] or _field_unconfirmed(scope, key)
+                       for key in ("cohort", "program", "version"))
+                or policy.get("human_review_required") is True or policy.get("enforce_automatically") is False
+                or "candidate_expression" in policy or _has_conflict(policy)):
+            continue
+        if policy.get("mode") in {"per_attempt", "once_per_course"}:
+            modes.add(policy["mode"])
+    return next(iter(modes)) if len(modes) == 1 else None
+
+
+def _resolve_attempts(entries, index, rules, student, fields):
+    """Preserve attempts; only an explicit applicable policy resolves repeats."""
+    groups = defaultdict(list)
+    attempts = {entry["attempt_id"] for entry in entries
+                if entry["record_kind"] == "course" and entry["attempt_id"]}
     for entry in entries:
-        if entry["course_id"] and entry["record_kind"] == "course" and entry["status"] != "excluded":
+        if entry["record_kind"] == "course" and entry["course_id"] and entry["status"] == "earned":
             groups[entry["course_id"]].append(entry)
-        else:
-            result.append(entry)
+        if entry["record_kind"] in {"recognition", "activity", "transfer_credit"} and entry["fact_id"] in attempts:
+            entry["contribution_kind"] = "condition_coverage"
+        if entry["contribution_kind"] in {"report_only", "projection"} and entry["status"] != "excluded":
+            entry["status"] = "unknown"
+            entry["issues"].append("来源报告或预计贡献不是独立已获分事实")
     for group in groups.values():
-        earned = [row for row in group if row["status"] == "earned"]
-        bad = [row for row in group if row["issues"] or row["status"] == "unknown"]
-        if earned:
-            row = dict(earned[0])
-            if bad:
-                row["issues"] = list(dict.fromkeys(reason for item in bad for reason in item["issues"]))
-                if not row["issues"]:
-                    row["issues"] = ["同课存在未确认的重复认定"]
-            if len({item["ledger"] for item in earned}) > 1:
-                row["issues"] = row["issues"] + ["同课不同获分记录的账本归属不一致"]
-            row["metrics"] = dict(row["metrics"])
-            for metric in METRIC_FIELDS:
-                values = {item["metrics"][metric] for item in earned}
-                if len(values) > 1:
-                    row["metrics"][metric] = None
-            row["tags"] = set().union(*(item["tags"] or set() for item in earned))
-            if any(item["tags"] is None for item in earned):
-                row["tags"] = None
-            row["pending_tags"] = set().union(*(item["pending_tags"] for item in earned))
-        else:
-            row = dict(group[0])
-            if bad:
-                row["status"] = "unknown"
-                row["issues"] = list(dict.fromkeys(reason for item in bad for reason in item["issues"]))
-            # Repeated registrations do not multiply planned course credits.
-            if len({item["planned_credits"] for item in group}) > 1:
-                row["planned_credits"] = None
-        row["record_ids"] = sorted({rid for item in group for rid in item["record_ids"]})
-        row["source_refs"] = _unique_refs([ref for item in group for ref in item["source_refs"]])
-        result.append(row)
-    return result
+        if len(group) <= 1:
+            continue
+        mode = _repeat_policy(group, index, rules, fields)
+        if mode == "per_attempt":
+            continue
+        if mode == "once_per_course" and all(not entry["issues"] for entry in group):
+            if len({(entry["ledger"], tuple(entry["metrics"].items())) for entry in group}) == 1:
+                for entry in group[1:]:
+                    entry["credit_suppressed"] = True
+                continue
+        for entry in group:
+            entry["issues"].append("同课程存在多次通过修读；可重复获分政策缺失、冲突或适用范围未确认")
+    return entries
 
 
 def _match(entry, rule):
@@ -346,14 +418,14 @@ def _match(entry, rule):
         elif entry["course_id"] not in pool:
             return False
     ledger = rule.get("ledger")
-    if ledger is None and rule.get("metric") == "credits" and entry["ledger"] == "recognition":
+    if ledger is None and rule.get("metric") == "credits" and (entry["ledger"] == "recognition" or entry["contribution_kind"] == "condition_coverage"):
         # A generic total is base + second/third/fourth classrooms. Recognition
         # conditions must opt into their own ledger, not add a second credit copy.
         return False
     if ledger is not None:
         if entry["ledger"] not in LEDGERS:
             uncertain = True
-        elif entry["ledger"] != ledger:
+        elif entry["ledger"] != ledger and ledger not in entry["coverage_ledgers"]:
             return False
     tag = rule.get("tag")
     if tag is not None:
@@ -405,6 +477,8 @@ def _threshold(rule, student):
         threshold = _number(conditional["values"][value])
     else:
         threshold = _number(rule.get("threshold"))
+    if rule.get("metric") == "course_count" and threshold is not None and threshold != threshold.to_integral_value():
+        return None, "门数阈值不是整数"
     return threshold, None if threshold is not None else "阈值缺失或不是非负有限数值"
 
 
@@ -418,9 +492,16 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
     fields, profile_reasons = _profile(student)
     index = _course_index(courses, fields["plan_id"])
     unique, duplicate_count = _deduplicate(records)
-    entries = _collapse_courses([_normalize(row, student, index) for row in unique])
+    entries = _resolve_attempts([_normalize(row, student, index) for row in unique], index, rules, student, fields)
     ledger_totals = {key: Decimal(0) for key in LEDGERS}
     hours, points, planned = Decimal(0), Decimal(0), Decimal(0)
+    measured_facts = {"hours": {}, "points": {}}
+    measure_values = {"hours": defaultdict(set), "points": defaultdict(set)}
+    for entry in entries:
+        if entry["status"] == "earned" and not entry["issues"] and not entry.get("credit_suppressed"):
+            for metric in measure_values:
+                if entry["metrics"][metric] is not None:
+                    measure_values[metric][entry["fact_id"]].add(entry["metrics"][metric])
     unknown_ids, unknown_reasons, planned_ids, planned_courses = set(), [], set(), set()
     excluded_ids = set()
     for entry in entries:
@@ -432,26 +513,37 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
             credits = entry["metrics"]["credits"]
             if credits is None and entry["ledger"] != "recognition":
                 reasons.append("实际已获学分缺失或冲突，不能由课程目录推断")
-            elif credits is not None:
-                ledger_totals[entry["ledger"]] += credits
-            if entry["metrics"]["hours"] is not None:
-                hours += entry["metrics"]["hours"]
-            if entry["metrics"]["points"] is not None:
-                points += entry["metrics"]["points"]
+            elif credits is not None and not entry.get("credit_suppressed") and entry["contribution_kind"] != "condition_coverage":
+                ledger_totals[entry["ledger"]] = _add(ledger_totals[entry["ledger"]], credits)
+            for metric in ("hours", "points"):
+                value = entry["metrics"][metric]
+                if value is None or entry.get("credit_suppressed"):
+                    continue
+                if len(measure_values[metric][entry["fact_id"]]) > 1:
+                    reasons.append(f"同一事实的 {metric} 来源数值不同，待确认")
+                    continue
+                previous = measured_facts[metric].get(entry["fact_id"])
+                if previous is not None:
+                    continue
+                measured_facts[metric][entry["fact_id"]] = value
+                if metric == "hours":
+                    hours = _add(hours, value)
+                else:
+                    points = _add(points, value)
         elif entry["status"] == "in_progress" and not reasons:
             planned_ids.update(entry["record_ids"])
             if entry["course_id"]:
                 planned_courses.add(entry["course_id"])
             if entry["planned_credits"] is not None:
-                planned += entry["planned_credits"]
+                planned = _add(planned, entry["planned_credits"])
             else:
                 reasons.append("在修课程学分未知")
         if reasons or entry["status"] == "unknown":
             unknown_ids.update(entry["record_ids"])
             unknown_reasons.extend(reasons)
-    extra_total = sum((ledger_totals[key] for key in ("second", "third", "fourth")), Decimal(0))
+    extra_total = _add(_add(ledger_totals["second"], ledger_totals["third"]), ledger_totals["fourth"])
     ledger = {
-        "earned_credits": _json_number(ledger_totals["base"] + extra_total),
+        "earned_credits": _json_number(_add(ledger_totals["base"], extra_total)),
         "base": _json_number(ledger_totals["base"]),
         "extra_classrooms": {key: _json_number(ledger_totals[key]) for key in ("second", "third", "fourth")},
         "in_progress": {"credits": _json_number(planned), "course_ids": sorted(planned_courses), "record_ids": sorted(planned_ids)},
@@ -465,6 +557,8 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
     ledger["extra_classrooms"]["total"] = _json_number(extra_total)
     results = []
     for rule in rules:
+        if rule.get("rule_kind") == "repeat_credit_policy":
+            continue
         reasons = _rule_blockers(rule, student, fields, profile_reasons)
         threshold, threshold_reason = _threshold(rule, student)
         if threshold_reason:
@@ -484,6 +578,7 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
             results.append(result)
             continue
         actual = Decimal(0)
+        counted_facts, counted_courses = {}, set()
         for entry in entries:
             if entry["status"] in {"excluded", "in_progress"}:
                 continue
@@ -501,11 +596,31 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
                 result["unknown_record_ids"].extend(entry["record_ids"])
                 continue
             value = entry["metrics"].get(rule["metric"])
+            rule_ledger = rule.get("ledger")
+            if rule_ledger is not None and rule_ledger != entry["ledger"]:
+                value = entry["coverage_metrics"].get(rule_ledger, {}).get(rule["metric"], value)
             if value is None:
                 reasons.append(f"相关记录的 {rule['metric']} 数值缺失或冲突")
                 result["unknown_record_ids"].extend(entry["record_ids"])
                 continue
-            actual += value
+            fact_key = entry["fact_id"]
+            if rule["metric"] == "course_count":
+                if entry["course_id"] in counted_courses:
+                    value = Decimal(0)
+                counted_courses.add(entry["course_id"])
+            elif entry.get("credit_suppressed"):
+                value = Decimal(0)
+            elif fact_key in counted_facts:
+                if counted_facts[fact_key] != value:
+                    reasons.append("同一获分事实的条件贡献数值不一致，不能重复或任选累计")
+                    result["unknown_record_ids"].extend(entry["record_ids"])
+                    if counted_facts[fact_key] is not None:
+                        actual = _add(actual, counted_facts[fact_key].copy_negate())
+                    counted_facts[fact_key] = None
+                value = Decimal(0)
+            else:
+                counted_facts[fact_key] = value
+            actual = _add(actual, value)
             if entry["course_id"]:
                 result["matched_course_ids"].append(entry["course_id"])
             result["matched_record_ids"].extend(entry["record_ids"])
@@ -521,7 +636,7 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
         if reasons:
             result["reason"] = "；".join(dict.fromkeys(reasons))
         else:
-            result["remaining"] = _json_number(max(Decimal(0), threshold - actual))
+            result["remaining"] = _json_number(max(Decimal(0), _add(threshold, actual.copy_negate())))
             result["result"] = "pass" if actual >= threshold else "fail"
             result["reason"] = "在所提供记录范围内满足演示阈值" if result["result"] == "pass" else "在所提供记录范围内尚未达到演示阈值；在修不计为已完成"
         results.append(result)
@@ -535,6 +650,8 @@ def audit_progress(student, records, rules, courses, record_completeness=COMPLET
             "academic_snapshot_ids": sorted({str(row.get("snapshot_id")) for row in records if row.get("snapshot_id") is not None}),
             "record_completeness": record_completeness,
         },
-        "record_summary": {"input_count": len(records), "deduplicated_count": len(unique), "duplicate_count": duplicate_count, "excluded_record_ids": sorted(excluded_ids)},
+        "record_summary": {"input_count": len(records), "deduplicated_count": len(unique), "duplicate_count": duplicate_count, "excluded_record_ids": sorted(excluded_ids),
+                           "attempt_ids": sorted({entry["attempt_id"] for entry in entries if entry["attempt_id"]}),
+                           "accounted_fact_count": len(entries)},
         "warnings": ["仅为所提供范围内的学业规划核对，不代表校方毕业审核或正式资格认定"],
     }

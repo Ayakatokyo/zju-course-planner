@@ -1,6 +1,5 @@
-"""Versioned SQLite storage. Inputs and imported JSON bodies are immutable."""
+"""SQLite resources queried by owner and realm; ownerless legacy data stays quarantined."""
 from __future__ import annotations
-
 import json
 import sqlite3
 from contextlib import contextmanager
@@ -9,26 +8,45 @@ from pathlib import Path
 from .importer import digest
 
 
+def encoded(value):
+    return json.dumps(value, ensure_ascii=False, allow_nan=False)
+
+
 class Store:
     def __init__(self, path):
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as db:
             db.executescript("""
-                CREATE TABLE IF NOT EXISTS datasets (
-                    digest TEXT PRIMARY KEY, kind TEXT NOT NULL,
-                    body TEXT NOT NULL, imported_at TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS entities (
-                    dataset_digest TEXT NOT NULL, kind TEXT NOT NULL, entity_id TEXT NOT NULL,
-                    body TEXT NOT NULL, PRIMARY KEY(dataset_digest,kind,entity_id),
-                    FOREIGN KEY(dataset_digest) REFERENCES datasets(digest));
-                CREATE TABLE IF NOT EXISTS saved_plans (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT, body TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS owned_datasets (
+                    realm TEXT NOT NULL, owner TEXT NOT NULL, digest TEXT NOT NULL,
+                    body TEXT NOT NULL, PRIMARY KEY(realm,owner,digest));
+                CREATE TABLE IF NOT EXISTS workspaces (
+                    realm TEXT NOT NULL, owner TEXT NOT NULL, dataset_digest TEXT NOT NULL,
+                    constraints_body TEXT NOT NULL, PRIMARY KEY(realm,owner),
+                    FOREIGN KEY(realm,owner,dataset_digest) REFERENCES owned_datasets(realm,owner,digest));
+                CREATE TABLE IF NOT EXISTS owned_plans (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, realm TEXT NOT NULL,
+                    owner TEXT NOT NULL, body TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS plans_by_owner ON owned_plans(realm,owner,id);
+                CREATE TABLE IF NOT EXISTS identity_bindings (
+                    principal TEXT PRIMARY KEY, owner TEXT NOT NULL, realm TEXT NOT NULL,
+                    version TEXT NOT NULL, status TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS login_sessions (
+                    token_hash TEXT PRIMARY KEY, principal TEXT NOT NULL,
+                    binding_version TEXT NOT NULL, csrf_token TEXT NOT NULL,
+                    issued REAL NOT NULL, last_activity REAL NOT NULL,
+                    absolute_expires REAL NOT NULL, idle_expires REAL NOT NULL,
+                    revoked INTEGER NOT NULL DEFAULT 0);
+                CREATE TABLE IF NOT EXISTS security_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, occurred_at TEXT NOT NULL,
+                    principal TEXT, action TEXT NOT NULL, decision TEXT NOT NULL,
+                    reason TEXT NOT NULL);
             """)
 
     @contextmanager
     def connect(self):
-        db = sqlite3.connect(self.path)
+        db = sqlite3.connect(self.path, timeout=15)
         db.execute("PRAGMA foreign_keys=ON")
         try:
             with db:
@@ -36,34 +54,55 @@ class Store:
         finally:
             db.close()
 
-    def import_dataset(self, kind, body):
+    def event(self, principal, action, decision, reason):
+        with self.connect() as db:
+            db.execute("INSERT INTO security_events(occurred_at,principal,action,decision,reason) VALUES(?,?,?,?,?)",
+                       (datetime.now(timezone.utc).isoformat(), principal, action, decision, reason))
+
+    def import_dataset(self, context, body):
         key = digest(body)
         with self.connect() as db:
-            cursor = db.execute("INSERT OR IGNORE INTO datasets VALUES(?,?,?,?)", (
-                key, kind, json.dumps(body, ensure_ascii=False), datetime.now(timezone.utc).isoformat()))
-            inserted = bool(cursor.rowcount)
-            sets = {"plans": "plan_id", "courses": "course_id", "candidates": "rule_id", "issues": "issue_id", "rules": "rule_id"}
-            for entity_kind, id_field in sets.items():
-                for row in body.get(entity_kind, []):
-                    db.execute("INSERT OR IGNORE INTO entities VALUES(?,?,?,?)", (
-                        key, entity_kind, row[id_field], json.dumps(row, ensure_ascii=False)))
-            for snapshot_kind in ("academic_snapshot", "offering_snapshot"):
-                snapshot = body.get(snapshot_kind)
-                if snapshot:
-                    db.execute("INSERT OR IGNORE INTO entities VALUES(?,?,?,?)", (
-                        key, snapshot_kind, snapshot["snapshot_id"], json.dumps(snapshot, ensure_ascii=False)))
-        return {"dataset_sha256": key, "inserted": inserted}
+            cur = db.execute("INSERT OR IGNORE INTO owned_datasets VALUES(?,?,?,?)",
+                             (context.security_realm, context.student_id, key, encoded(body)))
+        return {"dataset_sha256": key, "inserted": bool(cur.rowcount)}
 
-    def save(self, body):
+    def workspace(self, context):
+        with self.connect() as db:
+            row = db.execute("SELECT d.body,w.constraints_body,d.digest FROM workspaces w JOIN owned_datasets d "
+                             "ON d.realm=w.realm AND d.owner=w.owner AND d.digest=w.dataset_digest "
+                             "WHERE w.realm=? AND w.owner=?", (context.security_realm, context.student_id)).fetchone()
+        return {"demo": json.loads(row[0]), "constraints": json.loads(row[1]), "dataset_sha256": row[2]} if row else None
+
+    def set_workspace(self, context, demo, constraints):
+        imported = self.import_dataset(context, demo)
+        with self.connect() as db:
+            db.execute("INSERT INTO workspaces VALUES(?,?,?,?) ON CONFLICT(realm,owner) DO UPDATE SET "
+                       "dataset_digest=excluded.dataset_digest,constraints_body=excluded.constraints_body",
+                       (context.security_realm, context.student_id, imported["dataset_sha256"], encoded(constraints)))
+        return imported
+
+    def save(self, context, body):
         created = datetime.now(timezone.utc).isoformat()
         with self.connect() as db:
-            cur = db.execute("INSERT INTO saved_plans(body,created_at) VALUES(?,?)", (json.dumps(body, ensure_ascii=False), created))
+            cur = db.execute("INSERT INTO owned_plans(realm,owner,body,created_at) VALUES(?,?,?,?)",
+                             (context.security_realm, context.student_id, encoded(body), created))
             identifier = cur.lastrowid
-        return {**body, "saved_id": identifier, "saved_revision": identifier,
+        return self._saved_row((identifier, encoded(body), created))
+
+    @staticmethod
+    def _saved_row(row):
+        key, body, created = row
+        return {**json.loads(body), "saved_id": key, "saved_revision": key,
                 "created_at": created, "status": "saved_planning_only"}
 
-    def saved(self):
+    def saved(self, context):
         with self.connect() as db:
-            rows = db.execute("SELECT id,body,created_at FROM saved_plans ORDER BY id DESC").fetchall()
-        return [{**json.loads(body), "saved_id": key, "saved_revision": key, "created_at": created,
-                 "status": "saved_planning_only"} for key, body, created in rows]
+            rows = db.execute("SELECT id,body,created_at FROM owned_plans WHERE realm=? AND owner=? ORDER BY id DESC",
+                              (context.security_realm, context.student_id)).fetchall()
+        return [self._saved_row(row) for row in rows]
+
+    def saved_one(self, context, identifier):
+        with self.connect() as db:
+            row = db.execute("SELECT id,body,created_at FROM owned_plans WHERE id=? AND realm=? AND owner=?",
+                             (identifier, context.security_realm, context.student_id)).fetchone()
+        return self._saved_row(row) if row else None

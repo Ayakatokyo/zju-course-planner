@@ -1,0 +1,344 @@
+- link "跳到主要内容":
+  - /url: "#main"
+- banner:
+  - strong: 选课助手
+  - generic: 浙江大学 · 课程项目
+  - generic: 模拟学生 B · synthetic
+  - button "退出"
+  - generic: 数据模式
+  - combobox "数据模式":
+    - option "本人合成演示"
+    - option "原交接资料" [selected]
+  - generic: 待审核资料
+- complementary "工作区导航":
+  - paragraph: 我的规划工作区
+  - tablist "选课工作区":
+    - tab "选课规划":
+      - generic: ▦
+      - text: 选课规划
+    - tab "学业账本" [selected]:
+      - generic: ≡
+      - text: 学业账本
+    - tab "资料与审核":
+      - generic: ▤
+      - text: 资料与审核
+    - tab "已保存方案 0":
+      - generic: ◷
+      - text: 已保存方案
+      - generic: "0"
+  - strong: 本地规划，结果可复核
+  - paragraph: 保存方案后，仍需在官方系统完成选课并取得正式结果。
+  - text: 首版 P0 / P1
+  - text: 数据、规则与快照分开保存
+- main:
+  - tabpanel "学业账本":
+    - heading "学业账本" [level=1]
+    - paragraph: 已获学分、在修、认定和记点分别核算。
+    - button "重新计算账本"
+    - generic: ⓘ
+    - paragraph: 本页只读取原交接包：3 份 2026 级培养方案、19 条课程定义、23 条待审核规则，真实教学班模板为空。Excel 与截图已用于字段设计，尚未接入本应用；学校认证和本人学业数据源均待确认。
+    - text: 适用专业
+    - strong: 未确认
+    - text: 入学年
+    - strong: 待确认
+    - text: 方案版本
+    - strong: 未确认
+    - text: 外语层次
+    - strong: 待确认
+    - term: 已获基础学分
+    - definition: 待确认学分
+    - term: 二 / 三 / 四课堂
+    - definition: 待确认学分 · 独立账本
+    - term: 在修学分
+    - definition: 待确认尚未计入已获
+    - term: 待确认记录
+    - definition: 待确认项
+    - heading "原始候选状态23 条" [level=2]
+    - paragraph: 本人学业来源未接入，摘要均待确认；空输入小计不代表本人总账。原始候选全部保持待审核，不输出正式毕业结论。
+    - generic: 候选未启用
+    - table:
+      - rowgroup:
+        - row "要求与依据 实际 / 目标 结果 说明":
+          - columnheader "要求与依据"
+          - columnheader "实际 / 目标"
+          - columnheader "结果"
+          - columnheader "说明"
+      - rowgroup:
+        - row "适用范围与双学位毕业基本条件 BDA26-R01 document (1).pdf · 第 1 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "适用范围与双学位毕业基本条件 BDA26-R01 document (1).pdf · 第 1 页 ↗":
+            - strong: 适用范围与双学位毕业基本条件
+            - generic: BDA26-R01
+            - link "document (1).pdf · 第 1 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=1
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "主模块与子模块学分结构 BDA26-R02 document (1).pdf · 第 3 页 ↗ document (1).pdf · 第 4 页 ↗ document (1).pdf · 第 5 页 ↗ document (1).pdf · 第 6 页 ↗ document (1).pdf · 第 7 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "主模块与子模块学分结构 BDA26-R02 document (1).pdf · 第 3 页 ↗ document (1).pdf · 第 4 页 ↗ document (1).pdf · 第 5 页 ↗ document (1).pdf · 第 6 页 ↗ document (1).pdf · 第 7 页 ↗":
+            - strong: 主模块与子模块学分结构
+            - generic: BDA26-R02
+            - link "document (1).pdf · 第 3 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=3
+            - link "document (1).pdf · 第 4 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=4
+            - link "document (1).pdf · 第 5 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=5
+            - link "document (1).pdf · 第 6 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=6
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "思政选择性必修至少2学分 BDA26-R03 document (1).pdf · 第 3 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "思政选择性必修至少2学分 BDA26-R03 document (1).pdf · 第 3 页 ↗":
+            - strong: 思政选择性必修至少2学分
+            - generic: BDA26-R03
+            - link "document (1).pdf · 第 3 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=3
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "体育选修6学分及时间要求 BDA26-R04 document (1).pdf · 第 3 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "体育选修6学分及时间要求 BDA26-R04 document (1).pdf · 第 3 页 ↗":
+            - strong: 体育选修6学分及时间要求
+            - generic: BDA26-R04
+            - link "document (1).pdf · 第 3 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=3
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "外语分层学分要求 BDA26-R05 document (1).pdf · 第 3 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "外语分层学分要求 BDA26-R05 document (1).pdf · 第 3 页 ↗":
+            - strong: 外语分层学分要求
+            - generic: BDA26-R05
+            - link "document (1).pdf · 第 3 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=3
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "通识选修门数、类别及交叉满足 BDA26-R06 document (1).pdf · 第 4 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "通识选修门数、类别及交叉满足 BDA26-R06 document (1).pdf · 第 4 页 ↗":
+            - strong: 通识选修门数、类别及交叉满足
+            - generic: BDA26-R06
+            - link "document (1).pdf · 第 4 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=4
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "个性修读15学分及路径相关规则 BDA26-R07 document (1).pdf · 第 6 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "个性修读15学分及路径相关规则 BDA26-R07 document (1).pdf · 第 6 页 ↗":
+            - strong: 个性修读15学分及路径相关规则
+            - generic: BDA26-R07
+            - link "document (1).pdf · 第 6 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=6
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "美育认定条件 BDA26-R08 document (1).pdf · 第 6 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "美育认定条件 BDA26-R08 document (1).pdf · 第 6 页 ↗":
+            - strong: 美育认定条件
+            - generic: BDA26-R08
+            - link "document (1).pdf · 第 6 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=6
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "劳动教育认定条件 BDA26-R09 document (1).pdf · 第 6 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "劳动教育认定条件 BDA26-R09 document (1).pdf · 第 6 页 ↗":
+            - strong: 劳动教育认定条件
+            - generic: BDA26-R09
+            - link "document (1).pdf · 第 6 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=6
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "创新创业认定条件 BDA26-R10 document (1).pdf · 第 7 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "创新创业认定条件 BDA26-R10 document (1).pdf · 第 7 页 ↗":
+            - strong: 创新创业认定条件
+            - generic: BDA26-R10
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "心理健康认定条件 BDA26-R11 document (1).pdf · 第 7 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "心理健康认定条件 BDA26-R11 document (1).pdf · 第 7 页 ↗":
+            - strong: 心理健康认定条件
+            - generic: BDA26-R11
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "第二课堂4学分获得条件 BDA26-R12 document (1).pdf · 第 7 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "第二课堂4学分获得条件 BDA26-R12 document (1).pdf · 第 7 页 ↗":
+            - strong: 第二课堂4学分获得条件
+            - generic: BDA26-R12
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "第三课堂2学分获得条件 BDA26-R13 document (1).pdf · 第 7 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "第三课堂2学分获得条件 BDA26-R13 document (1).pdf · 第 7 页 ↗":
+            - strong: 第三课堂2学分获得条件
+            - generic: BDA26-R13
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "第四课堂2学分的替代完成路径 BDA26-R14 document (1).pdf · 第 7 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "第四课堂2学分的替代完成路径 BDA26-R14 document (1).pdf · 第 7 页 ↗":
+            - strong: 第四课堂2学分的替代完成路径
+            - generic: BDA26-R14
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "培养方案修读建议与真实开课数据分离 BDA26-R15 document (1).pdf · 第 3 页 ↗ document (1).pdf · 第 4 页 ↗ document (1).pdf · 第 5 页 ↗ document (1).pdf · 第 6 页 ↗ document (1).pdf · 第 7 页 ↗ document (1).pdf · 第 12 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "培养方案修读建议与真实开课数据分离 BDA26-R15 document (1).pdf · 第 3 页 ↗ document (1).pdf · 第 4 页 ↗ document (1).pdf · 第 5 页 ↗ document (1).pdf · 第 6 页 ↗ document (1).pdf · 第 7 页 ↗ document (1).pdf · 第 12 页 ↗":
+            - strong: 培养方案修读建议与真实开课数据分离
+            - generic: BDA26-R15
+            - link "document (1).pdf · 第 3 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=3
+            - link "document (1).pdf · 第 4 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=4
+            - link "document (1).pdf · 第 5 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=5
+            - link "document (1).pdf · 第 6 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=6
+            - link "document (1).pdf · 第 7 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=7
+            - link "document (1).pdf · 第 12 页 ↗":
+              - /url: /sources/business_analytics_2026.pdf#page=12
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "计算机类两门课程任选一门，完成3学分 MSE26-R01 document-2.pdf · 第 3 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "计算机类两门课程任选一门，完成3学分 MSE26-R01 document-2.pdf · 第 3 页 ↗":
+            - strong: 计算机类两门课程任选一门，完成3学分
+            - generic: MSE26-R01
+            - link "document-2.pdf · 第 3 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=3
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "专业模块池内可跨模块选课并修满8学分 MSE26-R02 document-2.pdf · 第 5 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "专业模块池内可跨模块选课并修满8学分 MSE26-R02 document-2.pdf · 第 5 页 ↗":
+            - strong: 专业模块池内可跨模块选课并修满8学分
+            - generic: MSE26-R02
+            - link "document-2.pdf · 第 5 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=5
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "博雅技艺要求包含四种大学写作课程之一 MSE26-R03 document-2.pdf · 第 4 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "博雅技艺要求包含四种大学写作课程之一 MSE26-R03 document-2.pdf · 第 4 页 ↗":
+            - strong: 博雅技艺要求包含四种大学写作课程之一
+            - generic: MSE26-R03
+            - link "document-2.pdf · 第 4 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=4
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "149+8学分结构与分账 MSE26-R04 document-2.pdf · 第 1 页 ↗ document-2.pdf · 第 3 页 ↗ document-2.pdf · 第 4 页 ↗ document-2.pdf · 第 7 页 ↗ document-2.pdf · 第 8 页 ↗ document-2.pdf · 第 9 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "149+8学分结构与分账 MSE26-R04 document-2.pdf · 第 1 页 ↗ document-2.pdf · 第 3 页 ↗ document-2.pdf · 第 4 页 ↗ document-2.pdf · 第 7 页 ↗ document-2.pdf · 第 8 页 ↗ document-2.pdf · 第 9 页 ↗":
+            - strong: 149+8学分结构与分账
+            - generic: MSE26-R04
+            - link "document-2.pdf · 第 1 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=1
+            - link "document-2.pdf · 第 3 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=3
+            - link "document-2.pdf · 第 4 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=4
+            - link "document-2.pdf · 第 7 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=7
+            - link "document-2.pdf · 第 8 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=8
+            - link "document-2.pdf · 第 9 页 ↗":
+              - /url: /sources/materials_2026.pdf#page=9
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "138+8学分结构与分账 JOUR26-R01 document-3.pdf · 第 1 页 ↗ document-3.pdf · 第 4 页 ↗ document-3.pdf · 第 5 页 ↗ document-3.pdf · 第 7 页 ↗ document-3.pdf · 第 8 页 ↗ document-3.pdf · 第 9 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "138+8学分结构与分账 JOUR26-R01 document-3.pdf · 第 1 页 ↗ document-3.pdf · 第 4 页 ↗ document-3.pdf · 第 5 页 ↗ document-3.pdf · 第 7 页 ↗ document-3.pdf · 第 8 页 ↗ document-3.pdf · 第 9 页 ↗":
+            - strong: 138+8学分结构与分账
+            - generic: JOUR26-R01
+            - link "document-3.pdf · 第 1 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=1
+            - link "document-3.pdf · 第 4 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=4
+            - link "document-3.pdf · 第 5 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=5
+            - link "document-3.pdf · 第 7 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=7
+            - link "document-3.pdf · 第 8 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=8
+            - link "document-3.pdf · 第 9 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=9
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "专业方向15学分含国际新闻与传播、数字新闻两个分支 JOUR26-R02 document-3.pdf · 第 6 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "专业方向15学分含国际新闻与传播、数字新闻两个分支 JOUR26-R02 document-3.pdf · 第 6 页 ↗":
+            - strong: 专业方向15学分含国际新闻与传播、数字新闻两个分支
+            - generic: JOUR26-R02
+            - link "document-3.pdf · 第 6 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=6
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "通识选修10.5学分、类别门数及交叉满足 JOUR26-R03 document-3.pdf · 第 5 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "通识选修10.5学分、类别门数及交叉满足 JOUR26-R03 document-3.pdf · 第 5 页 ↗":
+            - strong: 通识选修10.5学分、类别门数及交叉满足
+            - generic: JOUR26-R03
+            - link "document-3.pdf · 第 5 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=5
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+        - row "个性修读三选一及自主路径条件，15/16差异待确认 JOUR26-R04 document-3.pdf · 第 7 页 ↗ document-3.pdf · 第 8 页 ↗ 待确认 / 待确认 待确认 学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值":
+          - cell "个性修读三选一及自主路径条件，15/16差异待确认 JOUR26-R04 document-3.pdf · 第 7 页 ↗ document-3.pdf · 第 8 页 ↗":
+            - strong: 个性修读三选一及自主路径条件，15/16差异待确认
+            - generic: JOUR26-R04
+            - link "document-3.pdf · 第 7 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=7
+            - link "document-3.pdf · 第 8 页 ↗":
+              - /url: /sources/journalism_2026.pdf#page=8
+          - cell "待确认 / 待确认": 待确认 / 待确认
+          - cell "待确认":
+            - generic: 待确认
+          - cell "学生尚未明确确认培养方案适用性；适用信息缺失：plan_id；适用信息缺失：cohort；适用信息缺失：program；适用信息缺失：version；缺少匿名学生键，无法核对记录归属；该条是未启用的来源候选或不受支持的规则；禁止自动执行；规则要求人工审核或禁止自动执行；缺少独立的 DEMO 规则版本；规则属于其他方案，不自动跨方案抵扣；规则适用范围未明确；不支持或未知的计算单位；阈值缺失或不是非负有限数值"
+    - generic: ⓘ
+    - paragraph: 仅为所提供范围内的学业规划核对，不代表校方毕业审核或正式资格认定
+    - heading "修读与认定记录" [level=2]
+    - paragraph: 已通过、挂科、在修、重修、待认定及重复记录分别处理。
+    - paragraph: 尚无本人真实学业记录。合成记录保存在独立演示目录。
+    - generic "查看账本明细、适用状态与版本"
+  - text: › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › ›
+  - generic: 用于选课规划、比较、调整与导出。计算结果的适用范围取决于学生资料、规则版本和教学班快照。

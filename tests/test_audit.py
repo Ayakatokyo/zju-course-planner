@@ -111,12 +111,66 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(result["record_summary"]["duplicate_count"], 1)
         self.assertEqual(len(result["rules"][0]["matched_record_ids"]), 2)
 
-    def test_02_repeated_passes_of_same_course_do_not_multiply_credits(self):
+    def test_02_repeated_passes_without_policy_remain_unknown(self):
         second_pass = deepcopy(self.record)
         second_pass.update(record_id="DEMO-REPEAT-PASS", attempt_id="DEMO-ATTEMPT-2")
         result = self.audit(records=[self.record, second_pass])
+        self.assertEqual(result["ledger"]["earned_credits"], 0)
+        self.assertEqual(result["rules"][0]["result"], "unknown")
+        self.assertEqual(result["record_summary"]["attempt_ids"], ["DEMO-ATTEMPT-1", "DEMO-ATTEMPT-2"])
+
+    def repeat_policy(self, mode="per_attempt"):
+        return {"rule_id": "DEMO-REPEAT", "rule_kind": "repeat_credit_policy", "mode": mode,
+                "data_kind": "synthetic", "status": "demo_active", "version": "DEMO-POLICY-v1",
+                "plan_id": self.student["plan_id"], "scope": deepcopy(self.rule["scope"]),
+                "course_pool": [self.record["course_id"]]}
+
+    def test_02_explicit_repeat_policy_counts_distinct_attempts_exactly(self):
+        second = deepcopy(self.record)
+        second.update(record_id="DEMO-REC-2", attempt_id="DEMO-ATTEMPT-2", earned_credits="0.2")
+        self.record["earned_credits"] = "0.1"
+        self.rule["threshold"] = "0.3"
+        result = self.audit(records=[self.record, second], rules=[self.rule, self.repeat_policy()])
+        self.assertEqual(result["ledger"]["earned_credits"], 0.3)
+        self.assertEqual((result["rules"][0]["actual"], result["rules"][0]["result"]), (0.3, "pass"))
+        self.assertEqual(len(result["rules"]), 1)
+        self.rule.update(metric="course_count", threshold=1)
+        self.assertEqual(self.audit(records=[self.record, second], rules=[self.rule, self.repeat_policy()])["rules"][0]["actual"], 1)
+
+    def test_02_once_per_course_requires_explicit_applicable_policy(self):
+        second = deepcopy(self.record)
+        second.update(record_id="DEMO-REC-2", attempt_id="DEMO-ATTEMPT-2")
+        self.courses[0]["repeat_credit_policy"] = self.repeat_policy("once_per_course")
+        result = self.audit(records=[self.record, second])
         self.assertEqual(result["ledger"]["earned_credits"], 3)
-        self.assertEqual(result["rules"][0]["actual"], 3)
+        self.assertEqual(result["rules"][0]["result"], "pass")
+        self.courses[0]["repeat_credit_policy"]["scope"]["version"] = "wrong-version"
+        self.assertEqual(self.audit(records=[self.record, second])["rules"][0]["result"], "unknown")
+
+    def test_02_unknown_instance_or_provisional_resolution_does_not_earn(self):
+        for patch in [{"attempt_id": None}, {"resolution_status": "provisional"}]:
+            with self.subTest(patch=patch):
+                record = deepcopy(self.record)
+                record.update(patch)
+                result = self.audit(records=[record])
+                self.assertEqual(result["ledger"]["earned_credits"], 0)
+                self.assertEqual(result["rules"][0]["result"], "unknown")
+
+    def test_02_same_grade_without_instance_is_not_deduplicated_by_course(self):
+        first = deepcopy(self.record)
+        first.pop("attempt_id")
+        second = deepcopy(first)
+        second["record_id"] = "DEMO-OBSERVATION-2"
+        result = self.audit(records=[first, second])
+        self.assertEqual(result["record_summary"]["deduplicated_count"], 2)
+        self.assertEqual(result["ledger"]["unknown"]["record_count"], 2)
+
+    def test_02_replaced_observation_is_not_a_second_earned_course(self):
+        replaced = deepcopy(self.record)
+        replaced.update(record_id="DEMO-REPLACED", attempt_id=None, course_id="DEMO:MOD", row_status="replaced")
+        result = self.audit(records=[self.record, replaced])
+        self.assertEqual(result["ledger"]["earned_credits"], 3)
+        self.assertIn("DEMO-REPLACED", result["record_summary"]["excluded_record_ids"])
 
     def test_02_conflicting_duplicate_is_unknown(self):
         conflicting = deepcopy(self.record)
@@ -204,6 +258,65 @@ class AuditTests(unittest.TestCase):
         self.assertEqual((result["rules"][0]["actual"], result["rules"][0]["remaining"]), (3, 2))
         self.assertEqual(result["ledger"]["recognition_credits"], 2)
 
+    def test_03_same_attempt_across_categories_counts_one_fact(self):
+        coverage = deepcopy(self.record)
+        coverage.update(record_id="DEMO-COVERAGE", ledger="recognition", tags=["aesthetic"], earned_credits=2,
+                        recognition_status="recognized", requirement_id="DEMO-AESTHETIC", contribution_kind="condition_coverage")
+        self.record["tags"] = ["core"]
+        rule = deepcopy(self.rule)
+        rule.update(rule_id="DEMO-AESTHETIC", ledger="recognition", tag="aesthetic", threshold=2)
+        result = self.audit(records=[self.record, coverage], rules=[self.rule, rule])
+        self.assertEqual(result["ledger"]["earned_credits"], 3)
+        self.assertEqual([row["actual"] for row in result["rules"]], [3, 2])
+        self.assertEqual(result["record_summary"]["accounted_fact_count"], 1)
+
+    def test_03_malformed_tags_never_become_confirmed_by_deduplication(self):
+        self.record["tags"] = {"core": True}
+        self.rule.update(metric="course_count", threshold=1, tag="core")
+        self.assertEqual(self.audit()["rules"][0]["result"], "unknown")
+
+    def test_03_distinct_recognition_records_linked_to_attempt_do_not_add_credits(self):
+        recognized = deepcopy(self.record)
+        recognized.update(record_id="DEMO-RECOGNIZED", recognition_id="DEMO-RECOGNITION-1",
+                          record_kind="recognition", recognition_status="recognized", tags=["aesthetic"])
+        result = self.audit(records=[self.record, recognized])
+        self.assertEqual(result["ledger"]["earned_credits"], 3)
+        self.assertEqual(result["rules"][0]["actual"], 3)
+
+    def test_03_same_recognition_id_across_snapshots_is_idempotent(self):
+        first = deepcopy(self.record)
+        first.update(course_id=None, record_kind="recognition", recognition_status="recognized",
+                     recognition_id="DEMO-RECOG", attempt_id=None, earned_credits=2, ledger="recognition", recognized_hours=32)
+        second = deepcopy(first)
+        second.update(record_id="DEMO-RECOG-IMPORT-2", snapshot_id="DEMO-SNAPSHOT-2")
+        result = self.audit(records=[first, second])
+        self.assertEqual(result["ledger"]["recognized_hours"], 32)
+        self.assertEqual(result["ledger"]["recognition_credits"], 2)
+        self.assertEqual(result["record_summary"]["duplicate_count"], 1)
+
+    def test_03_linked_recognition_hours_are_once_and_conflicts_unknown(self):
+        self.record["recognized_hours"] = 32
+        recognition = deepcopy(self.record)
+        recognition.update(record_id="DEMO-HOURS-COVERAGE", record_kind="recognition", recognition_status="recognized")
+        result = self.audit(records=[self.record, recognition])
+        self.assertEqual(result["ledger"]["recognized_hours"], 32)
+        recognition["recognized_hours"] = 16
+        result = self.audit(records=[self.record, recognition])
+        self.assertEqual(result["ledger"]["recognized_hours"], 0)
+        self.assertFalse(result["ledger"]["is_complete"])
+
+    def test_03_transfer_recognition_of_same_attempt_does_not_add_credit(self):
+        transfer = deepcopy(self.record)
+        transfer.update(record_id="DEMO-TRANSFER", record_kind="transfer_credit", recognition_status="recognized")
+        self.assertEqual(self.audit(records=[self.record, transfer])["ledger"]["earned_credits"], 3)
+
+    def test_03_conflicting_actual_ledgers_for_one_attempt_are_unknown(self):
+        other = deepcopy(self.record)
+        other.update(record_id="DEMO-ALLOCATION-2", ledger="second")
+        result = self.audit(records=[self.record, other])
+        self.assertEqual(result["ledger"]["earned_credits"], 0)
+        self.assertEqual(result["rules"][0]["result"], "unknown")
+
     def test_03_unverified_tag_does_not_count_as_confirmed(self):
         self.record["recognition_tags"] = [{"tag": "core", "status": "pending"}]
         self.rule.update(metric="course_count", threshold=1, tag="core")
@@ -254,6 +367,24 @@ class AuditTests(unittest.TestCase):
                 record = deepcopy(self.record)
                 record["earned_credits"] = value
                 self.assertEqual(self.audit(records=[record])["rules"][0]["result"], "unknown")
+
+    def test_05_long_decimal_totals_preserve_all_digits(self):
+        self.record["earned_credits"] = "0.123456789012345678901234567890123456789"
+        self.rule["threshold"] = self.record["earned_credits"]
+        result = self.audit()
+        self.assertEqual(result["rules"][0]["actual"], self.record["earned_credits"])
+        self.assertEqual(result["ledger"]["base"], self.record["earned_credits"])
+        self.assertEqual(result["rules"][0]["result"], "pass")
+        self.assertEqual(result["rules"][0]["remaining"], 0)
+        json.dumps(result, allow_nan=False)
+
+    def test_05_missing_program_scope_and_fractional_course_count_are_unknown(self):
+        for scope in [{**self.rule["scope"], "program": None}, {**self.rule["scope"], "version": None}]:
+            rule = deepcopy(self.rule)
+            rule["scope"] = scope
+            self.assertEqual(self.audit(rules=[rule])["rules"][0]["result"], "unknown")
+        self.rule.update(metric="course_count", threshold="1.5")
+        self.assertEqual(self.audit()["rules"][0]["result"], "unknown")
 
     def test_sources_and_versions_are_retained_and_inputs_unchanged(self):
         before = deepcopy((self.student, self.record, self.rule, self.courses))

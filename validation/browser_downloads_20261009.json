@@ -1,0 +1,45 @@
+{
+  "scope": "synthetic only; final 0.2.0 browser downloads; raw downloads not in Git",
+  "files": [
+    {
+      "label": "current_json",
+      "filename": "synthetic-plan (1).json",
+      "bytes": 88830,
+      "sha256": "9c2fe40d4e9db1ede6272cd205690c6294de4c02c69d75d42f97f0b98f5b1388",
+      "owner_student_id": "DEMO-STUDENT-001",
+      "dataset_sha256": "d62744fd320c6d2b228de9633deb065afd448d112a176f92ff07db3646e13f1a",
+      "constraints_revision": 2,
+      "validation": "pass",
+      "frozen_integrity": "pass",
+      "saved_id": null
+    },
+    {
+      "label": "current_csv",
+      "filename": "synthetic-plan (1).csv",
+      "bytes": 8827,
+      "sha256": "e3b899b2b0c19732290b6ee324c8a569348e9b208798655124e11983e933c9b9",
+      "data_rows": 5
+    },
+    {
+      "label": "current_ics",
+      "filename": "synthetic-plan (1).ics",
+      "bytes": 130758,
+      "sha256": "268fd6466ee9a60278575c2ba12b27b26ee5aeb208190f566348010e82d3166d",
+      "events": 88,
+      "max_line_octets": 75,
+      "tentative": true
+    },
+    {
+      "label": "frozen_json",
+      "filename": "synthetic-plan (2).json",
+      "bytes": 88927,
+      "sha256": "2d0f90fa294ca4257115921486cd982c30346a1c84b45573821a1e098a93c3e1",
+      "owner_student_id": "DEMO-STUDENT-001",
+      "dataset_sha256": "d62744fd320c6d2b228de9633deb065afd448d112a176f92ff07db3646e13f1a",
+      "constraints_revision": 2,
+      "validation": "pass",
+      "frozen_integrity": "pass",
+      "saved_id": 1
+    }
+  ]
+}

@@ -14,10 +14,19 @@ class ApplicationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.app = Application(Path(self.temp.name) / "test.sqlite3")
+        self.app = Application(Path(self.temp.name) / "test.sqlite3", mock_enabled=True)
+        token, _ = self.app.auth.login_mock({"profile_id": "demo-a"})
+        self.context = self.app.auth.authenticate(token)
+        self.demo = self.app.workspace(self.context)["demo"]
+
+    def post(self, path, body):
+        return self.app.post(path, body, self.context)
+
+    def audit(self, body):
+        return self.app.audit(body, self.context)
 
     def generation(self):
-        return self.app.post("/api/generate", {"constraints": {"friday_free": "soft"}})
+        return self.post("/api/generate", {"constraints": {"friday_free": "soft"}})
 
     def test_source_integrity_and_counts(self):
         source = read_sources()
@@ -25,26 +34,26 @@ class ApplicationTests(unittest.TestCase):
                                            "actual_offerings": 0, "import_entities": 11})
         self.assertEqual(source["integrity"]["files_checked"], 17)
         self.assertEqual(source["empty_offering_snapshot"]["records"], [])
-        result = self.app.audit({"mode": "source"})
+        result = self.audit({"mode": "source"})
         self.assertTrue(all(rule["result"] == "unknown" for rule in result["rules"]))
 
     def test_import_is_idempotent_and_rejects_unmarked_simulation(self):
-        result = self.app.store.import_dataset("synthetic", self.app.demo)
+        result = self.app.store.import_dataset(self.context, self.demo)
         self.assertFalse(result["inserted"])
-        demo = copy.deepcopy(self.app.demo)
+        demo = copy.deepcopy(self.demo)
         demo["metadata"]["data_kind"] = "official"
         with self.assertRaises(ImportErrorDetail):
-            self.app.post("/api/import", {"bundle": demo})
+            self.post("/api/import", {"bundle": demo})
 
     def test_bad_reference_and_nonfinite_credit_rejected(self):
-        for field, value in (("course_id", "DEMO:missing"), ("credits", float("nan")), ("available_seats", -1)):
-            demo = copy.deepcopy(self.app.demo)
+        for field, value in (("course_id", "DEMO:missing"), ("credits", float("nan")), ("capacity", -1)):
+            demo = copy.deepcopy(self.demo)
             demo["offering_snapshot"]["records"][0][field] = value
             with self.assertRaises(ImportErrorDetail):
                 validate_demo(demo, self.app.source)
 
     def test_generate_save_and_export_freeze_data(self):
-        before = digest(self.app.demo)
+        before = digest(self.demo)
         result = self.generation()
         self.assertEqual(len(result["plans"]), 3)
         for plan in result["plans"]:
@@ -53,36 +62,36 @@ class ApplicationTests(unittest.TestCase):
         plan = result["plans"][0]
         projected = next(r for r in plan["expected_rule_contributions"] if r["rule_id"] == "DEMO-MODULE")
         self.assertEqual(projected["actual"], 8)
-        self.assertEqual(self.app.audit({})["ledger"]["base"], 8)
-        saved = self.app.post("/api/save", {"plan": plan, "constraints": result["constraints"]})
+        self.assertEqual(self.audit({})["ledger"]["base"], 8)
+        saved = self.post("/api/save", {"plan": plan, "constraints": result["constraints"]})
         self.assertEqual(saved["status"], "saved_planning_only")
         self.assertTrue(saved["not_official_enrollment"])
-        exported, _, _ = self.app.post("/api/export", {"saved_id": saved["saved_id"], "format": "json"})
+        exported, _, _ = self.post("/api/export", {"saved_id": saved["saved_id"], "format": "json"})
         frozen = json.loads(exported)
         self.assertEqual(frozen["versions"]["dataset_sha256"], before)
         self.assertEqual(digest(frozen["frozen_dataset"]), before)
-        self.assertEqual(digest(self.app.demo), before)
+        self.assertEqual(digest(self.demo), before)
 
     def test_stale_result_is_not_saved_as_current(self):
         result = self.generation()
         plan = result["plans"][0]
-        saved = self.app.post("/api/save", {"plan": plan, "constraints": result["constraints"]})
-        refreshed = copy.deepcopy(self.app.demo)
+        saved = self.post("/api/save", {"plan": plan, "constraints": result["constraints"]})
+        refreshed = copy.deepcopy(self.demo)
         refreshed["metadata"]["version"] = "DEMO-DATA-v2"
         snapshot = refreshed["offering_snapshot"]
         snapshot["version"] = "DEMO-OFFERINGS-v2"
         snapshot["records"][1]["available_seats"] = 0
-        self.app.post("/api/import", {"bundle": refreshed})
+        self.post("/api/import", {"bundle": refreshed})
         with self.assertRaises(ImportErrorDetail):
-            self.app.post("/api/save", {"plan": plan, "constraints": result["constraints"]})
-        history = self.app.post("/api/export", {"saved_id": saved["saved_id"], "format": "json"})
+            self.post("/api/save", {"plan": plan, "constraints": result["constraints"]})
+        history = self.post("/api/export", {"saved_id": saved["saved_id"], "format": "json"})
         self.assertEqual(json.loads(history[0])["versions"]["dataset_sha256"], saved["versions"]["dataset_sha256"])
         new = self.generation()
         self.assertTrue(all("DEMO-ML-A" not in p["section_ids"] for p in new["plans"]))
 
     def test_server_keeps_locks_on_preference_upgrade(self):
-        self.app.post("/api/generate", {"constraints": {"locked_section_ids": ["DEMO-ML-B"]}})
-        result = self.app.post("/api/generate", {"constraints": {"friday_free": "hard", "locked_section_ids": []}})
+        self.post("/api/generate", {"constraints": {"locked_section_ids": ["DEMO-ML-B"]}})
+        result = self.post("/api/generate", {"constraints": {"friday_free": "hard", "locked_section_ids": []}})
         self.assertIn("DEMO-ML-B", result["constraints"]["locked_section_ids"])
         self.assertIn("DEMO-PE-A", result["constraints"]["locked_section_ids"])
         self.assertFalse(result["plans"])
@@ -91,17 +100,19 @@ class ApplicationTests(unittest.TestCase):
     def test_csv_and_ics_keep_synthetic_and_calendar_scope(self):
         result = self.generation()
         body = {"plan": result["plans"][0], "constraints": result["constraints"]}
-        data, _, _ = self.app.post("/api/export", {**body, "format": "csv"})
+        data, _, _ = self.post("/api/export", {**body, "format": "csv"})
         rows = list(csv.reader(io.StringIO(data.decode("utf-8-sig"))))
         self.assertTrue(all(row[0] == "synthetic" and row[1] == "规划草案/非中选" for row in rows[1:]))
-        data, _, _ = self.app.post("/api/export", {**body, "format": "ics"})
+        data, _, _ = self.post("/api/export", {**body, "format": "ics"})
         self.assertIn(b"STATUS:TENTATIVE", data)
         self.assertIn(b"DTSTART;TZID=Asia/Shanghai:20261130", data)
         self.assertTrue(all(len(line) <= 75 for line in data.split(b"\r\n")))
-        self.app.demo["academic_calendar"]["period_times"] = {}
+        self.demo["academic_calendar"]["period_times"] = {}
+        self.demo["offering_snapshot"]["academic_calendar"] = self.demo["academic_calendar"]
+        self.post("/api/import", {"bundle": self.demo})
         # The old plan is stale because the underlying calendar changed.
         with self.assertRaises(ImportErrorDetail):
-            self.app.post("/api/export", {**body, "format": "ics"})
+            self.post("/api/export", {**body, "format": "ics"})
 
 
 if __name__ == "__main__":
