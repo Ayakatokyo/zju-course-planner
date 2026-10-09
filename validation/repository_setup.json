@@ -1,0 +1,43 @@
+{
+  "staged_file_count": 42,
+  "blocked_files": [],
+  "pattern_findings": [],
+  "manifest_matched": 17,
+  "manifest_total": 17,
+  "original_zip_file_count": 18,
+  "workspace_input_file_count": 18,
+  "original_zip_all_bytes_match": true,
+  "application_tests_run": false,
+  "report_kind": "repository_setup_initial_verification",
+  "recorded_at": "2026-10-09T07:34:18.412603+00:00",
+  "repository": {
+    "name": "Ayakatokyo/zju-course-planner",
+    "url": "https://github.com/Ayakatokyo/zju-course-planner",
+    "visibility_verified": "PRIVATE",
+    "default_branch_verified": "main",
+    "tracking_branch": "origin/main",
+    "verified_initial_remote_oid": "af26dd95c635e2c3a47ef870ff84a7e68cd4a305",
+    "initial_push_verified": true,
+    "initial_git_commit_oid": "af26dd95c635e2c3a47ef870ff84a7e68cd4a305"
+  },
+  "original_handoff_zip_sha256": "ff77b6fbc97397123199cca5a041147293bd73aaefd61fabbf19dbf4624e531e",
+  "document_checks": {
+    "file_count": 9,
+    "local_link_count": 65,
+    "missing_local_links": [],
+    "independent_review_integrated": true,
+    "original_input_markdown_linebreak_whitespace_preserved": 4,
+    "maintained_file_whitespace_check_passed": true
+  },
+  "notes": [
+    "This report verifies the initial commit; subsequent delivery documentation commits are recorded by Git.",
+    "No application, browser, school authentication or authorization acceptance tests were run.",
+    "Pattern checks cover visible staged bytes and selected common secret formats; they are not a comprehensive privacy audit.",
+    "Private student reference assets, credentials and runtime data are outside the repository."
+  ],
+  "authentication_implemented": false,
+  "school_authentication_integrated": false,
+  "original_eight_acceptances_complete": false,
+  "new_auth_acceptances_executed": false,
+  "deployed": false
+}

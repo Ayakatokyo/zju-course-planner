@@ -33,4 +33,4 @@
 
 Excel 与截图仅用作字段参考；未来用户登录后只能检索本人档案，姓名或学号输入不能授予访问他人数据的权限。学校身份验证和学业数据接入是两项依赖：不能假定学校已提供本项目可用的认证协议或档案 API，不能建立学校密码库。
 
-仓库建立与远端核验结果在[开发进度](docs/开发进度.md)记录。每轮开发后同步该文件；原始输入、个人资料及凭据的保留边界见 [AGENTS.md](AGENTS.md)。
+远端为 [Ayakatokyo/zju-course-planner](https://github.com/Ayakatokyo/zju-course-planner) 私有仓库，本地 main 已关联 origin/main 并推送；建立与核验记录见[开发进度](docs/开发进度.md)。每轮开发后同步该文件；原始输入、个人资料及凭据的保留边界见 [AGENTS.md](AGENTS.md)。
