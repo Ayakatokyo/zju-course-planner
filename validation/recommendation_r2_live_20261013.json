@@ -1,0 +1,96 @@
+{
+  "recorded_at_utc": "2026-10-13T15:23:38.668018+00:00",
+  "provider": "DeepSeek",
+  "model": "deepseek-flash",
+  "scope": "fixed synthetic real model conversations; no real school facts/text, human gold or school acceptance",
+  "reference_text_transmitted": false,
+  "passed": 5,
+  "total": 5,
+  "scenarios": [
+    {
+      "scenario": "multi_compare_save",
+      "fixture_case": "default",
+      "checks": {
+        "two_or_more_real_turns": true,
+        "all_completed": true,
+        "real_tool_each_turn": true,
+        "preview_did_not_change_workspace": true,
+        "multiple_course_sets": true,
+        "actual_comparison": true,
+        "language_save": true,
+        "language_export": true,
+        "real_saved_and_idempotent": true,
+        "three_actual_exports": true,
+        "new_conversation_preserves_global_intent": true
+      },
+      "passed": true
+    },
+    {
+      "scenario": "soft_to_hard",
+      "fixture_case": "default",
+      "checks": {
+        "two_or_more_real_turns": true,
+        "all_completed": true,
+        "real_tool_each_turn": true,
+        "preview_did_not_change_workspace": true,
+        "one_passed_option": true
+      },
+      "passed": true
+    },
+    {
+      "scenario": "replace_and_relax",
+      "fixture_case": "default",
+      "checks": {
+        "two_or_more_real_turns": true,
+        "all_completed": true,
+        "real_tool_each_turn": true,
+        "preview_did_not_change_workspace": true,
+        "explicit_replace": true,
+        "hard_conflict_then_explicit_relax": true
+      },
+      "passed": true
+    },
+    {
+      "scenario": "lock_conflict",
+      "fixture_case": "locked_friday",
+      "checks": {
+        "two_or_more_real_turns": true,
+        "all_completed": true,
+        "real_tool_each_turn": true,
+        "preview_did_not_change_workspace": true,
+        "no_silent_relaxation": true
+      },
+      "passed": true
+    },
+    {
+      "scenario": "unknown",
+      "fixture_case": "unknown",
+      "checks": {
+        "two_or_more_real_turns": true,
+        "all_completed": true,
+        "real_tool_each_turn": true,
+        "preview_did_not_change_workspace": true,
+        "unknown_not_passed": true
+      },
+      "passed": true
+    }
+  ],
+  "source_sha256": {
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "a91600a67098bf4d94055cb5303a998eeb8c5e1d70be0dbe06fe9a89726979dc",
+    "course_assistant/chat.py": "476e8ac008faafdec8bc3a7a7b4d24696193f6f2d9fcc6c18e8ffa9430740827",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/model_client.py": "28c051407e2e44f0bd9181ae6e344b065a00d63831dce1ac96fb24cbeed2fdb5",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/server.py": "219eef53c19a16c47e46a22965d07fb912d7f1b389a740f9e18b37a12d992472",
+    "course_assistant/storage.py": "3df62642446796fb73d830319e1785c53b5fc3115a8505bd6f428e942caab017"
+  },
+  "sources_changed_during_run": [],
+  "receipt_alias": "RECOMMENDATION-R2-LIVE-20261013",
+  "actual_model_turns": 15
+}

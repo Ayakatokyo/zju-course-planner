@@ -31,6 +31,19 @@ PATCH_SCHEMA = {"type": "object", "additionalProperties": False, "properties": {
     "min_credits": {"type": ["number", "string", "null"]},
     "max_credits": {"type": ["number", "string", "null"]},
 }}
+INTENT_SCHEMA = {"type": "object", "additionalProperties": False, "properties": {
+    "target_credits": {"type": ["number", "string"]},
+    "interest": {"type": "string", "enum": ["ai", "off"]},
+}}
+OPERATIONS_SCHEMA = {"type": "array", "minItems": 1, "maxItems": 8, "items": {
+    "type": "object", "additionalProperties": False,
+    "required": ["op", "field", "value", "evidence"], "properties": {
+        "op": {"type": "string", "enum": ["add", "remove", "replace", "set"]},
+        "field": {"type": "string", "enum": ["optional_course_ids", "required_course_ids", "excluded_course_ids",
+                                                "locked_section_ids", "excluded_section_ids", "friday_free", "min_credits", "max_credits"]},
+        "value": {"type": ["string", "number", "null"]}, "replacement": {"type": "string"},
+        "evidence": {"type": "string", "description": "本轮用户原话中明确修改的连续片段，不能引用资料或模型建议"},
+    }}}
 
 
 def _tool(name, description, properties=None, required=None):
@@ -50,6 +63,15 @@ TOOLS = [
           {"section_ids": IDENTIFIER_ARRAY, "constraint_patch": PATCH_SCHEMA}, ["section_ids"]),
     _tool("search_plan_references", "在服务端绑定方案内检索待审核参考；原文通常仅本机卡片可见，命中不代表官方生效。",
           {"query": {"type": "string", "minLength": 1, "maxLength": 400}}, ["query"]),
+    _tool("recommend_my_courses", "独立synthetic推荐：按合成目标模块与有依据兴趣选择课程子集，联合选具体班次并比较差异。不要把候选全变成必选。",
+          {"constraint_patch": PATCH_SCHEMA, "intent_patch": INTENT_SCHEMA}),
+    _tool("revise_my_recommendation", "基于上轮意图明确换课、换班、锁定、取消排除或修改个人软硬条件。需本轮原话证据，正式/预置/固定项不能解除。",
+          {"option_id": {"type": "string"}, "operations": OPERATIONS_SCHEMA}, ["operations"]),
+    _tool("compare_my_options", "从本对话服务端方案引用比较真实课程/班次/贡献差异。A/B/C对应最近推荐集；可用历史option_id精确引用。",
+          {"option_ids": IDENTIFIER_ARRAY}, ["option_ids"]),
+    _tool('act_on_my_option', '只在本轮用户明确保存某方案或导出某方案为JSON/CSV/ICS时准备操作；程序最终复核后实际执行。不从询问或假设推定许可。',
+          {'action': {'type': 'string', 'enum': ['save', 'export']}, 'option_id': {'type': 'string'},
+           'format': {'type': 'string', 'enum': ['json', 'csv', 'ics']}}, ['action', 'option_id']),
 ]
 TOOL_NAMES = {item["function"]["name"] for item in TOOLS}
 SYSTEM = """你是浙江大学选课助手的本机 synthetic 演示 Agent。用中文对话并按需澄清。
@@ -75,6 +97,18 @@ reference_available必须从本轮实际返回中选择至少一个cited_chunk_i
 程序按真实工具结果生成事实摘要，因此不得在最终JSON加入reply、解释、分数或其他字段。
 需澄清或尚不能查询时用 {"kind":"clarify","outcome":"clarify","cited_chunk_ids":[],"clarification":"hard_or_soft"}。
 clarification仅能选hard_or_soft（周五是软偏好还是硬要求）、choose_course（明确目标课程）、choose_action（查询学业/班次/参考还是生成课表）、out_of_scope（当前不支持的学校真实操作）、no_evidence（当前不能确认依据支持问题）。
+"""
+SYSTEM += """
+若get_my_context包含recommendation，说明正在使用独立推荐夹具；优先用recommend_my_courses理解模块目标并从可选池选课，不用generate_my_plan将全部候选设为必选。
+合成目标与可选池由服务端给定；只有用户明确数字才修改target_credits。兴趣评分来自纯合成课程说明，非真实课程事实。
+用户比较A和B使用compare_my_options；连续换课/换班用revise_my_recommendation，option_id可用A/B/C。
+周五soft升级hard、hard明确放宽到off/soft、个人解锁、取消排除均可用operations，并引用本轮用户明确原话。
+例如周五必须空闲 -> {op:set,field:friday_free,value:hard,evidence:周五必须空闲}；周五可以有课 -> off。
+把模型方法换成AI实践 -> {op:replace,field:optional_course_ids,value:DEMO-MODEL,replacement:DEMO-AI,evidence:用户的完整换课原话}。
+未明确放宽时不能仅凭模型或资料执行；正式/预置/固定项始终保留。模糊对象先澄清。
+recommend_my_courses和revise_my_recommendation的最终outcome严格等于status；compare_my_options -> compared。
+推荐结果卡提供本人服务端引用保存和JSON/CSV/ICS导出按钮；未实际点击或执行保存不能声称已保存。
+用户明确‘保存B’或‘导出B为JSON’可调用act_on_my_option；其最终outcome=action_ready，程序结束模型轮后执行并返回实际回执。不能自行保存其他方案。
 """
 
 CLARIFICATIONS = {
@@ -213,9 +247,20 @@ class ChatService:
             if row is None:
                 raise AccessError("资源不可访问", 404, "inaccessible_object")
             versions = self.app.versions(self.app.workspace(context))
+            from .storage import chat_title
+            turns = row["state"].get("turns", [])
+            receipts, receipts_more = self.app.store.chat_option_receipts(context, identifier)
             return {"conversation_id": identifier, "turn_id": row["turn_id"], "turns": row["state"]["turns"],
                     "in_progress": row["in_progress"], "data_kind": "synthetic", "preview_only": True,
-                    "is_stale": row["state"].get("workspace_versions") != versions}
+                    "is_stale": row["state"].get("workspace_versions") != versions,
+                    "title": chat_title(row["state"].get("title") or (turns[0].get("message") if turns else None)),
+                    "updated_at": row["updated_at"], "action_pending": bool(turns and turns[-1].get("action_pending")),
+                    "option_receipts": receipts, "option_receipts_has_more": receipts_more}
+
+    def conversations(self, context, *, limit=50):
+        with self.app.lock:
+            self.app.auth.require_context(context)
+            return self.app.store.chat_list(context, limit)
 
     @staticmethod
     def _uuid(value):
@@ -298,6 +343,9 @@ class ChatService:
                       "courses": [{key: row.get(key) for key in ("course_id", "course_name", "credits")}
                                   for row in demo["courses"]], "preview_only": True,
                       "note": "本人固定合成示例，不是学校档案；锁定、固定、预置项继承。"}
+            if "recommendation" in demo:
+                from .recommendation_dialogue import default_intent
+                result["recommendation"] = default_intent(demo)
         elif name == "audit_my_progress":
             result = self.app.audit({}, context)
         elif name == "find_my_sections":
@@ -337,6 +385,21 @@ class ChatService:
         return result, constraints
 
     def _model_result(self, name, result):
+        if name == 'act_on_my_option':
+            return result
+        if name in {"recommend_my_courses", "revise_my_recommendation", "compare_my_options"}:
+            return {key: deepcopy(result[key]) for key in
+                    ("status", "reason", "run_id", "intent_revision", "intent", "actions", "search", "candidates", "differences", "different_input_intents")
+                    if key in result} | {
+                "data_kind": "synthetic", "preview_only": True,
+                "constraints": _constraints_view(result.get("constraints", {})),
+                "plans": [{key: deepcopy(plan[key]) for key in
+                           ("option_id", "run_id", "label", "section_ids", "course_ids", "metrics", "evidence", "differences") if key in plan}
+                          | {"validation": _validation_view(plan["validation"])} for plan in result.get("plans", [])],
+                "pending_plans": [{key: deepcopy(plan[key]) for key in
+                                   ("option_id", "run_id", "label", "section_ids", "course_ids", "metrics", "evidence") if key in plan}
+                                  | {"validation": _validation_view(plan["validation"])} for plan in result.get("pending_plans", [])],
+            }
         if name == "search_plan_references":
             allow_text = bool(getattr(self.model, "allow_reference_text", False))
             fields = ("chunk_id", "record_id", "record_kind", "review_status", "official_status", "enforce_automatically")
@@ -421,6 +484,8 @@ class ChatService:
             raise ChatFailure("unverified_answer", "模型未实际查询工具，不能给出事实回答")
         selected_result = None
         visited_tools = set()
+        latest_recommendation = max((i for i, row in enumerate(results) if row["name"] in
+                                    {"recommend_my_courses", "revise_my_recommendation"}), default=-1)
         for result_index in range(len(results) - 1, -1, -1):
             name, result = results[result_index]["name"], results[result_index]["result"]
             if name in visited_tools:
@@ -429,13 +494,17 @@ class ChatService:
             outcome = {"get_my_context": "context", "audit_my_progress": "audit", "find_my_sections": "sections"}.get(name)
             if name == "generate_my_plan":
                 outcome = result["status"]
+            elif name in {"recommend_my_courses", "revise_my_recommendation", "compare_my_options", "act_on_my_option"}:
+                outcome = result["status"]
             elif name == "validate_my_plan":
                 outcome = result["result"]
             elif name == "search_plan_references":
                 outcome = "reference_available" if result["status"] == "ok" else result["status"]
             if decision["outcome"] != outcome:
                 continue
-            if name in {"generate_my_plan", "validate_my_plan"} and (
+            if name in {"generate_my_plan", "validate_my_plan", "recommend_my_courses", "revise_my_recommendation", "act_on_my_option"} and result_index < latest_recommendation:
+                continue
+            if name in {"generate_my_plan", "validate_my_plan", "recommend_my_courses", "revise_my_recommendation"} and (
                     _effective_constraints_digest(result["constraints"]) != _effective_constraints_digest(final_constraints)):
                 continue
             if name == "get_my_context" and (
@@ -448,7 +517,7 @@ class ChatService:
         result_index, name, result, outcome = selected_result
         # This index is server-issued evidence, never an unchecked model claim.
         decision = {**decision, "source_tool_result_index": result_index, "source_tool": name}
-        if name in {"generate_my_plan", "validate_my_plan"}:
+        if name in {"generate_my_plan", "validate_my_plan", "recommend_my_courses", "revise_my_recommendation"}:
             decision["effective_constraints_sha256"] = _effective_constraints_digest(final_constraints)
         later_validation_warnings = []
         if name == "generate_my_plan":
@@ -477,6 +546,17 @@ class ChatService:
                      "在修与未知不计为已获学分；这不是现实学生的毕业审核结论。")
         elif name == "find_my_sections":
             reply = f"在当前合成快照中查到 {len(result['sections'])} 个教学班；有 {len(result['missing_course_ids'])} 门课程缺少班次。具体时段、考试和余量见工具结果。"
+        elif name == 'act_on_my_option':
+            reply = '已核验本轮明确操作意图；程序正在复核结果引用并执行，须以实际保存或下载回执为准。'
+        elif name in {"recommend_my_courses", "revise_my_recommendation"}:
+            if outcome == "feasible":
+                reply = f"已按同一合成目标选择课程与具体班次，得到 {len(result['plans'])} 套通过复核的推荐。目标贡献、兴趣依据、周五取舍和锁定保持见方案卡；保存和导出需明确操作。"
+            else:
+                reply = {"scoped_infeasible": "当前完整合成候选范围与保留条件不兼容，没有通过方案；请查看具体冲突，条件未自动放宽。",
+                         "incomplete_data": "本轮合成证据存在未知或覆盖不足，没有可全部确认通过的方案；待确认草案单列。",
+                         "search_limit": "推荐达到全局搜索预算；已有结果可查看，搜索未穷尽，不能称无解或全局最优。"}[outcome]
+        elif name == "compare_my_options":
+            reply = "已按各套实际选中课程重新校验并比较课程、班次、贡献与偏好差异。" + ("这些方案的意图不同，不能视为同条件排名。" if result["different_input_intents"] else "它们使用相同全局目标与来源版本。")
         elif name == "generate_my_plan":
             if outcome == "feasible":
                 reply = f"在当前合成范围内找到 {len(result['plans'])} 份通过确定性校验的课表预览。已继承锁定、预置和固定安排；未写入工作区，也不表示正式中选。"
@@ -505,18 +585,26 @@ class ChatService:
             if status.get("remote") and body.get("consent_remote") is not True:
                 raise AccessError("远程模型需先确认发送本轮消息及合成上下文", 400, "remote_consent_required")
             workspace, versions = self._check_workspace(context)
-            reservation = self.app.store.chat_begin(context, body.get("conversation_id"), body["request_id"], digest(body), body["expected_turn"])
+            reservation = self.app.store.chat_begin(context, body.get("conversation_id"), body["request_id"], digest(body),
+                                                    body["expected_turn"], first_message=body["message"])
             if "replay" in reservation:
                 replay = reservation["replay"]
+                if replay.get('action_pending') is True:
+                    from .recommendation_dialogue import finish_explicit_action
+                    return finish_explicit_action(self.app, replay, body['request_id'], context)
                 if replay.get("versions") != versions:
                     raise AccessError("旧请求对应的工作区已变化，请创建新一轮", 409, "workspace_changed")
                 return {**replay, "replayed": True}
         identifier, turn_id = reservation["conversation_id"], reservation["turn_id"]
         state = reservation["state"]
+        recommendation_state = deepcopy(state)
         reset = state["workspace_versions"] is not None and state["workspace_versions"] != versions
         egress_policy = {key: status.get(key) for key in ("provider", "model", "remote")}
         egress_policy["reference_text"] = bool(getattr(self.model, "allow_reference_text", False))
         history_reset = reset or state.get("egress_policy") != egress_policy
+        if reset:
+            for key in ("recommendation_runs", "recommendation_intent", "current_recommendation_run", "intent_revision", "recommendation_global_requested"):
+                recommendation_state.pop(key, None)
         constraints = deepcopy(workspace["constraints"] if reset or state["preview_constraints"] is None else state["preview_constraints"])
         history = [] if history_reset else deepcopy(state["messages"])
         messages = [{"role": "system", "content": SYSTEM}] + history + [{"role": "user", "content": body["message"]}]
@@ -557,7 +645,20 @@ class ChatService:
                 for call_id, name, args in calls:
                     with self.app.lock:
                         current, _ = self._check_workspace(context, versions)
-                        result, constraints = self._execute(name, args, current, constraints, context)
+                        if name in {"recommend_my_courses", "revise_my_recommendation", "compare_my_options", "act_on_my_option"}:
+                            from .recommendation_dialogue import execute
+                            result, constraints = execute(self, name, args, current, constraints, context,
+                                                          recommendation_state, body["message"], turn_id)
+                        else:
+                            previous_conditions = _effective_constraints_digest(constraints)
+                            result, constraints = self._execute(name, args, current, constraints, context)
+                            if (name in {'generate_my_plan', 'validate_my_plan'} and recommendation_state.get('recommendation_runs')
+                                    and _effective_constraints_digest(constraints) != previous_conditions):
+                                revision = recommendation_state.get('intent_revision', 0) + 1
+                                recommendation_state['intent_revision'] = revision
+                                recommendation_state['recommendation_intent']['revision'] = revision
+                                recommendation_state['current_recommendation_run'] = None
+                                recommendation_state['recommendation_global_requested'] = deepcopy(constraints.get('requested_course_ids', []))
                     results.append({"name": name, "arguments": args, "result": result})
                     if name == "search_plan_references":
                         citations.extend(row for row in result["matches"] if row["chunk_id"] not in {r["chunk_id"] for r in citations})
@@ -600,6 +701,9 @@ class ChatService:
             if failure:
                 response["code"] = failure.reason if isinstance(failure, AccessError) else failure.code
             if not failure:
+                for key in ("recommendation_runs", "recommendation_intent", "current_recommendation_run", "intent_revision", "recommendation_global_requested", "pending_option_action"):
+                    if key in recommendation_state:
+                        state[key] = recommendation_state[key]
                 state.update(messages=messages[1:], preview_constraints=constraints, workspace_versions=versions,
                              egress_policy=egress_policy)
             elif reset or inaccessible:
@@ -607,9 +711,15 @@ class ChatService:
             elif history_reset:
                 state.update(messages=[], egress_policy=egress_policy)
             state["turns"].append({"message": body["message"], **response})
+            if not failure and decision.get('source_tool') == 'act_on_my_option':
+                response.update(action_pending=True, pending_action=deepcopy(recommendation_state['pending_option_action']))
+                state['turns'][-1].update(response)
             # Persist sanitized failure bookkeeping even after revocation, never return its data.
             self.app.store.chat_finish(context, identifier, body["request_id"], turn_id, state, response)
             if isinstance(failure, AccessError):
                 raise failure
             self.app.auth.require_context(context)
+            if response.get('action_pending') is True:
+                from .recommendation_dialogue import finish_explicit_action
+                response = finish_explicit_action(self.app, response, body['request_id'], context)
         return response

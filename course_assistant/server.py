@@ -9,7 +9,7 @@ import threading
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from . import __version__
 from .auth import AccessError, AuthManager, COOKIE_NAME, PROFILES
@@ -22,12 +22,29 @@ from .model_client import ModelClient, read_config, strict_json
 
 
 class Application:
-    def __init__(self, db_path=None, *, mock_enabled=False, clock=None, model=None):
+    def __init__(self, db_path=None, *, mock_enabled=False, clock=None, model=None, recommendation_demo=False, recommendation_case='default'):
         self.source = read_sources()
         self.store = Store(db_path or ROOT / 'runtime' / 'planning.sqlite3')
         options = {'clock': clock} if clock else {}
         self.auth = AuthManager(self.store, mock_enabled=mock_enabled, **options)
-        self.fixture = validate_demo(load_json(ROOT / 'demo' / 'bundle.json'), self.source)
+        fixture_name = 'recommendation_bundle.json' if recommendation_demo else 'bundle.json'
+        self.fixture = validate_demo(load_json(ROOT / 'demo' / fixture_name), self.source)
+        require(recommendation_case in {'default', 'unknown', 'locked_friday'}, '未登记的合成推荐场景')
+        require(recommendation_demo or recommendation_case == 'default', '推荐场景只适用于独立推荐夹具')
+        if recommendation_case == 'unknown':
+            self.fixture['academic_calendar'] = None
+            self.fixture['offering_snapshot']['academic_calendar'] = None
+            for section in self.fixture['offering_snapshot']['records']:
+                for meeting in section.get('meetings', []):
+                    meeting['week_numbers'] = None
+        elif recommendation_case == 'locked_friday':
+            for section in self.fixture['offering_snapshot']['records']:
+                if section['section_id'] == 'DEMO-PE-01':
+                    for meeting in section['meetings']:
+                        meeting['day_of_week'] = 5
+        if recommendation_demo:
+            self.fixture['recommendation']['fixture_case'] = recommendation_case
+        self.fixture = validate_demo(self.fixture, self.source)
         self.lock = threading.RLock()
         from .chat import ChatService
         self.chat = ChatService(self, model if model is not None else ModelClient())
@@ -184,6 +201,14 @@ class Application:
                 'versions': self.versions(workspace), 'frozen_dataset': copy.deepcopy(workspace['demo'])}
 
     def get(self, path, context=None):
+        parsed = urlparse(path)
+        if parsed.path == '/api/chat/conversations':
+            query = parse_qs(parsed.query, keep_blank_values=True)
+            if (set(query) - {'limit'} or len(query.get('limit', ['50'])) != 1
+                    or not re.fullmatch(r'[1-9][0-9]{0,2}', query.get('limit', ['50'])[0])):
+                raise AccessError('历史列表只接受单个 limit 数量', 400, 'invalid_chat_limit')
+            return self.chat.conversations(context, limit=int(query.get('limit', ['50'])[0]))
+        require(not parsed.query, '接口不接受查询身份或资源范围')
         if path == '/api/health':
             return {'status': 'ok', 'version': __version__, 'school_auth_status': 'not_configured'}
         if path == '/api/chat/status':
@@ -205,6 +230,12 @@ class Application:
             return self.chat.turn(body, context)
         if path == '/api/chat/history':
             return self.chat.history(body, context)
+        if path in {'/api/chat/save-option', '/api/chat/export-option'}:
+            from .recommendation_dialogue import option_action
+            with self.lock:
+                self.auth.require_context(context)
+                self.check_claims(body, context)
+                return option_action(self, body, context, export=path.endswith('export-option'))
         self.auth.require_context(context)
         self.check_claims(body, context)
         workspace = self.workspace(context)
@@ -325,7 +356,7 @@ def make_handler(app):
                 self.check_host()
                 parsed = urlparse(self.path)
                 path = parsed.path
-                require(not parsed.query, '接口不接受查询身份或资源范围')
+                require(not parsed.query or path == '/api/chat/conversations', '接口不接受查询身份或资源范围')
                 with app.lock:
                     if path == '/api/auth/session':
                         try:
@@ -336,7 +367,7 @@ def make_handler(app):
                         return
                     if path.startswith('/api/'):
                         context = None if path == '/api/health' else self.context()
-                        self.response(app.get(path, context))
+                        self.response(app.get(self.path if path == '/api/chat/conversations' else path, context))
                         return
                     if path.startswith('/sources/'):
                         context = self.context()
@@ -390,7 +421,7 @@ def make_handler(app):
                     with app.lock:
                         app.auth.require_context(context)
                         app.store.event(context.principal_id, path, 'allow', 'owner_scoped')
-                if path == '/api/export':
+                if path in {'/api/export', '/api/chat/export-option'}:
                     data, content_type, suffix = result
                     self.send_bytes(data, content_type, suffix=suffix)
                 else:
@@ -409,10 +440,12 @@ def main():
     parser.add_argument('--port', type=int, default=8765)
     parser.add_argument('--db', type=Path, help='本机运行数据库，不提交 Git')
     parser.add_argument('--enable-mock', action='store_true', help='显式启用本机 synthetic 身份，非学校登录')
+    parser.add_argument('--recommendation-demo', action='store_true', help='使用独立固定 synthetic 推荐夹具')
+    parser.add_argument('--recommendation-case', choices=['default', 'unknown', 'locked_friday'], default='default', help='固定合成验证场景')
     parser.add_argument('--model-env-file', type=Path, default=ROOT / '.env',
                         help='本机模型配置文件（默认 .env），只读取约定配置，不执行文件内容')
     args = parser.parse_args()
-    app = Application(args.db, mock_enabled=args.enable_mock,
+    app = Application(args.db, mock_enabled=args.enable_mock, recommendation_demo=args.recommendation_demo, recommendation_case=args.recommendation_case,
                       model=ModelClient(read_config(args.model_env_file)))
     server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(app))
     print(f'选课助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校认证未配置', flush=True)

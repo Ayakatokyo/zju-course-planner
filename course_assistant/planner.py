@@ -14,6 +14,7 @@ from hashlib import sha256
 from itertools import combinations
 import json
 from math import isfinite
+from time import monotonic
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import __version__
@@ -24,6 +25,51 @@ CONFIRMED_BINDINGS = {
     "official_record_verified",
 }
 PROTECTED_FIELDS = ("locked_section_ids", "preloaded_section_ids", "fixed_meetings")
+
+
+class SearchBudget:
+    """One bounded budget shared by candidate checks, subsets and class search.
+
+    The legacy generator keeps its original node-only contract when no budget
+    is supplied. Retention clipping is separate from incomplete search.
+    """
+
+    def __init__(self, max_nodes=10000, *, max_candidates=256, max_diagnostics=200,
+                 max_seconds=5, clock=monotonic):
+        for name, value in (("max_nodes", max_nodes), ("max_candidates", max_candidates),
+                            ("max_diagnostics", max_diagnostics)):
+            if type(value) is not int or value < 1:
+                raise ValueError(f"{name} 必须为正整数")
+        if max_seconds is not None and (type(max_seconds) not in (int, float)
+                                        or not isfinite(max_seconds) or max_seconds <= 0):
+            raise ValueError("max_seconds 必须为有限正数或 null")
+        self.max_nodes, self.max_candidates = max_nodes, max_candidates
+        self.max_diagnostics, self.max_seconds = max_diagnostics, max_seconds
+        self.clock, self.started = clock, clock()
+        self.nodes_visited, self.phases = 0, {}
+        self.limit_reached, self.limit_reason = False, None
+        self.candidate_retention_clipped, self.diagnostics_clipped = False, False
+
+    def spend(self, phase):
+        if self.limit_reached:
+            return False
+        if self.nodes_visited >= self.max_nodes:
+            self.limit_reached, self.limit_reason = True, "nodes"
+            return False
+        if self.max_seconds is not None and self.clock() - self.started >= self.max_seconds:
+            self.limit_reached, self.limit_reason = True, "elapsed_time"
+            return False
+        self.nodes_visited += 1
+        self.phases[phase] = self.phases.get(phase, 0) + 1
+        return True
+
+    def report(self):
+        return {"nodes_visited": self.nodes_visited, "max_nodes": self.max_nodes,
+                "limit_reached": self.limit_reached, "limit_reason": self.limit_reason,
+                "phases": dict(self.phases), "max_candidates": self.max_candidates,
+                "max_diagnostics": self.max_diagnostics, "max_seconds": self.max_seconds,
+                "candidate_retention_clipped": self.candidate_retention_clipped,
+                "diagnostics_clipped": self.diagnostics_clipped}
 
 
 def _number(value, *, signed=False):
@@ -713,7 +759,7 @@ def _scope_complete(snapshot, requested):
 
 
 def generate_plans(snapshot, student, constraints, academic_records=None,
-                   max_nodes=10000, limit=3):
+                   max_nodes=10000, limit=3, *, budget=None, leaf_sink=None):
     """Backtrack over finite options and fully revalidate every leaf.
 
     Rankings cover only this snapshot and declared search scope. A node cap
@@ -721,11 +767,25 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
     """
     if type(max_nodes) is not int or max_nodes < 1 or type(limit) is not int or limit < 1:
         raise ValueError("max_nodes 与 limit 必须为正整数")
+    if budget is not None and not isinstance(budget, SearchBudget):
+        raise ValueError("budget 必须是 SearchBudget")
+    if leaf_sink is not None and not callable(leaf_sink):
+        raise ValueError("leaf_sink 必须可调用")
     academic_records = academic_records or []
     index, duplicates, malformed = _index(snapshot)
     protected = _protected_sections(snapshot, student, constraints)
     requested = _unique(constraints.get("requested_course_ids", []) + [index[s]["course_id"] for s in protected if s in index])
-    options, diagnostics = {}, []
+    options, diagnostics = {course: [] for course in requested}, []
+    diagnostic_unknown = False
+    def diagnose(items):
+        nonlocal diagnostic_unknown
+        diagnostic_unknown |= any(item.get("result") == "unknown" for item in items)
+        if budget is None:
+            diagnostics.extend(items)
+        else:
+            room = budget.max_diagnostics - len(diagnostics)
+            diagnostics.extend(items[:max(0, room)])
+            budget.diagnostics_clipped |= len(items) > room
     protected_by_course = {}
     for section_id in protected:
         if section_id in index:
@@ -734,7 +794,9 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
         **constraints, "requested_course_ids": [index[s]["course_id"] for s in protected if s in index],
     }
     protected_constraints.pop("min_credits", None)
-    protected_validation = validate_plan(protected, snapshot, student, protected_constraints, academic_records)
+    precheck_allowed = budget is None or budget.spend("protected_precheck")
+    protected_validation = (validate_plan(protected, snapshot, student, protected_constraints, academic_records)
+                            if precheck_allowed else {"checks": []})
     protected_failures = [c for c in protected_validation["checks"] if c["result"] == "fail"]
     missing_protected = [s for s in protected if s not in index]
     for course_id in requested:
@@ -742,6 +804,8 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
                    sorted(s["section_id"] for s in index.values() if s["course_id"] == course_id))
         allowed = []
         for section_id in choices:
+            if budget is not None and not budget.spend("section_precheck"):
+                break
             candidate_constraints = {**constraints, "requested_course_ids": [course_id],
                                      "locked_section_ids": [], "preloaded_section_ids": []}
             # An individual course is not expected to meet a whole-term minimum.
@@ -750,38 +814,55 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
                                       require_protected=False)
             failed = [c for c in candidate["checks"] if c["result"] == "fail"]
             if failed:
-                diagnostics.extend(failed)
+                diagnose(failed)
             else:
                 allowed.append(section_id)
         options[course_id] = allowed
         if not choices:
-            diagnostics.append(_check("missing_course_offerings", "unknown", f"当前导入范围缺少课程 {course_id} 的教学班"))
+            diagnose([_check("missing_course_offerings", "unknown", f"当前导入范围缺少课程 {course_id} 的教学班")])
+        if budget is not None and budget.limit_reached:
+            break
     if protected_failures:
-        diagnostics.extend(protected_failures)
+        diagnose(protected_failures)
     if missing_protected:
-        diagnostics.append(_check("missing_protected_section", "unknown", "必须保留的班尚未导入", missing_protected))
+        diagnose([_check("missing_protected_section", "unknown", "必须保留的班尚未导入", missing_protected)])
     complete_scope = _scope_complete(snapshot, requested)
     search = {"nodes_visited": 0, "max_nodes": max_nodes, "limit_reached": False,
               "complete_within_scope": complete_scope,
               "candidate_counts": {key: len(value) for key, value in options.items()},
               "requested_course_ids": requested}
     plans, pending = [], []
+    leaf_counts = {"pass": 0, "unknown": 0}
+    def retain(collection, validation):
+        collection.append(validation)
+        if budget is not None and len(collection) > budget.max_candidates:
+            collection.sort(key=lambda p: (p["preference_scores"]["friday_penalty"], tuple(sorted(p["section_ids"]))))
+            del collection[budget.max_candidates:]
+            budget.candidate_retention_clipped = True
     # Fixed ordering makes the same snapshot/constraints produce the same drafts.
     ordered = sorted(requested, key=lambda key: (len(options[key]), key))
 
     def visit(position, chosen):
-        if search["nodes_visited"] >= max_nodes:
+        if budget is not None:
+            if not budget.spend("section_search"):
+                search["limit_reached"] = True
+                return
+        elif search["nodes_visited"] >= max_nodes:
             search["limit_reached"] = True
             return
         search["nodes_visited"] += 1
         if position == len(ordered):
             validation = validate_plan(chosen, snapshot, student, constraints, academic_records)
+            if leaf_sink is not None:
+                leaf_sink(deepcopy(validation))
             if validation["result"] == "pass":
-                plans.append(validation)
+                leaf_counts["pass"] += 1
+                retain(plans, validation)
             elif validation["result"] == "unknown":
-                pending.append(validation)
+                leaf_counts["unknown"] += 1
+                retain(pending, validation)
             else:
-                diagnostics.extend(c for c in validation["checks"] if c["result"] == "fail")
+                diagnose([c for c in validation["checks"] if c["result"] == "fail"])
             return
         course_id = ordered[position]
         for section_id in options[course_id]:
@@ -797,7 +878,7 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
                         if result == "fail":
                             known_conflicts.append(_check("time_conflict", "fail", reason, [earlier_id, section_id], overlap=overlap))
             if known_conflicts:
-                diagnostics.extend(known_conflicts)
+                diagnose(known_conflicts)
                 continue
             visit(position + 1, chosen + [section_id])
             if search["limit_reached"]:
@@ -809,7 +890,9 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
     pending.sort(key=lambda p: (p["preference_scores"]["friday_penalty"], tuple(sorted(p["section_ids"]))))
     diagnostics = _unique(diagnostics)
     unknown_inputs = (bool(duplicates or malformed or missing_protected)
-                      or not complete_scope or any(c["result"] == "unknown" for c in diagnostics))
+                      or not complete_scope or diagnostic_unknown)
+    if budget is not None:
+        search.update(budget.report())
     if search["limit_reached"]:
         status, reason = "search_limit", "搜索达到节点上限；已有方案排序尚不保证覆盖完整搜索范围"
     elif plans:
@@ -824,8 +907,8 @@ def generate_plans(snapshot, student, constraints, academic_records=None,
                              "reason": item["reason"],
                              "action": "补齐或刷新数据并重试" if item["result"] == "unknown" else "审查对应班与条件；锁定项保留，需显式确认解锁或修改要求"}
                             for item in diagnostics],
-            "search": {**search, "validated_plan_count": len(plans),
-                       "pending_plan_count": len(pending)},
+            "search": {**search, "validated_plan_count": leaf_counts["pass"],
+                       "pending_plan_count": leaf_counts["unknown"]},
             "constraints": deepcopy(constraints),
             "input_version_refs": _input_versions(snapshot, student, constraints, academic_records),
             "provenance": _provenance(snapshot, student, constraints, academic_records)}

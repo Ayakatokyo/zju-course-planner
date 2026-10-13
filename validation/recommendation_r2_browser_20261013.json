@@ -1,0 +1,86 @@
+{
+  "scope": "actual running localhost synthetic UI; desktop actions/downloads and 390 CSS-pixel rendering separately verified",
+  "application_version": "0.2.0",
+  "url": "http://127.0.0.1:18865/",
+  "model": "deepseek-flash",
+  "desktop": {
+    "three_course_sets": true,
+    "explicit_button_save": true,
+    "continued_hard_condition_one_option": true,
+    "language_save": true,
+    "language_download": true
+  },
+  "mobile_render": {
+    "width_css_pixels": 390,
+    "height_css_pixels": 844,
+    "page_width_css_pixels": 390,
+    "whole_page_horizontal_overflow": false,
+    "interaction_at_390_not_separately_claimed": true,
+    "viewport_restored": true
+  },
+  "downloads": [
+    {
+      "filename": "synthetic-plan.json",
+      "bytes": 82973,
+      "sha256": "76f4220ea1d448f9dc4c661f2c43f97bd74b17fa2e6181436ac6ef3605f502cb",
+      "saved_id": 2,
+      "matches_frozen_input": true,
+      "friday_free": "soft",
+      "section_ids": [
+        "DEMO-DATA-01",
+        "DEMO-MODEL-01",
+        "DEMO-PE-01"
+      ]
+    },
+    {
+      "filename": "synthetic-plan.csv",
+      "bytes": 6504,
+      "sha256": "8b8e2f013630dcb913b029e62b3beb4fc8edf2637d64dc025a6fa0fffe41aedb",
+      "saved_id": 2
+    },
+    {
+      "filename": "synthetic-plan.ics",
+      "bytes": 348129,
+      "sha256": "3e7091f124a92da9eb0abeceda42e446e7e1a338a3270236b89b321ca528ccb5",
+      "saved_id": 2,
+      "event_count": 192,
+      "tentative": true
+    },
+    {
+      "filename": "synthetic-recommendation.json",
+      "bytes": 82861,
+      "sha256": "eab62ba08364271fc0a96491cc2a6b4f9a6fb77082aa2732c3f348586c9e3364",
+      "saved_id": 3,
+      "matches_frozen_input": true,
+      "friday_free": "hard",
+      "section_ids": [
+        "DEMO-DATA-01",
+        "DEMO-MODEL-01",
+        "DEMO-PE-01"
+      ]
+    }
+  ],
+  "screenshots": [
+    "recommendation_r2_desktop_20261013.jpg",
+    "recommendation_r2_mobile_20261013.jpg",
+    "recommendation_r2_final_20261013.jpg"
+  ],
+  "source_sha256": {
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "a91600a67098bf4d94055cb5303a998eeb8c5e1d70be0dbe06fe9a89726979dc",
+    "course_assistant/chat.py": "476e8ac008faafdec8bc3a7a7b4d24696193f6f2d9fcc6c18e8ffa9430740827",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/model_client.py": "28c051407e2e44f0bd9181ae6e344b065a00d63831dce1ac96fb24cbeed2fdb5",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/server.py": "219eef53c19a16c47e46a22965d07fb912d7f1b389a740f9e18b37a12d992472",
+    "course_assistant/storage.py": "3df62642446796fb73d830319e1785c53b5fc3115a8505bd6f428e942caab017",
+    "web/app.js": "a3be2eb5ccec5c618100348b2f73127a83ab4c707b8c615ae1a3030b8008e251",
+    "web/index.html": "deb343c474e776058ee803b94266b0c44192ee27fd0ee9f3c29c4021d783a66e",
+    "web/styles.css": "84357ddd9ebe142dd7352636c5d76938bdab539a0c1f5ba45dc8df75731c1465"
+  }
+}

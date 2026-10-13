@@ -1,0 +1,1090 @@
+{
+  "metadata": {
+    "data_kind": "synthetic",
+    "version": "DEMO-RECOMMENDATION-DATA-v1",
+    "description": "完全合成推荐夹具。plan_id只沿用已登记开发范围键，不代表真实方案规则或学生适用。",
+    "not_official": true
+  },
+  "student": {
+    "student_key": "DEMO-STUDENT-001",
+    "data_kind": "synthetic",
+    "plan_id": "zju_materials_science_engineering_2026",
+    "cohort": 2026,
+    "major_or_program": "合成推荐专业",
+    "plan_version": "DEMO-PLAN-v1",
+    "plan_binding_status": "student_confirmed",
+    "language_level": null,
+    "individualized_path": null,
+    "target_term": "DEMO-2026-秋冬",
+    "profile_version": "DEMO-RECOMMENDATION-PROFILE-v1",
+    "confirmed_at": "2026-10-09T12:00:00+08:00",
+    "major_code": "DEMO-RECOMMENDATION"
+  },
+  "courses": [
+    {
+      "course_id": "DEMO-AI",
+      "course_code": "DEMO-AI",
+      "course_name": "AI实践（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": 3,
+      "data_kind": "synthetic",
+      "tags": [
+        "module"
+      ],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "ai"
+        ],
+        "text": "合成说明覆盖ai",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    },
+    {
+      "course_id": "DEMO-DATA",
+      "course_code": "DEMO-DATA",
+      "course_name": "数据分析（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": 3,
+      "data_kind": "synthetic",
+      "tags": [
+        "module"
+      ],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "data"
+        ],
+        "text": "合成说明覆盖data",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    },
+    {
+      "course_id": "DEMO-MODEL",
+      "course_code": "DEMO-MODEL",
+      "course_name": "模型方法（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": 3,
+      "data_kind": "synthetic",
+      "tags": [
+        "module"
+      ],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "model"
+        ],
+        "text": "合成说明覆盖model",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    },
+    {
+      "course_id": "DEMO:PE",
+      "course_code": "DEMO:PE",
+      "course_name": "体育固定课（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": 1,
+      "data_kind": "synthetic",
+      "tags": [],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "sports"
+        ],
+        "text": "合成说明覆盖sports",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    },
+    {
+      "course_id": "DEMO-FOUNDATION",
+      "course_code": "DEMO-FOUNDATION",
+      "course_name": "已获基础课（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": 3,
+      "data_kind": "synthetic",
+      "tags": [],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "foundation"
+        ],
+        "text": "合成说明覆盖foundation",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    },
+    {
+      "course_id": "DEMO-PENDING",
+      "course_code": "DEMO-PENDING",
+      "course_name": "在修基础课（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": 2,
+      "data_kind": "synthetic",
+      "tags": [],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "foundation"
+        ],
+        "text": "合成说明覆盖foundation",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    },
+    {
+      "course_id": "DEMO-UNKNOWN",
+      "course_code": "DEMO-UNKNOWN",
+      "course_name": "待核对基础课（合成）",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "plan_ids": [
+        "zju_materials_science_engineering_2026"
+      ],
+      "credits": null,
+      "data_kind": "synthetic",
+      "tags": [],
+      "ledger": "base",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "description_evidence": {
+        "data_kind": "synthetic",
+        "verified": true,
+        "topics": [
+          "foundation"
+        ],
+        "text": "合成说明覆盖foundation",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    }
+  ],
+  "rules": [
+    {
+      "rule_id": "DEMO-ELECTIVE",
+      "title": "合成模块目标",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RECOMMENDATION-RULES-v1",
+      "status": "demo_active",
+      "metric": "credits",
+      "threshold": 6,
+      "course_pool": [
+        "DEMO-AI",
+        "DEMO-DATA",
+        "DEMO-MODEL"
+      ],
+      "ledger": "base",
+      "scope": {
+        "cohort": 2026,
+        "program": "合成推荐专业",
+        "version": "DEMO-PLAN-v1"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ]
+    },
+    {
+      "rule_id": "DEMO-RECOMMENDATION-REPEAT",
+      "rule_kind": "repeat_credit_policy",
+      "mode": "once_per_course",
+      "course_pool": [
+        "DEMO-AI",
+        "DEMO-DATA",
+        "DEMO-MODEL",
+        "DEMO:PE",
+        "DEMO-FOUNDATION",
+        "DEMO-PENDING",
+        "DEMO-UNKNOWN"
+      ],
+      "plan_id": "zju_materials_science_engineering_2026",
+      "data_kind": "synthetic",
+      "version": "DEMO-RECOMMENDATION-RULES-v1",
+      "status": "demo_active",
+      "scope": {
+        "cohort": 2026,
+        "program": "合成推荐专业",
+        "version": "DEMO-PLAN-v1"
+      },
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ]
+    }
+  ],
+  "academic_snapshot": {
+    "snapshot_id": "DEMO-RECOMMENDATION-ACADEMIC-v1",
+    "version": "DEMO-RECOMMENDATION-ACADEMIC-v1",
+    "data_kind": "synthetic",
+    "completeness": "complete_within_scope",
+    "records": [
+      {
+        "record_id": "DEMO-FOUNDATION-RECORD",
+        "attempt_id": "DEMO-FOUNDATION-ATTEMPT",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "DEMO-FOUNDATION",
+        "completion_status": "passed",
+        "recognition_status": "not_applicable",
+        "earned_credits": 3,
+        "ledger": "base",
+        "tags": [],
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-RECOMMENDATION-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      },
+      {
+        "record_id": "DEMO-PENDING-RECORD",
+        "attempt_id": "DEMO-PENDING-ATTEMPT",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "DEMO-PENDING",
+        "completion_status": "in_progress",
+        "recognition_status": "not_applicable",
+        "earned_credits": null,
+        "ledger": "base",
+        "tags": [],
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-RECOMMENDATION-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "planned_credits": 2
+      },
+      {
+        "record_id": "DEMO-UNKNOWN-RECORD",
+        "attempt_id": "DEMO-UNKNOWN-ATTEMPT",
+        "student_key": "DEMO-STUDENT-001",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "record_kind": "course",
+        "course_id": "DEMO-UNKNOWN",
+        "completion_status": "unknown",
+        "recognition_status": "not_applicable",
+        "earned_credits": null,
+        "ledger": "base",
+        "tags": [],
+        "data_kind": "synthetic",
+        "snapshot_id": "DEMO-RECOMMENDATION-ACADEMIC-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ]
+      }
+    ]
+  },
+  "offering_snapshot": {
+    "snapshot_id": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+    "version": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+    "data_kind": "synthetic",
+    "source_kind": "synthetic",
+    "captured_at": "2026-10-13T12:00:00+08:00",
+    "timezone": "Asia/Shanghai",
+    "academic_year": "DEMO-2026-2027",
+    "term_code": "DEMO-2026-秋冬",
+    "completeness": "complete_within_scope",
+    "freshness_state": "current",
+    "filter_scope": {
+      "course_ids": [
+        "DEMO:PE",
+        "DEMO-AI",
+        "DEMO-DATA",
+        "DEMO-MODEL"
+      ],
+      "description": "合成推荐模块三门可选课及保护体育"
+    },
+    "pagination_state": {
+      "finished": true,
+      "pages_read": 1,
+      "total_pages": 1
+    },
+    "available_count": 5,
+    "records": [
+      {
+        "section_id": "DEMO-PE-01",
+        "course_id": "DEMO:PE",
+        "course_name": "体育固定课（合成）",
+        "section_name_raw": "合成班次 DEMO-PE-01",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "合成教师 DEMO-PE-01"
+        ],
+        "credits": 1,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ],
+          "major_codes": [
+            "DEMO-RECOMMENDATION"
+          ],
+          "plan_versions": [
+            "DEMO-PLAN-v1"
+          ]
+        },
+        "snapshot_id": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-PE-01-M0",
+            "day_of_week": 4,
+            "period_indices": [
+              7,
+              8
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          }
+        ],
+        "exam_state": "none",
+        "exams": []
+      },
+      {
+        "section_id": "DEMO-AI-01",
+        "course_id": "DEMO-AI",
+        "course_name": "AI实践（合成）",
+        "section_name_raw": "合成班次 DEMO-AI-01",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "合成教师 DEMO-AI-01"
+        ],
+        "credits": 3,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ],
+          "major_codes": [
+            "DEMO-RECOMMENDATION"
+          ],
+          "plan_versions": [
+            "DEMO-PLAN-v1"
+          ]
+        },
+        "snapshot_id": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-AI-01-M0",
+            "day_of_week": 1,
+            "period_indices": [
+              1,
+              2
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          },
+          {
+            "meeting_id": "DEMO-AI-01-M1",
+            "day_of_week": 5,
+            "period_indices": [
+              1,
+              2
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          }
+        ],
+        "exam_state": "none",
+        "exams": []
+      },
+      {
+        "section_id": "DEMO-AI-02",
+        "course_id": "DEMO-AI",
+        "course_name": "AI实践（合成）",
+        "section_name_raw": "合成班次 DEMO-AI-02",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "合成教师 DEMO-AI-02"
+        ],
+        "credits": 3,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ],
+          "major_codes": [
+            "DEMO-RECOMMENDATION"
+          ],
+          "plan_versions": [
+            "DEMO-PLAN-v1"
+          ]
+        },
+        "snapshot_id": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-AI-02-M0",
+            "day_of_week": 1,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          },
+          {
+            "meeting_id": "DEMO-AI-02-M1",
+            "day_of_week": 5,
+            "period_indices": [
+              1,
+              2
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          }
+        ],
+        "exam_state": "none",
+        "exams": []
+      },
+      {
+        "section_id": "DEMO-DATA-01",
+        "course_id": "DEMO-DATA",
+        "course_name": "数据分析（合成）",
+        "section_name_raw": "合成班次 DEMO-DATA-01",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "合成教师 DEMO-DATA-01"
+        ],
+        "credits": 3,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ],
+          "major_codes": [
+            "DEMO-RECOMMENDATION"
+          ],
+          "plan_versions": [
+            "DEMO-PLAN-v1"
+          ]
+        },
+        "snapshot_id": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-DATA-01-M0",
+            "day_of_week": 2,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          }
+        ],
+        "exam_state": "none",
+        "exams": []
+      },
+      {
+        "section_id": "DEMO-MODEL-01",
+        "course_id": "DEMO-MODEL",
+        "course_name": "模型方法（合成）",
+        "section_name_raw": "合成班次 DEMO-MODEL-01",
+        "academic_year": "DEMO-2026-2027",
+        "term_code": "DEMO-2026-秋冬",
+        "plan_ids": [
+          "zju_materials_science_engineering_2026"
+        ],
+        "instructors": [
+          "合成教师 DEMO-MODEL-01"
+        ],
+        "credits": 3,
+        "data_kind": "synthetic",
+        "available_seats": 10,
+        "capacity": 30,
+        "prerequisite_course_ids": [],
+        "eligibility": {
+          "cohorts": [
+            2026
+          ],
+          "plan_ids": [
+            "zju_materials_science_engineering_2026"
+          ],
+          "major_codes": [
+            "DEMO-RECOMMENDATION"
+          ],
+          "plan_versions": [
+            "DEMO-PLAN-v1"
+          ]
+        },
+        "snapshot_id": "DEMO-RECOMMENDATION-OFFERINGS-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "meetings": [
+          {
+            "meeting_id": "DEMO-MODEL-01-M0",
+            "day_of_week": 3,
+            "period_indices": [
+              3,
+              4
+            ],
+            "week_numbers": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16
+            ],
+            "season_codes": [
+              "秋",
+              "冬"
+            ],
+            "academic_calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+            "schedule_state": "known",
+            "campus": "合成校区",
+            "building_room": "合成教室",
+            "data_kind": "synthetic",
+            "source_refs": [
+              {
+                "snapshot_id": "DEMO-RECOMMENDATION-v1",
+                "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+              }
+            ]
+          }
+        ],
+        "exam_state": "none",
+        "exams": []
+      }
+    ],
+    "wish_items": [
+      {
+        "wish_item_id": "DEMO-RECOMMENDATION-PE-FORMAL",
+        "student_key": "DEMO-STUDENT-001",
+        "section_id": "DEMO-PE-01",
+        "data_kind": "synthetic",
+        "official_enrollment_status": "selected",
+        "official_status_mapping_version": "DEMO-RECOMMENDATION-MAPPING-v1",
+        "status_snapshot_id": "DEMO-RECOMMENDATION-ENROLLMENT-v1",
+        "source_refs": [
+          {
+            "snapshot_id": "DEMO-RECOMMENDATION-v1",
+            "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+          }
+        ],
+        "official_enrollment_status_raw": "合成正式成员",
+        "status_mapping_verified": true,
+        "confirmed_schedule_membership": true
+      }
+    ],
+    "academic_calendar": {
+      "calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+      "data_kind": "synthetic",
+      "timezone": "Asia/Shanghai",
+      "season_first_mondays": {
+        "秋": "2026-10-05",
+        "冬": "2026-11-30"
+      },
+      "period_times": {
+        "1": [
+          "08:00",
+          "08:45"
+        ],
+        "2": [
+          "08:50",
+          "09:35"
+        ],
+        "3": [
+          "10:00",
+          "10:45"
+        ],
+        "4": [
+          "10:50",
+          "11:35"
+        ],
+        "5": [
+          "13:00",
+          "13:45"
+        ],
+        "6": [
+          "13:50",
+          "14:35"
+        ],
+        "7": [
+          "15:00",
+          "15:45"
+        ],
+        "8": [
+          "15:50",
+          "16:35"
+        ]
+      },
+      "version": "DEMO-RECOMMENDATION-CALENDAR-v1"
+    }
+  },
+  "wish_items": [
+    {
+      "wish_item_id": "DEMO-RECOMMENDATION-PE-FORMAL",
+      "student_key": "DEMO-STUDENT-001",
+      "section_id": "DEMO-PE-01",
+      "data_kind": "synthetic",
+      "official_enrollment_status": "selected",
+      "official_status_mapping_version": "DEMO-RECOMMENDATION-MAPPING-v1",
+      "status_snapshot_id": "DEMO-RECOMMENDATION-ENROLLMENT-v1",
+      "source_refs": [
+        {
+          "snapshot_id": "DEMO-RECOMMENDATION-v1",
+          "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+        }
+      ],
+      "official_enrollment_status_raw": "合成正式成员",
+      "status_mapping_verified": true,
+      "confirmed_schedule_membership": true
+    }
+  ],
+  "wish_groups": [],
+  "academic_calendar": {
+    "calendar_id": "DEMO-RECOMMENDATION-CALENDAR-v1",
+    "data_kind": "synthetic",
+    "timezone": "Asia/Shanghai",
+    "season_first_mondays": {
+      "秋": "2026-10-05",
+      "冬": "2026-11-30"
+    },
+    "period_times": {
+      "1": [
+        "08:00",
+        "08:45"
+      ],
+      "2": [
+        "08:50",
+        "09:35"
+      ],
+      "3": [
+        "10:00",
+        "10:45"
+      ],
+      "4": [
+        "10:50",
+        "11:35"
+      ],
+      "5": [
+        "13:00",
+        "13:45"
+      ],
+      "6": [
+        "13:50",
+        "14:35"
+      ],
+      "7": [
+        "15:00",
+        "15:45"
+      ],
+      "8": [
+        "15:50",
+        "16:35"
+      ]
+    },
+    "version": "DEMO-RECOMMENDATION-CALENDAR-v1"
+  },
+  "constraints": {
+    "requested_course_ids": [],
+    "locked_section_ids": [
+      "DEMO-PE-01"
+    ],
+    "preloaded_section_ids": [
+      "DEMO-PE-01"
+    ],
+    "excluded_section_ids": [],
+    "fixed_meetings": [],
+    "friday_free": "soft",
+    "revision": 1
+  },
+  "recommendation": {
+    "data_kind": "synthetic",
+    "version": "DEMO-RECOMMENDATION-INTENT-v1",
+    "target_module": "DEMO-ELECTIVE",
+    "target_credits": 6,
+    "interest": "ai",
+    "optional_course_ids": [
+      "DEMO-AI",
+      "DEMO-DATA",
+      "DEMO-MODEL"
+    ],
+    "required_course_ids": [],
+    "excluded_course_ids": [],
+    "evidence": [
+      {
+        "snapshot_id": "DEMO-RECOMMENDATION-v1",
+        "excerpt": "纯合成推荐工程夹具；课程、说明、要求、时段、资格和校历均为虚构，不认定本人适用。"
+      }
+    ]
+  }
+}
