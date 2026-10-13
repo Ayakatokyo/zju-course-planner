@@ -1,0 +1,192 @@
+{
+  "recorded_at_utc": "2026-10-13T03:21:44.824254+00:00",
+  "git_head": "8be3e834f5f1968a0134e079dd0b225be692f48f",
+  "python": "3.13.13",
+  "corpus": {
+    "corpus_version": "0e6f964b0dbcdbc6ac90b111b30e9db7d65f2c8f8682eead6b93b13658daa328",
+    "mapping_version": "reference-json-v1",
+    "retrieval_version": "keyword-latin-han-bigram-v1",
+    "chunk_count": 54,
+    "counts": {
+      "courses": 19,
+      "candidates": 23,
+      "issues": 12
+    },
+    "plan_ids": [
+      "zju_business_big_data_2026",
+      "zju_journalism_2026",
+      "zju_materials_science_engineering_2026"
+    ],
+    "mode": "offline_reference_only",
+    "coverage": "partial_handoff_json_not_pdf_full_text",
+    "personal_data_indexed": false,
+    "model_configured": false,
+    "cache_enabled": false
+  },
+  "queries": [
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "Python",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "zju_materials_science_engineering_2026:CS1006G",
+          "title": "CS1006G Python程序设计",
+          "score": 1
+        },
+        {
+          "record_id": "MSE26-R01",
+          "title": "计算机类两门课程任选一门，完成3学分",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "想学写脚本处理数据，应该从哪门课开始",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "MSE26-R01",
+          "title": "计算机类两门课程任选一门，完成3学分",
+          "score": 1
+        },
+        {
+          "record_id": "SRC-011",
+          "title": "同课的多条件满足与学分归属需要分别处理",
+          "score": 1
+        },
+        {
+          "record_id": "MSE26-R03",
+          "title": "博雅技艺要求包含四种大学写作课程之一",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "只学一门计算机基础课可以吗",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "MSE26-R01",
+          "title": "计算机类两门课程任选一门，完成3学分",
+          "score": 4
+        },
+        {
+          "record_id": "MSE26-R02",
+          "title": "专业模块池内可跨模块选课并修满8学分",
+          "score": 2
+        },
+        {
+          "record_id": "MSE26-R04",
+          "title": "149+8学分结构与分账",
+          "score": 2
+        },
+        {
+          "record_id": "SRC-012",
+          "title": "近似课名的课程不能合并为同一课程",
+          "score": 1
+        },
+        {
+          "record_id": "zju_materials_science_engineering_2026:CS1002G",
+          "title": "CS1002G C程序设计基础",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "修够这个模块以后，多学的部分能算到哪里",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "MSE26-R02",
+          "title": "专业模块池内可跨模块选课并修满8学分",
+          "score": 2
+        },
+        {
+          "record_id": "SRC-011",
+          "title": "同课的多条件满足与学分归属需要分别处理",
+          "score": 2
+        },
+        {
+          "record_id": "SRC-003",
+          "title": "外语分层与模块总量的差额计入规则未提供",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "会写程序但不想上C语言，还有别的选择吗",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "SRC-012",
+          "title": "近似课名的课程不能合并为同一课程",
+          "score": 2
+        },
+        {
+          "record_id": "MSE26-R01",
+          "title": "计算机类两门课程任选一门，完成3学分",
+          "score": 2
+        },
+        {
+          "record_id": "zju_materials_science_engineering_2026:CS1002G",
+          "title": "CS1002G C程序设计基础",
+          "score": 2
+        },
+        {
+          "record_id": "zju_materials_science_engineering_2026:CS1006G",
+          "title": "CS1006G Python程序设计",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "想学用算法预测材料的性质，有哪些相关课",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "MSE26-R02",
+          "title": "专业模块池内可跨模块选课并修满8学分",
+          "score": 1
+        },
+        {
+          "record_id": "zju_materials_science_engineering_2026:MSE3123M",
+          "title": "MSE3123M 基于机器学习的材料设计",
+          "score": 1
+        },
+        {
+          "record_id": "zju_materials_science_engineering_2026:MSE3124M",
+          "title": "MSE3124M 多尺度材料模拟",
+          "score": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "zju_business_big_data_2026",
+      "query": "学校有没有关于停课、补考和缓考的规定",
+      "actual_status": "ok",
+      "matches": [
+        {
+          "record_id": "BDA26-R14",
+          "title": "第四课堂2学分的替代完成路径",
+          "score": 3
+        },
+        {
+          "record_id": "BDA26-R09",
+          "title": "劳动教育认定条件",
+          "score": 1
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "validation/run_reference_eval.py": "0c17eb3113ec46611dc0a32748462fb3bda47ee39d8e96aaed164a9e1cb48338"
+  },
+  "scope": "Exploratory lexical probes only; no golden-label pass rate, embedding/model requests or full regression in this round."
+}
