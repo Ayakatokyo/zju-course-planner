@@ -1,0 +1,62 @@
+{
+  "recorded_at_utc": "2026-10-09T13:12:53.442030+00:00",
+  "application_version": "0.2.0",
+  "python_version": "3.13.13",
+  "git_base": "8be3e834f5f1968a0134e079dd0b225be692f48f",
+  "test_result": {
+    "ran": 146,
+    "passed": 146,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "by_module": {
+      "test_application": 7,
+      "test_audit": 44,
+      "test_auth": 20,
+      "test_exporter": 6,
+      "test_importer": 13,
+      "test_planner": 32,
+      "test_reference_retrieval": 13,
+      "test_web_contract": 11
+    }
+  },
+  "node_version": "v25.9.0",
+  "web_syntax": "pass",
+  "git_diff_check": {
+    "returncode": 0,
+    "output": ""
+  },
+  "inputs_git_unchanged": true,
+  "source_integrity": {
+    "result": "pass",
+    "files_checked": 17,
+    "expanded_zip_identical": true,
+    "source_refs_valid": true,
+    "manifest_sha256": "9a259f2c2a54a7ad22373d52f12f5e71f9efd190d7e1021a64244a47ae8ac2a0",
+    "note": "只验证交接资料完整性，不代表官方规则审核或学生适用性。"
+  },
+  "source_sha256": {
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "a91600a67098bf4d94055cb5303a998eeb8c5e1d70be0dbe06fe9a89726979dc",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/planner.py": "c3d8710b08411e75682bb4ec5cd18b3ad8a8746ab21cfc13c90bfa54168f07eb",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/server.py": "5145416ae4adbc72700dd00f8eecf9733a6d22b00a04bc43c52a028886c55545",
+    "course_assistant/storage.py": "08f839d659343935c080d5950e072929bc0cf6d5f9953b74c10f8d0dbc38770b",
+    "demo/bundle.json": "0d3eff83f9a9dc1d51cd9110f4b3e8a2a31a00949e3fa6fe68b3a71e5e5b84b4",
+    "tests/test_application.py": "f95635f9af14c12f253fec2698c76c32e83eb8468b3510fbd7d9624d9a5be1db",
+    "tests/test_audit.py": "7b89e433ec7e9b8966c5d471c8acda5fe7f59829fe22c6b9947099a61eead324",
+    "tests/test_auth.py": "8661ac377649daeddcfe5d0d98900871b4535ea21a770446b2577062897e079e",
+    "tests/test_exporter.py": "21184709ad4d18111e1d2e7233f536d8b782ccb420d453546c47b9cb28dfba0e",
+    "tests/test_importer.py": "6e9e88c82d296e08d978dff796186dbdd1790ca7606cde538407759ebb243743",
+    "tests/test_planner.py": "8ea5eb10b72f349688ea7085d79aa123805ba5636fa58d5e7e643c34d26bb87c",
+    "tests/test_reference_retrieval.py": "e6b2634c90b858a65eb313320e35e5d61889c7cbdb1877048d2507fbafeda1ed",
+    "tests/test_web_contract.py": "895386883cb9beba01dd01cfb9d01c808f8fbc49f6756aa1960b7d1a580a470f",
+    "web/app.js": "f838ff2e73b1a96846c93bad398fc6197b96556829f8c920293cedd05774d9cd",
+    "web/index.html": "63861934958de5480e85a64d286ac40646a2d1a255bf02fee910c455a2b95264",
+    "web/styles.css": "cd91dae6022219b8feb9f6e9a7eb1fbe46deb3eea1210999094de1f6a11a17ce"
+  },
+  "scope": "local synthetic tests; official authentication, real data, deployment and full product acceptance remain incomplete"
+}

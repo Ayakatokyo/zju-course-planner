@@ -1,0 +1,161 @@
+{
+  "recorded_at_utc": "2026-10-09T13:12:03.640984+00:00",
+  "git_base": "8be3e834f5f1968a0134e079dd0b225be692f48f",
+  "corpus": {
+    "corpus_version": "0e6f964b0dbcdbc6ac90b111b30e9db7d65f2c8f8682eead6b93b13658daa328",
+    "mapping_version": "reference-json-v1",
+    "retrieval_version": "keyword-latin-han-bigram-v1",
+    "chunk_count": 54,
+    "counts": {
+      "courses": 19,
+      "candidates": 23,
+      "issues": 12
+    },
+    "plan_ids": [
+      "zju_business_big_data_2026",
+      "zju_journalism_2026",
+      "zju_materials_science_engineering_2026"
+    ],
+    "mode": "offline_reference_only",
+    "coverage": "partial_handoff_json_not_pdf_full_text",
+    "personal_data_indexed": false,
+    "model_configured": false,
+    "cache_enabled": false
+  },
+  "top_k": 5,
+  "cases": [
+    {
+      "case_id": "R01",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "Python",
+      "expected_status": "ok",
+      "expected_records_at_5": [
+        "zju_materials_science_engineering_2026:CS1006G"
+      ],
+      "actual_status": "ok",
+      "actual_records_at_5": [
+        "zju_materials_science_engineering_2026:CS1006G",
+        "MSE26-R01"
+      ],
+      "references_rechecked": true,
+      "passed": true
+    },
+    {
+      "case_id": "R02",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "专业模块课程",
+      "expected_status": "ok",
+      "expected_records_at_5": [
+        "MSE26-R02"
+      ],
+      "actual_status": "ok",
+      "actual_records_at_5": [
+        "MSE26-R02",
+        "SRC-011",
+        "MSE26-R04",
+        "MSE26-R01",
+        "MSE26-R03"
+      ],
+      "references_rechecked": true,
+      "passed": true
+    },
+    {
+      "case_id": "R03",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "CS1001G",
+      "expected_status": "no_match_in_scope",
+      "expected_records_at_5": [],
+      "actual_status": "ok",
+      "actual_records_at_5": [
+        "SRC-012"
+      ],
+      "references_rechecked": true,
+      "passed": false
+    },
+    {
+      "case_id": "R04",
+      "plan_id": "zju_journalism_2026",
+      "query": "CS1243G",
+      "expected_status": "ok",
+      "expected_records_at_5": [
+        "SRC-002"
+      ],
+      "actual_status": "ok",
+      "actual_records_at_5": [
+        "SRC-012",
+        "SRC-002"
+      ],
+      "references_rechecked": true,
+      "passed": true
+    },
+    {
+      "case_id": "R05",
+      "plan_id": "zju_journalism_2026",
+      "query": "个性修读",
+      "expected_status": "ok",
+      "expected_records_at_5": [
+        "JOUR26-R04",
+        "SRC-001"
+      ],
+      "actual_status": "ok",
+      "actual_records_at_5": [
+        "SRC-001",
+        "JOUR26-R01",
+        "JOUR26-R04",
+        "SRC-011",
+        "SRC-010"
+      ],
+      "references_rechecked": true,
+      "passed": true
+    },
+    {
+      "case_id": "R06",
+      "plan_id": "zju_business_big_data_2026",
+      "query": "统计学 绩点",
+      "expected_status": "ok",
+      "expected_records_at_5": [
+        "BDA26-R01",
+        "SRC-004"
+      ],
+      "actual_status": "ok",
+      "actual_records_at_5": [
+        "SRC-004",
+        "BDA26-R01",
+        "zju_business_big_data_2026:MATH3403M",
+        "BDA26-R15"
+      ],
+      "references_rechecked": true,
+      "passed": true
+    },
+    {
+      "case_id": "R07",
+      "plan_id": null,
+      "query": "Python",
+      "expected_status": "needs_scope",
+      "expected_records_at_5": [],
+      "actual_status": "needs_scope",
+      "actual_records_at_5": [],
+      "references_rechecked": true,
+      "passed": true
+    },
+    {
+      "case_id": "R08",
+      "plan_id": "zju_materials_science_engineering_2026",
+      "query": "nonexistentexactcourse999",
+      "expected_status": "no_match_in_scope",
+      "expected_records_at_5": [],
+      "actual_status": "no_match_in_scope",
+      "actual_records_at_5": [],
+      "references_rechecked": true,
+      "passed": true
+    }
+  ],
+  "passed": 7,
+  "total": 8,
+  "source_sha256": {
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "validation/run_reference_eval.py": "0c5f1b6d4870229f1f9d73cd47613c97bd9a6e3da224719f9cff3ab4e1809350",
+    "tests/test_reference_retrieval.py": "c45071f0dc9c05611ba509b073de46bfc7fb311bb14c2d2716cca84827ae8ccb"
+  },
+  "scope": "8 developer reference fixtures only; no real user/model/personal permission evaluation"
+}
