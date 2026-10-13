@@ -1,0 +1,144 @@
+{
+  "application_full_regressions_run": false,
+  "checks": {
+    "all_course_observations_mapped_or_explicitly_excluded": true,
+    "all_meeting_fragments_preserved": true,
+    "all_nonduplicate_course_codes_preserved": true,
+    "all_nonduplicate_section_identity_tuples_preserved": true,
+    "all_observation_sources_recoverable": true,
+    "all_section_observations_mapped": true,
+    "all_source_files_and_hashes_valid": true,
+    "dynamic_values_preserved_without_cross_time_stitching": true,
+    "every_section_observation_has_indivisible_dynamic_records": true,
+    "original_bytes_unchanged_before_and_after": true,
+    "output_hashes_valid": true,
+    "second_independent_source_load_is_byte_idempotent": true
+  },
+  "code_sha256": {
+    "course_source_adapters.py": "c40df622b259e2a4eb27c9ed70db646f3b5459f6b637ee9f5fe30ef27085fb39",
+    "deduplicate_courses.py": "1b0655d232ca19dce98eeba1960f215b015be51884e7b8839b9c8bf78372c75b",
+    "validate_course_dedup.py": "d92f10ed51acf704d4e7a38a4d94ac62122bbf9b62c2f62a46de21a24fba6560"
+  },
+  "committed": false,
+  "counts": {
+    "candidate_sections": 4716,
+    "capacity_observations": 11051,
+    "classification_relations": 4526,
+    "conflict_fields_or_schedule_versions": 57,
+    "course_observations": 4541,
+    "course_observations_by_route": {
+      "backend_full": 2597,
+      "backend_probe": 5,
+      "browser": 1924,
+      "probe_dom": 5,
+      "probe_dom_header": 5,
+      "probe_ui": 5
+    },
+    "courses": 2177,
+    "exam_observations": 11051,
+    "excluded_course_observations": 6,
+    "meeting_fragments": 15910,
+    "meeting_snapshots": 11051,
+    "personal_observations": 15598,
+    "section_observations": 11051,
+    "section_observations_by_route": {
+      "backend_full": 6187,
+      "backend_probe": 1,
+      "browser": 4860,
+      "probe_dom": 1,
+      "probe_manual_replay": 1,
+      "probe_ui": 1
+    },
+    "static_unknown_field_groups": 26806
+  },
+  "deployed": false,
+  "model_or_embedding_called": false,
+  "original_files_checked": 5775,
+  "original_inventory_sha256": "df4fc58b270c791b62f8832b22971bd9c0535d815418ac9b1fc01b8a01a52277",
+  "output_file_count": 17,
+  "page_acceptance_run": false,
+  "pushed": false,
+  "real_business_acceptance_run": false,
+  "schema_version": "course-dedup-validation/1",
+  "evidence_id": "COURSE-DEDUP-20261013-V1",
+  "related_tests": {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "tests.test_course_dedup",
+      "tests.test_course_source_adapters",
+      "tests.test_plan_requirements_audit",
+      "-v"
+    ],
+    "passed": 36,
+    "exit_code": 0,
+    "log_sha256": "1e3561359852abeeff735cb1188cd90d4e8bbb4a8b46dd1c57e627ac1b6132d2"
+  },
+  "related_code_sha256": {
+    "scripts/deduplicate_courses.py": "1b0655d232ca19dce98eeba1960f215b015be51884e7b8839b9c8bf78372c75b",
+    "scripts/course_source_adapters.py": "c40df622b259e2a4eb27c9ed70db646f3b5459f6b637ee9f5fe30ef27085fb39",
+    "scripts/validate_course_dedup.py": "d92f10ed51acf704d4e7a38a4d94ac62122bbf9b62c2f62a46de21a24fba6560",
+    "scripts/audit_course_sources.py": "e621f249846cc042c29c24d6b31dcf793dfaba213c781c74e1ca2375251ac8a4",
+    "scripts/audit_plan_requirements.py": "e427a5b9a1ec438ba45bf8308c666eab771f4512eaefae3a4c91f9a49b8f7984",
+    "tests/test_course_dedup.py": "a35ebbae8c94ff3e577fff685ed8177134bcc2d99398fead5d277bba3d1f3595",
+    "tests/test_course_source_adapters.py": "f459c2494b4a62026e007bcddc4ef094a6b14662bcaea0323cd162a70c4f0e70",
+    "tests/test_plan_requirements_audit.py": "f06e8dd14fbb2e2d29c44db8099d21a2d07e4313e252873d74765123bc43aa91"
+  },
+  "source_audit": {
+    "evidence_id": "SOURCE-AUDIT-20261013-V1",
+    "checks": {
+      "all_181_derived_html_aliases_match_original_hash_rows_headers_receipts": true,
+      "all_backend_parent_and_bound_target_checks_passed": true,
+      "all_browser_stop_inventory_2631_files_unchanged": true,
+      "all_html_receipt_row_counts_valid": true,
+      "all_normalized_manifest_hashes_and_counts_valid": true,
+      "all_original_5775_files_unchanged": true,
+      "no_html_same_path_history_overwrite": true,
+      "source_adapter_independent_reload_is_identical": true
+    }
+  },
+  "requirements_audit": {
+    "evidence_id": "REQ-AUDIT-20261013-V1",
+    "scanned_plans": 162,
+    "scanned_pages": 2161,
+    "categories": 29,
+    "classified_observations": 7785,
+    "broad_review_candidates": 2909,
+    "plans_with_conflicting_cohort_mentions": 4,
+    "validation": {
+      "all_directory_rows_bound_by_own_plan_identity_and_hash": true,
+      "all_pdf_named_and_object_sha256_match_manifest": true,
+      "all_source_pages_contiguous": true,
+      "every_evidence_id_unique": true,
+      "graduation_totals_unmodified": true,
+      "manifest_plan_count_matches": true,
+      "no_executable_rules_created": true,
+      "no_source_mutation_network_or_model_call": true,
+      "only_second_third_fourth_deferred": true,
+      "source_pdf_and_text_hashes_unchanged_after_scan": true,
+      "source_span_replay_exact": true
+    },
+    "representative_visual_pages": 7,
+    "full_pdf_visual_or_policy_review": false,
+    "core_output_byte_idempotence": true
+  },
+  "rag_design": {
+    "schema_version": "rag-blueprint-delivery/2.0",
+    "date": "2026-10-13",
+    "independent_rerun_bytes_identical": {
+      "eval_blueprint_machine_seed.json": true,
+      "blueprint_source_verification.json": true
+    },
+    "design_document_sha256": "6ca83afbe20dafc2a34bddcf4760d17740d5a89683a6fabc8764ba8216704b9e",
+    "question_count": 50,
+    "candidate_evidence_count": 95,
+    "human_gold_count": 0,
+    "retrieval_or_model_evaluation_run": false,
+    "application_or_sources_modified": false,
+    "runtime_index_built": false,
+    "external_text_sent": false
+  },
+  "local_dataset_evidence_ref": "COURSE-DEDUP-20261013-V1",
+  "scope_note": "历史去重验收，源码摘要绑定当轮实现；本次归档去敏修改后的源码由单独归档验证绑定。实际数据摘要和定位留在本机。"
+}
