@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-13",
+  "evidence_id": "GIT-ARCHIVE-20261013",
+  "source_sha256": {
+    "experiments/llm_explanation/README.md": "83d6cf46eafce582b861028c6aa74ff9802e7057e3e358f9ba3620654e9ed57e",
+    "experiments/llm_explanation/prepare_input.py": "e3a16c97abe8c6515cd9b5e64c63eaeee2944b268e1aca8842c4c767e0b13567",
+    "scripts/audit_course_sources.py": "61af41e748edb80c9d3b0588d340d0fdfad95865ab896259158af41399059880",
+    "scripts/audit_plan_requirements.py": "e427a5b9a1ec438ba45bf8308c666eab771f4512eaefae3a4c91f9a49b8f7984",
+    "scripts/course_source_adapters.py": "3db3a48c749553baa82653b8b3f89bd33d510a669d13491ead25ae37acecbf71",
+    "scripts/deduplicate_courses.py": "1b0655d232ca19dce98eeba1960f215b015be51884e7b8839b9c8bf78372c75b",
+    "scripts/validate_course_dedup.py": "d92f10ed51acf704d4e7a38a4d94ac62122bbf9b62c2f62a46de21a24fba6560"
+  },
+  "full_tests": {
+    "passed": 249,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "report": "git_archive_20261013_validation.json"
+  },
+  "offline_revalidation": {
+    "local_evidence_ref": "COURSE-DEDUP-ARCHIVE-20261013",
+    "checks": {
+      "all_course_observations_mapped_or_explicitly_excluded": true,
+      "all_meeting_fragments_preserved": true,
+      "all_nonduplicate_course_codes_preserved": true,
+      "all_nonduplicate_section_identity_tuples_preserved": true,
+      "all_observation_sources_recoverable": true,
+      "all_section_observations_mapped": true,
+      "dynamic_values_preserved_without_cross_time_stitching": true,
+      "every_section_observation_has_indivisible_dynamic_records": true
+    },
+    "all_derived_component_bytes_equal_prior_verified_version": true,
+    "source_files_unchanged": 5775,
+    "code_sha256": {
+      "scripts/course_source_adapters.py": "3db3a48c749553baa82653b8b3f89bd33d510a669d13491ead25ae37acecbf71",
+      "scripts/audit_course_sources.py": "61af41e748edb80c9d3b0588d340d0fdfad95865ab896259158af41399059880",
+      "scripts/deduplicate_courses.py": "1b0655d232ca19dce98eeba1960f215b015be51884e7b8839b9c8bf78372c75b",
+      "scripts/validate_course_dedup.py": "d92f10ed51acf704d4e7a38a4d94ac62122bbf9b62c2f62a46de21a24fba6560",
+      "scripts/audit_plan_requirements.py": "e427a5b9a1ec438ba45bf8308c666eab771f4512eaefae3a4c91f9a49b8f7984"
+    },
+    "source_audit_checks_passed": 8
+  },
+  "privacy_changes": [
+    "真实批次目录由单一持久批次发现逻辑取得，记录编号留本机。",
+    "别名绑定测试使用明确合成代码和教师尾码。",
+    "公开文档/样例回执移除真实方案定位和新采具体课例，旧原文另存本机。"
+  ],
+  "actual_source_or_private_data_in_git": false,
+  "new_model_school_or_embedding_calls": false
+}
