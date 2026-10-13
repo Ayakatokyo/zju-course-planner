@@ -1,0 +1,380 @@
+{
+  "recorded_at": "2026-10-13T04:44:34.323147+00:00",
+  "scope": "fixed synthetic local first conversation milestone; no school acceptance",
+  "provider": "DeepSeek",
+  "model": "deepseek-flash",
+  "reference_text_allowed": false,
+  "live_api": {
+    "occurred_at": "20261013T044253Z",
+    "receipt_sha256": "76a756b241af6aa1b829120bbc84c81e2932be0302320edd85e495e49253f2f6",
+    "turns_sha256": "47314e473ee0b7c56f20b1504f9b50bbd514636cfc62b06150c107e61da18dd2",
+    "cases": [
+      {
+        "case": 1,
+        "status": "completed",
+        "tools": [
+          "get_my_context"
+        ],
+        "acceptable_tools": [
+          "get_my_context"
+        ],
+        "expected_tool_called": true,
+        "workspace_unchanged": true,
+        "result_digest": "d86e075533db7f12ff9e1bd6a01aaa867490994b1b731d7fdb6ec0f5da1d8ba0",
+        "code": null,
+        "generation_statuses": []
+      },
+      {
+        "case": 2,
+        "status": "completed",
+        "tools": [
+          "generate_my_plan"
+        ],
+        "acceptable_tools": [
+          "generate_my_plan"
+        ],
+        "expected_tool_called": true,
+        "workspace_unchanged": true,
+        "result_digest": "32ca3d3c79c70ef5e3d4484d19f141e9e994307855bacf49905e10c947923f91",
+        "code": null,
+        "generation_statuses": [
+          "feasible"
+        ]
+      },
+      {
+        "case": 3,
+        "status": "completed",
+        "tools": [
+          "validate_my_plan"
+        ],
+        "acceptable_tools": [
+          "generate_my_plan",
+          "validate_my_plan"
+        ],
+        "expected_tool_called": true,
+        "workspace_unchanged": true,
+        "result_digest": "5b5f58cd8f966831f73125271fa3d09e3869c1ccb53805147e38b1cfd2df4d15",
+        "code": null,
+        "generation_statuses": []
+      },
+      {
+        "case": 4,
+        "status": "completed",
+        "tools": [
+          "search_plan_references"
+        ],
+        "acceptable_tools": [
+          "search_plan_references"
+        ],
+        "expected_tool_called": true,
+        "workspace_unchanged": true,
+        "result_digest": "9575761bd4586c4712e8c762cfd3645a6a22aec5b3a8a0d2de535f0cd84fd0d4",
+        "code": null,
+        "generation_statuses": []
+      }
+    ],
+    "business_acceptance": {
+      "evaluation_version": "business-results-v3.1",
+      "evaluation_kind": "offline_record_evaluation",
+      "passed": true,
+      "cases": [
+        {
+          "case": 1,
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "synthetic_preview": true,
+            "verified_reply": true,
+            "test_message": true,
+            "consent": true,
+            "unique_request": true,
+            "same_conversation": true,
+            "ordered_turn": true,
+            "history_retained": true,
+            "workspace_versions": true,
+            "workspace_unchanged": true,
+            "tools_executed": true,
+            "decision_evidence_index": true,
+            "decision_evidence_name": true,
+            "decision_matches_tool": true,
+            "decision_latest_same_tool": true,
+            "selected_citations": true,
+            "context_query": true,
+            "context_catalog": true,
+            "context_locks": true
+          },
+          "failed_checks": []
+        },
+        {
+          "case": 2,
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "synthetic_preview": true,
+            "verified_reply": true,
+            "test_message": true,
+            "consent": true,
+            "unique_request": true,
+            "same_conversation": true,
+            "ordered_turn": true,
+            "history_retained": true,
+            "workspace_versions": true,
+            "workspace_unchanged": true,
+            "tools_executed": true,
+            "decision_evidence_index": true,
+            "decision_evidence_name": true,
+            "decision_matches_tool": true,
+            "decision_latest_same_tool": true,
+            "decision_current_conditions": true,
+            "decision_conditions_digest": true,
+            "decision_later_evidence_compatible": true,
+            "selected_citations": true,
+            "calculation_1_locked_section_ids": true,
+            "calculation_1_preloaded_section_ids": true,
+            "calculation_1_requested_course_ids": true,
+            "calculation_1_excluded_section_ids": true,
+            "calculation_1_fixed_meetings": true,
+            "calculation_1_revision_chain": true,
+            "calculation_1_versions": true,
+            "calculation_1_preview": true,
+            "calculation_1_deterministic_status": true,
+            "calculation_1_plans_members": true,
+            "calculation_1_plans_validations": true,
+            "calculation_1_pending_plans_members": true,
+            "calculation_1_pending_plans_validations": true,
+            "recommendation_query": true,
+            "soft_friday": true,
+            "two_or_three_valid_plans": true
+          },
+          "failed_checks": []
+        },
+        {
+          "case": 3,
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "synthetic_preview": true,
+            "verified_reply": true,
+            "test_message": true,
+            "consent": true,
+            "unique_request": true,
+            "same_conversation": true,
+            "ordered_turn": true,
+            "history_retained": true,
+            "workspace_versions": true,
+            "workspace_unchanged": true,
+            "tools_executed": true,
+            "decision_evidence_index": true,
+            "decision_evidence_name": true,
+            "decision_matches_tool": true,
+            "decision_latest_same_tool": true,
+            "decision_current_conditions": true,
+            "decision_conditions_digest": true,
+            "decision_later_evidence_compatible": true,
+            "selected_citations": true,
+            "calculation_1_locked_section_ids": true,
+            "calculation_1_preloaded_section_ids": true,
+            "calculation_1_requested_course_ids": true,
+            "calculation_1_excluded_section_ids": true,
+            "calculation_1_fixed_meetings": true,
+            "calculation_1_revision_chain": true,
+            "calculation_1_versions": true,
+            "calculation_1_preview": true,
+            "calculation_1_deterministic_validation": true,
+            "recalculation_query": true,
+            "both_locks_retained": true,
+            "hard_friday": true,
+            "conflict_not_passed": true
+          },
+          "failed_checks": []
+        },
+        {
+          "case": 4,
+          "passed": true,
+          "checks": {
+            "completed": true,
+            "synthetic_preview": true,
+            "verified_reply": true,
+            "test_message": true,
+            "consent": true,
+            "unique_request": true,
+            "same_conversation": true,
+            "ordered_turn": true,
+            "history_retained": true,
+            "workspace_versions": true,
+            "workspace_unchanged": true,
+            "tools_executed": true,
+            "decision_evidence_index": true,
+            "decision_evidence_name": true,
+            "decision_matches_tool": true,
+            "decision_latest_same_tool": true,
+            "selected_citations": true,
+            "reference_query": true,
+            "reference_egress_closed": true,
+            "reference_scope": true,
+            "references_are_retrieved": true,
+            "python_evidence_present": true,
+            "citation_1_source": true,
+            "citation_1_inactive": true,
+            "citation_2_source": true,
+            "citation_2_inactive": true,
+            "citation_3_source": true,
+            "citation_3_inactive": true,
+            "citation_4_source": true,
+            "citation_4_inactive": true,
+            "citation_5_source": true,
+            "citation_5_inactive": true,
+            "partial_coverage_disclosed": true
+          },
+          "failed_checks": []
+        }
+      ],
+      "baseline_versions": {
+        "algorithm": "0.2.0",
+        "dataset_sha256": "d62744fd320c6d2b228de9633deb065afd448d112a176f92ff07db3646e13f1a",
+        "source_manifest_sha256": "9a259f2c2a54a7ad22373d52f12f5e71f9efd190d7e1021a64244a47ae8ac2a0",
+        "plan_id": "zju_materials_science_engineering_2026",
+        "plan_version": "2026级",
+        "profile_version": "DEMO-PROFILE-v1",
+        "academic_snapshot": "DEMO-ACADEMIC-v1",
+        "offering_snapshot": "DEMO-OFFERINGS-v1",
+        "rule_version": [
+          "DEMO-RULES-v1"
+        ],
+        "calendar_version": "3c42a18983a9e052dbaef9139980cd0bc5134f1c0a9106627010129d70442d7e",
+        "constraints_revision": 1,
+        "constraints_sha256": "4b60f0e9f42122a716aec8963fd42cad6703053286492602950288228c480710"
+      },
+      "coverage": {
+        "nonempty_fixed_meetings": false,
+        "browser": "separate",
+        "school": "not_run",
+        "reference_semantic_answer": "not_tested_text_egress_closed",
+        "unsupported_reference_question": "not_in_these_four_scenarios"
+      }
+    },
+    "source_sha256": {
+      "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+      "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+      "course_assistant/auth.py": "a91600a67098bf4d94055cb5303a998eeb8c5e1d70be0dbe06fe9a89726979dc",
+      "course_assistant/chat.py": "a658f6536c60e1d663a8546388a57a71becd43122c1fa7ff022a1b45d7803730",
+      "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+      "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+      "course_assistant/model_client.py": "28c051407e2e44f0bd9181ae6e344b065a00d63831dce1ac96fb24cbeed2fdb5",
+      "course_assistant/planner.py": "c3d8710b08411e75682bb4ec5cd18b3ad8a8746ab21cfc13c90bfa54168f07eb",
+      "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+      "course_assistant/server.py": "2c4598d000044c9c70eefdc6bca65bd25c5efa3fb7a5638d4e3708abe6d153b2",
+      "course_assistant/storage.py": "a784a7ad5cef99870f284c7e00971378a514ca6c5d3a2c80902292f0a35d1542"
+    },
+    "final_decision_repairs": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "browser": {
+    "same_conversation": true,
+    "turns": [
+      {
+        "turn": 1,
+        "status": "completed",
+        "outcome": "feasible",
+        "tools": [
+          "get_my_context",
+          "generate_my_plan",
+          "validate_my_plan"
+        ]
+      },
+      {
+        "turn": 2,
+        "status": "completed",
+        "outcome": "scoped_infeasible",
+        "tools": [
+          "generate_my_plan"
+        ]
+      },
+      {
+        "turn": 3,
+        "status": "completed",
+        "outcome": "reference_available",
+        "tools": [
+          "search_plan_references"
+        ]
+      }
+    ],
+    "checks": {
+      "three_plans_rendered": true,
+      "both_locks_and_hard_friday": true,
+      "friday_conflict_rendered": true,
+      "references_rendered_with_pending_labels": true,
+      "reference_raw_text_not_transmitted": true
+    },
+    "code_stages": {
+      "turns_1_2": "chat_live_20261013_validation.json; before final-format correction",
+      "turn_3": "chat_final_20261013_validation.json; after restart"
+    },
+    "evidence_sha256": {
+      "final_recommendation_dom.txt": "695a93e35ca7d9abdd33991264aa7bc2f61118ceea9799550799733f7dd32d92",
+      "final_conflict_dom.txt": "48a6e5cd21a1249b95d0b4b8c08716b1d47277074643e899871f9b42e0f7ced6",
+      "final_reference_dom.txt": "019c60f4ddb0c017842b3c4c6ae9bcc2e9f35b2b8e4998466f5d64a3e8ccf117"
+    },
+    "screenshot": "chat_live_recommendation_20261013.jpg"
+  },
+  "intermediate_failures": [
+    {
+      "stage": "initial evaluator",
+      "reason": "valid validate/fail path incorrectly required generate; original run re-evaluated independently with v2"
+    },
+    {
+      "stage": "browser pre-fix",
+      "code": "inconsistent_outcome",
+      "reason": "primary evidence selection too strict; failed final content not retained"
+    },
+    {
+      "stage": "live run 20261013T043850Z",
+      "code": "invalid_final_decision",
+      "reason": "final format rejected; evaluator crashed on null decision; transcript retained but original receipt not written",
+      "transcript_sha256": "cddc4054c170e7e9cc7eb8ef76708b4cf59eac8836b10b73175aaa4f9db1c061"
+    }
+  ],
+  "offline": {
+    "summary": "chat_final_20261013_validation.json",
+    "sha256": "80b956c5c0aa1f86357810d733e7d3b5685183058149a2aecc7a5242742434ea",
+    "test_result": {
+      "ran": 213,
+      "passed": 213,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "by_module": {
+        "test_application": 7,
+        "test_audit": 44,
+        "test_auth": 20,
+        "test_chat": 36,
+        "test_chat_http": 2,
+        "test_exporter": 6,
+        "test_importer": 13,
+        "test_live_chat_acceptance": 13,
+        "test_model_client": 8,
+        "test_planner": 32,
+        "test_reference_retrieval": 13,
+        "test_web_contract": 19
+      }
+    }
+  },
+  "git": {
+    "base": "8be3e834f5f1968a0134e079dd0b225be692f48f",
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "limitations": [
+    "synthetic fixed_meetings empty in real run; nonempty inheritance tested offline",
+    "format repair not triggered in final live run; branch tested offline",
+    "source text semantic answer not tested",
+    "embedding not implemented",
+    "school auth and real personal data not connected",
+    "original eight and permission acceptance gaps remain open"
+  ]
+}

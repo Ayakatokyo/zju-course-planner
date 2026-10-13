@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -42,6 +43,17 @@ class Store:
                     id INTEGER PRIMARY KEY AUTOINCREMENT, occurred_at TEXT NOT NULL,
                     principal TEXT, action TEXT NOT NULL, decision TEXT NOT NULL,
                     reason TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS owned_conversations (
+                    id TEXT PRIMARY KEY, realm TEXT NOT NULL, owner TEXT NOT NULL,
+                    turn INTEGER NOT NULL DEFAULT 0, state TEXT NOT NULL,
+                    pending_request TEXT, updated_at TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS conversations_by_owner ON owned_conversations(realm,owner,id);
+                CREATE TABLE IF NOT EXISTS owned_chat_requests (
+                    realm TEXT NOT NULL, owner TEXT NOT NULL, request_id TEXT NOT NULL,
+                    request_digest TEXT NOT NULL, conversation_id TEXT NOT NULL,
+                    status TEXT NOT NULL, response TEXT,
+                    PRIMARY KEY(realm,owner,request_id),
+                    FOREIGN KEY(conversation_id) REFERENCES owned_conversations(id));
             """)
 
     @contextmanager
@@ -106,3 +118,67 @@ class Store:
             row = db.execute("SELECT id,body,created_at FROM owned_plans WHERE id=? AND realm=? AND owner=?",
                              (identifier, context.security_realm, context.student_id)).fetchone()
         return self._saved_row(row) if row else None
+
+    def chat_one(self, context, identifier):
+        with self.connect() as db:
+            row = db.execute("SELECT turn,state,pending_request FROM owned_conversations "
+                             "WHERE id=? AND realm=? AND owner=?",
+                             (identifier, context.security_realm, context.student_id)).fetchone()
+        return {"conversation_id": identifier, "turn_id": row[0], "state": json.loads(row[1]),
+                "in_progress": row[2] is not None} if row else None
+
+    def chat_begin(self, context, identifier, request_id, request_digest, expected_turn):
+        """Reserve one turn atomically. IDs locate resources, never grant access."""
+        from .auth import AccessError
+        realm, owner = context.security_realm, context.student_id
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            previous = db.execute("SELECT request_digest,conversation_id,status,response FROM owned_chat_requests "
+                                  "WHERE realm=? AND owner=? AND request_id=?", (realm, owner, request_id)).fetchone()
+            if previous:
+                if previous[0] != request_digest:
+                    raise AccessError("同一请求编号不能用于不同消息", 409, "request_id_reused")
+                if previous[2] == "pending":
+                    raise AccessError("该轮仍在执行，请等待完成", 409, "turn_in_progress")
+                return {"replay": json.loads(previous[3])}
+            if identifier is None:
+                if expected_turn != 0:
+                    raise AccessError("新对话应从第 0 轮开始", 409, "turn_version_changed")
+                identifier = str(uuid.uuid4())
+                state = {"messages": [], "turns": [], "preview_constraints": None, "workspace_versions": None}
+                db.execute("INSERT INTO owned_conversations VALUES(?,?,?,?,?,?,?)",
+                           (identifier, realm, owner, 0, encoded(state), None, datetime.now(timezone.utc).isoformat()))
+                turn, pending = 0, None
+            else:
+                row = db.execute("SELECT turn,state,pending_request FROM owned_conversations "
+                                 "WHERE id=? AND realm=? AND owner=?", (identifier, realm, owner)).fetchone()
+                if row is None:
+                    raise AccessError("资源不可访问", 404, "inaccessible_object")
+                turn, state, pending = row[0], json.loads(row[1]), row[2]
+            if pending:
+                raise AccessError("该对话正在执行另一轮", 409, "turn_in_progress")
+            if turn != expected_turn:
+                raise AccessError("对话已更新，请重新载入", 409, "turn_version_changed")
+            if turn >= 20:
+                raise AccessError("该对话已达 20 轮上限，请新建对话", 409, "conversation_limit")
+            db.execute("UPDATE owned_conversations SET pending_request=? WHERE id=? AND realm=? AND owner=?",
+                       (request_id, identifier, realm, owner))
+            db.execute("INSERT INTO owned_chat_requests VALUES(?,?,?,?,?,?,?)",
+                       (realm, owner, request_id, request_digest, identifier, "pending", None))
+        return {"conversation_id": identifier, "turn_id": turn + 1, "state": state}
+
+    def chat_finish(self, context, identifier, request_id, turn_id, state, response):
+        """Finish only the reserved turn; no workspace or frozen plan is changed."""
+        from .auth import AccessError
+        with self.connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            result = db.execute("UPDATE owned_conversations SET turn=?,state=?,pending_request=NULL,updated_at=? "
+                                "WHERE id=? AND realm=? AND owner=? AND pending_request=? AND turn=?",
+                                (turn_id, encoded(state), datetime.now(timezone.utc).isoformat(), identifier,
+                                 context.security_realm, context.student_id, request_id, turn_id - 1))
+            if result.rowcount != 1:
+                raise AccessError("对话版本已变化", 409, "turn_version_changed")
+            db.execute("UPDATE owned_chat_requests SET status=?,response=? "
+                       "WHERE realm=? AND owner=? AND request_id=? AND conversation_id=?",
+                       ("complete" if response["status"] == "completed" else "failed", encoded(response),
+                        context.security_realm, context.student_id, request_id, identifier))

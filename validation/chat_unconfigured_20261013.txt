@@ -1,0 +1,71 @@
+- link "跳到主要内容":
+  - /url: "#main"
+- banner:
+  - strong: 选课助手
+  - generic: 浙江大学 · 课程项目
+  - generic: 模拟学生 A · synthetic
+  - button "退出"
+  - generic: 数据模式
+  - combobox "数据模式":
+    - option "本人合成演示" [selected]
+    - option "原交接资料"
+  - generic: synthetic
+- complementary "工作区导航":
+  - paragraph: 我的规划工作区
+  - tablist "选课工作区":
+    - tab "Agent 对话" [selected]:
+      - generic: ✧
+      - text: Agent 对话
+    - tab "条件与课表":
+      - generic: ▦
+      - text: 条件与课表
+    - tab "学业账本":
+      - generic: ≡
+      - text: 学业账本
+    - tab "资料与审核":
+      - generic: ▤
+      - text: 资料与审核
+    - tab "已保存方案 0":
+      - generic: ◷
+      - text: 已保存方案
+      - generic: "0"
+  - strong: 本地规划，结果可复核
+  - paragraph: 保存方案后，仍需在官方系统完成选课并取得正式结果。
+  - text: 对话与 P0 / P1 工具
+  - text: 依据、计算与模型解释分别呈现
+- main:
+  - status: 已进入本人 synthetic 演示工作区；学校认证和真实数据源尚未接入。
+  - tabpanel "Agent 对话":
+    - heading "和选课助手一起规划" [level=1]
+    - paragraph: 描述修读目标与时间偏好，逐步确认条件、比较课表。
+    - generic: 模型未配置：未配置 DEEPSEEK_API_KEY；请在本机 .env 填写并重启服务
+    - generic: 仅合成数据对话
+    - button "新对话"
+    - generic: ⓘ
+    - paragraph: 这是 synthetic 试用。请只输入测试问题，不要输入学校密码、真实姓名、学号、成绩、Cookie 或其他真实个人材料。
+    - region "本次对话":
+      - paragraph: 可以先问「我目前有哪些合成课程与未确认项」，再要求生成或调整课表。参考检索范围由服务端的合成培养方案确定。
+    - region "选课需求草稿":
+      - generic: 你的选课需求
+      - textbox "你的选课需求" [active]:
+        - /placeholder: 先查询合成课程，再生成尽量周五空闲并保留体育的课表…
+        - text: 保留已经确认的体育安排，尽量让周五空出来。请确认哪些条件必须保留，再给我两到三种课表选择。
+      - group "需求示例":
+        - button "补齐专业选修"
+        - button "保留体育，周五尽量空闲"
+        - button "比较方案，再调整"
+      - paragraph: 模型待接入，草稿仅保留在此页面，暂不发送。
+      - button "清空草稿"
+      - button "发送需求 · 待接入" [disabled]
+    - region "当前合成条件预览":
+      - heading "手动核对当前条件" [level=2]
+      - generic: synthetic
+      - paragraph: 使用已确认的合成条件，草稿不参与计算。
+      - paragraph:
+        - text: 基于机器学习的材料设计、多尺度材料模拟
+        - text: 尽量周五空闲 · 保留 1 个锁定教学班
+      - button "用当前合成条件预览课表"
+      - button "查看条件与课表"
+    - generic "对话如何连接课表与依据"
+  - text: › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › › ›
+  - generic: 规划结果可比较、调整与复核；正式选课仍在学校系统完成。

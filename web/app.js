@@ -5,13 +5,16 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':
 const clone = value => JSON.parse(JSON.stringify(value));
 const rows = value => Array.isArray(value) ? value : (value?.records || []);
 const showValue = value => value === null || value === undefined ? '待确认' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
-const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
+const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false, agentBusy:false, agentEpoch:0, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
 const statusNames = {pass:['满足','success'],fail:['不满足','danger'],satisfied:['满足','success'],unsatisfied:['不满足','danger'],pending:['待确认','warning'],unknown:['待确认','warning'],valid:['可行','success'],invalid:['不满足','danger'],passed:['满足','success'],failed:['不满足','danger'],needs_confirmation:['待确认','warning'],not_applicable:['不适用',''],candidate_pending_human_review:['待审核','warning']};
 function statusBadge(result) {const [name, cls] = statusNames[result] || [showValue(result),'']; return `<span class="badge ${cls}">${esc(name)}</span>`;}
 function notice(text, kind = 'warning'){return `<div class="notice ${kind}"><span class="notice-icon" aria-hidden="true">${kind === 'success' ? '✓' : 'ⓘ'}</span><p>${esc(text)}</p></div>`;}
 function message(text, error = false) {const element = $('#global-status'); element.textContent=text; element.className=`status-message${error?' error':''}`; element.hidden=false;}
 function clearMessage() {$('#global-status').hidden=true;}
+function identityKey(identity){return identity?JSON.stringify([identity.student_id,identity.security_realm,identity.auth_mode]):null;}
+function clearAgentConversation(){state.agentEpoch+=1;Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentRetry:null});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
+  clearAgentConversation();state.agentStatus=null;
   Object.assign(state,{mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],selected:0,dirty:false,busy:false});
   $$('.tab-panel').forEach(panel=>{panel.innerHTML='';panel.hidden=true;});
   $('#saved-count').textContent='0';$('#data-mode').value='demo';$('#mode-badge').textContent='synthetic';$('#mode-badge').className='badge synthetic';$('#session-control').hidden=true;$('#dataset-control').hidden=true;
@@ -27,17 +30,17 @@ function renderAuth() {
     notice('学校统一身份认证尚未配置；本项目不收集学校密码，也没有本人档案、成绩或选课 API。登录和个人数据接入需要分别确认。')+
     `<div class="section-container auth-card"><h2>${auth.mock_enabled?'本机合成身份演示':'开发演示尚未开启'}</h2><p>${auth.mock_enabled?'选择服务端固定的合成学生，验证本人工作区、方案与导出隔离。这是本机 mock 演示，不是学校身份登录。':'学校登录待获准接入。开发者可显式开启仅连接 synthetic 数据的本机演示；默认不会启用 mock。'}</p>${auth.mock_enabled?`<div class="auth-profile-list">${(auth.mock_profiles||[]).map(profile=>`<button class="button primary" data-action="mock-login" data-profile-id="${esc(profile.profile_id)}" ${state.busy?'disabled':''}>进入 ${esc(profile.name)} 的演示工作区</button>`).join('')}</div>`:'<p class="field-help">仅需验证本机演示时，在本目录执行：</p><pre>python3 -m course_assistant.server --port 8765 --enable-mock</pre>'}<p class="field-help">任意姓名、学号或对象编号都不能改变本人权限。真实 Excel 与截图只作字段参考，无须在此上传。</p></div>`;
 }
-async function request(path, body) {
+async function request(path, body, expectedEpoch) {
   const options={cache:'no-store',credentials:'same-origin'};
   if(body!==undefined){options.method='POST';options.headers={'Content-Type':'application/json'};if(state.csrfToken)options.headers['X-CSRF-Token']=state.csrfToken;options.body=JSON.stringify(body);}
   const response=await fetch(path,options);
   if(!response.ok){let detail;const raw=await response.text();try{detail=JSON.parse(raw);}catch{detail={error:raw};}
-    if(response.status===401){clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();}
+    if(response.status===401&&(expectedEpoch===undefined||expectedEpoch===state.agentEpoch)){clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();}
     throw new Error(detail.error?.message || detail.error || detail.message || `请求失败（${response.status}）`);
   }
   return response;
 }
-async function api(path,body){return (await request(path,body)).json();}
+async function api(path,body,expectedEpoch){return (await request(path,body,expectedEpoch)).json();}
 function demo(){return state.boot?.demo || {};}
 function planDataset(){return state.loadedSaved?.frozen_dataset || demo();}
 function planCredits(plan){
@@ -82,21 +85,85 @@ const agentExamples=[
   {label:'保留体育，周五尽量空闲',draft:'保留已经确认的体育安排，尽量让周五空出来。请确认哪些条件必须保留，再给我两到三种课表选择。'},
   {label:'比较方案，再调整',draft:'请比较两种课表的时间安排和培养要求贡献。我选定教学班后，希望继续调整偏好，并重新核对锁定条件。'}
 ];
+function agentCanSend(){return state.auth?.authenticated===true&&state.agentStatus?.configured===true&&!state.agentBusy&&!state.busy&&(!state.agentStatus.remote||state.agentConsent)&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
+function agentToolCard(tool){
+  const result=tool.result||{};const labels={get_my_context:'核对本人合成上下文',audit_my_progress:'计算合成学业账本',find_my_sections:'查询合成教学班',generate_my_plan:'生成并校验合成课表',search_plan_references:'检索参考依据',validate_my_plan:'重新校验合成课表'};
+  const plans=result.plans?.length?result.plans:(result.pending_plans?.length?result.pending_plans:(result.plan?[result.plan]:[]));
+  const summary=['generate_my_plan','validate_my_plan'].includes(tool.name)?`<p>${esc(result.reason||'已执行确定性搜索与校验。')}</p><p class="field-help">只读预览，未改写本人工作区条件；不是正式中选或已获学分。</p>${agentPlanDiagnostics(result)}${plans.length?plans.map((plan,index)=>`<article class="agent-plan"><div class="agent-card-heading"><h3>${esc(planName(plan,index))}</h3>${statusBadge(plan.validation?.result||'unknown')}<span class="badge synthetic">synthetic</span></div><p>${esc(showValue(Object.hasOwn(plan.validation||{},'planned_credits')?plan.validation.planned_credits:plan.validation?.total_credits))} 预计修读学分 · ${esc((plan.section_ids||[]).join('、'))}</p><p class="field-help">锁定 ${(result.constraints?.locked_section_ids||[]).map(esc).join('、')||'无'} · 周五条件 ${esc({hard:'必须空闲',soft:'尽量空闲',off:'无此偏好'}[result.constraints?.friday_free]||'待确认')}</p><details><summary>查看本轮课表与校验</summary>${agentPlanTable(plan,result.constraints)}<ul class="results-list">${uniqueChecks(plan.validation?.checks).filter(check=>check.result!=='pass').map(check=>`<li>${statusBadge(check.result||'unknown')}<span>${checkDescription(check)}</span></li>`).join('')}</ul></details></article>`).join(''):notice('当前工具返回范围内没有可展示课表；请核对冲突、覆盖与未知项。')}`:agentQuerySummary(tool.name,result);
+  return `<section class="agent-tool-card"><div class="agent-card-heading"><h3>${esc(labels[tool.name]||tool.name||'受限工具')}</h3><span class="badge">实际工具返回</span>${result.status?`<span class="badge">${esc(result.status)}</span>`:''}</div>${summary}<details><summary>查看工具输入、真实结果与版本</summary><pre>${esc(JSON.stringify({tool:tool.name,arguments:tool.arguments,result},null,2))}</pre></details></section>`;
+}
+function agentPlanDiagnostics(result){
+  const plans=[...(result.plans||[]),...(result.pending_plans||[]),...(result.plan?[result.plan]:[])];
+  const seen=new Set();
+  const checks=[...(result.diagnostics||[]),...(result.checks||[]),...plans.flatMap(plan=>plan.validation?.checks||[])].filter(check=>{
+    if(!check||!['fail','unknown'].includes(check.result))return false;
+    const key=JSON.stringify([check.code||check.check,check.result,check.reason||check.message,[...(check.section_ids||[])].sort()]);
+    if(seen.has(key))return false;seen.add(key);return true;
+  });
+  if(!checks.length)return '';
+  const firstKinds=['fail','unknown'].map(kind=>checks.find(check=>check.result===kind)).filter(Boolean);
+  const visible=[...firstKinds,...checks.filter(check=>!firstKinds.includes(check))].slice(0,8);
+  const failures=checks.filter(check=>check.result==='fail').length;const unknown=checks.length-failures;
+  return `<section class="search-detail agent-plan-diagnostics" aria-label="本轮合成范围诊断"><h3>冲突与待确认项</h3><p class="field-help">本轮合成搜索或校验发现 ${failures} 项不满足、${unknown} 项待确认；其中可能包含被排除班次，请结合每份方案的校验结果判断。</p><ul class="results-list">${visible.map(check=>`<li>${statusBadge(check.result)}<span>${checkDescription(check)}<br><small>检查代码：<span class="mono">${esc(check.code||check.check||'未提供')}</span></small></span></li>`).join('')}</ul>${checks.length>8?`<p class="field-help">此处展示 8 项，共 ${checks.length} 项；完整记录保留在下方「工具输入、真实结果与版本」。</p>`:''}</section>`;
+}
+function agentQuerySummary(name,result){
+  if(name==='get_my_context')return `<p>${esc(result.note||'仅本人合成上下文')}</p><p class="field-help">目标学期 ${esc(result.target_term||'待确认')} · 条件版本 ${esc(showValue(result.constraints?.revision))} · 锁定 ${(result.constraints?.locked_section_ids||[]).map(esc).join('、')||'无'} · 固定安排 ${esc(showValue(result.constraints?.fixed_meeting_count))} 项</p><ul class="results-list">${(result.courses||[]).map(course=>`<li><span>${esc(course.course_name)} · ${esc(course.course_id)} · ${esc(showValue(course.credits))} 学分</span></li>`).join('')}</ul>`;
+  if(name==='audit_my_progress')return `<p>已获基础学分 ${esc(showValue(result.ledger?.base))} · 其他课堂 ${esc(showValue(result.ledger?.extra_classrooms?.total))} · 在修 ${esc(showValue(result.ledger?.in_progress?.credits))} · 待确认记录 ${esc(showValue(result.ledger?.unknown?.record_count))}</p><ul class="results-list">${(result.rules||[]).map(rule=>`<li>${statusBadge(rule.result||'unknown')}<span>${esc(rule.title||rule.rule_id)}：${esc(rule.reason||'核对依据见工具结果')}</span></li>`).join('')}</ul>`;
+  if(name==='find_my_sections')return `<p>${(result.sections||[]).length} 个合成教学班；余量是演示快照。</p>${agentPlanTable({sections:result.sections})}${result.missing_course_ids?.length?notice('这些课程在当前快照未找到班次：'+result.missing_course_ids.join('、')):''}`;
+  if(name==='search_plan_references')return `<p>返回 ${(result.matches||[]).length} 条参考候选；词项命中不等于支持本问题。</p><p class="field-help">${result.reference_text_transmitted?'已向模型发送获准参考片段。':'原文仅在本机依据卡片展示，未发送模型；模型不能据此声称已阅读原文。'}</p>${(result.warnings||[]).map(warning=>notice(typeof warning==='string'?warning:JSON.stringify(warning))).join('')}`;
+  return '';
+}
+function agentPlanTable(plan,constraints={}){
+  const sections=plan.sections||[];
+  return `<div class="table-wrap"><table class="data-table"><thead><tr><th>课程 / 班次</th><th>上课时段</th><th>考试信息</th></tr></thead><tbody>${sections.map(section=>`<tr><td>${esc(section.course_name||section.course_id||'课程待确认')}<small>${esc(section.section_id)}</small></td><td>${section.meetings?.length?section.meetings.map(meeting=>esc(meetingText(meeting))).join('<br>'):'时段待确认'}</td><td>${esc(showValue(({none:'明确无考试',unknown:'考试待确认',scheduled:'有考试，详见校验'}[section.exam_state]||'考试待确认')))}</td></tr>`).join('')}${(constraints.fixed_meetings||[]).map(meeting=>`<tr><td>${esc(meeting.title||'固定安排')}<small>继承固定项</small></td><td>${esc(meetingText(meeting))}</td><td>—</td></tr>`).join('')}</tbody></table></div>${!sections.length?'<p class="field-help">本次结果未含完整时段，不能据此判断空闲；班次与校验见工具结果。</p>':''}`;
+}
+function agentCitation(citation){
+  const item=citation.chunk||citation;const diagnostic=item.text_role==='diagnostic'||item.text_role==='diagnostic_issue'||item.record_kind==='issues';
+  const sourceFiles={S1:'course_slides.pdf',S2:'journalism_2026.pdf',S3:'materials_2026.pdf',S4:'business_analytics_2026.pdf'};
+  const refs=(item.pdf_evidence||item.source_refs||[]).map(ref=>({...ref,file_name:sourceFiles[ref.source_id]||ref.file_name||ref.source_file||'',pdf_pages:ref.pdf_pages||ref.pages||[]}));
+  return `<li class="agent-citation"><strong>${esc(item.title||item.record_id||item.chunk_id||'参考依据')}</strong><span class="badge warning">${diagnostic?'资料诊断 · 不作学校规则':item.record_kind==='courses'?'课程资料 · 官方效力待核验':item.record_kind==='candidates'?'候选规则 · 待审核':'参考候选 · 待审核'}</span><p>${esc(item.text||item.excerpt||'原文见出处定位')}</p>${sourceLinks(refs)}${refs.length?'<small>PDF 定位为来源页集合，尚未逐句复核。</small>':''}<small>参考方案：${esc((item.plan_ids||[]).join('、')||'范围见工具结果')}</small><small>${esc(item.record_id||item.chunk_id||'')} · ${esc(typeof item.locator==='object'?JSON.stringify(item.locator):(item.locator||'定位见工具结果'))}</small>${item.corpus_version?`<small>语料版本 ${esc(item.corpus_version)}</small>`:''}</li>`;
+}
+function renderAgentTurns(){
+  if(!state.agentTurns.length)return '<p class="agent-empty">可以先问「我目前有哪些合成课程与未确认项」，再要求生成或调整课表。参考检索范围由服务端的合成培养方案确定。</p>';
+  return state.agentTurns.map(turn=>`<article class="agent-turn"><div class="agent-message user"><strong>你</strong><p>${esc(turn.message)}</p></div>${turn.pending?'<p class="agent-pending" role="status">正在调用模型与受限工具，请稍候…</p>':turn.error?`<div class="agent-message system"><strong>本轮请求未完成</strong><p>${esc(turn.error)}</p></div>`:`<div class="agent-message ${turn.status==='completed'||turn.status==='ok'?'assistant':'system'}"><strong>${turn.status==='completed'||turn.status==='ok'?({verified_tool_presentation:'模型查询 · 程序核验结果',verified_clarification_prompt:'待澄清'}[turn.reply_origin]||'本轮结果'):'本轮状态'}</strong><span class="badge synthetic">synthetic</span><p>${esc(turn.reply||'本轮没有可展示的核验摘要，请查看工具返回。')}</p>${!['completed','ok'].includes(turn.status)?`<small>${turn.partial_tools_completed?'工具已完成，本轮解释未完成；请核对下面实际工具结果。':`状态：${esc(turn.status||'待确认')}；以下仅展示已实际返回的证据。`}</small>`:''}</div>`}${(turn.tool_results||[]).map(agentToolCard).join('')}${turn.citations?.length?`<details class="agent-citations" open><summary>本轮参考依据 · ${turn.citations.length} 条</summary><ul>${turn.citations.map(agentCitation).join('')}</ul><p class="field-help">引用不使候选规则生效，也不证明适用于本人；来源覆盖与原文仍需核对。</p></details>`:''}${turn.versions?`<details class="agent-version"><summary>本轮输入版本</summary><pre>${esc(JSON.stringify(turn.versions,null,2))}</pre></details>`:''}</article>`).join('');
+}
 function renderAssistant() {
   const panel=$('#panel-assistant');if(!state.boot){panel.innerHTML='';return;}
-  const synthetic=state.mode==='demo';
+  const synthetic=state.mode==='demo';const status=state.agentStatus;const configured=status?.configured===true;
   const constraints=state.loadedSaved?state.boot.demo?.constraints || {}:state.constraints;
   const names=new Map(rows(demo().courses).map(course=>[course.course_id,course.course_name]));
   const requested=(constraints.requested_course_ids||[]).map(id=>names.get(id)||id);
   const friday={soft:'尽量周五空闲',hard:'周五必须空闲',off:'未设置周五偏好'}[constraints.friday_free] || '周五条件待确认';
+  const modelState=configured?`${status.provider||'已配置模型'} · ${status.model||'模型名称未提供'} · ${status.remote?'远程服务':'本地服务'}`:`模型未配置${status?.reason?'：'+status.reason:''}`;
   panel.innerHTML=pageHeading('和选课助手一起规划','描述修读目标与时间偏好，逐步确认条件、比较课表。')+
-    `<div class="assistant-workspace"><section class="dialogue-composer" aria-label="选课需求草稿"><form id="agent-draft-form"><label for="agent-draft" class="agent-draft-label">你的选课需求</label><textarea id="agent-draft" rows="5" maxlength="4000" placeholder="想补齐专业选修，尽量周五没课，并保留体育安排…" aria-describedby="agent-draft-status"></textarea><div class="agent-examples" role="group" aria-label="需求示例">${agentExamples.map((example,index)=>`<button type="button" class="button small" data-action="agent-example" data-example="${index}">${esc(example.label)}</button>`).join('')}</div><div class="agent-compose-footer"><p id="agent-draft-status" class="field-help">模型待接入，草稿仅保留在此页面，暂不发送。</p><div class="button-group"><button type="button" class="button small" data-action="clear-agent-draft">清空草稿</button><button type="submit" class="button primary" disabled aria-disabled="true">发送需求 · 待接入</button></div></div></form></section><section class="assistant-preview" aria-label="当前合成条件预览"><div class="assistant-preview-heading"><h2>先看一份合成课表</h2><span class="badge synthetic">synthetic</span></div><p>${synthetic?'使用已确认的合成条件，草稿不参与计算。':'原交接资料缺少本人学业和真实教学班；课表预览请使用本人合成演示。'}</p>${synthetic?`<p class="assistant-condition-summary">${state.loadedSaved?'当前正在查看冻结版，预览将重新读取本人当前条件。':`${esc(requested.join('、')||'尚未选择计划课程')}<br>${esc(friday)} · 保留 ${esc((constraints.locked_section_ids||[]).length)} 个锁定教学班`}</p>`:''}<div class="button-group assistant-preview-actions"><button class="button primary" data-action="preview-current-conditions" ${!synthetic||state.busy||state.previewBusy?'disabled':''}>${state.previewBusy?'正在读取并计算…':'用当前合成条件预览课表'}</button>${synthetic?'<button class="button" data-action="show-planning">查看条件与课表</button>':'<button class="button" data-action="switch-demo">切换本人合成演示</button>'}</div></section><details class="assistant-next-steps"><summary>对话如何连接课表与依据</summary><ol><li>描述需求，澄清目标与缺失信息。</li><li>确认必须条件、偏好和锁定安排。</li><li>调用计算工具，形成课表与校验结果。</li><li>比较方案，查看规则与来源依据。</li><li>继续对话调整，保留锁定和版本后重新校验。</li></ol><p class="field-help">此流程保留为 Agent 入口。自然语言解析、模型对话和 RAG 尚未接入；当前预览仅调用已有的合成数据计算，不解析草稿、不接真实资料，也不自动执行学校选课。</p></details></div>`;
+    `<div class="assistant-workspace"><div class="agent-model-status"><span class="badge ${configured?'success':'warning'}">${esc(modelState)}</span><span class="badge synthetic">仅合成数据对话</span><button class="button small" data-action="new-agent-conversation" ${state.agentBusy?'disabled':''}>新对话</button></div>${notice('这是 synthetic 试用。请只输入测试问题，不要输入学校密码、真实姓名、学号、成绩、Cookie 或其他真实个人材料。')}${configured?`<p class="field-help agent-reference-status">${status.allow_reference_text?'允许向当前模型发送已获准的非个人参考片段；23 条候选仍待审核。':'参考原文外传未开启；是否可查询依据以实际工具返回为准。'}</p>`:''}<section class="agent-dialogue" aria-label="本次对话" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}</section><section class="dialogue-composer" aria-label="选课需求草稿"><form id="agent-draft-form"><label for="agent-draft" class="agent-draft-label">你的选课需求</label><textarea id="agent-draft" rows="4" maxlength="2000" placeholder="先查询合成课程，再生成尽量周五空闲并保留体育的课表…" aria-describedby="agent-draft-status" ${state.agentBusy?'disabled':''}></textarea><div class="agent-examples" role="group" aria-label="需求示例">${agentExamples.map((example,index)=>`<button type="button" class="button small" data-action="agent-example" data-example="${index}" ${state.agentBusy?'disabled':''}>${esc(example.label)}</button>`).join('')}</div>${configured&&status.remote?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${state.agentBusy?'disabled':''}><span>同意本次会话将输入的测试问题和最小 synthetic 工具结果发送到 ${esc(status.provider||'已配置远程服务')}。${status.allow_reference_text?'同时发送已获准的非个人参考片段。':''}<small>对话保存在本机本人范围；本选项不授权发送真实个人资料。新对话或退出后须重新选择。</small></span></label>`:''}<div class="agent-compose-footer"><p id="agent-draft-status" class="field-help">${configured?'模型查询受限工具，程序核验状态和引用后生成事实摘要。':'模型待接入，草稿仅保留在此页面，暂不发送。'}</p><div class="button-group"><button type="button" class="button small" data-action="clear-agent-draft" ${state.agentBusy?'disabled':''}>清空草稿</button><button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'正在处理…':configured?'发送需求':'发送需求 · 待接入'}</button></div></div></form></section><section class="assistant-preview" aria-label="当前合成条件预览"><div class="assistant-preview-heading"><h2>手动核对当前条件</h2><span class="badge synthetic">synthetic</span></div><p>${synthetic?'使用已确认的合成条件，草稿不参与计算。':'原交接资料缺少本人学业和真实教学班；课表预览请使用本人合成演示。'}</p>${synthetic?`<p class="assistant-condition-summary">${state.loadedSaved?'当前正在查看冻结版，预览将重新读取本人当前条件。':`${esc(requested.join('、')||'尚未选择计划课程')}<br>${esc(friday)} · 保留 ${esc((constraints.locked_section_ids||[]).length)} 个锁定教学班`}</p>`:''}<div class="button-group assistant-preview-actions"><button class="button" data-action="preview-current-conditions" ${!synthetic||state.busy||state.previewBusy||state.agentBusy?'disabled':''}>${state.previewBusy?'正在读取并计算…':'用当前合成条件预览课表'}</button>${synthetic?'<button class="button" data-action="show-planning">查看条件与课表</button>':'<button class="button" data-action="switch-demo">切换本人合成演示</button>'}</div></section><details class="assistant-next-steps"><summary>对话如何连接课表与依据</summary><ol><li>描述需求，澄清目标与缺失信息。</li><li>确认必须条件、偏好和锁定安排。</li><li>调用计算工具，形成只读课表与校验结果。</li><li>比较方案，查看来源依据与未确认项。</li><li>继续对话调整，保留锁定和版本后重新校验。</li></ol><p class="field-help">模型理解需求并自主查询受限工具，程序核验后展示事实摘要与实际工具结果。对话中的课表是只读预览，不直接保存或导出；可在辅助条件页核对并生成当前工作区方案。本项目不自动执行学校选课。</p></details></div>`;
   $('#agent-draft').value=state.agentDraft;
-  $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;});
-  $('#agent-draft-form').addEventListener('submit',event=>event.preventDefault());
+  $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;updateAgentSend();});
+  $('#agent-remote-consent')?.addEventListener('change',event=>{state.agentConsent=event.target.checked;updateAgentSend();});
+  $('#agent-draft-form').addEventListener('submit',event=>{event.preventDefault();sendAgentTurn();});
 }
-function chooseAgentExample(index){const example=agentExamples[index];if(!example)return;state.agentDraft=example.draft;$('#agent-draft').value=state.agentDraft;$('#agent-draft').focus();}
-function clearAgentDraft(){state.agentDraft='';$('#agent-draft').value='';$('#agent-draft').focus();}
+function updateAgentSend(){const button=$('#agent-send');if(button){button.disabled=!agentCanSend();button.setAttribute('aria-disabled',String(!agentCanSend()));}}
+async function refreshAgentStatus(){
+  const epoch=state.agentEpoch;
+  try{const status=await api('/api/chat/status',undefined,epoch);if(epoch===state.agentEpoch){if(JSON.stringify([state.agentStatus?.provider,state.agentStatus?.model,state.agentStatus?.remote,state.agentStatus?.allow_reference_text])!==JSON.stringify([status.provider,status.model,status.remote,status.allow_reference_text]))state.agentConsent=false;state.agentStatus=status;}}
+  catch(error){if(epoch===state.agentEpoch)state.agentStatus={configured:false,reason:error.message};}
+}
+async function sendAgentTurn(){
+  if(!agentCanSend())return;
+  const epoch=state.agentEpoch;const turn={message:state.agentDraft.trim(),pending:true};
+  const payload=state.agentRetry?.message===turn.message&&state.agentRetry.expected_turn===state.agentTurnId?state.agentRetry:{conversation_id:state.agentConversationId,message:turn.message,request_id:crypto.randomUUID(),expected_turn:state.agentTurnId,consent_remote:state.agentConsent};
+  state.agentBusy=true;state.agentDraft='';state.agentTurns.push(turn);renderAssistant();
+  try{
+    const result=await api('/api/chat/turn',payload,epoch);
+    if(epoch!==state.agentEpoch||!state.auth?.authenticated)return;
+    if(typeof result.conversation_id!=='string'||!Number.isInteger(result.turn_id)||result.turn_id<=state.agentTurnId||!Array.isArray(result.tool_results)||!Array.isArray(result.citations)||result.data_kind!=='synthetic')throw new Error('对话响应契约不完整，请重新开始对话后重试。');
+    state.agentConversationId=result.conversation_id;state.agentTurnId=result.turn_id;state.agentRetry=null;
+    Object.assign(turn,result,{message:turn.message,pending:false});
+  }catch(error){if(epoch!==state.agentEpoch)return;Object.assign(turn,{pending:false,error:error.message});state.agentDraft=turn.message;state.agentRetry=payload;}
+  finally{if(epoch===state.agentEpoch){state.agentBusy=false;renderAssistant();}}
+}
+function chooseAgentExample(index){const example=agentExamples[index];if(!example)return;state.agentDraft=example.draft;$('#agent-draft').value=state.agentDraft;$('#agent-draft').focus();updateAgentSend();}
+function clearAgentDraft(){state.agentDraft='';$('#agent-draft').value='';$('#agent-draft').focus();updateAgentSend();}
 async function previewCurrentConditions() {
   if(state.busy||state.previewBusy||!state.boot||state.mode!=='demo')return;
   state.previewBusy=true;renderAssistant();
@@ -254,8 +321,8 @@ async function lockPlan(){const plan=currentPlan();if(!plan||state.loadedSaved)r
 async function applyConstraints(){try{const edited=JSON.parse($('#constraints-editor').value);const preserved=state.lastConstraints || state.constraints;edited.locked_section_ids=[...new Set([...(preserved.locked_section_ids||[]),...(edited.locked_section_ids||[])])];edited.preloaded_section_ids=[...new Set([...(preserved.preloaded_section_ids||[]),...(edited.preloaded_section_ids||[])])];const fixed=new Map([...(preserved.fixed_meetings||[]),...(edited.fixed_meetings||[])].map(meeting=>[meeting.meeting_id || JSON.stringify(meeting),meeting]));edited.fixed_meetings=[...fixed.values()];await generate(edited);}catch(error){message(`条件 JSON 无法应用：${error.message}`,true);}}
 async function refreshWorkspace() {
   const boot=await api('/api/bootstrap');
-  if(state.boot?.identity?.student_id && state.boot.identity.student_id!==boot.identity?.student_id){
-    state.agentDraft='';const draft=$('#agent-draft');if(draft)draft.value='';
+  if(state.boot?.identity && identityKey(state.boot.identity)!==identityKey(boot.identity)){
+    clearAgentConversation();
   }
   state.boot=boot;state.constraints=clone(state.boot.demo?.constraints || {});state.saved=savedRows(state.boot.saved_plans || []);
   if(state.auth)state.auth.identity=state.boot.identity;
@@ -285,16 +352,17 @@ async function mockLogin(profileId) {
   try{const result=await api('/api/auth/mock-login',{profile_id:profileId});clearWorkspace();state.auth={...state.auth,authenticated:true,identity:result.identity};state.csrfToken=result.csrf_token;await bootstrap();message('已进入本人 synthetic 演示工作区；学校认证和真实数据源尚未接入。');}catch(error){message(error.message,true);}finally{state.busy=false;renderAuth();}
 }
 async function logout() {
-  try{await api('/api/auth/logout',{});clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();clearMessage();message('已退出，服务端会话已撤销。');}catch(error){message(error.message,true);}
+  clearAgentConversation();state.busy=true;renderAssistant();
+  try{await api('/api/auth/logout',{});clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();clearMessage();message('已退出，服务端会话已撤销。');}catch(error){message(error.message,true);}finally{state.busy=false;renderAssistant();}
 }
 async function bootstrap() {
   $('#loading').hidden=false;$('#boot-error').hidden=true;
   try{
     const session=await api('/api/auth/session');
-    if(state.auth?.identity?.student_id && state.auth.identity.student_id!==session.identity?.student_id)clearWorkspace();
+    if(state.auth?.identity && identityKey(state.auth.identity)!==identityKey(session.identity))clearWorkspace();
     state.auth=session;
     if(!state.auth.authenticated){clearWorkspace();renderAuth();$('#loading').hidden=true;return;}
-    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();renderAuth();renderAssistant();renderPlanning();renderAudit();renderSources();renderSaved();switchTab(state.tab);$('#loading').hidden=true;
+    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();renderAudit();renderSources();renderSaved();switchTab(state.tab);$('#loading').hidden=true;
   }catch(error){$('#loading').hidden=true;$('#boot-error').hidden=false;$('#boot-error-text').textContent=`${error.message}。请确认本地 Python 服务已启动，然后重试。`;}
 }
 $('.nav-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(button){clearMessage();switchTab(button.dataset.tab);}});
@@ -311,6 +379,7 @@ $('#main').addEventListener('click',async event=>{
   const button=event.target.closest('[data-action]');if(!button||button.disabled)return;
   switch(button.dataset.action){
     case'mock-login':await mockLogin(button.dataset.profileId);break;
+    case'new-agent-conversation':clearAgentConversation();renderAssistant();break;
     case'agent-example':chooseAgentExample(Number(button.dataset.example));break;
     case'clear-agent-draft':clearAgentDraft();break;
     case'preview-current-conditions':await previewCurrentConditions();break;

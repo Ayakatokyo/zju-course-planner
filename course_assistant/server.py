@@ -18,16 +18,19 @@ from .exporter import export_result
 from .importer import ROOT, SOURCE_ROOT, ImportErrorDetail, digest, load_json, read_sources, require, validate_demo
 from .planner import generate_plans, revise_constraints, validate_plan
 from .storage import Store
+from .model_client import ModelClient, read_config, strict_json
 
 
 class Application:
-    def __init__(self, db_path=None, *, mock_enabled=False, clock=None):
+    def __init__(self, db_path=None, *, mock_enabled=False, clock=None, model=None):
         self.source = read_sources()
         self.store = Store(db_path or ROOT / 'runtime' / 'planning.sqlite3')
         options = {'clock': clock} if clock else {}
         self.auth = AuthManager(self.store, mock_enabled=mock_enabled, **options)
         self.fixture = validate_demo(load_json(ROOT / 'demo' / 'bundle.json'), self.source)
         self.lock = threading.RLock()
+        from .chat import ChatService
+        self.chat = ChatService(self, model if model is not None else ModelClient())
 
     def auth_status(self, context=None):
         status = {'authenticated': False, 'mock_enabled': self.auth.mock_enabled,
@@ -183,6 +186,8 @@ class Application:
     def get(self, path, context=None):
         if path == '/api/health':
             return {'status': 'ok', 'version': __version__, 'school_auth_status': 'not_configured'}
+        if path == '/api/chat/status':
+            return self.chat.status(context)
         workspace = self.workspace(context)
         if path == '/api/bootstrap':
             demo = copy.deepcopy(workspace['demo'])
@@ -194,6 +199,12 @@ class Application:
         raise AccessError('资源不可访问', 404, 'inaccessible_object')
 
     def post(self, path, body, context=None):
+        # The HTTP handler deliberately invokes these outside the global lock.
+        # ChatService authorizes each short database/tool phase independently.
+        if path == '/api/chat/turn':
+            return self.chat.turn(body, context)
+        if path == '/api/chat/history':
+            return self.chat.history(body, context)
         self.auth.require_context(context)
         self.check_claims(body, context)
         workspace = self.workspace(context)
@@ -356,9 +367,7 @@ def make_handler(app):
                 require(self.headers.get('Content-Type', '').split(';', 1)[0] == 'application/json', '请使用 application/json')
                 length = int(self.headers.get('Content-Length', 0))
                 require(0 < length <= 2_000_000, '请求大小需在 1 字节至 2 MB 内')
-                def reject_constant(value):
-                    raise ImportErrorDetail('JSON 数值必须有限')
-                body = json.loads(self.rfile.read(length), parse_constant=reject_constant)
+                body = strict_json(self.rfile.read(length))
                 require(isinstance(body, dict), '请求必须是 JSON 对象')
                 with app.lock:
                     if path == '/api/auth/mock-login':
@@ -373,8 +382,14 @@ def make_handler(app):
                         app.auth.logout(context)
                         self.response({'authenticated': False}, cookie=f'{COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict')
                         return
+                    if not path.startswith('/api/chat/'):
+                        result = app.post(path, body, context)
+                        app.store.event(context.principal_id, path, 'allow', 'owner_scoped')
+                if path.startswith('/api/chat/'):
                     result = app.post(path, body, context)
-                    app.store.event(context.principal_id, path, 'allow', 'owner_scoped')
+                    with app.lock:
+                        app.auth.require_context(context)
+                        app.store.event(context.principal_id, path, 'allow', 'owner_scoped')
                 if path == '/api/export':
                     data, content_type, suffix = result
                     self.send_bytes(data, content_type, suffix=suffix)
@@ -394,8 +409,11 @@ def main():
     parser.add_argument('--port', type=int, default=8765)
     parser.add_argument('--db', type=Path, help='本机运行数据库，不提交 Git')
     parser.add_argument('--enable-mock', action='store_true', help='显式启用本机 synthetic 身份，非学校登录')
+    parser.add_argument('--model-env-file', type=Path, default=ROOT / '.env',
+                        help='本机模型配置文件（默认 .env），只读取约定配置，不执行文件内容')
     args = parser.parse_args()
-    app = Application(args.db, mock_enabled=args.enable_mock)
+    app = Application(args.db, mock_enabled=args.enable_mock,
+                      model=ModelClient(read_config(args.model_env_file)))
     server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(app))
     print(f'选课助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校认证未配置', flush=True)
     try:
