@@ -1,0 +1,233 @@
+{
+  "schema": "git-archive-preflight/1",
+  "recorded_at": "2026-10-13T17:58:23.127195+00:00",
+  "git_base": "7a4ffb09f8e102e2cffec591755955be78ff1893",
+  "branch": "main",
+  "remote_repository": "Ayakatokyo/zju-course-planner",
+  "repository_visibility_verified": "PRIVATE",
+  "remote_main_matches_base": true,
+  "windows": [
+    {
+      "window": "10月13日规划",
+      "files": [
+        "docs/开发交接摘要_20261013_推荐能力线规划入口.md",
+        "docs/推荐能力线产品与技术设计_v1_20261013.md",
+        "docs/推荐能力线执行方案与新对话交接_v1_20261013.md"
+      ]
+    },
+    {
+      "window": "10月13日至14日推荐对话",
+      "files": [
+        "course_assistant/chat.py",
+        "course_assistant/planner.py",
+        "course_assistant/recommendation.py",
+        "course_assistant/recommendation_dialogue.py",
+        "course_assistant/server.py",
+        "course_assistant/storage.py",
+        "demo/recommendation_bundle.json",
+        "tests/test_chat_history.py",
+        "tests/test_recommendation.py",
+        "tests/test_recommendation_dialogue.py",
+        "tests/test_recommendation_storage.py",
+        "validation/recommendation_r2_20261013_tests.txt",
+        "validation/recommendation_r2_20261013_validation.json",
+        "validation/recommendation_r2_browser_20261013.json",
+        "validation/recommendation_r2_desktop_20261013.jpg",
+        "validation/recommendation_r2_final_20261013.jpg",
+        "validation/recommendation_r2_live_20261013.json",
+        "validation/recommendation_r2_mobile_20261013.jpg",
+        "validation/run_recommendation_live.py",
+        "validation/推荐能力线R0-R2验收_20261013.md"
+      ]
+    },
+    {
+      "window": "10月14日界面",
+      "files": [
+        "tests/test_web_contract.py",
+        "validation/chat_history_browser_20261014.json",
+        "validation/chat_history_desktop_20261014.jpg",
+        "validation/chat_history_mobile_20261014.jpg",
+        "validation/ui_simplified_browser_20261014.json",
+        "validation/ui_simplified_desktop_20261014.jpg",
+        "validation/ui_simplified_empty_20261014.jpg",
+        "validation/ui_simplified_mobile_20261014.jpg",
+        "web/app.js",
+        "web/index.html",
+        "web/styles.css"
+      ]
+    },
+    {
+      "window": "10月14日R3",
+      "files": [
+        "course_assistant/local_reference.py",
+        "course_assistant/local_reference_observations.py",
+        "docs/R3本机参考首片实施与验收_20261014.md",
+        "scripts/run_local_reference.py",
+        "tests/test_local_reference.py",
+        "tests/test_local_reference_observations.py",
+        "validation/r3_20261014_tests.txt",
+        "validation/r3_20261014_validation.json",
+        "validation/run_local_reference_checks.py"
+      ]
+    },
+    {
+      "window": "跨期同步",
+      "files": [
+        "README.md",
+        "docs/开发进度.md",
+        "docs/迭代时间窗归档_20261014.md",
+        "validation/git_archive_20261014_validation.json"
+      ]
+    }
+  ],
+  "unit_tests": {
+    "passed": 385,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "log": "validation/r3_20261014_tests.txt",
+    "log_sha256": "4b9368135bad69d0c30ccc05a0f35adfcbc876e1c64caf70ff75c5abc45389d8",
+    "verification_mode": "existing_final_log_and_unchanged_implementation_revalidated",
+    "full_suite_rerun_in_archive_turn": false,
+    "implementation_hashes_rechecked": 41,
+    "synthetic_fixture_hashes_rechecked": 2
+  },
+  "r3_integration": {
+    "passed": 20,
+    "total": 20,
+    "human_gold_count": 0,
+    "scope": "local engineering first slice; not human retrieval or school personal acceptance",
+    "negative_validator_results_rejected": 2
+  },
+  "current_checks": {
+    "node_syntax": "pass",
+    "python_compile": "pass",
+    "diff_check": "pass"
+  },
+  "original_inputs_integrity": {
+    "result": "pass",
+    "files_checked": 17,
+    "expanded_zip_identical": true,
+    "source_refs_valid": true,
+    "manifest_sha256": "9a259f2c2a54a7ad22373d52f12f5e71f9efd190d7e1021a64244a47ae8ac2a0",
+    "note": "只验证交接资料完整性，不代表官方规则审核或学生适用性。"
+  },
+  "privacy_review": {
+    "initial_files_independently_reviewed": 45,
+    "text_files": 37,
+    "synthetic_jpg_images_visually_reviewed": 8,
+    "image_exif_entries": 0,
+    "blockers": 0,
+    "scope": "explicit delivery files, not historical repository audit",
+    "additional_archive_metadata_checked_by_owner": true,
+    "excluded_domains": [
+      "local-only",
+      "private",
+      "runtime",
+      ".env",
+      "original inputs"
+    ]
+  },
+  "new_external_requests": {
+    "school": false,
+    "model": false,
+    "embedding": false
+  },
+  "deployment": false,
+  "source_sha256": {
+    "docs/开发交接摘要_20261013_推荐能力线规划入口.md": "1f4773708f40415da391117fade9dc9f73912a586e097a1e1799d7a079796b80",
+    "docs/推荐能力线产品与技术设计_v1_20261013.md": "363d89797be6d6fa1c4d00fe8605d88c6cac36cbaa82551562548436d0aa3e80",
+    "docs/推荐能力线执行方案与新对话交接_v1_20261013.md": "8d242e9e5cea6f7ee05326caef1e6ac6531e0f9c63fb4d712bc1f6c1bddd238a",
+    "course_assistant/chat.py": "fe70524a4ef177379294859d866e5ed7e78d9ccb27f23e9f23671d7aa50f6821",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/server.py": "e7922146fe6b8f7b82e6a29d0fa3caf84b11c2973d0b1259dcdac09ba5d180ab",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "demo/recommendation_bundle.json": "4955ae633d4d0f694d6dbd8ce5d2d69f4c2f3a48bb435fd5d342bf2f0041787c",
+    "tests/test_chat_history.py": "6e7e7684cd695fc7f221fa0ecf767cbc7eca4b2019958e432f90d405e92b2c16",
+    "tests/test_recommendation.py": "7a52c9f2ece2eb5c21a87656fd519c26ef309f1f42cff69684e415499391589a",
+    "tests/test_recommendation_dialogue.py": "6820cea01ae5be63f4a9656f33fbf720de4dc9df8f7d98a1781d4d558a8f21a6",
+    "tests/test_recommendation_storage.py": "43eed1785e18ea0e2c3ab7c902de3f83b5de24ba335622c7e2c682d86e115447",
+    "validation/recommendation_r2_20261013_tests.txt": "2b1ebd51ffc71e265d6f14a63b28ccb4ee3cc5a4d5f26a14417989856ad0a54b",
+    "validation/recommendation_r2_20261013_validation.json": "a0e11ebe630ea82a6b35e9a2aa7188e23634ed523372ef41c8a96c20482b318e",
+    "validation/recommendation_r2_browser_20261013.json": "431323aa64388b258cb4b915158523fd47d3caef3253f64bf625d2467158be04",
+    "validation/recommendation_r2_desktop_20261013.jpg": "66bd26b674c65cfc6f85bd7254f9b688744fda3aa2c5d78de7fef2d93d9e2142",
+    "validation/recommendation_r2_final_20261013.jpg": "f2e185e31ab0c2da00edcb60020a35c46f78315859300c82b7901644dcef7e8b",
+    "validation/recommendation_r2_live_20261013.json": "b3c594d8f1120220e49f39255fb00e4ce3ac1cbe5ee9aca624b7d1aeb9d65f6a",
+    "validation/recommendation_r2_mobile_20261013.jpg": "7cd33f5df7f45f2b7ba5e936a9ebbd45c97b7218a78dc40cfb39f159faef27d6",
+    "validation/run_recommendation_live.py": "4ae97345e0f7cfcd73fd027f630162aedb75e6adce47bdd08a583f48397281cb",
+    "validation/推荐能力线R0-R2验收_20261013.md": "a8d2ed7b51b55bffcb3ae254bc9d95c63fbd219d32b84d72df5df245eb0d6167",
+    "tests/test_web_contract.py": "ba90e6a2302c44f19a2cbb56c9b86785e3f93870c5fdb1be1f4ec7f5bff680f2",
+    "validation/chat_history_browser_20261014.json": "f5c3beb34bb771df0731dae03749cb97bd610bbfc8556a4c7e4db94d9146a59c",
+    "validation/chat_history_desktop_20261014.jpg": "71090dafdbbba0b44faf0b3e3f16db915c33e879a95f7678861380445fde3878",
+    "validation/chat_history_mobile_20261014.jpg": "8a93f93541b94d9509b20f74bcf195876dc4caca096425f5c932a61304292355",
+    "validation/ui_simplified_browser_20261014.json": "7731d67f85ebee9d83f0583787a59fa9156ef2014a575a18db1d365ddefe6bfb",
+    "validation/ui_simplified_desktop_20261014.jpg": "34a6ee47f5bc669c3e22face8f3059777c092e5323d2e30d68d647637afaf746",
+    "validation/ui_simplified_empty_20261014.jpg": "b6fc93bf3f15a2fe35dd49c11c24654a1825276d5a2a3c38f29ccc4afd69311a",
+    "validation/ui_simplified_mobile_20261014.jpg": "26a6f3be228e3c77bb51be68daccc0a8518b3eaa84f44631fab17eeeb78eedf8",
+    "web/app.js": "13dc9ec1a4f420b2582678235ed564ab4dd90a75c3ea8587ea9e2ed1b3d78f36",
+    "web/index.html": "be999114b5149a89b49c350e20f11d622e4fa741cc863dd08ea371513764a65a",
+    "web/styles.css": "6afbb1427b1b33054c60affc422f3be8d2e7955a07ef5152d9cdab5c1037b139",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "docs/R3本机参考首片实施与验收_20261014.md": "393dc64793d2bcf87d1d63bfb83e27d362eb14a105df34a557918518a6102f06",
+    "scripts/run_local_reference.py": "8527bca3aec47a07ed21d18f0f10cfee41fdcb9c56a7e9b5012715f4308caf0a",
+    "tests/test_local_reference.py": "f1ff43913dd1cb6a88a1555fa59e7fb09ea75dc19c2fa3951f10f490f9846204",
+    "tests/test_local_reference_observations.py": "55b689a403d4ac391872b7e619a8af317280846d1fff3e0cd9031ee19855bf85",
+    "validation/r3_20261014_tests.txt": "4b9368135bad69d0c30ccc05a0f35adfcbc876e1c64caf70ff75c5abc45389d8",
+    "validation/r3_20261014_validation.json": "09a05ddeca10926225e0b5758fa51b836327b26caabfb6f1a1530ef7f60c6860",
+    "validation/run_local_reference_checks.py": "2056c101bb35446787459117981cd9320466ee627e27df3cc1eacea3015c3ee2",
+    "README.md": "238104756944f0a36bee75963cb444b9c44ca54e22ad3a6e0de986b980c704ab",
+    "docs/开发进度.md": "47864c44482abb42a6870efc4c1d64426118dcecf286a9706b364652f22f1a79",
+    "docs/迭代时间窗归档_20261014.md": "487835043e0b4071626baa1e8624859308d194344d3f7aa8b7a90ae676d114cf"
+  },
+  "unchanged_implementation_sha256": {
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "a91600a67098bf4d94055cb5303a998eeb8c5e1d70be0dbe06fe9a89726979dc",
+    "course_assistant/chat.py": "fe70524a4ef177379294859d866e5ed7e78d9ccb27f23e9f23671d7aa50f6821",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "course_assistant/model_client.py": "28c051407e2e44f0bd9181ae6e344b065a00d63831dce1ac96fb24cbeed2fdb5",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/server.py": "e7922146fe6b8f7b82e6a29d0fa3caf84b11c2973d0b1259dcdac09ba5d180ab",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "scripts/run_local_reference.py": "8527bca3aec47a07ed21d18f0f10cfee41fdcb9c56a7e9b5012715f4308caf0a",
+    "tests/test_application.py": "f95635f9af14c12f253fec2698c76c32e83eb8468b3510fbd7d9624d9a5be1db",
+    "tests/test_audit.py": "7b89e433ec7e9b8966c5d471c8acda5fe7f59829fe22c6b9947099a61eead324",
+    "tests/test_auth.py": "8661ac377649daeddcfe5d0d98900871b4535ea21a770446b2577062897e079e",
+    "tests/test_chat.py": "606a23e4a487182059ec9c0ed1c95929c300cd831e19b35079b1559ce2199a39",
+    "tests/test_chat_history.py": "6e7e7684cd695fc7f221fa0ecf767cbc7eca4b2019958e432f90d405e92b2c16",
+    "tests/test_chat_http.py": "cff5e90dfff1a7570d1b66eac1c2c423ca0cb5c21efa33e21e0916d4b3181ec0",
+    "tests/test_course_dedup.py": "a35ebbae8c94ff3e577fff685ed8177134bcc2d99398fead5d277bba3d1f3595",
+    "tests/test_course_source_adapters.py": "7c690ef1f00d85f1a66368162a8876b8d3e687d9dcc54cd7d25bcf158a149536",
+    "tests/test_exporter.py": "21184709ad4d18111e1d2e7233f536d8b782ccb420d453546c47b9cb28dfba0e",
+    "tests/test_importer.py": "6e9e88c82d296e08d978dff796186dbdd1790ca7606cde538407759ebb243743",
+    "tests/test_live_chat_acceptance.py": "489d0c1d4ea652c2dba363e7766f6c1c781995e896af2e45442aafebe970230b",
+    "tests/test_local_reference.py": "f1ff43913dd1cb6a88a1555fa59e7fb09ea75dc19c2fa3951f10f490f9846204",
+    "tests/test_local_reference_observations.py": "55b689a403d4ac391872b7e619a8af317280846d1fff3e0cd9031ee19855bf85",
+    "tests/test_model_client.py": "e16676e994535314791ce0012446996cef4e57836bd73de6ddf22e16b4a6c4fc",
+    "tests/test_plan_requirements_audit.py": "f06e8dd14fbb2e2d29c44db8099d21a2d07e4313e252873d74765123bc43aa91",
+    "tests/test_planner.py": "8ea5eb10b72f349688ea7085d79aa123805ba5636fa58d5e7e643c34d26bb87c",
+    "tests/test_recommendation.py": "7a52c9f2ece2eb5c21a87656fd519c26ef309f1f42cff69684e415499391589a",
+    "tests/test_recommendation_dialogue.py": "6820cea01ae5be63f4a9656f33fbf720de4dc9df8f7d98a1781d4d558a8f21a6",
+    "tests/test_recommendation_storage.py": "43eed1785e18ea0e2c3ab7c902de3f83b5de24ba335622c7e2c682d86e115447",
+    "tests/test_reference_retrieval.py": "e6b2634c90b858a65eb313320e35e5d61889c7cbdb1877048d2507fbafeda1ed",
+    "tests/test_web_contract.py": "ba90e6a2302c44f19a2cbb56c9b86785e3f93870c5fdb1be1f4ec7f5bff680f2",
+    "validation/run_local_reference_checks.py": "2056c101bb35446787459117981cd9320466ee627e27df3cc1eacea3015c3ee2",
+    "web/app.js": "13dc9ec1a4f420b2582678235ed564ab4dd90a75c3ea8587ea9e2ed1b3d78f36",
+    "web/index.html": "be999114b5149a89b49c350e20f11d622e4fa741cc863dd08ea371513764a65a",
+    "web/styles.css": "6afbb1427b1b33054c60affc422f3be8d2e7955a07ef5152d9cdab5c1037b139"
+  },
+  "synthetic_fixture_sha256": {
+    "demo/bundle.json": "0d3eff83f9a9dc1d51cd9110f4b3e8a2a31a00949e3fa6fe68b3a71e5e5b84b4",
+    "demo/recommendation_bundle.json": "4955ae633d4d0f694d6dbd8ce5d2d69f4c2f3a48bb435fd5d342bf2f0041787c"
+  },
+  "commit_push_status_at_recording": "pre_commit; execution receipt recorded locally after success"
+}
