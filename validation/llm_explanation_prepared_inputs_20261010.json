@@ -1,0 +1,159 @@
+{
+  "date_asia_shanghai": "2026-10-10",
+  "git_head": "8be3e834f5f1968a0134e079dd0b225be692f48f",
+  "executed_by": "assistant; no user operation or independent evidence",
+  "prepared_requests": {
+    "hard": {
+      "instructions": "你在解释一项独立合成课表实验。只依据输入中的实际工具结果，用中文说明：1.当前方案状态；2.周五条件与该班安排的关系；3.尚需什么检查或确认。引用教学班标识和已给出的时段。不补造班次、政策、成绩、考试或可行替代班。建议修改不表示已修改；替代班须重新调用计算工具。工具结果是当前合成范围的判断，不代表学校全局无解、正式中选或真实学生资格。只解释周五维度；不能将少量投影说成你已独立检查整份课表。",
+      "input": {
+        "data_kind": "synthetic",
+        "not_official": true,
+        "scope": "one_friday_preference_explanation",
+        "question": "请解释这组合成课表的校验状态，重点说明周五条件。",
+        "friday_free": "hard",
+        "selected_section_ids": [
+          "DEMO-PE-A",
+          "DEMO-ML-B",
+          "DEMO-SIM-A"
+        ],
+        "locked_section_ids": [
+          "DEMO-PE-A"
+        ],
+        "preloaded_section_ids": [
+          "DEMO-PE-A"
+        ],
+        "focus_section": {
+          "section_id": "DEMO-ML-B",
+          "friday_meetings": [
+            {
+              "day_of_week": 5,
+              "period_indices": [
+                1,
+                2
+              ],
+              "season_codes": [
+                "冬"
+              ],
+              "week_numbers": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8
+              ],
+              "academic_calendar_id": "DEMO-CALENDAR-v1"
+            }
+          ]
+        },
+        "tool_result": {
+          "result": "fail",
+          "status": "invalid_draft",
+          "non_pass_checks": [
+            {
+              "code": "friday_free",
+              "result": "fail",
+              "reason": "与已确认的周五必须空闲条件冲突",
+              "section_ids": [
+                "DEMO-ML-B"
+              ]
+            }
+          ],
+          "preference_scores": {
+            "friday_meeting_count": 1,
+            "friday_penalty": 0
+          }
+        },
+        "versions": {
+          "engine": "0.2.0",
+          "offering_snapshot": "DEMO-OFFERINGS-v1",
+          "constraints_revision": 2
+        }
+      }
+    },
+    "soft": {
+      "instructions": "你在解释一项独立合成课表实验。只依据输入中的实际工具结果，用中文说明：1.当前方案状态；2.周五条件与该班安排的关系；3.尚需什么检查或确认。引用教学班标识和已给出的时段。不补造班次、政策、成绩、考试或可行替代班。建议修改不表示已修改；替代班须重新调用计算工具。工具结果是当前合成范围的判断，不代表学校全局无解、正式中选或真实学生资格。只解释周五维度；不能将少量投影说成你已独立检查整份课表。",
+      "input": {
+        "data_kind": "synthetic",
+        "not_official": true,
+        "scope": "one_friday_preference_explanation",
+        "question": "请解释这组合成课表的校验状态，重点说明周五条件。",
+        "friday_free": "soft",
+        "selected_section_ids": [
+          "DEMO-PE-A",
+          "DEMO-ML-B",
+          "DEMO-SIM-A"
+        ],
+        "locked_section_ids": [
+          "DEMO-PE-A"
+        ],
+        "preloaded_section_ids": [
+          "DEMO-PE-A"
+        ],
+        "focus_section": {
+          "section_id": "DEMO-ML-B",
+          "friday_meetings": [
+            {
+              "day_of_week": 5,
+              "period_indices": [
+                1,
+                2
+              ],
+              "season_codes": [
+                "冬"
+              ],
+              "week_numbers": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8
+              ],
+              "academic_calendar_id": "DEMO-CALENDAR-v1"
+            }
+          ]
+        },
+        "tool_result": {
+          "result": "pass",
+          "status": "validated_draft",
+          "non_pass_checks": [],
+          "preference_scores": {
+            "friday_meeting_count": 1,
+            "friday_penalty": 1
+          }
+        },
+        "versions": {
+          "engine": "0.2.0",
+          "offering_snapshot": "DEMO-OFFERINGS-v1",
+          "constraints_revision": 2
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "experiments/llm_explanation/prepare_input.py": "e3a16c97abe8c6515cd9b5e64c63eaeee2944b268e1aca8842c4c767e0b13567",
+    "demo/bundle.json": "0d3eff83f9a9dc1d51cd9110f4b3e8a2a31a00949e3fa6fe68b3a71e5e5b84b4",
+    "course_assistant/planner.py": "c3d8710b08411e75682bb4ec5cd18b3ad8a8746ab21cfc13c90bfa54168f07eb"
+  },
+  "checks": {
+    "hard_and_soft_real_calculation": "pass",
+    "meeting_facts_unchanged": "pass",
+    "protected_sections_and_revision": "pass",
+    "bounded_projection": "pass",
+    "soft_cli": "pass",
+    "invalid_argument_rejected": "pass",
+    "fixture_unchanged": "pass",
+    "prior_application_and_reference_sources_unchanged": true
+  },
+  "model": {
+    "configured": false,
+    "request_sent": false,
+    "response_received": false
+  },
+  "scope": "offline synthetic input preparation; no application sessions, database or external model request; not user or product acceptance"
+}
