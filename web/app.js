@@ -5,30 +5,28 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':
 const clone = value => JSON.parse(JSON.stringify(value));
 const rows = value => Array.isArray(value) ? value : (value?.records || []);
 const showValue = value => value === null || value === undefined ? '待确认' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
-const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false, agentBusy:false, agentEpoch:0, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
+const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false, agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
 const statusNames = {pass:['满足','success'],fail:['不满足','danger'],satisfied:['满足','success'],unsatisfied:['不满足','danger'],pending:['待确认','warning'],unknown:['待确认','warning'],valid:['可行','success'],invalid:['不满足','danger'],passed:['满足','success'],failed:['不满足','danger'],needs_confirmation:['待确认','warning'],not_applicable:['不适用',''],candidate_pending_human_review:['待审核','warning']};
 function statusBadge(result) {const [name, cls] = statusNames[result] || [showValue(result),'']; return `<span class="badge ${cls}">${esc(name)}</span>`;}
 function notice(text, kind = 'warning'){return `<div class="notice ${kind}"><span class="notice-icon" aria-hidden="true">${kind === 'success' ? '✓' : 'ⓘ'}</span><p>${esc(text)}</p></div>`;}
 function message(text, error = false) {const element = $('#global-status'); element.textContent=text; element.className=`status-message${error?' error':''}`; element.hidden=false;}
 function clearMessage() {$('#global-status').hidden=true;}
 function identityKey(identity){return identity?JSON.stringify([identity.student_id,identity.security_realm,identity.auth_mode]):null;}
-function clearAgentConversation(){state.agentEpoch+=1;Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentRetry:null});const draft=$('#agent-draft');if(draft)draft.value='';}
+function clearAgentConversation(){state.agentEpoch+=1;Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
   clearAgentConversation();state.agentStatus=null;
-  Object.assign(state,{mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],selected:0,dirty:false,busy:false});
+  Object.assign(state,{mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],agentHistory:[],agentHistoryError:'',agentHistoryHasMore:false,selected:0,dirty:false,busy:false});
   $$('.tab-panel').forEach(panel=>{panel.innerHTML='';panel.hidden=true;});
-  $('#saved-count').textContent='0';$('#data-mode').value='demo';$('#mode-badge').textContent='synthetic';$('#mode-badge').className='badge synthetic';$('#session-control').hidden=true;$('#dataset-control').hidden=true;
-  $('.sidebar').hidden=true;
+  $('#mode-badge').textContent='合成演示';$('#mode-badge').className='badge synthetic';$('#session-control').hidden=true;
+  $('.nav-tabs').hidden=true;$('#conversation-sidebar').hidden=true;$('#conversation-list').innerHTML='';
 }
 function renderAuth() {
   const auth=state.auth || {};const authenticated=auth.authenticated===true;
-  $('.sidebar').hidden=!authenticated;$('#dataset-control').hidden=!authenticated;$('#session-control').hidden=!authenticated;
+  $('.nav-tabs').hidden=!authenticated;$('#session-control').hidden=!authenticated;$('#conversation-sidebar').hidden=!authenticated;
   $('#auth-panel').hidden=authenticated;
-  if(authenticated){$('#identity-label').textContent=`${auth.identity?.name || '合成学生'} · synthetic`;return;}
+  if(authenticated){$('#logout').setAttribute('aria-label',`退出 ${auth.identity?.name || '合成学生'}`);return;}
   $$('.tab-panel').forEach(panel=>panel.hidden=true);
-  $('#auth-panel').innerHTML=pageHeading('登录与开发演示','学校认证和个人学业数据源尚未接入。')+
-    notice('学校统一身份认证尚未配置；本项目不收集学校密码，也没有本人档案、成绩或选课 API。登录和个人数据接入需要分别确认。')+
-    `<div class="section-container auth-card"><h2>${auth.mock_enabled?'本机合成身份演示':'开发演示尚未开启'}</h2><p>${auth.mock_enabled?'选择服务端固定的合成学生，验证本人工作区、方案与导出隔离。这是本机 mock 演示，不是学校身份登录。':'学校登录待获准接入。开发者可显式开启仅连接 synthetic 数据的本机演示；默认不会启用 mock。'}</p>${auth.mock_enabled?`<div class="auth-profile-list">${(auth.mock_profiles||[]).map(profile=>`<button class="button primary" data-action="mock-login" data-profile-id="${esc(profile.profile_id)}" ${state.busy?'disabled':''}>进入 ${esc(profile.name)} 的演示工作区</button>`).join('')}</div>`:'<p class="field-help">仅需验证本机演示时，在本目录执行：</p><pre>python3 -m course_assistant.server --port 8765 --enable-mock</pre>'}<p class="field-help">任意姓名、学号或对象编号都不能改变本人权限。真实 Excel 与截图只作字段参考，无须在此上传。</p></div>`;
+  $('#auth-panel').innerHTML=`<div class="auth-card"><h1>${auth.mock_enabled?'进入合成演示':'学校登录未接入'}</h1>${auth.mock_enabled?`<div class="auth-profile-list">${(auth.mock_profiles||[]).map(profile=>`<button class="button primary" data-action="mock-login" data-profile-id="${esc(profile.profile_id)}" ${state.busy?'disabled':''}>${esc(profile.name)}</button>`).join('')}</div>`:notice('学校认证和个人学业数据源尚未接入。')}</div>`;
 }
 async function request(path, body, expectedEpoch) {
   const options={cache:'no-store',credentials:'same-origin'};
@@ -36,7 +34,7 @@ async function request(path, body, expectedEpoch) {
   const response=await fetch(path,options);
   if(!response.ok){let detail;const raw=await response.text();try{detail=JSON.parse(raw);}catch{detail={error:raw};}
     if(response.status===401&&(expectedEpoch===undefined||expectedEpoch===state.agentEpoch)){clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();}
-    throw new Error(detail.error?.message || detail.error || detail.message || `请求失败（${response.status}）`);
+    const error=new Error(detail.error?.message || detail.error || detail.message || `请求失败（${response.status}）`);error.code=detail.code;error.status=response.status;throw error;
   }
   return response;
 }
@@ -66,7 +64,7 @@ function courseMap(){return new Map(rows(demo().courses).map(item=>[item.course_
 function sectionMap(){return new Map(sections().map(item=>[item.section_id,item]));}
 function currentPlan(){return state.generated?.plans?.[state.selected] || state.generated?.pending_plans?.[state.selected] || null;}
 function planSections(plan){const map=sectionMap();return plan?.sections || (plan?.section_ids || []).map(id=>map.get(id)).filter(Boolean);}
-function planName(plan,index=0){return plan?.title || `方案 ${String.fromCharCode(65+index)}`;}
+function planName(plan,index=0){return plan?.title || `${/^U\d+$/.test(plan?.label||'')?'待确认方案':'方案'} ${plan?.label || String.fromCharCode(65+index)}`;}
 const dayNames = ['','周一','周二','周三','周四','周五','周六','周日'];
 function meetingText(meeting) {
   const weeks=meeting.week_numbers || []; const periods=meeting.period_indices || []; const seasons=meeting.season_codes || [];
@@ -81,67 +79,220 @@ function dataNotice() {return state.mode==='demo' ? notice('当前为 synthetic 
 function pageHeading(title,description,actions=''){return `<div class="page-heading"><div><h1>${esc(title)}</h1><p>${esc(description)}</p></div>${actions?`<div class="page-heading-actions">${actions}</div>`:''}</div>`;}
 function snapshotLine(){const snapshot=planDataset().offering_snapshot || {};return `<div class="snapshot-line"><span class="tiny-dot" aria-hidden="true"></span><span>演示快照 ${esc(snapshot.snapshot_id || '待导入')}</span><span>· ${esc(snapshot.captured_at || '时间未提供')}</span></div>`;}
 const agentExamples=[
-  {label:'补齐专业选修',draft:'我想补齐专业选修，优先考虑 AI 和计算材料方向。请先核对适用要求，再比较本学期可选的课表。'},
-  {label:'保留体育，周五尽量空闲',draft:'保留已经确认的体育安排，尽量让周五空出来。请确认哪些条件必须保留，再给我两到三种课表选择。'},
-  {label:'比较方案，再调整',draft:'请比较两种课表的时间安排和培养要求贡献。我选定教学班后，希望继续调整偏好，并重新核对锁定条件。'}
+  {label:'推荐合成选修课表',draft:'在这个合成场景中，我想补齐专业选修，优先考虑 AI 和计算材料方向。请核对模块要求，从可选课程中推荐两到三套有实际差异的秋冬课表，周五尽量空闲。'},
+  {label:'保留体育，周五必须空闲',draft:'保留已经确认的体育安排，将周五尽量空闲改为周五必须空闲。请重新计算并说明还剩哪些合成课表。'},
+  {label:'比较方案，再换课',draft:'请比较本轮方案 A 和 B 的课程、模块贡献、兴趣依据和周五安排。随后我想在方案 A 中替换一门可选课程，请先说明可替换对象。'}
 ];
-function agentCanSend(){return state.auth?.authenticated===true&&state.agentStatus?.configured===true&&!state.agentBusy&&!state.busy&&(!state.agentStatus.remote||state.agentConsent)&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
-function agentToolCard(tool){
-  const result=tool.result||{};const labels={get_my_context:'核对本人合成上下文',audit_my_progress:'计算合成学业账本',find_my_sections:'查询合成教学班',generate_my_plan:'生成并校验合成课表',search_plan_references:'检索参考依据',validate_my_plan:'重新校验合成课表'};
-  const plans=result.plans?.length?result.plans:(result.pending_plans?.length?result.pending_plans:(result.plan?[result.plan]:[]));
-  const summary=['generate_my_plan','validate_my_plan'].includes(tool.name)?`<p>${esc(result.reason||'已执行确定性搜索与校验。')}</p><p class="field-help">只读预览，未改写本人工作区条件；不是正式中选或已获学分。</p>${agentPlanDiagnostics(result)}${plans.length?plans.map((plan,index)=>`<article class="agent-plan"><div class="agent-card-heading"><h3>${esc(planName(plan,index))}</h3>${statusBadge(plan.validation?.result||'unknown')}<span class="badge synthetic">synthetic</span></div><p>${esc(showValue(Object.hasOwn(plan.validation||{},'planned_credits')?plan.validation.planned_credits:plan.validation?.total_credits))} 预计修读学分 · ${esc((plan.section_ids||[]).join('、'))}</p><p class="field-help">锁定 ${(result.constraints?.locked_section_ids||[]).map(esc).join('、')||'无'} · 周五条件 ${esc({hard:'必须空闲',soft:'尽量空闲',off:'无此偏好'}[result.constraints?.friday_free]||'待确认')}</p><details><summary>查看本轮课表与校验</summary>${agentPlanTable(plan,result.constraints)}<ul class="results-list">${uniqueChecks(plan.validation?.checks).filter(check=>check.result!=='pass').map(check=>`<li>${statusBadge(check.result||'unknown')}<span>${checkDescription(check)}</span></li>`).join('')}</ul></details></article>`).join(''):notice('当前工具返回范围内没有可展示课表；请核对冲突、覆盖与未知项。')}`:agentQuerySummary(tool.name,result);
-  return `<section class="agent-tool-card"><div class="agent-card-heading"><h3>${esc(labels[tool.name]||tool.name||'受限工具')}</h3><span class="badge">实际工具返回</span>${result.status?`<span class="badge">${esc(result.status)}</span>`:''}</div>${summary}<details><summary>查看工具输入、真实结果与版本</summary><pre>${esc(JSON.stringify({tool:tool.name,arguments:tool.arguments,result},null,2))}</pre></details></section>`;
+function agentCanSend(){return state.auth?.authenticated===true&&state.agentStatus?.configured===true&&!state.agentBusy&&!state.agentActionBusy&&!state.busy&&!state.agentHistoryLoadBusy&&!state.agentHistoryPending&&(!state.agentStatus.remote||state.agentConsent)&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
+const recommendationTools=['recommend_my_courses','revise_my_recommendation'];
+function agentPlans(result){return [...(result.plans||[]),...(result.pending_plans||[])];}
+function agentRunId(result){return result.run_id||agentPlans(result).find(plan=>plan.run_id)?.run_id;}
+function sameVersions(left,right){
+  const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+  return JSON.stringify(canonical(left))===JSON.stringify(canonical(right));
+}
+function latestAgentRunId(){
+  for(const turn of [...state.agentTurns].reverse())for(const tool of [...(turn.tool_results||[])].reverse()){
+    if(turn.status&&!['completed','ok'].includes(turn.status))continue;
+    if(recommendationTools.includes(tool.name)&&!tool.error&&agentRunId(tool.result||{}))return agentRunId(tool.result);
+  }
+  return null;
+}
+function findAgentOption(optionId){
+  for(const turn of [...state.agentTurns].reverse())for(const tool of [...(turn.tool_results||[])].reverse()){
+    if(!recommendationTools.includes(tool.name)||tool.error)continue;
+    const plan=agentPlans(tool.result||{}).find(item=>item.option_id===optionId);
+    if(plan)return {plan,result:tool.result,turn,runId:plan.run_id||agentRunId(tool.result)};
+  }
+  return null;
+}
+function agentOptionState(plan,result){
+  const runId=plan.run_id||agentRunId(result);const receipt=state.agentOptionReceipts[plan.option_id];
+  if(!plan.option_id||!runId)return {enabled:false,reason:'结果未提供可保存的服务端引用。'};
+  if(state.agentHistoryPending||state.agentHistoryLoadBusy)return {enabled:false,reason:'这段对话仍在处理，完成后请重新加载。'};
+  const turn=findAgentOption(plan.option_id)?.turn;
+  if(turn?.status&&!['completed','ok'].includes(turn.status))return {enabled:false,reason:'本轮未完成，请重新推荐。'};
+  if(result.preview_valid===false||plan.preview_valid===false||['stale','invalidated','expired'].includes(result.status))return {enabled:false,reason:plan.stale_reason||result.stale_reason||'本轮预览已失效，请重新推荐。'};
+  const latest=latestAgentRunId();
+  if(latest&&runId!==latest)return {enabled:false,reason:'这是上一轮推荐，已被后续结果替换；请按当前条件重新推荐。'};
+  const baseline=receipt?.versions||result.workspace_versions;
+  if(baseline&&state.boot?.versions&&!sameVersions(baseline,state.boot.versions))return {enabled:false,reason:'工作区输入版本已变化，这套预览已失效；请重新推荐。'};
+  if((plan.validation?.result||plan.result)==='fail')return {enabled:false,reason:'这套组合包含已知不满足项，不能作为当前推荐保存。'};
+  return {enabled:state.auth?.authenticated===true&&Boolean(state.agentConversationId)&&!state.agentBusy&&!state.agentActionBusy&&!state.busy,reason:receipt?`已保存为草案 #${receipt.saved_id}`:'尚未保存 · 规划草案',receipt};
+}
+function agentEvidenceText(item){
+  if(typeof item==='string')return item;
+  if(!item||typeof item!=='object')return showValue(item);
+  const text=item.text||item.reason||item.summary||item.excerpt||item.title||item.course_name;
+  const ref=item.evidence_id||item.reference_id||item.source_id||item.record_id||item.snapshot_id||item.chunk_id||item.file_name;
+  return text?`${text}${ref?' · '+ref:''}`:ref?`合成来源引用 ${ref}`:showValue(item);
+}
+function agentEvidenceTexts(items){return [...new Set((items||[]).map(agentEvidenceText))];}
+function agentMetricRows(metrics){
+  const labels={module_credits:'目标模块预计学分',target_contribution:'目标预计贡献',module_contribution:'目标模块贡献',goal_contribution:'目标预计贡献（学分）',module_new_contribution:'模块新增预计学分',module_actual_before:'模块原已获学分',module_expected_after:'模块预计完成后学分',contribution_state:'贡献依据状态',surplus_module_credits:'超出本轮目标学分',interest_score:'兴趣匹配分',interest_match_count:'有依据的兴趣匹配课程（门）',friday_meeting_count:'周五上课时段（个）',friday_penalty:'周五偏好代价',change_cost:'相对基准修改数',planned_credits:'预计修读学分',total_credits:'预计修读学分',module_course_count:'目标模块课程数',target_gap:'目标缺口',covered_credits:'目标覆盖学分'};
+  return Object.entries(metrics||{}).map(([key,value])=>{const display=key==='contribution_state'?{known:'已知',unknown:'待确认'}[value]||value:metrics.contribution_state==='unknown'&&['goal_contribution','module_new_contribution','module_actual_before','module_expected_after','surplus_module_credits'].includes(key)?null:value;return `<div><dt>${esc(labels[key]||key)}</dt><dd>${esc(showValue(display))}</dd></div>`;}).join('');
+}
+function agentPlanMetrics(metrics={}){
+  const primary=Object.fromEntries(['goal_contribution','interest_match_count','friday_meeting_count','contribution_state'].filter(key=>Object.hasOwn(metrics,key)).map(key=>[key,metrics[key]]));
+  return `<dl class="agent-option-metrics">${agentMetricRows(primary)}</dl>${Object.keys(metrics).some(key=>!Object.hasOwn(primary,key))?`<details><summary>完整贡献与排序指标</summary><dl class="agent-option-metrics">${agentMetricRows(metrics)}</dl></details>`:''}`;
+}
+function agentDifferenceText(differences){
+  if(!differences||typeof differences!=='object')return agentEvidenceText(differences);
+  const labels={added_course_ids:'增加课程',removed_course_ids:'移除课程',added_section_ids:'换入班次',removed_section_ids:'换出班次'};
+  const known=Object.keys(labels).filter(key=>Object.hasOwn(differences,key));
+  if(!known.length)return agentEvidenceText(differences);
+  const names=courseMap();const sectionNames=new Map(state.agentTurns.flatMap(turn=>(turn.tool_results||[]).flatMap(tool=>agentPlans(tool.result||{}).flatMap(plan=>plan.sections||[]))).map(section=>[section.section_id,section.course_name||section.section_id]));
+  return known.filter(key=>differences[key]?.length).map(key=>`${labels[key]} ${differences[key].map(id=>names.get(id)?.course_name||sectionNames.get(id)||id).join('、')}`).join('；');
+}
+function agentRecommendationContext(result){
+  const intent=result.intent||{};const targets=intent.target_requirement_ids||intent.goal_rule_ids||intent.target_module_ids||[];
+  const interests=intent.interests||intent.interest_terms||[];const candidates=Array.isArray(result.candidates)?result.candidates:(result.candidates?.courses||[]);
+  const target=intent.target_module||targets.join('、')||'详见本轮意图';const interest=intent.interest||interests.join('、')||'未指定';
+  return `<div class="agent-intent-summary"><strong>本轮目标与条件</strong><p>${esc(intent.summary||intent.goal||intent.goal_text||`目标 ${target}${intent.target_credits!==undefined?' · 预计新增 '+showValue(intent.target_credits)+' 学分':''} · 兴趣 ${interest}`)}</p><p class="field-help">锁定 ${(result.constraints?.locked_section_ids||[]).map(esc).join('、')||'无'} · 周五 ${esc({hard:'必须空闲',soft:'尽量空闲',off:'无此偏好'}[result.constraints?.friday_free]||'待确认')} · 条件版本 ${esc(showValue(result.constraints?.revision))}</p></div>${candidates.length?`<details class="agent-candidates"><summary>候选课程与纳入依据 · ${candidates.length} 门</summary><ul class="results-list">${candidates.map(course=>`<li><span><strong>${esc(course.course_name||course.course_id)}</strong> · ${esc(course.course_id)}<br>${esc(course.reason||course.inclusion_reason||course.status||'候选资格及贡献见本轮结果')}${(course.evidence||course.interest_evidence||[]).length?`<br>${agentEvidenceTexts(course.evidence||course.interest_evidence).map(esc).join('；')}`:''}</span></li>`).join('')}</ul></details>`:''}`;
+}
+function agentExportMenu(action,identifier,enabled=true){
+  const attribute=action==='export-agent-option'?'option-id':'saved-id';
+  return `<details class="export-menu"><summary>导出</summary><div class="export-options">${['json','csv','ics'].map(format=>`<button class="button small" data-action="${action}" data-${attribute}="${esc(identifier)}" data-format="${format}" ${enabled?'':'disabled'}>${format.toUpperCase()}</button>`).join('')}</div></details>`;
+}
+function agentCheckList(checks){
+  const items=uniqueChecks(checks).filter(check=>['fail','unknown'].includes(check.result));
+  return items.length?`<ul class="results-list">${items.map(check=>`<li>${statusBadge(check.result)}<span>${esc(check.reason||check.message||check.title||'信息待确认')}</span></li>`).join('')}</ul>`:'';
+}
+function agentRecommendationPlan(plan,result,index){
+  const constraints=plan.constraints||result.constraints||{};
+  const validation=plan.validation||{};const option=agentOptionState(plan,result);
+  const friday=plan.metrics?.friday_meeting_count??validation.preference_scores?.friday_meeting_count;
+  const differences=plan.differences||plan.difference_from_baseline||plan.difference;
+  const difference= differences?agentDifferenceText(differences):'';
+  return `<article class="agent-plan agent-recommendation-plan"><div class="agent-card-heading"><h3>${esc(planName(plan,index))}</h3>${statusBadge(validation.result||plan.result||'unknown')}</div><p class="agent-plan-summary">${esc(showValue(planCredits(plan)))} 学分 · ${esc(Number.isFinite(friday)?friday===0?'周五空闲':`周五有 ${friday} 个上课时段`:'周五安排待确认')}</p>${difference?`<p class="agent-tradeoff">${esc(difference)}</p>`:''}${agentPlanTable(plan,constraints)}${agentCheckList(validation.checks)}${!option.enabled||option.receipt?`<p class="agent-option-state" role="status">${esc(option.reason)}</p>`:''}<div class="button-group agent-option-actions"><button class="button small primary" data-action="save-agent-option" data-option-id="${esc(plan.option_id)}" ${option.enabled&&!option.receipt?'':'disabled'}>${option.receipt?'已保存':'保存这套'}</button>${agentExportMenu('export-agent-option',plan.option_id,option.enabled)}</div></article>`;
+}
+function agentRecommendationScope(result){
+  const search=result.search||{};const limits=[];
+  if(search.complete_within_scope===false)limits.push('资料覆盖不足。');
+  if(search.limit_reached===true)limits.push('搜索尚未穷尽。');
+  if(search.candidate_scope_clipped===true||search.candidate_retention_clipped===true)limits.push('仅展示本轮搜索范围内的结果。');
+  return limits.length?notice(limits.join(' ')):'';
+}
+function agentRecommendationCard(result){
+  const plans=agentPlans(result);
+  return `${agentRecommendationScope(result)}${plans.length?plans.map((plan,index)=>agentRecommendationPlan(plan,result,index)).join(''):`${notice(result.reason||'当前条件下没有可确认通过的课表。')}${agentPlanDiagnostics(result)}`}`;
+}
+function agentOptionComparison(result){
+  const comparisons=result.comparisons||result.differences||result.summaries||result.plans||[];
+  return `${result.different_input_intents?notice('方案目标不同，不能直接排名。'):''}${result.preview_valid===false?notice(result.stale_reason||'推荐已失效，请重新推荐。'):''}${Array.isArray(comparisons)?comparisons.map((item,index)=>{const plan=(result.plans||[]).find(option=>option.option_id===item.option_id)||item;return `<article class="agent-comparison-item"><h3>${esc(item.title||planName(plan,index))}</h3><p>${esc(agentDifferenceText(item))}</p>${plan.sections?agentPlanTable(plan,plan.constraints||{}):''}${agentCheckList(plan.validation?.checks)}</article>`;}).join(''):notice(agentEvidenceText(comparisons))}`;
+}
+function agentExplicitActionSummary(result,turn={}){
+  if(turn.status==='completed'&&turn.reply_origin==='verified_explicit_action'){
+    if(turn.saved_action?.option_id===result.option_id)return notice(`已保存为课表 #${turn.saved_action.saved_id}`,'success');
+    if(turn.download&&turn.pending_action?.option_id===result.option_id)return notice(`已导出 ${turn.download.filename}`,'success');
+  }
+  return notice(result.status==='action_ready'?'操作已准备，执行尚未完成。':result.reason||result.message||'操作未完成。');
+}
+function agentToolCard(tool,turn={}){
+  const result=tool.result||{};
+  if(tool.error)return notice(result.message||result.error||'请求未完成，请重试。','danger');
+  if(tool.name==='act_on_my_option')return agentExplicitActionSummary(result,turn);
+  if(recommendationTools.includes(tool.name))return agentRecommendationCard(result);
+  if(tool.name==='compare_my_options')return agentOptionComparison(result);
+  if(['generate_my_plan','validate_my_plan'].includes(tool.name)){
+    const plans=agentPlans(result).concat(result.plan?[result.plan]:[]);
+    return plans.length?plans.map((plan,index)=>`<article class="agent-plan"><div class="agent-card-heading"><h3>${esc(planName(plan,index))}</h3>${statusBadge(plan.validation?.result||result.result||'unknown')}</div>${agentPlanTable(plan,result.constraints)}${agentCheckList(plan.validation?.checks||result.checks)}</article>`).join(''):`${notice(result.reason||'当前没有可展示的课表。')}${agentPlanDiagnostics(result)}`;
+  }
+  return agentQuerySummary(tool.name,result);
 }
 function agentPlanDiagnostics(result){
-  const plans=[...(result.plans||[]),...(result.pending_plans||[]),...(result.plan?[result.plan]:[])];
-  const seen=new Set();
-  const checks=[...(result.diagnostics||[]),...(result.checks||[]),...plans.flatMap(plan=>plan.validation?.checks||[])].filter(check=>{
-    if(!check||!['fail','unknown'].includes(check.result))return false;
-    const key=JSON.stringify([check.code||check.check,check.result,check.reason||check.message,[...(check.section_ids||[])].sort()]);
-    if(seen.has(key))return false;seen.add(key);return true;
-  });
-  if(!checks.length)return '';
-  const firstKinds=['fail','unknown'].map(kind=>checks.find(check=>check.result===kind)).filter(Boolean);
-  const visible=[...firstKinds,...checks.filter(check=>!firstKinds.includes(check))].slice(0,8);
-  const failures=checks.filter(check=>check.result==='fail').length;const unknown=checks.length-failures;
-  return `<section class="search-detail agent-plan-diagnostics" aria-label="本轮合成范围诊断"><h3>冲突与待确认项</h3><p class="field-help">本轮合成搜索或校验发现 ${failures} 项不满足、${unknown} 项待确认；其中可能包含被排除班次，请结合每份方案的校验结果判断。</p><ul class="results-list">${visible.map(check=>`<li>${statusBadge(check.result)}<span>${checkDescription(check)}<br><small>检查代码：<span class="mono">${esc(check.code||check.check||'未提供')}</span></small></span></li>`).join('')}</ul>${checks.length>8?`<p class="field-help">此处展示 8 项，共 ${checks.length} 项；完整记录保留在下方「工具输入、真实结果与版本」。</p>`:''}</section>`;
+  const plans=agentPlans(result).concat(result.plan?[result.plan]:[]);
+  return agentCheckList([...(result.diagnostics||[]),...(result.checks||[]),...plans.flatMap(plan=>plan.validation?.checks||[])]);
 }
 function agentQuerySummary(name,result){
-  if(name==='get_my_context')return `<p>${esc(result.note||'仅本人合成上下文')}</p><p class="field-help">目标学期 ${esc(result.target_term||'待确认')} · 条件版本 ${esc(showValue(result.constraints?.revision))} · 锁定 ${(result.constraints?.locked_section_ids||[]).map(esc).join('、')||'无'} · 固定安排 ${esc(showValue(result.constraints?.fixed_meeting_count))} 项</p><ul class="results-list">${(result.courses||[]).map(course=>`<li><span>${esc(course.course_name)} · ${esc(course.course_id)} · ${esc(showValue(course.credits))} 学分</span></li>`).join('')}</ul>`;
-  if(name==='audit_my_progress')return `<p>已获基础学分 ${esc(showValue(result.ledger?.base))} · 其他课堂 ${esc(showValue(result.ledger?.extra_classrooms?.total))} · 在修 ${esc(showValue(result.ledger?.in_progress?.credits))} · 待确认记录 ${esc(showValue(result.ledger?.unknown?.record_count))}</p><ul class="results-list">${(result.rules||[]).map(rule=>`<li>${statusBadge(rule.result||'unknown')}<span>${esc(rule.title||rule.rule_id)}：${esc(rule.reason||'核对依据见工具结果')}</span></li>`).join('')}</ul>`;
-  if(name==='find_my_sections')return `<p>${(result.sections||[]).length} 个合成教学班；余量是演示快照。</p>${agentPlanTable({sections:result.sections})}${result.missing_course_ids?.length?notice('这些课程在当前快照未找到班次：'+result.missing_course_ids.join('、')):''}`;
-  if(name==='search_plan_references')return `<p>返回 ${(result.matches||[]).length} 条参考候选；词项命中不等于支持本问题。</p><p class="field-help">${result.reference_text_transmitted?'已向模型发送获准参考片段。':'原文仅在本机依据卡片展示，未发送模型；模型不能据此声称已阅读原文。'}</p>${(result.warnings||[]).map(warning=>notice(typeof warning==='string'?warning:JSON.stringify(warning))).join('')}`;
-  return '';
+  const unknowns=(result.unknown||[]).map(item=>`<li>${statusBadge('unknown')}<span>${esc(agentEvidenceText(item))}</span></li>`).join('');
+  const unknown=unknowns?`<ul class="results-list">${unknowns}</ul>`:'';
+  if(name==='get_my_context')return `<ul class="results-list">${(result.courses||[]).map(course=>`<li>${esc(course.course_name||course.course_id)} · ${esc(showValue(course.credits))} 学分</li>`).join('')}</ul>${unknown}`;
+  if(name==='audit_my_progress')return `<ul class="results-list">${(result.rules||[]).map(rule=>`<li>${statusBadge(rule.result||'unknown')}<span>${esc(rule.title||rule.rule_id)}：${esc(rule.reason||'信息待确认')}</span></li>`).join('')}</ul>${unknown}`;
+  if(name==='find_my_sections')return `${agentPlanTable({sections:result.sections})}${result.missing_course_ids?.length?notice('未找到教学班：'+result.missing_course_ids.join('、')):''}${unknown}`;
+  if(name==='search_plan_references')return (result.warnings||[]).map(warning=>notice(agentEvidenceText(warning))).join('')+unknown;
+  return unknown;
 }
 function agentPlanTable(plan,constraints={}){
   const sections=plan.sections||[];
-  return `<div class="table-wrap"><table class="data-table"><thead><tr><th>课程 / 班次</th><th>上课时段</th><th>考试信息</th></tr></thead><tbody>${sections.map(section=>`<tr><td>${esc(section.course_name||section.course_id||'课程待确认')}<small>${esc(section.section_id)}</small></td><td>${section.meetings?.length?section.meetings.map(meeting=>esc(meetingText(meeting))).join('<br>'):'时段待确认'}</td><td>${esc(showValue(({none:'明确无考试',unknown:'考试待确认',scheduled:'有考试，详见校验'}[section.exam_state]||'考试待确认')))}</td></tr>`).join('')}${(constraints.fixed_meetings||[]).map(meeting=>`<tr><td>${esc(meeting.title||'固定安排')}<small>继承固定项</small></td><td>${esc(meetingText(meeting))}</td><td>—</td></tr>`).join('')}</tbody></table></div>${!sections.length?'<p class="field-help">本次结果未含完整时段，不能据此判断空闲；班次与校验见工具结果。</p>':''}`;
+  const examText=section=>section.exam_state==='none'?'无考试':section.exam_state==='scheduled'&&section.exams?.length?section.exams.map(exam=>`${exam.exam_date||'日期待确认'} ${exam.start_time_local||'时间待确认'}${exam.end_time_local?'–'+exam.end_time_local:''}`).join('、'):section.exam_state==='scheduled'?'已安排，时间待确认':'待确认';
+  return `<div class="table-wrap"><table class="data-table agent-plan-table"><thead><tr><th>课程</th><th>上课时间</th><th>考试</th></tr></thead><tbody>${sections.map(section=>`<tr><td>${esc(section.course_name||section.course_id||'课程待确认')}</td><td>${section.meetings?.length?section.meetings.map(meeting=>esc(meetingText(meeting))).join('<br>'):'时段待确认'}</td><td>${esc(examText(section))}</td></tr>`).join('')}${(constraints.fixed_meetings||[]).map(meeting=>`<tr><td>${esc(meeting.title||'固定安排')}</td><td>${esc(meetingText(meeting))}</td><td>—</td></tr>`).join('')}</tbody></table></div>${!sections.length?notice('课程时段待确认。'):''}`;
 }
 function agentCitation(citation){
-  const item=citation.chunk||citation;const diagnostic=item.text_role==='diagnostic'||item.text_role==='diagnostic_issue'||item.record_kind==='issues';
+  const item=citation.chunk||citation;
   const sourceFiles={S1:'course_slides.pdf',S2:'journalism_2026.pdf',S3:'materials_2026.pdf',S4:'business_analytics_2026.pdf'};
   const refs=(item.pdf_evidence||item.source_refs||[]).map(ref=>({...ref,file_name:sourceFiles[ref.source_id]||ref.file_name||ref.source_file||'',pdf_pages:ref.pdf_pages||ref.pages||[]}));
-  return `<li class="agent-citation"><strong>${esc(item.title||item.record_id||item.chunk_id||'参考依据')}</strong><span class="badge warning">${diagnostic?'资料诊断 · 不作学校规则':item.record_kind==='courses'?'课程资料 · 官方效力待核验':item.record_kind==='candidates'?'候选规则 · 待审核':'参考候选 · 待审核'}</span><p>${esc(item.text||item.excerpt||'原文见出处定位')}</p>${sourceLinks(refs)}${refs.length?'<small>PDF 定位为来源页集合，尚未逐句复核。</small>':''}<small>参考方案：${esc((item.plan_ids||[]).join('、')||'范围见工具结果')}</small><small>${esc(item.record_id||item.chunk_id||'')} · ${esc(typeof item.locator==='object'?JSON.stringify(item.locator):(item.locator||'定位见工具结果'))}</small>${item.corpus_version?`<small>语料版本 ${esc(item.corpus_version)}</small>`:''}</li>`;
+  return `<li class="agent-citation"><strong>${esc(item.title||'参考依据')}</strong><span class="badge warning">待审核</span><p>${esc(item.text||item.excerpt||'')}</p>${sourceLinks(refs)}</li>`;
+}
+function agentVisibleTools(turn){
+  const tools=turn.tool_results||[];
+  if(!['completed','ok'].includes(turn.status))return tools;
+  const index=turn.model_decision?.source_tool_result_index;
+  const selected=Number.isInteger(index)&&tools[index]?tools[index]:[...tools].reverse().find(tool=>['act_on_my_option',...recommendationTools,'compare_my_options','generate_my_plan','validate_my_plan'].includes(tool.name))||tools.at(-1);
+  // A secondary failed validation must remain visible even when the main answer recommends a plan.
+  return tools.filter(tool=>tool===selected||tool.error||tool.name==='validate_my_plan'&&tool.result?.result!=='pass'||tool.result?.unknown?.length);
+}
+function agentDisplayReply(turn){
+  if(!['completed','ok'].includes(turn.status))return turn.reply||'';
+  if(turn.reply_origin==='verified_explicit_action'&&(turn.saved_action||turn.download))return '';
+  if(turn.reply_origin==='verified_tool_presentation'){
+    const index=turn.model_decision?.source_tool_result_index;
+    const tool=Number.isInteger(index)?turn.tool_results?.[index]:agentVisibleTools(turn)[0];
+    if(recommendationTools.includes(tool?.name)&&tool.result?.status==='feasible')return `已推荐 ${tool.result.plans?.length||0} 套课表。`;
+  }
+  return turn.reply||'';
 }
 function renderAgentTurns(){
-  if(!state.agentTurns.length)return '<p class="agent-empty">可以先问「我目前有哪些合成课程与未确认项」，再要求生成或调整课表。参考检索范围由服务端的合成培养方案确定。</p>';
-  return state.agentTurns.map(turn=>`<article class="agent-turn"><div class="agent-message user"><strong>你</strong><p>${esc(turn.message)}</p></div>${turn.pending?'<p class="agent-pending" role="status">正在调用模型与受限工具，请稍候…</p>':turn.error?`<div class="agent-message system"><strong>本轮请求未完成</strong><p>${esc(turn.error)}</p></div>`:`<div class="agent-message ${turn.status==='completed'||turn.status==='ok'?'assistant':'system'}"><strong>${turn.status==='completed'||turn.status==='ok'?({verified_tool_presentation:'模型查询 · 程序核验结果',verified_clarification_prompt:'待澄清'}[turn.reply_origin]||'本轮结果'):'本轮状态'}</strong><span class="badge synthetic">synthetic</span><p>${esc(turn.reply||'本轮没有可展示的核验摘要，请查看工具返回。')}</p>${!['completed','ok'].includes(turn.status)?`<small>${turn.partial_tools_completed?'工具已完成，本轮解释未完成；请核对下面实际工具结果。':`状态：${esc(turn.status||'待确认')}；以下仅展示已实际返回的证据。`}</small>`:''}</div>`}${(turn.tool_results||[]).map(agentToolCard).join('')}${turn.citations?.length?`<details class="agent-citations" open><summary>本轮参考依据 · ${turn.citations.length} 条</summary><ul>${turn.citations.map(agentCitation).join('')}</ul><p class="field-help">引用不使候选规则生效，也不证明适用于本人；来源覆盖与原文仍需核对。</p></details>`:''}${turn.versions?`<details class="agent-version"><summary>本轮输入版本</summary><pre>${esc(JSON.stringify(turn.versions,null,2))}</pre></details>`:''}</article>`).join('');
+  if(!state.agentTurns.length)return '<p class="agent-empty">想怎么安排这学期的课？</p>';
+  return state.agentTurns.map(turn=>{
+    const completed=['completed','ok'].includes(turn.status);
+    const label=turn.reply_origin==='verified_clarification_prompt'?'待澄清':completed?'选课助手':'本轮未完成';
+    const reply=turn.error||agentDisplayReply(turn);
+    return `<article class="agent-turn"><div class="agent-message user"><p>${esc(turn.message)}</p></div>${turn.pending?'<p class="agent-pending" role="status">正在回复…</p>':`<div class="agent-message ${completed&&!turn.error?'assistant':'system'}"><strong>${turn.error?'请求未完成':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${turn.partial_tools_completed?'<p>已完成的查询结果如下。</p>':''}${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}</div>`}</article>`;
+  }).join('');
 }
 function renderAssistant() {
   const panel=$('#panel-assistant');if(!state.boot){panel.innerHTML='';return;}
-  const synthetic=state.mode==='demo';const status=state.agentStatus;const configured=status?.configured===true;
-  const constraints=state.loadedSaved?state.boot.demo?.constraints || {}:state.constraints;
-  const names=new Map(rows(demo().courses).map(course=>[course.course_id,course.course_name]));
-  const requested=(constraints.requested_course_ids||[]).map(id=>names.get(id)||id);
-  const friday={soft:'尽量周五空闲',hard:'周五必须空闲',off:'未设置周五偏好'}[constraints.friday_free] || '周五条件待确认';
-  const modelState=configured?`${status.provider||'已配置模型'} · ${status.model||'模型名称未提供'} · ${status.remote?'远程服务':'本地服务'}`:`模型未配置${status?.reason?'：'+status.reason:''}`;
-  panel.innerHTML=pageHeading('和选课助手一起规划','描述修读目标与时间偏好，逐步确认条件、比较课表。')+
-    `<div class="assistant-workspace"><div class="agent-model-status"><span class="badge ${configured?'success':'warning'}">${esc(modelState)}</span><span class="badge synthetic">仅合成数据对话</span><button class="button small" data-action="new-agent-conversation" ${state.agentBusy?'disabled':''}>新对话</button></div>${notice('这是 synthetic 试用。请只输入测试问题，不要输入学校密码、真实姓名、学号、成绩、Cookie 或其他真实个人材料。')}${configured?`<p class="field-help agent-reference-status">${status.allow_reference_text?'允许向当前模型发送已获准的非个人参考片段；23 条候选仍待审核。':'参考原文外传未开启；是否可查询依据以实际工具返回为准。'}</p>`:''}<section class="agent-dialogue" aria-label="本次对话" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}</section><section class="dialogue-composer" aria-label="选课需求草稿"><form id="agent-draft-form"><label for="agent-draft" class="agent-draft-label">你的选课需求</label><textarea id="agent-draft" rows="4" maxlength="2000" placeholder="先查询合成课程，再生成尽量周五空闲并保留体育的课表…" aria-describedby="agent-draft-status" ${state.agentBusy?'disabled':''}></textarea><div class="agent-examples" role="group" aria-label="需求示例">${agentExamples.map((example,index)=>`<button type="button" class="button small" data-action="agent-example" data-example="${index}" ${state.agentBusy?'disabled':''}>${esc(example.label)}</button>`).join('')}</div>${configured&&status.remote?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${state.agentBusy?'disabled':''}><span>同意本次会话将输入的测试问题和最小 synthetic 工具结果发送到 ${esc(status.provider||'已配置远程服务')}。${status.allow_reference_text?'同时发送已获准的非个人参考片段。':''}<small>对话保存在本机本人范围；本选项不授权发送真实个人资料。新对话或退出后须重新选择。</small></span></label>`:''}<div class="agent-compose-footer"><p id="agent-draft-status" class="field-help">${configured?'模型查询受限工具，程序核验状态和引用后生成事实摘要。':'模型待接入，草稿仅保留在此页面，暂不发送。'}</p><div class="button-group"><button type="button" class="button small" data-action="clear-agent-draft" ${state.agentBusy?'disabled':''}>清空草稿</button><button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'正在处理…':configured?'发送需求':'发送需求 · 待接入'}</button></div></div></form></section><section class="assistant-preview" aria-label="当前合成条件预览"><div class="assistant-preview-heading"><h2>手动核对当前条件</h2><span class="badge synthetic">synthetic</span></div><p>${synthetic?'使用已确认的合成条件，草稿不参与计算。':'原交接资料缺少本人学业和真实教学班；课表预览请使用本人合成演示。'}</p>${synthetic?`<p class="assistant-condition-summary">${state.loadedSaved?'当前正在查看冻结版，预览将重新读取本人当前条件。':`${esc(requested.join('、')||'尚未选择计划课程')}<br>${esc(friday)} · 保留 ${esc((constraints.locked_section_ids||[]).length)} 个锁定教学班`}</p>`:''}<div class="button-group assistant-preview-actions"><button class="button" data-action="preview-current-conditions" ${!synthetic||state.busy||state.previewBusy||state.agentBusy?'disabled':''}>${state.previewBusy?'正在读取并计算…':'用当前合成条件预览课表'}</button>${synthetic?'<button class="button" data-action="show-planning">查看条件与课表</button>':'<button class="button" data-action="switch-demo">切换本人合成演示</button>'}</div></section><details class="assistant-next-steps"><summary>对话如何连接课表与依据</summary><ol><li>描述需求，澄清目标与缺失信息。</li><li>确认必须条件、偏好和锁定安排。</li><li>调用计算工具，形成只读课表与校验结果。</li><li>比较方案，查看来源依据与未确认项。</li><li>继续对话调整，保留锁定和版本后重新校验。</li></ol><p class="field-help">模型理解需求并自主查询受限工具，程序核验后展示事实摘要与实际工具结果。对话中的课表是只读预览，不直接保存或导出；可在辅助条件页核对并生成当前工作区方案。本项目不自动执行学校选课。</p></details></div>`;
+  const status=state.agentStatus;const configured=status?.configured===true;
+  const busy=state.agentBusy||state.agentActionBusy||state.agentHistoryLoadBusy;
+  panel.innerHTML=`<div class="assistant-workspace"><section class="agent-dialogue" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section><section class="dialogue-composer"><form id="agent-draft-form"><label for="agent-draft" class="agent-draft-label">选课需求</label><textarea id="agent-draft" rows="3" maxlength="2000" placeholder="告诉我你的修读目标和时间偏好…" ${busy?'disabled':''}></textarea><div class="agent-compose-footer">${configured&&status.remote?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${busy?'disabled':''}><span>允许向 ${esc(status.provider||'远程模型')} 发送合成测试需求${status.allow_reference_text?'和参考片段':''}</span></label>`:configured?'<span></span>':'<span class="badge warning">模型未配置</span>'}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></form></section></div>`;
   $('#agent-draft').value=state.agentDraft;
   $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;updateAgentSend();});
   $('#agent-remote-consent')?.addEventListener('change',event=>{state.agentConsent=event.target.checked;updateAgentSend();});
   $('#agent-draft-form').addEventListener('submit',event=>{event.preventDefault();sendAgentTurn();});
 }
+function renderAgentHistory(){
+  const disabled=state.agentBusy||state.agentActionBusy||state.agentHistoryLoadBusy;
+  $('#conversation-list').innerHTML=state.agentHistory.map(item=>`<button class="conversation-history-item ${item.conversation_id===state.agentConversationId?'active':''}" data-action="load-agent-conversation" data-conversation-id="${esc(item.conversation_id)}" title="${esc(item.title)}" aria-current="${item.conversation_id===state.agentConversationId?'true':'false'}" ${disabled?'disabled':''}><span class="conversation-title">${esc(item.title||'新对话')}</span></button>`).join('')+(!state.agentHistory.length?`<p class="history-empty">${state.agentHistoryLoading?'正在读取…':'暂无历史对话'}</p>`:'')+(state.agentHistoryError?`<p class="history-error">${esc(state.agentHistoryError)}</p><button class="button small" data-action="refresh-agent-history">重试</button>`:'')+(state.agentHistoryHasMore?'<p class="history-empty">仅显示最近100段对话</p>':'');
+  $('#new-agent-conversation').disabled=disabled;
+}
+async function refreshAgentHistory(){
+  if(!state.auth?.authenticated)return;
+  const epoch=state.agentEpoch;state.agentHistoryLoading=true;state.agentHistoryError='';renderAgentHistory();
+  try{
+    const result=await api('/api/chat/conversations?limit=100',undefined,epoch);
+    if(epoch!==state.agentEpoch)return;
+    if(!Array.isArray(result.conversations)||result.data_kind!=='synthetic')throw new Error('历史列表无法读取');
+    state.agentHistory=result.conversations;state.agentHistoryHasMore=result.has_more===true;
+  }catch(error){if(epoch===state.agentEpoch)state.agentHistoryError=error.message;}
+  finally{if(epoch===state.agentEpoch){state.agentHistoryLoading=false;renderAgentHistory();}}
+}
+async function loadAgentConversation(identifier){
+  if(state.agentBusy||state.agentActionBusy||state.agentHistoryLoadBusy)return;
+  clearAgentConversation();const epoch=state.agentEpoch;state.agentHistoryLoadBusy=true;renderAssistant();renderAgentHistory();clearMessage();
+  try{
+    const result=await api('/api/chat/history',{conversation_id:identifier},epoch);
+    if(epoch!==state.agentEpoch)return;
+    if(result.conversation_id!==identifier||!Number.isInteger(result.turn_id)||result.turn_id<0||!Array.isArray(result.turns)||result.data_kind!=='synthetic')throw new Error('历史对话响应不完整');
+    state.agentConversationId=identifier;state.agentTurnId=result.turn_id;state.agentTurns=result.turns;
+    state.agentHistoryPending=result.in_progress===true||result.action_pending===true;state.agentOptionReceipts=result.option_receipts||{};
+    for(const turn of result.turns){if(turn.status==='completed'&&turn.reply_origin==='verified_explicit_action'&&turn.saved_action?.option_id)state.agentOptionReceipts[turn.saved_action.option_id]=turn.saved_action;}
+    // Loading history displays receipts. It never repeats a save or download.
+    switchTab('assistant');
+  }catch(error){if(epoch===state.agentEpoch)message(error.message,true);}
+  finally{if(epoch===state.agentEpoch){state.agentHistoryLoadBusy=false;renderAssistant();renderAgentHistory();}}
+}
+
 function updateAgentSend(){const button=$('#agent-send');if(button){button.disabled=!agentCanSend();button.setAttribute('aria-disabled',String(!agentCanSend()));}}
 async function refreshAgentStatus(){
   const epoch=state.agentEpoch;
@@ -152,20 +303,91 @@ async function sendAgentTurn(){
   if(!agentCanSend())return;
   const epoch=state.agentEpoch;const turn={message:state.agentDraft.trim(),pending:true};
   const payload=state.agentRetry?.message===turn.message&&state.agentRetry.expected_turn===state.agentTurnId?state.agentRetry:{conversation_id:state.agentConversationId,message:turn.message,request_id:crypto.randomUUID(),expected_turn:state.agentTurnId,consent_remote:state.agentConsent};
-  state.agentBusy=true;state.agentDraft='';state.agentTurns.push(turn);renderAssistant();
+  state.agentBusy=true;state.agentDraft='';state.agentTurns.push(turn);renderAssistant();renderAgentHistory();
   try{
     const result=await api('/api/chat/turn',payload,epoch);
     if(epoch!==state.agentEpoch||!state.auth?.authenticated)return;
-    if(typeof result.conversation_id!=='string'||!Number.isInteger(result.turn_id)||result.turn_id<=state.agentTurnId||!Array.isArray(result.tool_results)||!Array.isArray(result.citations)||result.data_kind!=='synthetic')throw new Error('对话响应契约不完整，请重新开始对话后重试。');
+    if(typeof result.conversation_id!=='string'||payload.conversation_id&&result.conversation_id!==payload.conversation_id||!Number.isInteger(result.turn_id)||result.turn_id<=state.agentTurnId||!Array.isArray(result.tool_results)||!Array.isArray(result.citations)||result.data_kind!=='synthetic')throw new Error('对话响应契约不完整，请重新开始对话后重试。');
     state.agentConversationId=result.conversation_id;state.agentTurnId=result.turn_id;state.agentRetry=null;
     Object.assign(turn,result,{message:turn.message,pending:false});
+    await applyAgentTurnActions(turn,epoch);
   }catch(error){if(epoch!==state.agentEpoch)return;Object.assign(turn,{pending:false,error:error.message});state.agentDraft=turn.message;state.agentRetry=payload;}
-  finally{if(epoch===state.agentEpoch){state.agentBusy=false;renderAssistant();}}
+  finally{if(epoch===state.agentEpoch){state.agentBusy=false;renderAssistant();await refreshAgentHistory();}}
+}
+async function applyAgentTurnActions(turn,epoch){
+  if(epoch!==state.agentEpoch||turn.conversation_id!==state.agentConversationId||turn.turn_id!==state.agentTurnId||turn.status!=='completed'||turn.reply_origin!=='verified_explicit_action')return;
+  if(turn.saved_action){
+    const saved=turn.saved_action;
+    if(!Number.isInteger(saved.saved_id)||saved.saved_id<=0||typeof saved.option_id!=='string'||!saved.constraints||!saved.versions)throw new Error('明确保存的执行回执不完整，请核对已保存列表。');
+    state.agentOptionReceipts[saved.option_id]=saved;resetCurrentPlan();
+    try{
+      await refreshWorkspace(epoch);
+      if(epoch!==state.agentEpoch||turn.conversation_id!==state.agentConversationId)return;
+      state.lastConstraints=clone(saved.constraints);renderPlanning();renderAudit();renderSaved();
+      message(`已保存为草案 #${saved.saved_id}`);
+    }catch(error){if(epoch===state.agentEpoch)message(`合成草案 #${saved.saved_id} 已保存，工作区刷新失败：${error.message}`,true);}
+  }
+  if(turn.download&&epoch===state.agentEpoch&&turn.conversation_id===state.agentConversationId){
+    const download=turn.download;const media=String(download.content_type||'').split(';')[0];
+    const formats={'application/json':'json','text/csv':'csv','text/calendar':'ics'};
+    if(typeof download.data_base64!=='string'||typeof download.filename!=='string'||!download.filename||!Number.isInteger(download.bytes)||download.bytes<0||!formats[media])throw new Error('明确导出的下载回执不完整，文件未下载。');
+    const decoded=atob(download.data_base64);const bytes=Uint8Array.from(decoded,character=>character.charCodeAt(0));
+    if(bytes.length!==download.bytes)throw new Error('导出文件长度与执行回执不一致，文件未下载。');
+    const blob=new Blob([bytes],{type:download.content_type});
+    downloadResponse({headers:{get:()=>`attachment; filename="${download.filename.replace(/["\\/\0]/g,'_')}"`}},blob,formats[media]);
+    message(`已下载 ${download.filename}`);
+  }
+}
+function rejectAgentOption(error,reference){
+  if(error.status===409||['workspace_changed','stale_option','preview_stale','stale_recommendation'].includes(error.code)){
+    reference.plan.preview_valid=false;reference.plan.stale_reason=error.message;
+    delete state.agentOptionReceipts[reference.plan.option_id];
+  }
+  message(error.message,true);
+}
+async function saveAgentOption(optionId){
+  const reference=findAgentOption(optionId);if(!reference)return;
+  const option=agentOptionState(reference.plan,reference.result);
+  if(!option.enabled){message(option.reason,true);return;}
+  if(option.receipt){message(`已保存为草案 #${option.receipt.saved_id}`);return;}
+  const epoch=state.agentEpoch;const key=JSON.stringify([state.agentConversationId,state.agentTurnId,optionId]);
+  const actionId=state.agentActionRetries[key]||crypto.randomUUID();state.agentActionRetries[key]=actionId;
+  const payload={conversation_id:state.agentConversationId,expected_turn:state.agentTurnId,run_id:reference.runId,option_id:optionId,action_id:actionId};
+  state.agentActionBusy=true;renderAssistant();renderAgentHistory();
+  try{
+    const saved=await api('/api/chat/save-option',payload,epoch);
+    if(epoch!==state.agentEpoch||!state.auth?.authenticated)return;
+    if(!Number.isInteger(saved.saved_id)||saved.saved_id<=0||!saved.constraints||!saved.versions||saved.action_id!==actionId||saved.conversation_id!==state.agentConversationId||saved.turn_id!==state.agentTurnId)throw new Error('保存回执不完整，请核对已保存列表后重试。');
+    state.agentOptionReceipts[optionId]=saved;
+    resetCurrentPlan();await refreshWorkspace(epoch);
+    if(epoch!==state.agentEpoch)return;
+    state.lastConstraints=clone(saved.constraints);renderPlanning();renderAudit();renderSaved();
+    message(`已保存为草案 #${saved.saved_id}`);
+  }catch(error){if(epoch===state.agentEpoch)rejectAgentOption(error,reference);}
+  finally{if(epoch===state.agentEpoch){state.agentActionBusy=false;renderAssistant();renderAgentHistory();}}
+}
+function downloadResponse(response,blob,format){
+  const filename=response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1]||`synthetic-course-plan.${format}`;
+  const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=filename;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function exportAgentOption(optionId,format){
+  const reference=findAgentOption(optionId);if(!reference||!['json','csv','ics'].includes(format))return;
+  const option=agentOptionState(reference.plan,reference.result);
+  if(!option.enabled){message(option.reason,true);return;}
+  const epoch=state.agentEpoch;
+  const payload={conversation_id:state.agentConversationId,expected_turn:state.agentTurnId,run_id:reference.runId,option_id:optionId,format};
+  state.agentActionBusy=true;renderAssistant();renderAgentHistory();
+  try{
+    const response=await request('/api/chat/export-option',payload,epoch);const blob=await response.blob();
+    if(epoch!==state.agentEpoch||!state.auth?.authenticated)return;
+    downloadResponse(response,blob,format);message(`已导出 ${format.toUpperCase()}${reference.plan.validation?.result==='unknown'?'（待确认草案）':''}`);
+  }catch(error){if(epoch===state.agentEpoch)rejectAgentOption(error,reference);}
+  finally{if(epoch===state.agentEpoch){state.agentActionBusy=false;renderAssistant();renderAgentHistory();}}
 }
 function chooseAgentExample(index){const example=agentExamples[index];if(!example)return;state.agentDraft=example.draft;$('#agent-draft').value=state.agentDraft;$('#agent-draft').focus();updateAgentSend();}
 function clearAgentDraft(){state.agentDraft='';$('#agent-draft').value='';$('#agent-draft').focus();updateAgentSend();}
 async function previewCurrentConditions() {
-  if(state.busy||state.previewBusy||!state.boot||state.mode!=='demo')return;
+  if(state.busy||state.agentBusy||state.agentActionBusy||state.previewBusy||!state.boot||state.mode!=='demo')return;
   state.previewBusy=true;renderAssistant();
   try{
     resetCurrentPlan();await refreshWorkspace();
@@ -196,11 +418,12 @@ function readConstraints() {
 }
 async function generateFromForm(){await generate(readConstraints());}
 async function generate(constraints) {
-  if(state.busy||state.loadedSaved)return;
+  if(state.busy||state.agentBusy||state.agentActionBusy||state.loadedSaved)return;
   const previous=state.lastConstraints || state.constraints;state.busy=true;state.constraints=constraints;renderPlanning();clearMessage();
   try {
     const result=await api('/api/generate',{constraints:{...constraints,expected_revision:previous.revision}});
     state.generated=result;state.lastConstraints=clone(result.constraints || constraints);state.constraints=clone(result.constraints || constraints);state.selected=0;state.dirty=false;state.comparison=null;
+    if(result.versions&&state.boot){state.boot.versions=clone(result.versions);if(state.boot.demo)state.boot.demo.constraints=clone(state.constraints);}
     const choices=result.plans?.length?result.plans:(result.pending_plans||[]);
     if(choices.length>1){try{state.comparison=await api('/api/compare',{plans:choices});}catch(error){message(`方案已生成，比较暂不可用：${error.message}`,true);}}
     const plans=result.plans?.length || result.pending_plans?.length || 0;message(plans?`已计算 ${plans} 个方案，锁定和固定条件已重新校验。`:'当前条件没有形成可推荐方案，请查看计算说明。');
@@ -279,18 +502,29 @@ function renderComparison(comparison) {
   return `<section class="section-container comparison-panel" aria-label="方案比较"><div class="section-title-bar"><div><h2>${frozen?'冻结保存版本比较':'当前方案比较'}</h2><p>${esc(comparison.note || '按当前同一组输入重新校验。')}</p></div></div>${frozen&&comparison.different_input_versions?notice('各保存版的输入版本不同。下表分别呈现历史结果，不能作为同条件排名。'):''}<div class="table-wrap"><table class="data-table"><thead><tr><th>比较项</th>${entries.map((entry,index)=>`<th>${esc(label(entry,index))}</th>`).join('')}</tr></thead><tbody>${metricRow('校验结果',entry=>statusBadge(entry.plan.validation?.result || 'unknown'))}${metricRow('预计修读学分',entry=>esc(showValue(planCredits(entry.plan))))}${metricRow('周五上课时段',entry=>esc(showValue(entry.plan.validation?.preference_scores?.friday_meeting_count)))}${metricRow('教学班组合',entry=>(entry.plan.section_ids||[]).map(id=>esc(id)).join('<br>'))}${metricRow(frozen?'锁定条件':'相对方案 A 的班次变化',(entry,index)=>frozen?esc((entry.constraints?.locked_section_ids||[]).join('、')||'无'):index===0?'比较基准':`新增 ${esc((comparison.differences?.[index]?.added_section_ids||[]).join('、')||'无')}<br>移除 ${esc((comparison.differences?.[index]?.removed_section_ids||[]).join('、')||'无')}`)}${frozen?metricRow('数据与偏好版本',entry=>`快照 ${esc(entry.versions?.offering_snapshot||'待确认')}<br>条件版本 ${esc(showValue(entry.versions?.constraints_revision))}`):''}</tbody></table></div>${!frozen&&comparison.ranking?.length?`<p class="table-caption">按校验结果及周五软偏好排序：${comparison.ranking.map(index=>esc(planName(null,index))).join(' → ')}。个人选择仍需核对详细依据。</p>`:''}<details class="comparison-details"><summary>查看比较依据与版本</summary><pre>${esc(JSON.stringify(comparison,null,2))}</pre></details></section>`;
 }
 function renderSaved() {
-  $('#saved-count').textContent=state.saved.length;
-  const selected=new Set(state.compareSavedIds);
-  $('#panel-saved').innerHTML=pageHeading('已保存方案','只列出本人的冻结规划版本；历史结果保留原快照。','<button class="button" data-action="refresh-saved">刷新版本列表</button>')+notice('保存版本属于规划草案。只有经核验的正式选课结果才能确认中选；模拟记录始终保留 synthetic 标记。','neutral')+(state.saved.length?`<div class="toolbar"><p>勾选两至三个保存版本，比较各自冻结结果。</p><button class="button" id="compare-saved-button" data-action="compare-saved" ${selected.size<2||selected.size>3?'disabled':''}>比较勾选版本</button></div>${state.savedComparison?renderComparison(state.savedComparison):''}<div class="section-container">${[...state.saved].reverse().map((saved,reverseIndex)=>{const index=state.saved.length-1-reverseIndex;const plan=saved.plan || saved;return `<article class="saved-entry"><div><label class="checkbox-line saved-selection"><input type="checkbox" data-saved-id="${saved.saved_id}" ${selected.has(saved.saved_id)?'checked':''}><span><strong>保存版 #${esc(saved.saved_id)}</strong></span></label><h2>${esc(saved.title || planName(plan))}</h2><p>${esc(saved.created_at || saved.saved_at || '保存时间未提供')} · ${(plan.section_ids||[]).length} 个教学班</p><p>条件版本 ${esc(showValue(saved.versions?.constraints_revision))} · 快照 ${esc(saved.versions?.offering_snapshot || '待确认')}</p><div class="snapshot-line"><span class="badge synthetic">synthetic</span>${statusBadge(plan.validation?.result || 'unknown')}<span>规划草案 · 冻结版本</span></div><details><summary>查看保存输入与版本</summary><pre>${esc(JSON.stringify(saved,null,2))}</pre></details></div><div class="button-group"><button class="button small" data-action="load-saved" data-index="${index}">查看冻结版</button><button class="button small primary" data-action="revalidate-saved" data-index="${index}">按当前数据重新校验</button></div></article>`;}).join('')}</div>`:`<div class="empty-state"><div class="empty-glyph" aria-hidden="true">◷</div><h2>保存一版，留住比较的依据</h2><p>生成方案后点击「保存方案」。每次保存都会记录当时的条件与版本，便于后续调整和复算。</p><button class="button primary" data-action="show-planning">返回选课规划</button></div>`);
+  $('#panel-saved').innerHTML=`<div class="page-heading"><h1>已保存</h1><button class="button small" data-action="refresh-saved">刷新</button></div>${state.saved.length?[...state.saved].sort((left,right)=>right.saved_id-left.saved_id).map(saved=>{const plan=saved.plan||saved;return `<article class="saved-entry"><div class="saved-entry-header"><h2>课表 #${esc(saved.saved_id)}</h2>${statusBadge(plan.validation?.result||'unknown')}</div><details class="saved-preview"><summary>查看课表</summary>${agentPlanTable(plan,saved.constraints||{})}${agentCheckList(plan.validation?.checks)}</details>${agentExportMenu('export-saved',saved.saved_id,!state.agentActionBusy)}</article>`;}).join(''):'<p class="agent-empty">还没有保存的课表。</p>'}`;
 }
+async function exportSaved(savedId,format){
+  if(state.agentActionBusy||!state.saved.some(saved=>saved.saved_id===Number(savedId)))return;
+  const epoch=state.agentEpoch;state.agentActionBusy=true;renderSaved();updateAgentSend();
+  try{
+    const response=await request('/api/export',{saved_id:Number(savedId),format},epoch);
+    const blob=await response.blob();if(epoch!==state.agentEpoch)return;
+    const filename=response.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1]||`synthetic-course-plan.${format}`;
+    const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download=filename;document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    message(`已导出保存时的课表 #${savedId}`);
+  }catch(error){if(epoch===state.agentEpoch)message(error.message,true);}
+  finally{if(epoch===state.agentEpoch){state.agentActionBusy=false;renderSaved();updateAgentSend();}}
+}
+
 async function refreshAudit(){try{const result=await api('/api/audit',{mode:state.mode});if(state.mode==='demo')state.audit=result;else state.sourceAudit=result;renderAudit();}catch(error){message(error.message,true);}}
-async function refreshSaved(){try{state.saved=savedRows(await api('/api/saved'));renderSaved();}catch(error){message(error.message,true);}}
+async function refreshSaved(){const epoch=state.agentEpoch;try{const saved=await api('/api/saved',undefined,epoch);if(epoch===state.agentEpoch){state.saved=savedRows(saved);renderSaved();}}catch(error){if(epoch===state.agentEpoch)message(error.message,true);}}
 function switchTab(tab) {
   state.tab=tab;if(tab==='assistant')renderAssistant();$$('.nav-tab').forEach(button=>{const selected=button.dataset.tab===tab;button.classList.toggle('active',selected);button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
   $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==`panel-${tab}`);
   if(tab==='audit'&&!(state.mode==='demo'?state.audit:state.sourceAudit))refreshAudit();
 }
-async function changeMode(mode) {state.mode=mode;$('#data-mode').value=mode;const badge=$('#mode-badge');badge.textContent=mode==='demo'?'synthetic':'待审核资料';badge.className=`badge ${mode==='demo'?'synthetic':'warning'}`;clearMessage();renderAssistant();renderPlanning();renderAudit();if(state.tab==='audit'&&!(mode==='demo'?state.audit:state.sourceAudit))await refreshAudit();}
+async function changeMode(mode) {state.mode=mode;const badge=$('#mode-badge');badge.textContent=mode==='demo'?'合成演示':'待审核资料';badge.className=`badge ${mode==='demo'?'synthetic':'warning'}`;clearMessage();renderAssistant();renderPlanning();renderAudit();if(state.tab==='audit'&&!(mode==='demo'?state.audit:state.sourceAudit))await refreshAudit();}
 async function savePlan() {
   const plan=currentPlan();if(!plan||state.dirty||state.loadedSaved)return;
   try{await api('/api/save',{plan,constraints:state.constraints});await refreshSaved();message('已保存本人冻结版本；仍是规划草案，未确认正式中选。');}catch(error){message(error.message,true);}
@@ -319,10 +553,12 @@ async function exportPlan(format) {
 }
 async function lockPlan(){const plan=currentPlan();if(!plan||state.loadedSaved)return;const constraints=state.dirty?readConstraints():clone(state.constraints);constraints.locked_section_ids=[...new Set([...(constraints.locked_section_ids||[]),...plan.section_ids])];constraints.revision=Number(constraints.revision||0)+1;await generate(constraints);}
 async function applyConstraints(){try{const edited=JSON.parse($('#constraints-editor').value);const preserved=state.lastConstraints || state.constraints;edited.locked_section_ids=[...new Set([...(preserved.locked_section_ids||[]),...(edited.locked_section_ids||[])])];edited.preloaded_section_ids=[...new Set([...(preserved.preloaded_section_ids||[]),...(edited.preloaded_section_ids||[])])];const fixed=new Map([...(preserved.fixed_meetings||[]),...(edited.fixed_meetings||[])].map(meeting=>[meeting.meeting_id || JSON.stringify(meeting),meeting]));edited.fixed_meetings=[...fixed.values()];await generate(edited);}catch(error){message(`条件 JSON 无法应用：${error.message}`,true);}}
-async function refreshWorkspace() {
-  const boot=await api('/api/bootstrap');
+async function refreshWorkspace(expectedEpoch) {
+  const boot=await api('/api/bootstrap',undefined,expectedEpoch);
+  if(expectedEpoch!==undefined&&expectedEpoch!==state.agentEpoch)return;
   if(state.boot?.identity && identityKey(state.boot.identity)!==identityKey(boot.identity)){
     clearAgentConversation();
+    state.agentHistory=[];state.agentHistoryError='';state.agentHistoryHasMore=false;renderAgentHistory();
   }
   state.boot=boot;state.constraints=clone(state.boot.demo?.constraints || {});state.saved=savedRows(state.boot.saved_plans || []);
   if(state.auth)state.auth.identity=state.boot.identity;
@@ -349,7 +585,7 @@ async function compareSaved() {
 async function useCurrent(){resetCurrentPlan();await refreshWorkspace();await changeMode('demo');renderSaved();message('已返回本人当前工作区；历史冻结版本保留。');}
 async function mockLogin(profileId) {
   if(state.busy)return;state.busy=true;renderAuth();
-  try{const result=await api('/api/auth/mock-login',{profile_id:profileId});clearWorkspace();state.auth={...state.auth,authenticated:true,identity:result.identity};state.csrfToken=result.csrf_token;await bootstrap();message('已进入本人 synthetic 演示工作区；学校认证和真实数据源尚未接入。');}catch(error){message(error.message,true);}finally{state.busy=false;renderAuth();}
+  try{const result=await api('/api/auth/mock-login',{profile_id:profileId});clearWorkspace();state.auth={...state.auth,authenticated:true,identity:result.identity};state.csrfToken=result.csrf_token;await bootstrap();clearMessage();}catch(error){message(error.message,true);}finally{state.busy=false;renderAuth();}
 }
 async function logout() {
   clearAgentConversation();state.busy=true;renderAssistant();
@@ -362,12 +598,11 @@ async function bootstrap() {
     if(state.auth?.identity && identityKey(state.auth.identity)!==identityKey(session.identity))clearWorkspace();
     state.auth=session;
     if(!state.auth.authenticated){clearWorkspace();renderAuth();$('#loading').hidden=true;return;}
-    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();renderAudit();renderSources();renderSaved();switchTab(state.tab);$('#loading').hidden=true;
+    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();renderAudit();renderSources();renderSaved();switchTab(state.tab);await refreshAgentHistory();$('#loading').hidden=true;
   }catch(error){$('#loading').hidden=true;$('#boot-error').hidden=false;$('#boot-error-text').textContent=`${error.message}。请确认本地 Python 服务已启动，然后重试。`;}
 }
 $('.nav-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(button){clearMessage();switchTab(button.dataset.tab);}});
 $('.nav-tabs').addEventListener('keydown',event=>{if(!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const tabs=$$('.nav-tab');let index=tabs.indexOf(document.activeElement);if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else index=(index+(event.key==='ArrowRight'||event.key==='ArrowDown'?1:-1)+tabs.length)%tabs.length;switchTab(tabs[index].dataset.tab);tabs[index].focus();});
-$('#data-mode').addEventListener('change',event=>changeMode(event.target.value));
 $('#retry-bootstrap').addEventListener('click',bootstrap);
 $('#logout').addEventListener('click',logout);
 $('#panel-saved').addEventListener('change',event=>{
@@ -375,13 +610,18 @@ $('#panel-saved').addEventListener('change',event=>{
   const selected=new Set(state.compareSavedIds);const identifier=Number(input.dataset.savedId);input.checked?selected.add(identifier):selected.delete(identifier);
   state.compareSavedIds=[...selected];$('#compare-saved-button').disabled=selected.size<2||selected.size>3;
 });
-$('#main').addEventListener('click',async event=>{
+$('.app-shell').addEventListener('click',async event=>{
   const button=event.target.closest('[data-action]');if(!button||button.disabled)return;
   switch(button.dataset.action){
     case'mock-login':await mockLogin(button.dataset.profileId);break;
-    case'new-agent-conversation':clearAgentConversation();renderAssistant();break;
+    case'new-agent-conversation':if(state.agentBusy||state.agentActionBusy)break;clearAgentConversation();clearMessage();switchTab('assistant');renderAgentHistory();break;
+    case'load-agent-conversation':await loadAgentConversation(button.dataset.conversationId);break;
+    case'refresh-agent-history':await refreshAgentHistory();break;
     case'agent-example':chooseAgentExample(Number(button.dataset.example));break;
     case'clear-agent-draft':clearAgentDraft();break;
+    case'save-agent-option':await saveAgentOption(button.dataset.optionId);break;
+    case'export-agent-option':await exportAgentOption(button.dataset.optionId,button.dataset.format);break;
+    case'export-saved':await exportSaved(button.dataset.savedId,button.dataset.format);break;
     case'preview-current-conditions':await previewCurrentConditions();break;
     case'switch-demo':await changeMode('demo');break;
     case'show-sources':switchTab('sources');break;
@@ -402,4 +642,5 @@ $('#main').addEventListener('click',async event=>{
     case'use-current':try{await useCurrent();}catch(error){message(error.message,true);}break;
   }
 });
+$('#conversation-history').open=typeof window==='undefined'||window.matchMedia('(min-width: 681px)').matches;
 bootstrap();

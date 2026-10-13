@@ -1,0 +1,58 @@
+{
+  "url": "http://127.0.0.1:18865/",
+  "desktop": {
+    "height": 900,
+    "historyTurns": 1,
+    "pageHeight": 1005,
+    "pageWidth": 1280,
+    "planCards": 1,
+    "rawJsonVisible": false,
+    "width": 1280
+  },
+  "mobile": {
+    "height": 844,
+    "pageHeight": 1067,
+    "pageWidth": 390,
+    "tableContainerWidth": 358,
+    "tableWidth": 430,
+    "width": 390
+  },
+  "checks": {
+    "actual_synthetic_model_reply": true,
+    "plan_rendered": true,
+    "saved_id": 4,
+    "saved_json_download": true,
+    "download_bytes": 82861,
+    "download_result": "pass",
+    "download_kind": "synthetic",
+    "raw_json_hidden": true,
+    "viewport_restored": true
+  },
+  "mobile_scope": "rendering only; clicks verified at native desktop viewport",
+  "verification": {
+    "web_contract_tests": {
+      "passed": 30,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "node_syntax": "pass",
+    "git_diff_whitespace": "pass",
+    "backend_suite": "not rerun this UI iteration"
+  },
+  "source_sha256": {
+    "web/index.html": "12d2fd48dd2fd9085a5ce49de09a2dabdd27e566e9f2f55ba036c6b3454d2911",
+    "web/app.js": "e87b68e28caf46e443b0a7fa267b37b019d5eeff7a532a0e750e96615d933681",
+    "web/styles.css": "d7888b716a8cf1bd8a9eb6661ec8be3ef78d364850f2268f4d7bf728b3bb6600",
+    "tests/test_web_contract.py": "87a21ecc683aab421b8c2795d127c50341030266352db02e97a20141b517e4b9"
+  },
+  "delivery": {
+    "implemented": true,
+    "current_running_page_verified": true,
+    "committed": false,
+    "pushed": false,
+    "packaged": false,
+    "deployed": false,
+    "user_acceptance": "pending user review"
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "url": "http://127.0.0.1:18865/",
+  "desktop": {
+    "historyCount": 4,
+    "pageHeight": 970,
+    "pageWidth": 1280,
+    "savedReceiptVisible": true,
+    "width": 1280
+  },
+  "mobile": {
+    "historyCount": 4,
+    "historyOpen": false,
+    "pageHeight": 849,
+    "pageWidth": 390,
+    "width": 390
+  },
+  "checks": {
+    "history_survives_restart_and_reload": true,
+    "continued_same_conversation": true,
+    "turns_before": 1,
+    "turns_after": 2,
+    "new_dialogue_keeps_history": true,
+    "new_dialogue_clears_turns": true,
+    "consent_reset": true,
+    "saved_receipt_restored": true,
+    "other_owner_history_count": 0,
+    "viewport_restored": true
+  },
+  "mobile_scope": "rendering only",
+  "tests": {
+    "passed": 125,
+    "failed": 0,
+    "skipped": 0
+  }
+}
