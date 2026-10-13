@@ -1,0 +1,314 @@
+{
+  "schema": "r3-final-validation/1",
+  "recorded_at": "2026-10-13T17:50:18.376535+00:00",
+  "phase": "R3_local_reference_first_slice",
+  "implementation_status": "implemented_limited_engineering_verification",
+  "source_alias": "EVAL-A",
+  "unit_tests": {
+    "passed": 385,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "log": "validation/r3_20261014_tests.txt",
+    "log_sha256": "4b9368135bad69d0c30ccc05a0f35adfcbc876e1c64caf70ff75c5abc45389d8"
+  },
+  "live_engineering": {
+    "kind": "engineering_integration_not_human_gold",
+    "passed": 20,
+    "total": 20,
+    "cases": [
+      {
+        "case_id": "R3-LIVE-01",
+        "name": "目录登记与获准正文分别计数",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-02",
+        "name": "首片块与视觉课程池对账",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-03",
+        "name": "模块学分与目录数量分开",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-04",
+        "name": "精确代码先过滤再词法匹配",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-05",
+        "name": "近码不误连",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-06",
+        "name": "课程行带必要条款表头附注",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-07",
+        "name": "全池观察连接与未观察分别计数",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-08",
+        "name": "版本分页枚举完整观察",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-09",
+        "name": "分页不可改绑课程",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-10",
+        "name": "共享投影不返回个人字段或定位",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-11",
+        "name": "推荐输入版本绑定且三套课程组合有实际差异",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-12",
+        "name": "计划贡献不变本人通过",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-13",
+        "name": "共享全局预算与截断真实呈现",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-14",
+        "name": "推荐班次时段考试容量和学分回查同一授权观察束",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-15",
+        "name": "真实周次校历考试未补演示值",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-16",
+        "name": "二三四课堂普通查询暂缓",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-17",
+        "name": "普通劳动不按活动词排除",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-18",
+        "name": "签名跨实例回查与伪引用拒绝",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-19",
+        "name": "撤销过期与mock域拒绝",
+        "passed": true
+      },
+      {
+        "case_id": "R3-LIVE-20",
+        "name": "缩减范围与selector变更使旧引用失效",
+        "passed": true
+      }
+    ],
+    "counts": {
+      "registered_documents": 162,
+      "rechecked_admitted_documents": 1,
+      "chunks": 56,
+      "curriculum_codes": 47,
+      "observed_courses": 21,
+      "unobserved_courses": 26,
+      "candidate_sections": 21,
+      "observation_bundles": 31,
+      "conditional_options": 3
+    },
+    "result_version_and_observation_binding_verified": true
+  },
+  "negative_validator_evidence": {
+    "stale_version": {
+      "rejected": true,
+      "exit_code": 1,
+      "failed_case_ids": [
+        "R3-LIVE-11"
+      ]
+    },
+    "altered_section": {
+      "rejected": true,
+      "exit_code": 1,
+      "failed_case_ids": [
+        "R3-LIVE-11",
+        "R3-LIVE-14"
+      ]
+    }
+  },
+  "versions": {
+    "dataset_version": "68ff5e574783f4f5300038715545b0a1144de8194286cfe94931510aae9dd0a0",
+    "source_version": "e69cd2fac3a36cb51b4598f4ca391f9a1e9bf728346370dedf4dc95a1a1f3056",
+    "corpus_version": "d61c3957a89cb3239380b6eedbdb8bb572e1c24a076d665ea5b78f464a2b248d",
+    "index_version": "curriculum-table-slice/1",
+    "scope_policy_version": "ordinary-reference-deferred-classrooms/1",
+    "grant_version": "a0013108d84171a2e9e28130f87c53df77ee79dd1dccd38bc4a16289c78e4af1"
+  },
+  "source_integrity": {
+    "registered_documents": 162,
+    "selected_pdf_and_page_text_rechecked": 1,
+    "other_inventory_documents_not_rechecked": 161,
+    "shared_components_verified": 8,
+    "original_inputs": {
+      "result": "pass",
+      "files_checked": 17,
+      "expanded_zip_identical": true,
+      "source_refs_valid": true,
+      "manifest_sha256": "9a259f2c2a54a7ad22373d52f12f5e71f9efd190d7e1021a64244a47ae8ac2a0",
+      "note": "只验证交接资料完整性，不代表官方规则审核或学生适用性。"
+    }
+  },
+  "reference": {
+    "physical_pages_assistant_reviewed": 5,
+    "review_status": "assistant_reviewed_pending_human",
+    "human_gold_count": 0,
+    "human_review_questions": 20,
+    "development_questions": 12,
+    "held_out_questions": 8,
+    "human_retrieval_metrics_measured": false,
+    "official_rule_enabled": false
+  },
+  "recommendation": {
+    "status": "conditional_reference",
+    "result": "unknown",
+    "options": 3,
+    "sections_per_option": [
+      4,
+      4,
+      4
+    ],
+    "planned_credits_per_option": [
+      "8",
+      "8",
+      "8"
+    ],
+    "unknown_count_per_option": [
+      11,
+      11,
+      11
+    ],
+    "observed_period_overlap_count_per_option": [
+      0,
+      0,
+      0
+    ],
+    "search": {
+      "nodes_visited": 2000,
+      "max_nodes": 2000,
+      "limit_reached": true,
+      "max_candidates": 64,
+      "candidate_retention_clipped": true,
+      "observed_course_count": 21,
+      "candidate_course_count": 18,
+      "authorized_course_count": 47,
+      "observation_precheck_complete": true,
+      "complete_within_observed_scope": false,
+      "source_course_coverage_complete": false,
+      "globally_optimal": false
+    },
+    "personal_eligibility_verified": false,
+    "requirement_completion_evaluated": false
+  },
+  "exports": {
+    "csv_course_rows": 12,
+    "csv_json_versions_match": true,
+    "ics": {
+      "rejected": true,
+      "exit_code": 2,
+      "reason": "reliable_calendar_required"
+    },
+    "html": {
+      "generated": true,
+      "tables": 3,
+      "unknown_and_search_budget_notice_present": true,
+      "external_resource_links": 0,
+      "validation": "static_only",
+      "rendering_verified": false,
+      "rendering_blocker": "browser_file_protocol_policy"
+    }
+  },
+  "private_artifact_sha256": {
+    "conditional_json": "ed195ab5748d790ba37a7786289b7303022c78e9aeb6d70c6e7688b673c2b1ac",
+    "conditional_csv": "7c3321cf96eabe988d45e169b3d5019d834df46d1a5064b7109b9720335bcc19",
+    "reference_html": "72d0266e8767da792fced4908e0fa302d47de8fb60992e59f544c1d02b67d537",
+    "live_engineering_receipt": "114ca4b03ef8cbe9089626ae24f5f7c652ab84ce01d1927be0dcb205f35c1bb7",
+    "human_review_machine_seed": "0afe95cd8bee073e63b90a2b4be3f8ad003be3cda88f03283ef3c4281d589fea",
+    "assistant_visual_review": "c8b08b1d0a46feec34e0739677e3fb1637723ddca5cf0e4e5d7678db94fad065"
+  },
+  "isolation": {
+    "model_called_for_R3": false,
+    "embedding_called": false,
+    "network_called_for_R3": false,
+    "real_data_sent": false,
+    "personal_workspace_used": false,
+    "mock_subject_binding_used": false,
+    "new_school_collection": false,
+    "original_inputs_rewritten": false
+  },
+  "delivery": {
+    "committed": false,
+    "pushed": false,
+    "packaged": false,
+    "deployed": false,
+    "human_business_acceptance": "pending",
+    "school_personal_acceptance": "pending"
+  },
+  "source_sha256": {
+    "README.md": "238104756944f0a36bee75963cb444b9c44ca54e22ad3a6e0de986b980c704ab",
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "a91600a67098bf4d94055cb5303a998eeb8c5e1d70be0dbe06fe9a89726979dc",
+    "course_assistant/chat.py": "fe70524a4ef177379294859d866e5ed7e78d9ccb27f23e9f23671d7aa50f6821",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "course_assistant/model_client.py": "28c051407e2e44f0bd9181ae6e344b065a00d63831dce1ac96fb24cbeed2fdb5",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/server.py": "e7922146fe6b8f7b82e6a29d0fa3caf84b11c2973d0b1259dcdac09ba5d180ab",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "docs/R3本机参考首片实施与验收_20261014.md": "393dc64793d2bcf87d1d63bfb83e27d362eb14a105df34a557918518a6102f06",
+    "docs/开发进度.md": "80267b8351277677409f6497f88a282ebdfa64f8f5fa9c7ede6bac793d3323a1",
+    "scripts/run_local_reference.py": "8527bca3aec47a07ed21d18f0f10cfee41fdcb9c56a7e9b5012715f4308caf0a",
+    "tests/test_application.py": "f95635f9af14c12f253fec2698c76c32e83eb8468b3510fbd7d9624d9a5be1db",
+    "tests/test_audit.py": "7b89e433ec7e9b8966c5d471c8acda5fe7f59829fe22c6b9947099a61eead324",
+    "tests/test_auth.py": "8661ac377649daeddcfe5d0d98900871b4535ea21a770446b2577062897e079e",
+    "tests/test_chat.py": "606a23e4a487182059ec9c0ed1c95929c300cd831e19b35079b1559ce2199a39",
+    "tests/test_chat_history.py": "6e7e7684cd695fc7f221fa0ecf767cbc7eca4b2019958e432f90d405e92b2c16",
+    "tests/test_chat_http.py": "cff5e90dfff1a7570d1b66eac1c2c423ca0cb5c21efa33e21e0916d4b3181ec0",
+    "tests/test_course_dedup.py": "a35ebbae8c94ff3e577fff685ed8177134bcc2d99398fead5d277bba3d1f3595",
+    "tests/test_course_source_adapters.py": "7c690ef1f00d85f1a66368162a8876b8d3e687d9dcc54cd7d25bcf158a149536",
+    "tests/test_exporter.py": "21184709ad4d18111e1d2e7233f536d8b782ccb420d453546c47b9cb28dfba0e",
+    "tests/test_importer.py": "6e9e88c82d296e08d978dff796186dbdd1790ca7606cde538407759ebb243743",
+    "tests/test_live_chat_acceptance.py": "489d0c1d4ea652c2dba363e7766f6c1c781995e896af2e45442aafebe970230b",
+    "tests/test_local_reference.py": "f1ff43913dd1cb6a88a1555fa59e7fb09ea75dc19c2fa3951f10f490f9846204",
+    "tests/test_local_reference_observations.py": "55b689a403d4ac391872b7e619a8af317280846d1fff3e0cd9031ee19855bf85",
+    "tests/test_model_client.py": "e16676e994535314791ce0012446996cef4e57836bd73de6ddf22e16b4a6c4fc",
+    "tests/test_plan_requirements_audit.py": "f06e8dd14fbb2e2d29c44db8099d21a2d07e4313e252873d74765123bc43aa91",
+    "tests/test_planner.py": "8ea5eb10b72f349688ea7085d79aa123805ba5636fa58d5e7e643c34d26bb87c",
+    "tests/test_recommendation.py": "7a52c9f2ece2eb5c21a87656fd519c26ef309f1f42cff69684e415499391589a",
+    "tests/test_recommendation_dialogue.py": "6820cea01ae5be63f4a9656f33fbf720de4dc9df8f7d98a1781d4d558a8f21a6",
+    "tests/test_recommendation_storage.py": "43eed1785e18ea0e2c3ab7c902de3f83b5de24ba335622c7e2c682d86e115447",
+    "tests/test_reference_retrieval.py": "e6b2634c90b858a65eb313320e35e5d61889c7cbdb1877048d2507fbafeda1ed",
+    "tests/test_web_contract.py": "ba90e6a2302c44f19a2cbb56c9b86785e3f93870c5fdb1be1f4ec7f5bff680f2",
+    "validation/run_local_reference_checks.py": "2056c101bb35446787459117981cd9320466ee627e27df3cc1eacea3015c3ee2",
+    "web/app.js": "13dc9ec1a4f420b2582678235ed564ab4dd90a75c3ea8587ea9e2ed1b3d78f36",
+    "web/index.html": "be999114b5149a89b49c350e20f11d622e4fa741cc863dd08ea371513764a65a",
+    "web/styles.css": "6afbb1427b1b33054c60affc422f3be8d2e7955a07ef5152d9cdab5c1037b139"
+  }
+}
