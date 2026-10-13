@@ -1,0 +1,82 @@
+{
+  "observed_at": "2026-10-13T04:59:10.105206+00:00",
+  "source_kind": "interactive_browser_observation",
+  "authentication": "existing_user_logged_in_Chrome_tab",
+  "official_application_auth_implemented": false,
+  "upstream_updated_at": null,
+  "curriculum": {
+    "filter_cohort": "2026",
+    "college": "all",
+    "program": "all",
+    "visible_page": 1,
+    "page_size": 15,
+    "displayed_total": 162,
+    "displayed_total_pages": 11,
+    "coverage": "first_page_only",
+    "preview_page_count": 15,
+    "text_pages_observed": [
+      1,
+      2
+    ],
+    "full_pdf_downloaded": false,
+    "full_document_parsed": false,
+    "student_applicability_confirmed": false,
+    "selected_plan_evidence_ref": "SCHOOL-PLAN-PROBE-001"
+  },
+  "selection": {
+    "scope": "current specialty category; one already expanded course",
+    "coverage": "partial",
+    "fields_observed": [
+      "course_code",
+      "parenthesized_code",
+      "course_name",
+      "credits",
+      "category",
+      "college",
+      "page_selection_status",
+      "teacher",
+      "term",
+      "class_time_text",
+      "location",
+      "exam_time_text",
+      "teaching_form",
+      "target_group",
+      "international_flag",
+      "teaching_method",
+      "remaining_capacity",
+      "pending_counts"
+    ],
+    "unknown_or_unverified": [
+      "stable_school_section_id",
+      "parenthesized_code_semantics",
+      "week_set",
+      "calendar_mapping",
+      "prerequisite_details",
+      "official_final_enrollment_semantics",
+      "cross_category_completeness"
+    ]
+  },
+  "browser_actions": {
+    "DOM_read": "passed",
+    "high_level_preview_click": "timeout",
+    "high_level_preview_keypress": "timeout",
+    "browser_native_preview_click": "passed",
+    "new_pdf_text_read": "passed",
+    "selection_or_withdrawal_performed": false,
+    "credential_exported": false,
+    "personal_data_sent_to_DeepSeek": false
+  },
+  "application_imported": false,
+  "inputs_integrity": {
+    "result": "pass",
+    "files_checked": 17,
+    "expanded_zip_identical": true,
+    "source_refs_valid": true,
+    "manifest_sha256": "9a259f2c2a54a7ad22373d52f12f5e71f9efd190d7e1021a64244a47ae8ac2a0",
+    "note": "只验证交接资料完整性，不代表官方规则审核或学生适用性。"
+  },
+  "tests": "not_run_no_business_code_change",
+  "git_commit_push_deploy": "not_performed",
+  "evidence_ref": "SCHOOL-BROWSER-PROBE-20261013",
+  "publication_note": "公开副本仅保留范围、字段和能力核验；实际方案编号、原件摘要及定位保留本机忽略域。"
+}
