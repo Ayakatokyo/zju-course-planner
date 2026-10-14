@@ -22,11 +22,12 @@ DOMAINS = ("profile", "academic", "timetable", "exams")
 FAILURE_STATUSES = (
     "awaiting_user_login", "source_session_expired", "source_subject_changed",
     "source_unavailable", "permission_denied", "captcha_required",
-    "schema_changed", "incomplete_capture",
+    "schema_changed", "incomplete_capture", "user_confirmation_required",
 )
 REPORT_NO_BODY_STATES = frozenset((
     "awaiting_user_login", "source_session_expired", "source_subject_changed",
     "permission_denied", "captcha_required", "source_generation_changed",
+    "user_confirmation_required",
 ))
 ERROR_CODES = frozenset((
     "invalid_arguments", "inaccessible_resource", "invalid_private_path",
@@ -43,6 +44,7 @@ ERROR_CODES = frozenset((
     "page_budget_exceeded", "private_permissions_required", "source_generation_changed",
     "source_origin_denied", "source_scope_changed", "stale_grant", "target_term_required",
     "task_not_found", "unsafe_business_value",
+    "user_confirmation_required",
 ))
 
 

@@ -46,7 +46,7 @@ class StudentSourceParserTests(unittest.TestCase):
         payload = {"入学日期": "20220901", "当前所在级": "2024", "类（专业）": "合成类目", "xh": "SYNTHETIC-2025"}
         parsed = parse_payload("profile", payload)
         record = parsed["records"][0]
-        self.assertEqual((PARSER_VERSION, MAPPING_VERSION), ("student-source-parser-v2", "student-source-mapping-v2"))
+        self.assertEqual((PARSER_VERSION, MAPPING_VERSION), ("student-source-parser-v3", "student-source-mapping-v3"))
         self.assertEqual(record["cohort"], 2022)
         self.assertEqual(record["admission_date_raw"], "20220901")
         self.assertEqual(record["current_grade_raw"], "2024")
@@ -226,6 +226,17 @@ class StudentSourceParserTests(unittest.TestCase):
             self.assertEqual(record["field_assertions"][field][0]["raw_value"], "")
         self.assertTrue(all(record[field] is None for field in ("exam_time_raw", "exam_date", "start_time", "end_time")))
         self.assertEqual(record["raw_row"], row)
+
+    def test_observed_api_midterm_final_aliases_keep_independent_raw_values(self):
+        row = {"xkkh": "SYNTHETIC-CHOICE", "kcmc": "合成课", "xxq": "秋",
+               "kssj": "", "jsmc": "", "qzkssj": "合成期中时间", "qzjsmc": "合成期中地点"}
+        record = parse_payload("exams", {"items": [row]})["records"][0]
+        self.assertEqual(record["term_raw"], "秋")
+        self.assertEqual(record["final_exam_time_raw"], "")
+        self.assertEqual(record["final_exam_place_raw"], "")
+        self.assertEqual(record["midterm_exam_time_raw"], "合成期中时间")
+        self.assertEqual(record["midterm_exam_place_raw"], "合成期中地点")
+        self.assertIsNone(record["exam_date"])
 
     def test_malformed_rows_and_field_failures_reconcile_without_value_in_diagnostics(self):
         payload = {"items": [{"xf": "SYNTHETIC-PRIVATE-MALFORMED"}, "SYNTHETIC-PRIVATE-ROW", {"xf": "2.00"}], "total": 3}

@@ -39,9 +39,13 @@ def main():
         result = unittest.TextTestRunner(stream=stream, verbosity=2).run(suite)
     node = shutil.which('node')
     syntax = subprocess.run([node, '--check', str(ROOT / 'web' / 'app.js')], capture_output=True, text=True) if node else None
+    connector_files = sorted((ROOT / 'browser' / 'student_source_connector').glob('*.js'))
+    connector_checks = [subprocess.run([node, '--check', str(path)], capture_output=True, text=True)
+                        for path in connector_files] if node else []
+    connector_syntax = 'pass' if node and connector_files and all(check.returncode == 0 for check in connector_checks) else 'not_run' if not node or not connector_files else 'fail'
     whitespace = subprocess.run(['git', 'diff', '--check'], cwd=ROOT, capture_output=True, text=True)
     original = subprocess.run(['git', 'diff', '--exit-code', '--', 'inputs'], cwd=ROOT, capture_output=True, text=True)
-    files = sorted([p for folder in ('course_assistant', 'web', 'tests', 'demo')
+    files = sorted([p for folder in ('course_assistant', 'web', 'tests', 'demo', 'scripts', 'browser')
                     for p in (ROOT / folder).rglob('*')
                     if p.is_file() and p.suffix in {'.py', '.js', '.css', '.html', '.json'}])
     hashes = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}
@@ -52,6 +56,7 @@ def main():
                               'skipped': len(result.skipped), 'failures': len(result.failures), 'errors': len(result.errors), 'by_module': dict(counts)},
               'node_version': subprocess.check_output([node, '--version'], text=True).strip() if node else None,
               'web_syntax': 'pass' if syntax and syntax.returncode == 0 else 'not_run' if not syntax else 'fail',
+              'browser_connector_syntax': connector_syntax,
               'git_diff_check': {'returncode': whitespace.returncode, 'output': whitespace.stdout + whitespace.stderr},
               'inputs_git_unchanged': original.returncode == 0, 'source_integrity': read_sources()['integrity'],
               'source_sha256': hashes,
@@ -59,7 +64,7 @@ def main():
     report_path = ROOT / 'validation' / (f'{args.record_prefix}_validation.json' if args.record_prefix else 'development_validation_20261009.json')
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({key: report[key] for key in ('application_version', 'test_result', 'web_syntax', 'inputs_git_unchanged', 'git_diff_check')}, ensure_ascii=False))
-    return 0 if result.wasSuccessful() and (not syntax or syntax.returncode == 0) and whitespace.returncode == 0 and original.returncode == 0 else 1
+    return 0 if result.wasSuccessful() and (not syntax or syntax.returncode == 0) and connector_syntax != 'fail' and whitespace.returncode == 0 and original.returncode == 0 else 1
 
 
 if __name__ == '__main__':

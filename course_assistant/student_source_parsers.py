@@ -14,8 +14,8 @@ from decimal import Decimal, InvalidOperation
 import re
 
 
-PARSER_VERSION = "student-source-parser-v2"
-MAPPING_VERSION = "student-source-mapping-v2"
+PARSER_VERSION = "student-source-parser-v3"
+MAPPING_VERSION = "student-source-mapping-v3"
 FIELD_STATES = frozenset({"known", "unknown", "not_provided", "not_applicable",
                           "pending_verification", "conflicting"})
 
@@ -88,12 +88,12 @@ EXAM_FIELDS = {
     "course_code_raw": ("kcdm", "kch", "course_code_raw", "course_code", "课程代码", "课程号"),
     "course_name_raw": ("kcmc", "course_name_raw", "course_name", "课程名称"),
     "academic_year_raw": ("xnm", "academic_year_raw", "academic_year", "学年"),
-    "term_raw": ("xqm", "term_raw", "term", "学期"),
+    "term_raw": ("xqm", "xxq", "term_raw", "term", "学期"),
     "exam_time_raw": ("kssj", "exam_time_raw", "考试时间"),
-    "final_exam_time_raw": ("final_exam_time_raw", "期末考试时间"),
-    "midterm_exam_time_raw": ("midterm_exam_time_raw", "期中考试时间"),
-    "final_exam_place_raw": ("final_exam_place_raw", "期末考试地点"),
-    "midterm_exam_place_raw": ("midterm_exam_place_raw", "期中考试地点"),
+    "final_exam_time_raw": ("final_exam_time_raw", "kssj", "期末考试时间"),
+    "midterm_exam_time_raw": ("midterm_exam_time_raw", "qzkssj", "期中考试时间"),
+    "final_exam_place_raw": ("final_exam_place_raw", "jsmc", "期末考试地点"),
+    "midterm_exam_place_raw": ("midterm_exam_place_raw", "qzjsmc", "期中考试地点"),
     "exam_date": ("exam_date", "ksrq", "考试日期"),
     "start_time": ("start_time", "kssk", "开始时间"),
     "end_time": ("end_time", "ksjs", "结束时间"),

@@ -25,7 +25,7 @@ SCHEMA = "student-acquisition/1"
 PURPOSE = "local_student_source_review"
 DOMAINS = ("profile", "academic", "timetable", "exams")
 STOP_STATES = {"source_session_expired", "source_subject_changed", "permission_denied",
-               "captcha_required", "awaiting_user_login"}
+               "captcha_required", "awaiting_user_login", "user_confirmation_required"}
 FAIL_STATES = STOP_STATES | {"source_unavailable", "schema_changed", "incomplete_capture"}
 ALIAS = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 CREDENTIAL_VALUE = re.compile(r"(?i)(?:bearer\s+|(?:^|[?&;\s])(?:ticket|token|password|passwd|jsessionid|sessionid|cookie)\s*=|(?:cookie|set-cookie|authorization)\s*:|-----BEGIN .*PRIVATE KEY)")
@@ -136,6 +136,8 @@ def response_state(metadata, *, expected_domain=None):
         return "awaiting_user_login"
     if state == "captcha":
         return "captcha_required"
+    if state == "user_confirmation_required":
+        return "user_confirmation_required"
     if status == 401 or state == "auth_expired":
         return "source_session_expired"
     if status == 403 or state == "permission_denied":
