@@ -1,0 +1,196 @@
+{
+  "date": "2026-10-14",
+  "scope": "课表占用范围内信息组居中，底色块留白分隔；不改星期、节次和rowspan算法",
+  "synthetic": {
+    "caption": "按星期与节次编排 · 底色范围对应上课节次",
+    "cardOverflow": 0,
+    "cells": [
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 1,
+        "groupHeight": 324,
+        "height": 349,
+        "inset": "6px",
+        "period": 1,
+        "span": 1,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 2,
+        "groupHeight": 137.5,
+        "height": 843.5,
+        "inset": "6px",
+        "period": 1,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 5,
+        "groupHeight": 91.5,
+        "height": 843.5,
+        "inset": "6px",
+        "period": 1,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 1,
+        "groupHeight": 469.5,
+        "height": 494.5,
+        "inset": "6px",
+        "period": 2,
+        "span": 1,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 1,
+        "groupHeight": 137.5,
+        "height": 162.5,
+        "inset": "6px",
+        "period": 3,
+        "span": 1,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0.00390625,
+        "contained": true,
+        "day": 2,
+        "groupHeight": 137.5,
+        "height": 230.6484375,
+        "inset": "6px",
+        "period": 3,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0.00390625,
+        "contained": true,
+        "day": 6,
+        "groupHeight": 137.5,
+        "height": 230.6484375,
+        "inset": "6px",
+        "period": 3,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 4,
+        "groupHeight": 137.5,
+        "height": 162.5,
+        "inset": "6px",
+        "period": 5,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 3,
+        "groupHeight": 137.5,
+        "height": 162.5,
+        "inset": "6px",
+        "period": 7,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0,
+        "contained": true,
+        "day": 5,
+        "groupHeight": 116.5,
+        "height": 141.5,
+        "inset": "6px",
+        "period": 9,
+        "span": 2,
+        "tint": "oklch(0.974 0.006 270)"
+      },
+      {
+        "align": "middle",
+        "centerError": 0.24609375,
+        "contained": true,
+        "day": 4,
+        "groupHeight": 176.5,
+        "height": 203.9453125,
+        "inset": "6px",
+        "period": 11,
+        "span": 3,
+        "tint": "oklch(0.974 0.006 270)"
+      }
+    ],
+    "clocks": 13,
+    "pending": 3,
+    "viewport": {
+      "height": 773,
+      "width": 1512
+    }
+  },
+  "real": {
+    "allMiddle": true,
+    "allTintInset6": true,
+    "caption": "按星期与节次编排 · 底色范围对应上课节次",
+    "cardOverflow": 0,
+    "centerMaxError": 0.1388702392578125,
+    "clocks": 10,
+    "courseCards": 12,
+    "loggedIn": true,
+    "occupiedCells": 11,
+    "pending": 2,
+    "viewport": {
+      "height": 796,
+      "width": 1680
+    },
+    "examBlocks": 9,
+    "queryComplete": true
+  },
+  "proof": "validation/school_timetable_blocks_synthetic_20261014.jpg",
+  "tests": {
+    "timetable": 25,
+    "web_contract": 66,
+    "total": 91,
+    "failures": 0,
+    "skips": 0,
+    "log": "validation/school_timetable_blocks_20261014_tests.txt"
+  },
+  "limitations": [
+    "本轮未重新执行窄屏覆盖测试",
+    "本人值和真实截图未写入验收产物",
+    "第49节790项完整回归仅为历史记录"
+  ],
+  "service": {
+    "port": 18875,
+    "pid": 20753,
+    "restarted": false
+  },
+  "publication": {
+    "committed": false,
+    "pushed": false
+  },
+  "source_sha256": {
+    "web/app.js": "0fdb8243d73c14b88f397850cffcf44523db543cb459cee01b48390f4425ae7e",
+    "web/styles.css": "c9e0595e6d78b8091ce835606a056bf4c4a435f43cbddcaa2ace08cc06ebf73d",
+    "validation/run_school_ui_fixture.py": "3c90a35aef3a373c715186cfe0dd60b78af61377b66bfffae7de6edc61088d7d"
+  },
+  "static_delivery_matches_workspace": true,
+  "proof_sha256": "4b282c397e67b9b83b93278010e0d7cd6a3255b46ea3cdd32f7258d97ed78e12"
+}

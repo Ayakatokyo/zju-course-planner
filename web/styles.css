@@ -334,8 +334,10 @@ pre { max-width: 100%; overflow: auto; padding: 14px; background: var(--surface)
 .school-timetable-period { height: 62px; padding: 10px 6px; text-align: center; background: var(--surface); font-weight: 500; }
 .school-timetable td { padding: 6px; vertical-align: top; }
 .school-timetable-empty { background: var(--bg); }
-.school-timetable-occupied { background: var(--surface); }
-.school-timetable-cell { display: flex; flex-direction: column; gap: 8px; }
+.school-timetable td.school-timetable-occupied { position: relative; padding: 12px; vertical-align: middle; background: var(--bg); }
+/* The inset tint marks the occupied period span; the information group sits at its centre. */
+.school-timetable-occupied::before { content: ""; position: absolute; inset: 6px; border-radius: 6px; background: var(--surface); pointer-events: none; }
+.school-timetable-cell { position: relative; display: flex; flex-direction: column; gap: 8px; }
 .school-meeting { display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); overflow-wrap: anywhere; line-height: 1.5; }
 .school-meeting strong { color: var(--ink); font-weight: 650; }
 .school-meeting-scope, .school-meeting-teacher, .school-meeting-status { font-size: 0.8125rem; color: var(--muted); }
