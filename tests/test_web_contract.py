@@ -110,7 +110,8 @@ assert.deepEqual([...demoSummary.matchAll(/<dd class="numeric">(.*?)<span>/g)].m
 assert.equal(evaluate('state.tab'),'assistant');
 const html=fs.readFileSync(process.argv[1].replace(/app\\.js$/,'index.html'),'utf8');
 assert.match(html,/id="tab-assistant" class="nav-tab active"/);
-assert.deepEqual([...html.matchAll(/data-tab="([^"]+)"/g)].map(match=>match[1]),['assistant','saved']);
+assert.deepEqual([...html.matchAll(/data-tab="([^"]+)"/g)].map(match=>match[1]),['assistant','saved','school']);
+assert.match(html,/id="tab-school"[^>]*hidden/);
 evaluate("state.boot={demo:{courses:[],constraints:{revision:1,friday_free:'soft'}}};state.constraints={revision:1,friday_free:'soft'};renderAssistant()");
 const markup=element('#panel-assistant').innerHTML;
 assert.match(markup,/<button[^>]*type="submit"[^>]*disabled[^>]*>发送/);
@@ -437,6 +438,130 @@ for(const malformed of [{conversation_id:'wrong-conv'},{turn_id:'2'},{turn_id:-1
   context.fetch=async()=>({ok:true,json:async()=>({conversation_id:'requested-conv',turn_id:2,turns:[],data_kind:'synthetic',option_receipts:{bad:{saved_id:99}},...malformed})});
   await evaluate("loadAgentConversation('requested-conv')");assert.equal(evaluate('state.agentConversationId'),null);assert.equal(evaluate('state.agentTurnId'),0);assert.equal(evaluate('state.agentTurns.length'),0);assert.equal(evaluate('Object.keys(state.agentOptionReceipts).length'),0);assert.equal(evaluate('state.agentConsent'),false);assert.equal(evaluate('state.agentHistoryLoadBusy'),false);assert.match(element('#global-status').textContent,/历史对话响应不完整/);
 }
+""")
+
+
+    def test_school_login_is_explicitly_enabled_and_password_never_persists(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:false,school_client_enabled:true,mock_enabled:false};renderAuth()");
+assert.match(element('#auth-panel').innerHTML,/type="password"/);assert.match(element('#auth-panel').innerHTML,/autocomplete="off"/);
+element('#school-login-username').value='fixture-user';element('#school-login-password').value='fixture-secret';
+let release,body;context.fetch=(path,options)=>{assert.equal(path,'/api/auth/school-login');body=JSON.parse(options.body);assert.equal(element('#school-login-password').value,'');return new Promise(resolve=>{release=resolve;});};
+const pending=evaluate('schoolLogin()');assert.deepEqual(body,{username:'fixture-user',password:'fixture-secret'});
+release({ok:false,status:401,text:async()=>JSON.stringify({code:'login_failed',error:'fixture-secret must not be echoed'})});await pending;
+assert.equal(element('#school-login-password').value,'');assert.doesNotMatch(element('#global-status').textContent,/fixture-secret/);assert.doesNotMatch(evaluate('JSON.stringify(state)'),/fixture-secret/);
+assert.doesNotMatch(fs.readFileSync(process.argv[1],'utf8'),/localStorage|sessionStorage/);
+""")
+
+    def test_school_bootstrap_preserves_primary_entry_without_synthetic_or_model_calls(self):
+        self.run_js("""
+const identity={student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client',data_kind:'personal_source'};
+const paths=[];context.fetch=async(path)=>{paths.push(path);if(path==='/api/auth/session')return {ok:true,json:async()=>({authenticated:true,school_client_enabled:true,identity,csrf_token:'memory-only'})};if(path==='/api/bootstrap')return {ok:true,json:async()=>({identity,school:{status:'ready'},chat:{configured:false,reason:'real_recommendation_not_ready'}})};throw Error('unexpected '+path);};
+await evaluate('bootstrap()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap']);assert.equal(evaluate('state.tab'),'assistant');assert.equal(element('#tab-school').hidden,false);assert.equal(element('#tab-saved').hidden,true);assert.equal(element('#conversation-sidebar').hidden,true);assert.equal(element('#mode-badge').textContent,'本人教务');assert.match(element('#panel-assistant').innerHTML,/真实推荐待接入/);
+evaluate("state.agentStatus={configured:true,remote:true};state.agentDraft='private fixture';state.agentConsent=true");assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');await evaluate('refreshAgentStatus()');await evaluate('refreshAgentHistory()');await evaluate('refreshSaved()');assert.equal(paths.length,2);
+evaluate("switchTab('saved')");assert.equal(evaluate('state.tab'),'assistant');
+""")
+
+    def test_school_login_captcha_retry_requires_fresh_credentials_and_clears_image(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:false,school_client_enabled:true};renderAuth()");let created=0;const revoked=[];context.URL.createObjectURL=()=>{created++;return 'blob:login-'+created;};context.URL.revokeObjectURL=url=>revoked.push(url);
+const bodies=[];context.fetch=async(path,options)=>{bodies.push(JSON.parse(options.body));return {ok:true,json:async()=>({authenticated:false,state:'captcha_required',challenge_id:'challenge-fixture',captcha:{content_type:'image/png',data_base64:Buffer.from('image fixture').toString('base64')}})};};context.Buffer=Buffer;
+element('#school-login-username').value='fixture-user';element('#school-login-password').value='fixture-password';await evaluate('schoolLogin()');assert.equal(evaluate('state.schoolChallengeId'),'challenge-fixture');assert.match(element('#auth-panel').innerHTML,/school-login-captcha/);assert.equal(element('#school-login-password').value,'');assert.equal(created,1);assert.doesNotMatch(evaluate('JSON.stringify(state)'),/fixture-password/);
+element('#school-login-password').value='fresh-password';element('#school-login-captcha').value='A123';context.fetch=async(path,options)=>{bodies.push(JSON.parse(options.body));return {ok:false,status:403,text:async()=>JSON.stringify({code:'login_failed',error:'secret diagnostic should not display'})};};await evaluate('schoolLogin()');assert.deepEqual(bodies[1],{username:'fixture-user',password:'fresh-password',challenge_id:'challenge-fixture',captcha_text:'A123'});assert.equal(element('#school-login-captcha').value,'');assert.equal(evaluate('state.schoolChallengeId'),null);assert.deepEqual(revoked,['blob:login-1']);assert.doesNotMatch(element('#global-status').textContent,/secret diagnostic/);
+""")
+
+    def test_school_query_preserves_source_values_and_rejects_ambiguous_exam_term(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolOperation='academic'");
+element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';
+let sent;context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');assert.equal(options.headers['X-CSRF-Token'],'memory-only');sent=JSON.parse(options.body);return {ok:true,json:async()=>({operation:'academic',status:'partial',data_source:'live',coverage:'bounded',records:[{course_name_raw:'<unsafe>',grade_raw:'免修',nominal_credits:'2.5',earned_credits:null,completion_status:'unknown'}],issues:[{code:'unknown'}]})};};
+await evaluate('schoolSync()');assert.deepEqual(sent,{operation:'academic',target_term:'2026-2027-AW',force_refresh:true});const markup=element('#panel-school').innerHTML;assert.match(markup,/&lt;unsafe&gt;/);assert.match(markup,/免修/);assert.match(markup,/来源学分/);assert.match(markup,/部分读取/);assert.doesNotMatch(markup,/<unsafe>/);
+element('#school-operation').value='exams';element('#school-year').value='2026-2027';element('#school-season').value='AW';sent=null;await evaluate('schoolSync()');assert.equal(sent,null);assert.match(element('#global-status').textContent,/请选择单独分学期/);
+""")
+
+    def test_late_school_query_or_401_cannot_publish_or_logout_another_owner(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.csrfToken='A-memory'");
+element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';let release;context.fetch=()=>new Promise(resolve=>{release=resolve;});
+const pending=evaluate('schoolSync()');evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SCHOOL-B',auth_mode:'school_client',security_realm:'personal_school_client'}}");release({ok:true,json:async()=>({status:'ok',records:[{course_name_raw:'A-private-data'}]})});await pending;assert.equal(evaluate('state.schoolResult'),null);assert.doesNotMatch(element('#panel-school').innerHTML,/A-private-data/);
+element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';const expired=evaluate('schoolSync()');evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SCHOOL-C',auth_mode:'school_client',security_realm:'personal_school_client'}}");release({ok:false,status:401,text:async()=>JSON.stringify({error:'old app session'})});await expired;assert.equal(evaluate('state.auth.authenticated'),true);assert.equal(evaluate('state.auth.identity.student_id'),'SCHOOL-C');
+""")
+
+    def test_major_grade_query_uses_all_history_and_disables_term_filters(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolOperation='major_academic';state.schoolYear='2026-2027';state.schoolSeason='AW';renderSchool()");
+const form=element('#panel-school').innerHTML;assert.match(form,/主修成绩查询全部修读记录，不按学期筛选/);assert.match(form,/<input id="school-year"[^>]*disabled/);assert.match(form,/<select id="school-season"[^>]*disabled/);
+element('#school-operation').value='major_academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';let sent;
+context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');sent=JSON.parse(options.body);return {ok:true,json:async()=>({operation:'major_academic',target_term:'ALL-HISTORY',status:'complete_within_scope',data_source:'live',coverage:'all_history',records:[{course_name_raw:'HISTORY-FIXTURE',academic_year_raw:'2023-2024',grade_raw:'通过'}]})};};
+await evaluate('schoolSync()');assert.deepEqual(sent,{operation:'major_academic',target_term:'ALL-HISTORY',force_refresh:true});assert.match(element('#panel-school').innerHTML,/HISTORY-FIXTURE/);assert.equal(evaluate('state.schoolResult.records[0].academic_year_raw'),'2023-2024');assert.equal(evaluate('state.schoolYear'),'2026-2027');
+element('#school-operation').value='major_academic';element('#school-year').value='';element('#school-season').value='AW';sent=null;await evaluate('schoolSync()');assert.equal(sent.target_term,'ALL-HISTORY');
+""")
+
+    def test_school_expiry_keeps_app_identity_and_prompts_same_owner_reauthentication(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only'");element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';
+context.fetch=async()=>({ok:false,status:409,text:async()=>JSON.stringify({code:'source_session_expired',error:'source expired'})});await evaluate('schoolSync()');assert.equal(evaluate('state.auth.authenticated'),true);assert.equal(evaluate('state.schoolReauth'),true);assert.match(element('#panel-school').innerHTML,/school-reauth-password/);assert.equal(evaluate('state.schoolResult'),null);
+""")
+
+    def test_school_captcha_blob_is_revoked_and_cannot_cross_owner(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-A',auth_mode:'school_client',security_realm:'personal_school_client'}}");const revoked=[];context.URL.revokeObjectURL=url=>revoked.push(url);let created=0;context.URL.createObjectURL=()=>{created++;return 'blob:school-'+created;};
+context.fetch=async()=>({ok:true,blob:async()=>new Blob(['fixture'],{type:'image/png'})});await evaluate('loadSchoolCaptcha()');await evaluate('loadSchoolCaptcha()');assert.deepEqual(revoked,['blob:school-1']);assert.equal(evaluate('state.schoolCaptchaUrl'),'blob:school-2');evaluate('clearWorkspace()');assert.deepEqual(revoked,['blob:school-1','blob:school-2']);assert.equal(evaluate('state.schoolCaptchaUrl'),null);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-B',auth_mode:'school_client',security_realm:'personal_school_client'}}");let release;context.fetch=()=>new Promise(resolve=>{release=resolve;});const late=evaluate('loadSchoolCaptcha()');evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SCHOOL-C',auth_mode:'school_client',security_realm:'personal_school_client'}}");release({ok:true,blob:async()=>new Blob(['old image'],{type:'image/png'})});await late;assert.equal(created,2);assert.equal(evaluate('state.schoolCaptchaUrl'),null);
+""")
+
+    def test_school_plan_download_uses_owner_alias_and_late_response_is_discarded(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolPlan={status:'acquired_pending_review',source_alias:'PLAN-FIXTURE'}");let release,body,downloads=0;context.URL.createObjectURL=()=>{downloads++;return 'blob:plan';};context.fetch=(path,options)=>{assert.equal(path,'/api/school/plan-document');assert.equal(options.headers['X-CSRF-Token'],'memory-only');body=JSON.parse(options.body);return new Promise(resolve=>{release=resolve;});};
+await evaluate("downloadSchoolPlan('OTHER-ALIAS')");assert.equal(body,undefined);const pending=evaluate("downloadSchoolPlan('PLAN-FIXTURE')");assert.deepEqual(body,{source_alias:'PLAN-FIXTURE'});evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SCHOOL-B',auth_mode:'school_client',security_realm:'personal_school_client'}}");release({ok:true,blob:async()=>new Blob(['fixture pdf']),headers:{get:()=>null}});await pending;assert.equal(downloads,0);assert.equal(evaluate('state.schoolPlan'),null);
+""")
+
+    def test_school_captcha_accepts_gif_for_login_and_queries_but_rejects_svg(self):
+        self.run_js("""
+const gif=Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7','base64');const blobs=[];const revoked=[];context.URL.createObjectURL=blob=>{blobs.push(blob);return 'blob:captcha-'+blobs.length;};context.URL.revokeObjectURL=url=>revoked.push(url);context.loginChallenge={challenge_id:'gif-login-fixture',captcha:{content_type:'image/gif',data_base64:gif.toString('base64')}};
+evaluate('acceptSchoolLoginChallenge(loginChallenge)');assert.equal(evaluate('state.schoolChallengeId'),'gif-login-fixture');assert.equal(blobs[0].type,'image/gif');evaluate('clearWorkspace()');assert.deepEqual(revoked,['blob:captcha-1']);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}}");context.fetch=async()=>({ok:true,blob:async()=>new Blob([gif],{type:'image/gif'})});await evaluate('loadSchoolCaptcha()');assert.equal(blobs[1].type,'image/gif');assert.equal(evaluate('state.schoolNeedsCaptcha'),true);
+context.fetch=async()=>({ok:true,blob:async()=>new Blob(['<svg/>'],{type:'image/svg+xml'})});await evaluate('loadSchoolCaptcha()');assert.equal(blobs.length,2);assert.match(element('#global-status').textContent,/验证码图片读取失败/);
+context.loginChallenge={challenge_id:'svg-fixture',captcha:{content_type:'image/svg+xml',data_base64:Buffer.from('<svg/>').toString('base64')}};evaluate('acceptSchoolLoginChallenge(loginChallenge)');assert.equal(evaluate('state.schoolChallengeId'),null);assert.equal(evaluate('state.schoolCaptchaUrl'),null);assert.equal(blobs.length,2);
+""")
+
+    def test_school_result_provenance_uses_scoped_counts_readable_time_and_safe_unknowns(self):
+        self.run_js("""
+assert.equal(evaluate('schoolCoverageText({coverage:{captured_rows:1,reported_total:1,complete_within_scope:true,has_more:false}})'), '本次读取 1 条 · 已完整读取当前查询范围');
+assert.equal(evaluate('schoolCoverageText({coverage:{captured_rows:20,reported_total:35,complete_within_scope:false,has_more:true}})'), '本次读取 20 条 · 还有未读取内容');
+assert.equal(evaluate('schoolCoverageText({coverage:{captured_rows:0,reported_total:null,complete_within_scope:false,has_more:null}})'), '本次读取 0 条 · 完整性待确认');
+assert.equal(evaluate('schoolCoverageText({coverage:{captured_rows:1,reported_total:2,complete_within_scope:true,has_more:false}})'), '本次读取 1 条 · 完整性待确认');
+assert.equal(evaluate('schoolCoverageText({coverage:"unexpected-source-value"})'),'读取条数待确认 · 完整性待确认');
+assert.equal(evaluate('schoolCaptureTime(1791952661)'),evaluate("schoolCaptureTime('2026-10-14T04:37:41Z')"));assert.match(evaluate('schoolCaptureTime(1791952661)'), /2026.*10.*14.*12:37:41/);
+for(const value of [null,undefined,'not-a-date','',Infinity,{}]){context.captureValue=value;assert.equal(evaluate('schoolCaptureTime(captureValue)'),'待确认');}
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolResult={operation:'academic',status:'complete_within_scope',data_source:'live',captured_at:1791952661,coverage:{captured_rows:1,reported_total:1,pages_captured:1,complete_within_scope:true,has_more:false},records:[]};renderSchool()");const markup=element('#panel-school').innerHTML;assert.match(markup,/已完整读取当前查询范围/);assert.match(markup,/读取时间：2026/);assert.doesNotMatch(markup,/captured_rows|reported_total|1791952661|全校|所有课程已读取/);
+""")
+
+    def test_prelogin_badge_matches_enabled_school_and_mock_entrypoints(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:false,school_client_enabled:true,mock_enabled:false};clearWorkspace();renderAuth()");assert.equal(element('#mode-badge').textContent,'本人教务');assert.equal(element('#mode-badge').className,'badge');assert.match(element('#auth-panel').innerHTML,/登录教务账号/);
+evaluate("state.auth={authenticated:false,school_client_enabled:false,mock_enabled:true,mock_profiles:[]};clearWorkspace();renderAuth()");assert.equal(element('#mode-badge').textContent,'合成演示');assert.equal(element('#mode-badge').className,'badge synthetic');
+evaluate("state.auth={authenticated:false,school_client_enabled:true,mock_enabled:true,mock_profiles:[]};renderAuth()");assert.equal(element('#mode-badge').textContent,'登录入口');assert.equal(element('#mode-badge').className,'badge');
+""")
+
+    def test_plan_missing_profile_fields_have_specific_product_labels(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolPlan={status:'acquired_pending_review',source_alias:'PLAN-FIXTURE',missing_fields:['major_or_category_raw','program','study_path_raw','college_name','major_name']};renderSchool()");
+const markup=element('#panel-school').innerHTML;assert.match(markup,/适用范围信息缺失：类（专业）、培养项目、修读路径、学院、专业/);assert.doesNotMatch(markup,/待确认字段|major_or_category_raw|study_path_raw|college_name|major_name/);assert.match(markup,/PDF 获取成功后仍需核验适用范围及培养要求/);
+""")
+
+    def test_school_login_protocol_failures_show_specific_safe_messages(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:false,school_client_enabled:true};renderAuth()");
+const labels={invalid_credentials:'学校未接受登录凭据',schema_changed:'学校响应格式尚未适配',identity_not_observed:'学校已返回资料但未确认本人身份',route_not_confirmed:'学校接口尚未确认',source_unavailable:'学校连接暂不可用',permission_denied:'学校拒绝本次访问',source_subject_changed:'学校返回的本人身份已变化',source_epoch_changed:'学校会话已变化',source_generation_changed:'学校会话已变化'};
+for(const [code,label] of Object.entries(labels)){element('#school-login-username').value='fixture-user';element('#school-login-password').value='fixture-secret';context.fetch=async()=>({ok:true,json:async()=>({authenticated:false,state:code,message:'fixture-secret private diagnostic'})});await evaluate('schoolLogin()');assert.ok(element('#global-status').textContent.startsWith(label));assert.doesNotMatch(element('#global-status').textContent,/fixture-secret|private diagnostic|未完成或待确认/);assert.equal(element('#school-login-password').value,'');}
+element('#school-login-password').value='fixture-secret';context.fetch=async()=>({ok:false,status:502,text:async()=>JSON.stringify({code:'schema_changed',error:'fixture-secret raw response'})});await evaluate('schoolLogin()');assert.match(element('#global-status').textContent,/学校响应格式尚未适配/);assert.doesNotMatch(element('#global-status').textContent,/fixture-secret|raw response/);assert.equal(evaluate("schoolStatusText('__proto__')"),'未完成或待确认');
+""")
+
+    def test_partial_timetable_and_ambiguous_plan_have_truthful_status_labels(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolResult={operation:'timetable',status:'partial_acquisition',data_source:'live',coverage:{captured_rows:3,reported_total:null,complete_within_scope:false,has_more:null},records:[{course_name_raw:'FIXTURE-1'},{course_name_raw:'FIXTURE-2'},{course_name_raw:'FIXTURE-3'}]};state.schoolPlan={status:'ambiguous_plan',missing_fields:[]};renderSchool()");
+const markup=element('#panel-school').innerHTML;assert.match(markup,/我的课表 · 已读取，覆盖范围待确认/);assert.match(markup,/本次读取 3 条 · 完整性待确认/);assert.match(markup,/方案匹配不唯一/);assert.doesNotMatch(markup,/未完成或待确认|已完整读取当前查询范围/);
 """)
 
 

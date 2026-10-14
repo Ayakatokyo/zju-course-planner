@@ -6,15 +6,18 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const rows = value => Array.isArray(value) ? value : (value?.records || []);
 const showValue = value => value === null || value === undefined ? '待确认' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
 const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false, agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
+Object.assign(state,{schoolEpoch:0,schoolBusy:false,schoolResult:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});
 const statusNames = {pass:['满足','success'],fail:['不满足','danger'],satisfied:['满足','success'],unsatisfied:['不满足','danger'],pending:['待确认','warning'],unknown:['待确认','warning'],valid:['可行','success'],invalid:['不满足','danger'],passed:['满足','success'],failed:['不满足','danger'],needs_confirmation:['待确认','warning'],not_applicable:['不适用',''],candidate_pending_human_review:['待审核','warning']};
 function statusBadge(result) {const [name, cls] = statusNames[result] || [showValue(result),'']; return `<span class="badge ${cls}">${esc(name)}</span>`;}
 function notice(text, kind = 'warning'){return `<div class="notice ${kind}"><span class="notice-icon" aria-hidden="true">${kind === 'success' ? '✓' : 'ⓘ'}</span><p>${esc(text)}</p></div>`;}
 function message(text, error = false) {const element = $('#global-status'); element.textContent=text; element.className=`status-message${error?' error':''}`; element.hidden=false;}
 function clearMessage() {$('#global-status').hidden=true;}
 function identityKey(identity){return identity?JSON.stringify([identity.student_id,identity.security_realm,identity.auth_mode]):null;}
+function isSchoolIdentity(){return state.auth?.authenticated===true&&state.auth.identity?.auth_mode==='school_client'&&state.auth.identity?.security_realm==='personal_school_client';}
+function clearSchoolWorkspace(){state.schoolEpoch+=1;if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);Object.assign(state,{schoolBusy:false,schoolResult:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});}
 function clearAgentConversation(){state.agentEpoch+=1;Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
-  clearAgentConversation();state.agentStatus=null;
+  clearAgentConversation();clearSchoolWorkspace();state.agentStatus=null;
   Object.assign(state,{mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],agentHistory:[],agentHistoryError:'',agentHistoryHasMore:false,selected:0,dirty:false,busy:false});
   $$('.tab-panel').forEach(panel=>{panel.innerHTML='';panel.hidden=true;});
   $('#mode-badge').textContent='合成演示';$('#mode-badge').className='badge synthetic';$('#session-control').hidden=true;
@@ -22,19 +25,22 @@ function clearWorkspace() {
 }
 function renderAuth() {
   const auth=state.auth || {};const authenticated=auth.authenticated===true;
-  $('.nav-tabs').hidden=!authenticated;$('#session-control').hidden=!authenticated;$('#conversation-sidebar').hidden=!authenticated;
+  $('.nav-tabs').hidden=!authenticated;$('#session-control').hidden=!authenticated;$('#conversation-sidebar').hidden=!authenticated||isSchoolIdentity();$('#tab-school').hidden=!isSchoolIdentity();$('#tab-saved').hidden=isSchoolIdentity();
   $('#auth-panel').hidden=authenticated;
-  if(authenticated){$('#logout').setAttribute('aria-label',`退出 ${auth.identity?.name || '合成学生'}`);return;}
+  if(authenticated){$('#logout').setAttribute('aria-label',`退出 ${auth.identity?.name || '当前账号'}`);return;}
+  const schoolEnabled=auth.school_client_enabled===true;const badge=$('#mode-badge');
+  badge.textContent=schoolEnabled?(auth.mock_enabled?'登录入口':'本人教务'):(auth.mock_enabled?'合成演示':'未登录');badge.className=auth.mock_enabled&&!schoolEnabled?'badge synthetic':'badge';
   $$('.tab-panel').forEach(panel=>panel.hidden=true);
-  $('#auth-panel').innerHTML=`<div class="auth-card"><h1>${auth.mock_enabled?'进入合成演示':'学校登录未接入'}</h1>${auth.mock_enabled?`<div class="auth-profile-list">${(auth.mock_profiles||[]).map(profile=>`<button class="button primary" data-action="mock-login" data-profile-id="${esc(profile.profile_id)}" ${state.busy?'disabled':''}>${esc(profile.name)}</button>`).join('')}</div>`:notice('学校认证和个人学业数据源尚未接入。')}</div>`;
+  $('#auth-panel').innerHTML=`<div class="auth-card"><h1>${auth.school_client_enabled?'登录教务账号':auth.mock_enabled?'进入合成演示':'学校登录未接入'}</h1>${auth.school_client_enabled?`${notice('通过学校统一认证登录，仅在本机读取本人教务资料。密码不会保存。','neutral')}${schoolCredentialForm(false)}`:''}${auth.mock_enabled?`<div class="auth-profile-list">${(auth.mock_profiles||[]).map(profile=>`<button class="button primary" data-action="mock-login" data-profile-id="${esc(profile.profile_id)}" ${state.busy?'disabled':''}>${esc(profile.name)}</button>`).join('')}</div>`:!auth.school_client_enabled?notice('学校认证和个人学业数据源尚未接入。'):''}</div>`;
+  bindSchoolCredentialForm(false);
 }
 async function request(path, body, expectedEpoch) {
   const options={cache:'no-store',credentials:'same-origin'};
   if(body!==undefined){options.method='POST';options.headers={'Content-Type':'application/json'};if(state.csrfToken)options.headers['X-CSRF-Token']=state.csrfToken;options.body=JSON.stringify(body);}
   const response=await fetch(path,options);
   if(!response.ok){let detail;const raw=await response.text();try{detail=JSON.parse(raw);}catch{detail={error:raw};}
-    if(response.status===401&&(expectedEpoch===undefined||expectedEpoch===state.agentEpoch)){clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();}
-    const error=new Error(detail.error?.message || detail.error || detail.message || `请求失败（${response.status}）`);error.code=detail.code;error.status=response.status;throw error;
+    if(response.status===401&&path!=='/api/auth/school-login'&&(expectedEpoch===undefined||expectedEpoch===state.agentEpoch)){clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();}
+    const error=new Error(detail.error?.message || detail.error || detail.message || `请求失败（${response.status}）`);error.code=detail.code||detail.status;error.status=response.status;error.challengeId=detail.challenge_id;throw error;
   }
   return response;
 }
@@ -83,7 +89,7 @@ const agentExamples=[
   {label:'保留体育，周五必须空闲',draft:'保留已经确认的体育安排，将周五尽量空闲改为周五必须空闲。请重新计算并说明还剩哪些合成课表。'},
   {label:'比较方案，再换课',draft:'请比较本轮方案 A 和 B 的课程、模块贡献、兴趣依据和周五安排。随后我想在方案 A 中替换一门可选课程，请先说明可替换对象。'}
 ];
-function agentCanSend(){return state.auth?.authenticated===true&&state.agentStatus?.configured===true&&!state.agentBusy&&!state.agentActionBusy&&!state.busy&&!state.agentHistoryLoadBusy&&!state.agentHistoryPending&&(!state.agentStatus.remote||state.agentConsent)&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
+function agentCanSend(){return state.auth?.authenticated===true&&!isSchoolIdentity()&&state.agentStatus?.configured===true&&!state.agentBusy&&!state.agentActionBusy&&!state.busy&&!state.agentHistoryLoadBusy&&!state.agentHistoryPending&&(!state.agentStatus.remote||state.agentConsent)&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
 const recommendationTools=['recommend_my_courses','revise_my_recommendation'];
 function agentPlans(result){return [...(result.plans||[]),...(result.pending_plans||[])];}
 function agentRunId(result){return result.run_id||agentPlans(result).find(plan=>plan.run_id)?.run_id;}
@@ -253,6 +259,10 @@ function renderAgentTurns(){
 }
 function renderAssistant() {
   const panel=$('#panel-assistant');if(!state.boot){panel.innerHTML='';return;}
+  if(isSchoolIdentity()){
+    panel.innerHTML=`<div class="assistant-workspace"><section class="agent-dialogue">${pageHeading('选课助手','本人教务资料已与合成演示分开。')}${notice('真实课表推荐尚未就绪。请先在“我的教务”读取并核对成绩、课表、考试和培养方案；当前不会把个人资料发送给模型。','neutral')}<button class="button primary" data-action="show-school">查看我的教务</button></section><section class="dialogue-composer"><label for="agent-draft" class="agent-draft-label">选课需求</label><textarea id="agent-draft" rows="3" placeholder="真实推荐能力接入后可在这里表达需求" disabled></textarea><div class="agent-compose-footer"><span class="badge warning">真实推荐待接入</span><button id="agent-send" class="button primary" disabled aria-disabled="true">发送</button></div></section></div>`;
+    return;
+  }
   const status=state.agentStatus;const configured=status?.configured===true;
   const busy=state.agentBusy||state.agentActionBusy||state.agentHistoryLoadBusy;
   panel.innerHTML=`<div class="assistant-workspace"><section class="agent-dialogue" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section><section class="dialogue-composer"><form id="agent-draft-form"><label for="agent-draft" class="agent-draft-label">选课需求</label><textarea id="agent-draft" rows="3" maxlength="2000" placeholder="告诉我你的修读目标和时间偏好…" ${busy?'disabled':''}></textarea><div class="agent-compose-footer">${configured&&status.remote?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${busy?'disabled':''}><span>允许向 ${esc(status.provider||'远程模型')} 发送合成测试需求${status.allow_reference_text?'和参考片段':''}</span></label>`:configured?'<span></span>':'<span class="badge warning">模型未配置</span>'}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></form></section></div>`;
@@ -267,6 +277,7 @@ function renderAgentHistory(){
   $('#new-agent-conversation').disabled=disabled;
 }
 async function refreshAgentHistory(){
+  if(isSchoolIdentity())return;
   if(!state.auth?.authenticated)return;
   const epoch=state.agentEpoch;state.agentHistoryLoading=true;state.agentHistoryError='';renderAgentHistory();
   try{
@@ -278,6 +289,7 @@ async function refreshAgentHistory(){
   finally{if(epoch===state.agentEpoch){state.agentHistoryLoading=false;renderAgentHistory();}}
 }
 async function loadAgentConversation(identifier){
+  if(isSchoolIdentity())return;
   if(state.agentBusy||state.agentActionBusy||state.agentHistoryLoadBusy)return;
   clearAgentConversation();const epoch=state.agentEpoch;state.agentHistoryLoadBusy=true;renderAssistant();renderAgentHistory();clearMessage();
   try{
@@ -295,6 +307,7 @@ async function loadAgentConversation(identifier){
 
 function updateAgentSend(){const button=$('#agent-send');if(button){button.disabled=!agentCanSend();button.setAttribute('aria-disabled',String(!agentCanSend()));}}
 async function refreshAgentStatus(){
+  if(isSchoolIdentity())return;
   const epoch=state.agentEpoch;
   try{const status=await api('/api/chat/status',undefined,epoch);if(epoch===state.agentEpoch){if(JSON.stringify([state.agentStatus?.provider,state.agentStatus?.model,state.agentStatus?.remote,state.agentStatus?.allow_reference_text])!==JSON.stringify([status.provider,status.model,status.remote,status.allow_reference_text]))state.agentConsent=false;state.agentStatus=status;}}
   catch(error){if(epoch===state.agentEpoch)state.agentStatus={configured:false,reason:error.message};}
@@ -398,6 +411,7 @@ async function previewCurrentConditions() {
 function renderPlanning() {
   const panel=$('#panel-planning');
   if(!state.boot)return;
+  if(isSchoolIdentity()){panel.innerHTML=notice('真实课表规划待培养要求与当期教学班数据核验。');return;}
   if(state.mode==='source') {panel.innerHTML=pageHeading('选课规划','先确认适用资料，再规划当期教学班。')+dataNotice()+`<div class="empty-state"><div class="empty-glyph" aria-hidden="true">▦</div><h2>真实规划待本人数据源接入</h2><p>本应用原交接包的真实教学班模板为 0 条，不能据此推断学校没有开课。真实规划还需要本人适用方案、学业及认定记录、目标学期和完整教学班快照。</p><button class="button primary" data-action="switch-demo">体验合成演示</button><button class="button" data-action="show-sources">查看原始资料</button></div>`;return;}
   const constraints=state.constraints; const locked=new Set(constraints.locked_section_ids || []); const required=new Set(constraints.requested_course_ids || []); const preloaded=new Set(constraints.preloaded_section_ids || []);
   const frozen=Boolean(state.loadedSaved);
@@ -502,9 +516,11 @@ function renderComparison(comparison) {
   return `<section class="section-container comparison-panel" aria-label="方案比较"><div class="section-title-bar"><div><h2>${frozen?'冻结保存版本比较':'当前方案比较'}</h2><p>${esc(comparison.note || '按当前同一组输入重新校验。')}</p></div></div>${frozen&&comparison.different_input_versions?notice('各保存版的输入版本不同。下表分别呈现历史结果，不能作为同条件排名。'):''}<div class="table-wrap"><table class="data-table"><thead><tr><th>比较项</th>${entries.map((entry,index)=>`<th>${esc(label(entry,index))}</th>`).join('')}</tr></thead><tbody>${metricRow('校验结果',entry=>statusBadge(entry.plan.validation?.result || 'unknown'))}${metricRow('预计修读学分',entry=>esc(showValue(planCredits(entry.plan))))}${metricRow('周五上课时段',entry=>esc(showValue(entry.plan.validation?.preference_scores?.friday_meeting_count)))}${metricRow('教学班组合',entry=>(entry.plan.section_ids||[]).map(id=>esc(id)).join('<br>'))}${metricRow(frozen?'锁定条件':'相对方案 A 的班次变化',(entry,index)=>frozen?esc((entry.constraints?.locked_section_ids||[]).join('、')||'无'):index===0?'比较基准':`新增 ${esc((comparison.differences?.[index]?.added_section_ids||[]).join('、')||'无')}<br>移除 ${esc((comparison.differences?.[index]?.removed_section_ids||[]).join('、')||'无')}`)}${frozen?metricRow('数据与偏好版本',entry=>`快照 ${esc(entry.versions?.offering_snapshot||'待确认')}<br>条件版本 ${esc(showValue(entry.versions?.constraints_revision))}`):''}</tbody></table></div>${!frozen&&comparison.ranking?.length?`<p class="table-caption">按校验结果及周五软偏好排序：${comparison.ranking.map(index=>esc(planName(null,index))).join(' → ')}。个人选择仍需核对详细依据。</p>`:''}<details class="comparison-details"><summary>查看比较依据与版本</summary><pre>${esc(JSON.stringify(comparison,null,2))}</pre></details></section>`;
 }
 function renderSaved() {
+  if(isSchoolIdentity()){$('#panel-saved').innerHTML=notice('真实推荐与保存能力尚未接入。');return;}
   $('#panel-saved').innerHTML=`<div class="page-heading"><h1>已保存</h1><button class="button small" data-action="refresh-saved">刷新</button></div>${state.saved.length?[...state.saved].sort((left,right)=>right.saved_id-left.saved_id).map(saved=>{const plan=saved.plan||saved;return `<article class="saved-entry"><div class="saved-entry-header"><h2>课表 #${esc(saved.saved_id)}</h2>${statusBadge(plan.validation?.result||'unknown')}</div><details class="saved-preview"><summary>查看课表</summary>${agentPlanTable(plan,saved.constraints||{})}${agentCheckList(plan.validation?.checks)}</details>${agentExportMenu('export-saved',saved.saved_id,!state.agentActionBusy)}</article>`;}).join(''):'<p class="agent-empty">还没有保存的课表。</p>'}`;
 }
 async function exportSaved(savedId,format){
+  if(isSchoolIdentity())return;
   if(state.agentActionBusy||!state.saved.some(saved=>saved.saved_id===Number(savedId)))return;
   const epoch=state.agentEpoch;state.agentActionBusy=true;renderSaved();updateAgentSend();
   try{
@@ -518,11 +534,14 @@ async function exportSaved(savedId,format){
 }
 
 async function refreshAudit(){try{const result=await api('/api/audit',{mode:state.mode});if(state.mode==='demo')state.audit=result;else state.sourceAudit=result;renderAudit();}catch(error){message(error.message,true);}}
-async function refreshSaved(){const epoch=state.agentEpoch;try{const saved=await api('/api/saved',undefined,epoch);if(epoch===state.agentEpoch){state.saved=savedRows(saved);renderSaved();}}catch(error){if(epoch===state.agentEpoch)message(error.message,true);}}
+async function refreshSaved(){if(isSchoolIdentity())return;const epoch=state.agentEpoch;try{const saved=await api('/api/saved',undefined,epoch);if(epoch===state.agentEpoch){state.saved=savedRows(saved);renderSaved();}}catch(error){if(epoch===state.agentEpoch)message(error.message,true);}}
 function switchTab(tab) {
+  if(isSchoolIdentity()&&!['assistant','school'].includes(tab))tab='assistant';
+  if(tab==='school'&&!isSchoolIdentity())tab='assistant';
   state.tab=tab;if(tab==='assistant')renderAssistant();$$('.nav-tab').forEach(button=>{const selected=button.dataset.tab===tab;button.classList.toggle('active',selected);button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
   $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==`panel-${tab}`);
   if(tab==='audit'&&!(state.mode==='demo'?state.audit:state.sourceAudit))refreshAudit();
+  if(tab==='school')renderSchool();
 }
 async function changeMode(mode) {state.mode=mode;const badge=$('#mode-badge');badge.textContent=mode==='demo'?'合成演示':'待审核资料';badge.className=`badge ${mode==='demo'?'synthetic':'warning'}`;clearMessage();renderAssistant();renderPlanning();renderAudit();if(state.tab==='audit'&&!(mode==='demo'?state.audit:state.sourceAudit))await refreshAudit();}
 async function savePlan() {
@@ -557,11 +576,12 @@ async function refreshWorkspace(expectedEpoch) {
   const boot=await api('/api/bootstrap',undefined,expectedEpoch);
   if(expectedEpoch!==undefined&&expectedEpoch!==state.agentEpoch)return;
   if(state.boot?.identity && identityKey(state.boot.identity)!==identityKey(boot.identity)){
-    clearAgentConversation();
+    clearAgentConversation();clearSchoolWorkspace();
     state.agentHistory=[];state.agentHistoryError='';state.agentHistoryHasMore=false;renderAgentHistory();
   }
   state.boot=boot;state.constraints=clone(state.boot.demo?.constraints || {});state.saved=savedRows(state.boot.saved_plans || []);
   if(state.auth)state.auth.identity=state.boot.identity;
+  if(isSchoolIdentity()){state.schoolStatus=boot.school||{};state.agentStatus=boot.chat||{configured:false,reason:'real_recommendation_not_ready'};$('#mode-badge').textContent='本人教务';$('#mode-badge').className='badge';}
 }
 function resetCurrentPlan(){state.loadedSaved=null;state.lastConstraints=null;state.generated=null;state.comparison=null;state.audit=null;state.dirty=false;state.selected=0;}
 async function importBundle() {
@@ -583,12 +603,99 @@ async function compareSaved() {
   try{state.savedComparison=await api('/api/compare',{saved_ids:state.compareSavedIds});renderSaved();message('已比较所选本人冻结版本；不同输入版本不会作为同条件排名。');}catch(error){message(error.message,true);}
 }
 async function useCurrent(){resetCurrentPlan();await refreshWorkspace();await changeMode('demo');renderSaved();message('已返回本人当前工作区；历史冻结版本保留。');}
+const schoolOperationNames={profile:'本人资料',academic:'课程成绩',major_academic:'主修成绩（全部修读记录）',timetable:'我的课表',exams:'考试安排'};
+const schoolStatusNames={ok:'已读取',complete:'已读取',complete_within_scope:'本次范围已读取',partial:'部分读取',partial_unknown:'部分读取，覆盖待确认',ready:'会话有效',connected:'会话有效',authenticated:'会话有效',live:'本次查询',historical_cache:'历史缓存',acquired_pending_review:'已获取，内容待核验',cached:'已缓存',unknown:'待确认',captcha_required:'需要验证码',interactive_verification_required:'需要学校交互验证',source_session_expired:'教务会话已失效',authentication_required:'需要重新登录',awaiting_user_login:'需要重新登录',auth_expired:'需要重新登录',user_confirmation_required:'需要本人确认',not_configured:'尚未配置',profile_fields_missing:'适用范围信息缺失',plan_missing:'尚未取得方案',plan_not_found:'未找到对应方案',plan_ambiguous:'方案匹配不唯一',no_match:'未找到对应方案',ambiguous:'方案匹配不唯一'};
+Object.assign(schoolStatusNames,{invalid_credentials:'学校未接受登录凭据',schema_changed:'学校响应格式尚未适配',identity_not_observed:'学校已返回资料但未确认本人身份',route_not_confirmed:'学校接口尚未确认',source_unavailable:'学校连接暂不可用',permission_denied:'学校拒绝本次访问',source_subject_changed:'学校返回的本人身份已变化',source_epoch_changed:'学校会话已变化',source_generation_changed:'学校会话已变化',partial_acquisition:'已读取，覆盖范围待确认',ambiguous_plan:'方案匹配不唯一'});
+function schoolStatusText(status){return Object.hasOwn(schoolStatusNames,status)?schoolStatusNames[status]:'未完成或待确认';}
+function schoolCoverageText(result){
+  const coverage=result.coverage&&typeof result.coverage==='object'&&!Array.isArray(result.coverage)?result.coverage:{};
+  const count=coverage.captured_rows,total=coverage.reported_total;
+  const countKnown=Number.isInteger(count)&&count>=0,totalKnown=Number.isInteger(total)&&total>=0;
+  const conflict=countKnown&&totalKnown&&(count>total||coverage.complete_within_scope===true&&count!==total)||coverage.complete_within_scope===true&&coverage.has_more===true;
+  const completeness=conflict?'完整性待确认':coverage.has_more===true?'还有未读取内容':coverage.complete_within_scope===true?'已完整读取当前查询范围':'完整性待确认';
+  return `${countKnown?'本次读取 '+count+' 条':'读取条数待确认'} · ${completeness}`;
+}
+function schoolCaptureTime(value){
+  const millis=typeof value==='number'&&Number.isFinite(value)?value*1000:typeof value==='string'&&value.trim()?Date.parse(value):NaN;
+  if(!Number.isFinite(millis))return '待确认';const date=new Date(millis);if(!Number.isFinite(date.getTime()))return '待确认';
+  return date.toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+}
+function schoolCredentialForm(reauth){const prefix=reauth?'school-reauth':'school-login';return `<form id="${prefix}-form" class="school-login-form"><div class="field"><label for="${prefix}-username">学号</label><input id="${prefix}-username" name="username" type="text" autocomplete="username" maxlength="64" required ${state.busy||state.schoolBusy?'disabled':''}></div><div class="field"><label for="${prefix}-password">密码</label><input id="${prefix}-password" name="password" type="password" autocomplete="off" maxlength="256" required ${state.busy||state.schoolBusy?'disabled':''}></div>${state.schoolChallengeId?`${notice('请重新输入学号、密码，并填写学校验证码。')}${state.schoolCaptchaUrl?`<img class="school-captcha" src="${esc(state.schoolCaptchaUrl)}" alt="学校登录验证码">`:''}<div class="field"><label for="${prefix}-captcha">验证码</label><input id="${prefix}-captcha" type="text" autocomplete="off" pattern="[A-Za-z0-9]{1,16}" maxlength="16" required ${state.busy||state.schoolBusy?'disabled':''}></div>`:''}<button class="button primary" type="submit" ${state.busy||state.schoolBusy?'disabled':''}>${state.busy||state.schoolBusy?'正在登录…':reauth?'重新验证当前账号':'登录'}</button></form>`;}
+function acceptSchoolLoginChallenge(result){
+  state.schoolChallengeId=null;if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);state.schoolCaptchaUrl=null;
+  if(typeof result.challenge_id!=='string'||result.challenge_id.length>128||!['image/png','image/jpeg','image/gif'].includes(result.captcha?.content_type)||typeof result.captcha.data_base64!=='string'||result.captcha.data_base64.length>2800000)return;
+  try{const bytes=Uint8Array.from(atob(result.captcha.data_base64),char=>char.charCodeAt(0));if(!bytes.length||bytes.length>2*1024*1024)return;state.schoolCaptchaUrl=URL.createObjectURL(new Blob([bytes],{type:result.captcha.content_type}));state.schoolChallengeId=result.challenge_id;}catch{/* Invalid challenge images are not displayed. */}
+}
+function bindSchoolCredentialForm(reauth){const form=$(`#${reauth?'school-reauth':'school-login'}-form`);form?.addEventListener('submit',event=>{event.preventDefault();schoolLogin(reauth);});}
+async function schoolLogin(reauth=false){
+  if(state.busy||state.schoolBusy||reauth&&!isSchoolIdentity())return;
+  const prefix=reauth?'school-reauth':'school-login';const passwordField=$(`#${prefix}-password`);const username=$(`#${prefix}-username`).value.trim();let password=passwordField.value;passwordField.value='';
+  if(!username||!password){message('请输入学号和密码。',true);password='';return;}
+  const captchaText=state.schoolChallengeId?$(`#${prefix}-captcha`).value.trim():null;if(state.schoolChallengeId)$(`#${prefix}-captcha`).value='';
+  const epoch=state.schoolEpoch,agentEpoch=state.agentEpoch,owner=identityKey(state.auth?.identity);state.busy=true;if(reauth)renderSchool();else renderAuth();
+  try{
+    const payload={username,password};if(state.schoolChallengeId){payload.challenge_id=state.schoolChallengeId;payload.captcha_text=captchaText;}
+    const pending=api(reauth?'/api/school/reauthenticate':'/api/auth/school-login',payload,agentEpoch);password='';payload.password='';const result=await pending;
+    if(epoch!==state.schoolEpoch||owner!==identityKey(state.auth?.identity))return;
+    if(result.authenticated===true||reauth&&['ok','ready'].includes(result.status)){
+      if(reauth){state.schoolReauth=false;state.schoolChallengeId=null;state.schoolPending=null;state.schoolStatus=result;message('当前账号已重新验证，请重新查询。');}
+      else{clearWorkspace();state.auth={...state.auth,authenticated:true,identity:result.identity};state.csrfToken=result.csrf_token;await bootstrap();message('已登录，可在“我的教务”读取本人资料。');}
+    }else{acceptSchoolLoginChallenge(result);message(schoolStatusText(result.status||result.state)+'，请核对学校认证状态后重试。',true);}
+  }catch(error){if(epoch===state.schoolEpoch&&owner===identityKey(state.auth?.identity)){acceptSchoolLoginChallenge({});message(Object.hasOwn(schoolStatusNames,error.code)?schoolStatusText(error.code)+'，请核对学校认证状态后重试。':'学校认证未完成，请核对账号、密码或学校验证要求后重试。',true);}}
+  finally{password='';if(epoch===state.schoolEpoch){state.busy=false;if(reauth)renderSchool();else renderAuth();}}
+}
+function schoolRecordTable(result){
+  const operation=result.operation||state.schoolOperation;
+  const records=Array.isArray(result.records)?result.records:result.profile?[result.profile]:operation==='profile'&&result.name?[result]:[];
+  const columns=operation==='profile'?[['name','姓名'],['source_subject_id','学号'],['cohort','入学年份'],['college_name','学院'],['major_name','专业'],['major_or_category_raw','类（专业）'],['program','培养项目'],['study_path_raw','修读路径']]:operation==='timetable'?[['course_code_raw','课程代码'],['course_name_raw','课程'],['instructor_raw','教师'],['time_raw','上课时间'],['place_raw','地点'],['formal_enrollment_status','中选状态']]:operation==='exams'?[['course_name_raw','课程'],['final_exam_time_raw','期末时间'],['final_exam_place_raw','期末地点'],['midterm_exam_time_raw','期中时间'],['midterm_exam_place_raw','期中地点']]:[['course_code_raw','课程代码'],['course_name_raw','课程'],['grade_raw','成绩'],['nominal_credits','来源学分'],['completion_status_raw','修读状态']];
+  return records.length?`<div class="table-wrap"><table class="data-table school-data-table"><caption>${esc(schoolOperationNames[operation]||'教务资料')} · ${records.length} 条</caption><thead><tr>${columns.map(([,label])=>`<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${records.map(record=>`<tr>${columns.map(([key])=>`<td>${esc(record[key]==='unknown'?'待确认':showValue(record[key]))}${['pending_verification','conflicting'].includes(record.field_states?.[key])?'<small class="muted">待核验</small>':''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="inline-empty">本次未返回可展示记录；这不表示没有课程或考试。</p>';
+}
+function renderSchool(){
+  const panel=$('#panel-school');if(!isSchoolIdentity()){panel.innerHTML='';return;}
+  const result=state.schoolResult,plan=state.schoolPlan,busy=state.schoolBusy||state.busy;
+  panel.innerHTML=pageHeading('我的教务','通过当前账号直接查询学校数据。缺失信息保留待确认。',`<button class="button small" data-action="school-status" ${busy?'disabled':''}>检查会话</button>`)+`${state.schoolStatus?`<p class="field-help">会话：${esc(schoolStatusText(state.schoolStatus.status||state.schoolStatus.source_status||state.schoolStatus.personal_data_source_status))}</p>`:''}<form id="school-query-form" class="school-query-form"><div class="field"><label for="school-operation">查询内容</label><select id="school-operation" ${busy?'disabled':''}>${Object.entries(schoolOperationNames).map(([key,label])=>`<option value="${key}" ${state.schoolOperation===key?'selected':''}>${label}</option>`).join('')}</select></div><div class="field"><label for="school-year">学年</label><input id="school-year" type="text" inputmode="numeric" value="${esc(state.schoolYear)}" placeholder="2026-2027" pattern="[0-9]{4}-[0-9]{4}" required ${busy||['profile','major_academic'].includes(state.schoolOperation)?'disabled':''}></div><div class="field"><label for="school-season">学期</label><select id="school-season" ${busy||['profile','major_academic'].includes(state.schoolOperation)?'disabled':''}>${Object.entries({AW:'秋冬',A:'秋',W:'冬',SS:'春夏',S:'春',SU:'夏'}).map(([key,label])=>`<option value="${key}" ${state.schoolSeason===key?'selected':''}>${label}</option>`).join('')}</select></div><button type="submit" class="button primary" ${busy?'disabled':''}>${busy?'正在读取…':'读取最新数据'}</button></form><p class="field-help">${state.schoolOperation==='major_academic'?'主修成绩查询全部修读记录，不按学期筛选。':'考试需选择单独分学期。'}课程数据更新暂未执行。</p>${result?`<section class="school-result" aria-live="polite"><h2>${esc(schoolOperationNames[result.operation]||'本次查询')} · ${esc(schoolStatusText(result.status))}</h2><p class="field-help">${result.data_source==='historical_cache'?'历史缓存':result.data_source==='live'?'本次学校查询':'来源状态待确认'} · ${esc(schoolCoverageText(result))} · 读取时间：${esc(schoolCaptureTime(result.captured_at))}</p>${schoolRecordTable(result)}${result.row_failures?.length||result.issues?.length?notice('部分行或字段未能确认，请保留待核验状态。'):''}${notice('来源成绩和课程安排保留原意，尚未据此判定已获学分、正式中选或毕业资格。','neutral')}</section>`:''}${state.schoolNeedsCaptcha?`<section class="school-verification"><h2>学校验证码</h2>${state.schoolCaptchaUrl?`<img class="school-captcha" src="${esc(state.schoolCaptchaUrl)}" alt="学校图片验证码">`:'<p>验证码图片尚未载入。</p>'}<form id="school-captcha-form"><label for="school-captcha-text">验证码</label><div class="button-group"><input id="school-captcha-text" type="text" autocomplete="off" pattern="[A-Za-z0-9]{1,16}" maxlength="16" required ${busy?'disabled':''}><button class="button primary" ${busy?'disabled':''}>提交并重试查询</button><button type="button" class="button" data-action="school-captcha-refresh" ${busy?'disabled':''}>换一张</button></div></form></section>`:''}${state.schoolReauth?`<section class="school-verification"><h2>重新登录教务</h2><p class="field-help">请验证当前账号。切换账号请先退出。</p>${schoolCredentialForm(true)}</section>`:''}<section class="school-plan"><div class="toolbar"><h2>对应培养方案</h2><button class="button" data-action="school-plan" ${busy?'disabled':''}>按本人资料获取</button></div><p class="field-help">以学校返回的入学年份、学院和专业查询；匹配不明确时保留待确认。</p>${plan?`<p>${esc(schoolStatusText(plan.status))}</p>${plan.missing_fields?.length?notice('适用范围信息缺失：'+plan.missing_fields.map(field=>({cohort:'入学年份',college:'学院',college_name:'学院',major:'专业',major_name:'专业',category:'类（专业）',major_or_category_raw:'类（专业）',program:'培养项目',path:'修读路径',study_path_raw:'修读路径'}[field]||'待确认字段')).join('、')):''}${plan.source_alias?`<button class="button small" data-action="school-plan-document" data-source-alias="${esc(plan.source_alias)}" ${busy?'disabled':''}>下载本机方案 PDF</button>`:''}<p class="field-help">PDF 获取成功后仍需核验适用范围及培养要求，当前不用于自动推荐。</p>`:''}</section>`;
+  $('#school-query-form').addEventListener('submit',event=>{event.preventDefault();schoolSync();});
+  $('#school-operation').addEventListener('change',event=>{state.schoolOperation=event.target.value;state.schoolYear=$('#school-year').value;state.schoolSeason=$('#school-season').value;renderSchool();});
+  $('#school-captcha-form')?.addEventListener('submit',event=>{event.preventDefault();submitSchoolCaptcha();});bindSchoolCredentialForm(true);
+}
+function currentSchoolRequest(){return {epoch:state.schoolEpoch,agentEpoch:state.agentEpoch,owner:identityKey(state.auth?.identity)};}
+function sameSchoolRequest(capture){return capture.epoch===state.schoolEpoch&&capture.owner===identityKey(state.auth?.identity)&&isSchoolIdentity();}
+async function schoolFailure(status,capture,pending){
+  if(!sameSchoolRequest(capture))return;
+  if(['captcha_required','verification_required'].includes(status)){state.schoolNeedsCaptcha=true;state.schoolPending=pending;await loadSchoolCaptcha(capture);}
+  else if(['source_session_expired','authentication_required','awaiting_user_login','auth_expired'].includes(status)){state.schoolReauth=true;state.schoolResult=null;state.schoolPlan=null;state.schoolPending=null;state.schoolNeedsCaptcha=false;acceptSchoolLoginChallenge({});}
+  else if(['source_subject_changed','source_epoch_changed','source_generation_changed','permission_denied'].includes(status)){state.schoolResult=null;state.schoolPlan=null;state.schoolPending=null;state.schoolNeedsCaptcha=false;acceptSchoolLoginChallenge({});message('本人来源或访问权限已变化，请退出后重新登录。',true);return;}
+  message(schoolStatusText(status)+'，请完成页面提示后重试。',true);
+}
+async function schoolSync(){
+  if(!isSchoolIdentity()||state.schoolBusy||state.busy)return;
+  const operation=$('#school-operation').value;const year=$('#school-year').value.trim(),season=$('#school-season').value;
+  if(!['profile','major_academic'].includes(operation)&&(!/^\d{4}-\d{4}$/.test(year)||Number(year.slice(5))!==Number(year.slice(0,4))+1)){message('学年请填写连续年份，例如 2026-2027。',true);return;}
+  if(operation==='exams'&&!['A','W','S','SU'].includes(season)){message('考试查询请选择单独分学期。',true);return;}
+  Object.assign(state,{schoolOperation:operation,schoolYear:year,schoolSeason:season,schoolBusy:true,schoolResult:null});const capture=currentSchoolRequest();renderSchool();
+  const pending={operation,target_term:operation==='major_academic'?'ALL-HISTORY':year+'-'+season,force_refresh:true};
+  try{const result=operation==='profile'?await api('/api/school/profile',undefined,capture.agentEpoch):await api('/api/school/sync',pending,capture.agentEpoch);if(!sameSchoolRequest(capture))return;if(['captcha_required','source_session_expired','authentication_required','awaiting_user_login','auth_expired','verification_required'].includes(result.status))await schoolFailure(result.status,capture,pending);else{state.schoolResult={...result,operation};clearMessage();}}
+  catch(error){await schoolFailure(error.code,capture,pending);}finally{if(sameSchoolRequest(capture)){state.schoolBusy=false;renderSchool();}}
+}
+async function loadSchoolCaptcha(capture=currentSchoolRequest()){
+  if(!isSchoolIdentity())return;
+  try{const response=await request('/api/school/captcha',undefined,capture.agentEpoch);const blob=await response.blob();if(!sameSchoolRequest(capture))return;if(!['image/png','image/jpeg','image/gif'].includes(blob.type))throw Error('invalid image');if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);state.schoolCaptchaUrl=URL.createObjectURL(blob);state.schoolNeedsCaptcha=true;renderSchool();}catch{if(sameSchoolRequest(capture))message('验证码图片读取失败，请重试。',true);}
+}
+async function submitSchoolCaptcha(){
+  if(!isSchoolIdentity()||state.schoolBusy)return;const text=$('#school-captcha-text').value.trim();$('#school-captcha-text').value='';if(!text)return;
+  const capture=currentSchoolRequest();state.schoolBusy=true;renderSchool();
+  try{const result=await api('/api/school/captcha',{text},capture.agentEpoch);if(!sameSchoolRequest(capture))return;if(['captcha_required','verification_required'].includes(result.status))await schoolFailure(result.status,capture,state.schoolPending);else{state.schoolNeedsCaptcha=false;if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);state.schoolCaptchaUrl=null;state.schoolResult={...result,operation:result.operation||state.schoolPending?.operation};state.schoolPending=null;message('已提交学校验证码。');}}
+  catch(error){await schoolFailure(error.code,capture,state.schoolPending);}finally{if(sameSchoolRequest(capture)){state.schoolBusy=false;renderSchool();}}
+}
+async function refreshSchoolStatus(){if(!isSchoolIdentity()||state.schoolBusy)return;const capture=currentSchoolRequest();try{const result=await api('/api/school/status',undefined,capture.agentEpoch);if(sameSchoolRequest(capture)){state.schoolStatus=result;renderSchool();}}catch(error){await schoolFailure(error.code,capture,null);}}
+async function acquireSchoolPlan(){if(!isSchoolIdentity()||state.schoolBusy||state.busy)return;const capture=currentSchoolRequest();state.schoolBusy=true;state.schoolPlan=null;renderSchool();try{const result=await api('/api/school/plan',{force_refresh:false},capture.agentEpoch);if(sameSchoolRequest(capture)){if(['captcha_required','source_session_expired','authentication_required','awaiting_user_login','auth_expired'].includes(result.status))await schoolFailure(result.status,capture,{operation:'plan'});else state.schoolPlan=result;}}catch(error){await schoolFailure(error.code,capture,{operation:'plan'});}finally{if(sameSchoolRequest(capture)){state.schoolBusy=false;renderSchool();}}}
+async function downloadSchoolPlan(alias){if(!isSchoolIdentity()||state.schoolBusy||alias!==state.schoolPlan?.source_alias)return;const capture=currentSchoolRequest();state.schoolBusy=true;renderSchool();try{const response=await request('/api/school/plan-document',{source_alias:alias},capture.agentEpoch);const blob=await response.blob();if(!sameSchoolRequest(capture))return;const url=URL.createObjectURL(blob);const anchor=document.createElement('a');anchor.href=url;anchor.download='curriculum-plan.pdf';document.body.append(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(error){await schoolFailure(error.code,capture,null);}finally{if(sameSchoolRequest(capture)){state.schoolBusy=false;renderSchool();}}}
 async function mockLogin(profileId) {
   if(state.busy)return;state.busy=true;renderAuth();
   try{const result=await api('/api/auth/mock-login',{profile_id:profileId});clearWorkspace();state.auth={...state.auth,authenticated:true,identity:result.identity};state.csrfToken=result.csrf_token;await bootstrap();clearMessage();}catch(error){message(error.message,true);}finally{state.busy=false;renderAuth();}
 }
 async function logout() {
-  clearAgentConversation();state.busy=true;renderAssistant();
+  clearAgentConversation();clearSchoolWorkspace();state.busy=true;renderAssistant();if(isSchoolIdentity())renderSchool();
   try{await api('/api/auth/logout',{});clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();clearMessage();message('已退出，服务端会话已撤销。');}catch(error){message(error.message,true);}finally{state.busy=false;renderAssistant();}
 }
 async function bootstrap() {
@@ -598,11 +705,11 @@ async function bootstrap() {
     if(state.auth?.identity && identityKey(state.auth.identity)!==identityKey(session.identity))clearWorkspace();
     state.auth=session;
     if(!state.auth.authenticated){clearWorkspace();renderAuth();$('#loading').hidden=true;return;}
-    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();renderAudit();renderSources();renderSaved();switchTab(state.tab);await refreshAgentHistory();$('#loading').hidden=true;
+    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();if(!isSchoolIdentity())await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();if(!isSchoolIdentity()){renderAudit();renderSources();}renderSaved();renderSchool();switchTab(state.tab);if(!isSchoolIdentity())await refreshAgentHistory();$('#loading').hidden=true;
   }catch(error){$('#loading').hidden=true;$('#boot-error').hidden=false;$('#boot-error-text').textContent=`${error.message}。请确认本地 Python 服务已启动，然后重试。`;}
 }
 $('.nav-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(button){clearMessage();switchTab(button.dataset.tab);}});
-$('.nav-tabs').addEventListener('keydown',event=>{if(!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const tabs=$$('.nav-tab');let index=tabs.indexOf(document.activeElement);if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else index=(index+(event.key==='ArrowRight'||event.key==='ArrowDown'?1:-1)+tabs.length)%tabs.length;switchTab(tabs[index].dataset.tab);tabs[index].focus();});
+$('.nav-tabs').addEventListener('keydown',event=>{if(!['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Home','End'].includes(event.key))return;event.preventDefault();const tabs=$$('.nav-tab').filter(tab=>!tab.hidden);let index=tabs.indexOf(document.activeElement);if(event.key==='Home')index=0;else if(event.key==='End')index=tabs.length-1;else index=(index+(event.key==='ArrowRight'||event.key==='ArrowDown'?1:-1)+tabs.length)%tabs.length;switchTab(tabs[index].dataset.tab);tabs[index].focus();});
 $('#retry-bootstrap').addEventListener('click',bootstrap);
 $('#logout').addEventListener('click',logout);
 $('#panel-saved').addEventListener('change',event=>{
@@ -614,6 +721,11 @@ $('.app-shell').addEventListener('click',async event=>{
   const button=event.target.closest('[data-action]');if(!button||button.disabled)return;
   switch(button.dataset.action){
     case'mock-login':await mockLogin(button.dataset.profileId);break;
+    case'show-school':switchTab('school');break;
+    case'school-status':await refreshSchoolStatus();break;
+    case'school-captcha-refresh':await loadSchoolCaptcha();break;
+    case'school-plan':await acquireSchoolPlan();break;
+    case'school-plan-document':await downloadSchoolPlan(button.dataset.sourceAlias);break;
     case'new-agent-conversation':if(state.agentBusy||state.agentActionBusy)break;clearAgentConversation();clearMessage();switchTab('assistant');renderAgentHistory();break;
     case'load-agent-conversation':await loadAgentConversation(button.dataset.conversationId);break;
     case'refresh-agent-history':await refreshAgentHistory();break;

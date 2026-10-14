@@ -1,0 +1,138 @@
+{
+  "schema": "school-direct-acceptance/1",
+  "recorded_at_utc": "2026-10-14T06:10:32.485411+00:00",
+  "git_base": "1a5788eed71f74b6526e3661f77b1fe6932af7bc",
+  "engineering": {
+    "ran": 720,
+    "passed": 720,
+    "skipped": 0,
+    "source_hashes_match": true,
+    "protocol": 53,
+    "account_service": 38,
+    "loopback_http_app": 10,
+    "web_contract": 50,
+    "remote_model_called": false,
+    "source_files_checked": 76,
+    "failures": 0,
+    "errors": 0
+  },
+  "browser": {
+    "school_transport": "explicit_synthetic_fixture",
+    "status": "verified",
+    "checks": [
+      "login_subject_from_authenticated_profile",
+      "school_bootstrap_without_mock_or_model",
+      "own_profile_unknown_fields_preserved",
+      "academic_render",
+      "major_all_history_and_disabled_term_controls",
+      "timetable_unknown_schedule_preserved",
+      "exam_combined_term_rejected_and_single_term_render",
+      "on_demand_cohort_2023_plan_pending_review",
+      "pdf_download_bytes_hash_match",
+      "service_restart_invalidates_connection",
+      "logout_clears_results",
+      "account_b_has_no_account_a_results",
+      "readable_coverage_and_timestamp",
+      "school_only_anonymous_badge",
+      "plan_missing_field_labels"
+    ],
+    "screenshots_sha256": {
+      "school_direct_synthetic_20261014.jpg": "f750807df5e2441cbd7536d897176d021ac82d8eca2872145da4b999727bd02c",
+      "school_direct_login_20261014.jpg": "dd402cf3cf705148faa829d37736a0be3f6bd37f61ccc4347d272190bb4d1679",
+      "school_direct_authenticated_20261014.jpg": "42469d24073659e710b0a404d804cd9683badb659378703d007bb67a0304adde"
+    },
+    "synthetic_pdf": {
+      "bytes": 84,
+      "sha256": "fea905074a3d5d03732fa1adfdc95c21c00a7e8e9050294d76f5acd3951e406c",
+      "header_and_eof_valid": true,
+      "school_document": false
+    },
+    "actual_school_page": {
+      "status": "verified",
+      "transport": "shipping_standard_library_school_client",
+      "extension_or_pairing_used": false,
+      "screenshot": "school_direct_authenticated_20261014.jpg",
+      "screenshot_personal_body_present": false,
+      "checks": [
+        "authenticated_own_profile_login",
+        "target_academic_render",
+        "target_timetable_render",
+        "autumn_and_winter_exam_render",
+        "bounded_major_history_render",
+        "cohort_2023_on_demand_plan_pending_review",
+        "download_matches_private_immutable_pdf"
+      ]
+    }
+  },
+  "official_source": {
+    "anonymous_cas_captcha_status": "http_200_json_boolean",
+    "profile_route_method": "observed_official_menu_script_post_empty_form",
+    "direct_client_authenticated_login": "verified",
+    "actual_profile_dom": "paired_th_td_verified",
+    "direct_client_business_data": {
+      "profile": {
+        "rows": 1,
+        "identity_from_authenticated_response": true
+      },
+      "academic": {
+        "target_term": "2026-2027-AW",
+        "rows": 1,
+        "coverage": "complete_within_query_scope"
+      },
+      "timetable": {
+        "target_term": "2026-2027-AW",
+        "rows": 3,
+        "coverage": "partial_acquisition",
+        "missing_schedule_fields_preserved": true
+      },
+      "exams": [
+        {
+          "target_term": "2026-2027-A",
+          "rows": 2,
+          "coverage": "complete_within_query_scope"
+        },
+        {
+          "target_term": "2026-2027-W",
+          "rows": 2,
+          "coverage": "complete_within_query_scope"
+        }
+      ],
+      "exam_empty_dates_preserved": true,
+      "major_academic": {
+        "target_term": "ALL-HISTORY",
+        "pages": 3,
+        "rows": 60,
+        "coverage": "partial_acquisition",
+        "has_unread_content": true
+      }
+    },
+    "direct_client_plan_pdf": {
+      "status": "acquired_pending_review",
+      "cohort": 2023,
+      "candidate_count": 1,
+      "bytes": 48518,
+      "sha256": "08a7ec27eb5492f6ca728d440eed7aa3a1a4555f1233ffa7f46b46a862792cf6",
+      "header_and_eof_valid": true,
+      "download_matches_private_version": true,
+      "binding": "not_verified",
+      "rules": "not_reviewed",
+      "body_public": false
+    },
+    "captcha_and_expiry_live_validation": "engineering_fixture_only",
+    "user_field_review": "pending",
+    "whole_school_acceptance": "not_complete",
+    "previous_browser_observations": "separate_prior_evidence"
+  },
+  "delivery": {
+    "local_school_entry": "http://127.0.0.1:18875/",
+    "extensions_required": false,
+    "pairing_required": false,
+    "credential_and_school_cookie_persistence": false,
+    "real_recommendation": "not_ready",
+    "course_data_updates": "not_run",
+    "current_iteration_committed": false,
+    "current_iteration_pushed": false,
+    "packaged": false,
+    "deployed": false
+  }
+}

@@ -259,6 +259,18 @@ pre { max-width: 100%; overflow: auto; padding: 14px; background: var(--surface)
 .auth-card { padding: 24px 0; }
 .auth-card p { margin-top: 14px; }
 .auth-profile-list { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+.school-login-form { display: grid; gap: 18px; max-width: 380px; margin-top: 24px; }
+.school-login-form .button { justify-self: start; }
+.school-query-form { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; margin-top: 24px; }
+.school-query-form .field { flex: 1 1 140px; }
+.school-query-form input, .school-query-form select, .school-login-form input, .school-verification input { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.school-verification { margin: 24px 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); }
+.school-verification form { margin-top: 16px; }
+.school-verification .button-group input { flex: 1 1 140px; width: auto; }
+.school-captcha { display: block; max-width: 100%; max-height: 100px; margin-top: 16px; }
+.school-result, .school-plan { margin-top: 32px; }
+.school-data-table caption { padding: 12px 0; text-align: left; color: var(--muted); }
+.school-data-table small { display: block; }
 .empty-state { padding: 36px 0; }
 .empty-state p { margin-top: 12px; color: var(--muted); }
 .empty-state .button { margin-top: 20px; }
