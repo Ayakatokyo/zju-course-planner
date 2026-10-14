@@ -130,9 +130,36 @@
     "credential_and_school_cookie_persistence": false,
     "real_recommendation": "not_ready",
     "course_data_updates": "not_run",
-    "current_iteration_committed": false,
-    "current_iteration_pushed": false,
+    "current_iteration_committed": true,
+    "current_iteration_pushed": true,
     "packaged": false,
-    "deployed": false
+    "deployed": false,
+    "implementation_head": "f13479194f6fe14c804c9c46814367efb9d5a498",
+    "implementation_commits": [
+      "a7102030616d0f7fb9aaee4b9f7994a8c88547c2",
+      "f13479194f6fe14c804c9c46814367efb9d5a498"
+    ],
+    "push_evidence": "git_push_porcelain_done",
+    "supplement_commit_locator": "git log -1 -- docs/开发交接摘要_20261014_学校直接接入与教务界面待完善.md"
+  },
+  "user_feedback": {
+    "recorded_on": "2026-10-14",
+    "timezone": "Asia/Shanghai",
+    "accounts_tested_by_user": 2,
+    "login_and_data_lookup": "user_reported_success",
+    "scope": "user_login_and_lookup_feedback_not_complete_field_or_product_acceptance",
+    "personal_values_in_public_receipt": false
+  },
+  "ui_followup": {
+    "implementation_in_this_archive_turn": false,
+    "items": [
+      "academic_year_dropdown",
+      "reduce_small_print_and_improve_hierarchy",
+      "timetable_grid_safe_linebreaks_and_transcript_pagination",
+      "diagnose_unknown_field_provenance",
+      "review_query_navigation_dimensions"
+    ],
+    "private_user_screenshots_preserved": 4,
+    "user_screenshots_in_git": false
   }
 }
