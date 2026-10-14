@@ -195,16 +195,42 @@ class SyntheticSchool:
         self.owner = None
 
 
+class SyntheticClockReferenceSchool(SyntheticSchool):
+    """Exercise published clock references with no source clock response."""
+
+    def request(self, spec):
+        response = super().request(spec)
+        if spec["operation"] != "timetable" or response.get("state") != "business":
+            return response
+        payload = response["payload"]
+        payload["period_times"] = []
+        payload["period_times_source"] = {"state": "not_available", "page_path":
+                                          "/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html"}
+        for row in payload["kbList"]:
+            if row.get("skdd"):
+                row["skdd"] = "合成紫金港 " + row["skdd"]
+            for meeting in row.get("meetings", []):
+                if meeting.get("place_raw"):
+                    meeting["place_raw"] = "合成紫金港 " + meeting["place_raw"]
+            if row["kch"] == "SYNTHETIC-TT-06":
+                row["sksj"] = "周四第11-13节{1-15周(单)}"
+                row["meetings"][0].update(periods=[11, 12, 13], time_raw=row["sksj"])
+        return response
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=18876)
+    parser.add_argument("--clock-reference", action="store_true",
+                        help="use synthetic main-campus places and no source clocks")
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("port must be between 1 and 65535")
     with tempfile.TemporaryDirectory(prefix="synthetic-school-ui-") as directory:
         root = Path(directory).resolve()
         app = Application(root / "app.sqlite3", mock_enabled=False,
-                          model=NoOutboundModel(), school_client_factory=SyntheticSchool,
+                          model=NoOutboundModel(), school_client_factory=(SyntheticClockReferenceSchool
+                              if args.clock_reference else SyntheticSchool),
                           school_root=root / "private" / "school_accounts")
         try:
             server = ThreadingHTTPServer(("127.0.0.1", args.port), make_handler(app))

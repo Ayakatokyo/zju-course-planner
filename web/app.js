@@ -721,6 +721,34 @@ function schoolPeriodTimes(result){
   }
   return times;
 }
+const schoolMainCampusClockReference=Object.freeze({
+  urls:Object.freeze({
+    '2025-2026':'https://ism.zju.edu.cn/_upload/article/files/19/cc/f1e962aa41b79062691319510e3f/92a3bd16-7bde-4c69-a522-8c6134fb2bf4.pdf',
+    '2026-2027':'https://ugrs.zju.edu.cn/_upload/article/files/28/cc/ce06b4d9483eb58be317e94a7749/eeeb30e1-336a-4d3f-8aca-5890d2cc2ac4.pdf'
+  }),
+  times:Object.freeze(['08:00–08:45','08:50–09:35','10:00–10:45','10:50–11:35','11:40–12:25','13:25–14:10','14:15–15:00','15:05–15:50','16:15–17:00','17:05–17:50','18:50–19:35','19:40–20:25','20:30–21:15'])
+});
+function schoolCampusLocationText(value){
+  return schoolPlainText(value,'').replace(/&#(?:x([0-9a-f]{1,6})|([0-9]{1,7}));/gi,(entity,hex,decimal)=>{
+    const point=parseInt(hex||decimal,hex?16:10);return point>=32&&point<=0x10ffff&&!(point>=0xd800&&point<=0xdfff)?String.fromCodePoint(point):entity;
+  });
+}
+function schoolPeriodTimeDisplay(result){
+  if(result.operation!=='timetable')return {times:new Map(),origin:'none'};
+  const times=schoolPeriodTimes(result);if(times.size)return {times,origin:'school_page'};
+  const none={times,origin:'none'},term=typeof result.target_term==='string'?result.target_term.match(/^(\d{4}-\d{4})-(AW|SS)$/):null,year=term?.[1],url=year?schoolMainCampusClockReference.urls[year]:null;
+  if(!url||result.period_times_source?.state==='known')return none;
+  const locations=[];
+  for(const record of Array.isArray(result.records)?result.records:[]){
+    if(!record||typeof record!=='object')continue;
+    for(const value of [record,...(Array.isArray(record.meetings)?record.meetings:[])]){
+      if(value&&typeof value==='object'&&typeof value.place_raw==='string'&&schoolHasDisplayField(value,'place_raw'))locations.push(schoolCampusLocationText(value.place_raw));
+    }
+  }
+  if(!locations.some(value=>/紫金港|玉泉|西溪|华家池|之江/.test(value))||locations.some(value=>/海宁|国际校区|工程师学院|义乌|舟山|宁波/.test(value)))return none;
+  return {times:new Map(schoolMainCampusClockReference.times.map((time,index)=>[index+1,time])),origin:'public_reference',reference_year:year,reference_url:url};
+}
+function schoolPeriodReferenceLink(display){return `<a href="${esc(display.reference_url)}" target="_blank" rel="noopener noreferrer">节次时间参考${esc(display.reference_year.replace('-','–'))}校历（校本部）</a>`;}
 function schoolNumberSet(value){
   return Array.isArray(value)&&value.length>0&&value.length<=200&&value.every(item=>Number.isSafeInteger(item)&&item>0)?[...new Set(value)].sort((left,right)=>left-right):[];
 }
@@ -830,7 +858,7 @@ function schoolTimetableSourceMarkup(records){
 function schoolTimetableMarkup(result){
   const records=Array.isArray(result?.records)?result.records.filter(record=>record&&typeof record==='object'):[];
   if(!records.length)return '<p class="inline-empty">本次未返回可展示课表；这不表示没有课程。</p>';
-  const items=schoolTimetableMeetings(result),located=items.filter(item=>item.weekday&&item.periods.length),pending=items.filter(item=>!item.weekday||!item.periods.length),periodTimes=schoolPeriodTimes(result);
+  const items=schoolTimetableMeetings(result),located=items.filter(item=>item.weekday&&item.periods.length),pending=items.filter(item=>!item.weekday||!item.periods.length),periodDisplay=schoolPeriodTimeDisplay(result),periodTimes=periodDisplay.times;
   const allPeriods=[...new Set(located.flatMap(item=>item.periods))].sort((left,right)=>left-right);
   const periodRows=allPeriods.at(-1)<=30?Array.from({length:allPeriods.at(-1)||0},(_,index)=>index+1):allPeriods;
   const cells=dayNames.slice(1).map((_,index)=>periodRows.map(period=>located.filter(item=>item.weekday===index+1&&item.periods.includes(period))));
@@ -841,7 +869,7 @@ function schoolTimetableMarkup(result){
     let span=1;while(rowIndex+span<periodRows.length&&periodRows[rowIndex+span]===period+span&&key===dayCells[rowIndex+span].map(item=>item.id).join(','))span+=1;
     return `<td rowspan="${span}" class="school-timetable-occupied" data-weekday="${dayIndex+1}" data-period="${period}"><div class="school-timetable-cell">${matches.map(item=>schoolMeetingMarkup(item)).join('')}</div></td>`;
   }).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="inline-empty">本次课表尚无可定位到星期和节次的时段。</p>';
-  return `<div class="school-timetable-view"><p class="school-timetable-summary">${records.length}条课表记录 · 已定位${located.length}个时段${pending.length?` · 未排入课表${pending.length}个时段`:''}</p>${table}<p class="school-timetable-note">按返回时段展示，已有周次及分学期分别保留；空格不表示空闲。</p>${pending.length?`<section class="school-timetable-pending"><h3>未排入课表的课程</h3><div class="school-timetable-pending-list">${pending.map(item=>schoolMeetingMarkup(item,true)).join('')}</div></section>`:''}${schoolTimetableSourceMarkup(records)}</div>`;
+  return `<div class="school-timetable-view"><p class="school-timetable-summary">${records.length}条课表记录 · 已定位${located.length}个时段${pending.length?` · 未排入课表${pending.length}个时段`:''}</p>${table}${located.length&&periodDisplay.origin==='public_reference'?`<p class="school-timetable-note">${schoolPeriodReferenceLink(periodDisplay)}</p>`:''}<p class="school-timetable-note">按返回时段展示，已有周次及分学期分别保留；空格不表示空闲。</p>${pending.length?`<section class="school-timetable-pending"><h3>未排入课表的课程</h3><div class="school-timetable-pending-list">${pending.map(item=>schoolMeetingMarkup(item,true)).join('')}</div></section>`:''}${schoolTimetableSourceMarkup(records)}</div>`;
 }
 const schoolOperationNames={profile:'本人资料',academic:'学期成绩',major_academic:'主修历史',timetable:'我的课表',exams:'考试安排'};
 const schoolStatusNames={ok:'已读取',complete:'已读取',complete_within_scope:'本次范围已读取',partial:'部分读取',partial_unknown:'部分读取，覆盖待确认',ready:'会话有效',connected:'会话有效',authenticated:'会话有效',live:'本次查询',historical_cache:'历史缓存',acquired_pending_review:'已获取，内容待核验',cached:'已缓存',unknown:'待确认',captcha_required:'需要验证码',interactive_verification_required:'需要学校交互验证',source_session_expired:'教务会话已失效',authentication_required:'需要重新登录',awaiting_user_login:'需要重新登录',auth_expired:'需要重新登录',user_confirmation_required:'需要本人确认',not_configured:'尚未配置',profile_fields_missing:'适用范围信息缺失',plan_missing:'尚未取得方案',plan_not_found:'未找到对应方案',plan_ambiguous:'方案匹配不唯一',no_match:'未找到对应方案',ambiguous:'方案匹配不唯一'};
@@ -967,7 +995,8 @@ function schoolResultDetails(result){
   const diagnostics=schoolFieldEvidenceMarkup(result);
   const exams=Array.isArray(result.related_exam_sources)?result.related_exam_sources:[];
   const examSource=exams.length?`<p>课内考试来自对应分学期的“考试安排”，按学校选课课号精确关联，仅显示本次已取得且可匹配的记录。</p>${exams.some(source=>source.sync_state!=='acquired')?'<p>部分考试安排未同步，请到“考试”页查询。</p>':''}`:'';
-  const clockSource=operation==='timetable'&&schoolPeriodTimes(result).size?`<p>节次起止时间来自本次读取的学校课表页面：<code>${esc(result.period_times_source.page_path)}</code>。</p>`:'';
+  const periodDisplay=schoolPeriodTimeDisplay(result);
+  const clockSource=periodDisplay.origin==='school_page'?`<p>节次起止时间来自本次读取的学校课表页面：<code>${esc(result.period_times_source.page_path)}</code>。</p>`:periodDisplay.origin==='public_reference'?`<p>${schoolPeriodReferenceLink(periodDisplay)}；这是公开作息参考，非本次课表接口返回值。</p>`:'';
   return `<details class="school-source-details"><summary>数据来源与读取说明</summary><p>${esc(explanation)}</p>${examSource}${clockSource}${diagnostics?`<details><summary>字段结构诊断</summary>${diagnostics}</details>`:''}${['academic','major_academic'].includes(operation)?'<p>筛选和翻页仅浏览本次已读取记录，不会继续获取学校未读取的记录。</p>':''}${result.row_failures?.length||result.issues?.length?'<p>部分记录或字段未能读取，展示仅限可用来源值。</p>':''}${schoolCaptureTime(result.captured_at)!=='待确认'?`<p>读取时间：${esc(schoolCaptureTime(result.captured_at))}</p>`:''}</details>`;
 }
 function schoolFieldEvidenceMarkup(result){

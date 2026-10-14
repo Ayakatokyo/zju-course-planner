@@ -252,6 +252,47 @@ context.result.period_times=original;context.result.period_times_source.state='u
 delete context.result.period_times_source;delete context.result.period_times;assert.doesNotMatch(evaluate('schoolTimetableMarkup(result)'),/school-period-clock|08:05|09:00/);
 """)
 
+    def test_main_campus_reference_includes_verified_nighttime_and_explicit_source(self):
+        self.run_js(r"""
+context.result={operation:'timetable',target_term:'2025-2026-AW',records:[{course_name_raw:'合成课',place_raw:'合成地点（紫金港校区）',field_states:{place_raw:'known'},meetings:[{weekday:1,periods:[1,10,11,12,13]}]}]};
+assert.equal(evaluate('schoolPeriodTimes(result).size'),0);assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(1)'),'08:00–08:45');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(10)'),'17:05–17:50');
+assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(11)'),'18:50–19:35');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(12)'),'19:40–20:25');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(13)'),'20:30–21:15');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.has(14)'),false);
+const markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/08:00–08:45/);assert.match(markup,/17:05–17:50/);assert.match(markup,/节次时间参考2025–2026校历（校本部）/);assert.match(markup,/https:\/\/ism.zju.edu.cn\//);
+assert.match(markup,/class="school-timetable-period">11<br><small class="school-period-clock">18:50–19:35/);assert.match(markup,/19:40–20:25/);assert.match(markup,/20:30–21:15/);assert.doesNotMatch(markup,/18:30/);const details=evaluate('schoolResultDetails(result)');assert.match(details,/公开作息参考，非本次课表接口返回值/);assert.doesNotMatch(details,/来自本次读取的学校课表页面/);
+""")
+
+    def test_main_campus_reference_requires_matching_semester_and_known_place_evidence(self):
+        self.run_js(r"""
+context.result={operation:'timetable',target_term:'2025-2026-SS',records:[{place_raw:'合成玉泉校区地点',field_states:{place_raw:'known'}}]};assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');
+for(const term of ['2026-2027-AW','2026-2027-SS']){context.result.target_term=term;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');assert.equal(evaluate('schoolPeriodTimeDisplay(result).reference_year'),'2026-2027');assert.match(evaluate('schoolPeriodTimeDisplay(result).reference_url'),/^https:\/\/ugrs.zju.edu.cn\//);assert.match(evaluate('schoolResultDetails(result)'),/节次时间参考2026–2027校历（校本部）/);}
+for(const term of ['2024-2025-AW','2027-2028-SS','2025-2026-A','2025-2026-W',undefined]){context.result.target_term=term;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');}
+context.result.target_term='2025-2026-AW';
+for(const campus of ['紫金港','玉泉','西溪','华家池','之江']){context.result.records=[{meetings:[{place_raw:`合成${campus}地点`,field_states:{place_raw:'known'}}]}];assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');}
+const encoded='&#x7d2b;&#x91d1;&#x6e2f;&lt;br&gt;合成地点';context.result.records=[{place_raw:encoded,field_states:{place_raw:'known'}}];assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');assert.equal(context.result.records[0].place_raw,encoded);
+context.result.records.push({place_raw:'&#28023;&#23425;国际校区合成地点',field_states:{place_raw:'known'}});assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');
+for(const campus of ['海宁国际校区','国际校区','工程师学院','义乌','舟山','宁波']){context.result.records=[{place_raw:'合成紫金港地点'},{meetings:[{place_raw:`合成${campus}地点`,field_states:{place_raw:'known'}}]}];assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');}
+for(const records of [[{place_raw:null}],[{place_raw:'合成未知地点'}],[{place_raw:'合成紫金港地点',field_states:{place_raw:'unknown'}}],[{place_raw:'合成玉泉地点',field_states:{place_raw:'conflicting'}}],[{course_name_raw:'合成玉泉课程',major_name:'合成紫金港专业',source_subject_id:'SYNTHETIC-玉泉'}]]){context.result.records=records;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');}
+context.result.records=[{place_raw:'合成紫金港地点'}];context.result.reference_url='https://example.invalid/caller-override.pdf';assert.match(evaluate('schoolPeriodTimeDisplay(result).reference_url'),/^https:\/\/ism.zju.edu.cn\//);assert.equal(evaluate('Object.isFrozen(schoolMainCampusClockReference.urls)'),true);
+for(const operation of ['academic','major_academic','profile','exams',undefined]){context.result.operation=operation;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');assert.doesNotMatch(evaluate('schoolResultDetails(result)'),/节次时间参考|节次起止时间/);}
+""")
+
+    def test_valid_page_times_take_priority_without_reference_gap_filling(self):
+        self.run_js(r"""
+context.result={operation:'timetable',target_term:'2025-2026-AW',records:[{place_raw:'合成紫金港地点',meetings:[{weekday:1,periods:[1,2,11]}]}],period_times_source:{state:'known',page_path:'/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html'},period_times:[{period:1,start_time:'08:05',end_time:'08:50'}]};
+assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'school_page');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.size'),1);assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.has(2)'),false);assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.has(11)'),false);
+const markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/08:05–08:50/);assert.doesNotMatch(markup,/08:00–08:45|08:50–09:35|18:50|节次时间参考/);const details=evaluate('schoolResultDetails(result)');assert.match(details,/来自本次读取的学校课表页面/);assert.doesNotMatch(details,/公开作息参考/);
+context.result.target_term='2026-2027-AW';context.result.records[0].place_raw='合成海宁地点';assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'school_page');
+""")
+
+    def test_known_invalid_page_times_do_not_silently_switch_to_public_reference(self):
+        self.run_js(r"""
+context.result={operation:'timetable',target_term:'2025-2026-AW',records:[{place_raw:'合成紫金港地点',meetings:[{weekday:1,periods:[1]}]}],period_times_source:{state:'known',page_path:'/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html'}};
+for(const values of [null,[],[{period:1,start_time:'25:00',end_time:'25:45'}],[{period:1,start_time:'08:05',end_time:'08:50'},{period:1,start_time:'08:00',end_time:'08:45'}]]){
+ context.result.period_times=values;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');assert.doesNotMatch(evaluate('schoolTimetableMarkup(result)'),/school-period-clock|节次时间参考/);
+}
+context.result.period_times=[{period:1,start_time:'08:05',end_time:'08:50'}];context.result.period_times_source.page_path='/unverified-page';assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');
+""")
+
     def test_rowspans_preserve_grid_positions_when_overlap_members_change(self):
         self.run_js(r"""
 const markup=evaluate(`schoolTimetableMarkup({records:[

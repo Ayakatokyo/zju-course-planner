@@ -1,0 +1,46 @@
+{
+  "schema": "school-public-clock-reference-review/1",
+  "reviewed_at_utc": "2026-10-14T13:55:27.441534+00:00",
+  "urls": {
+    "2025-2026": "https://ism.zju.edu.cn/_upload/article/files/19/cc/f1e962aa41b79062691319510e3f/92a3bd16-7bde-4c69-a522-8c6134fb2bf4.pdf",
+    "2026-2027": "https://ugrs.zju.edu.cn/_upload/article/files/28/cc/ce06b4d9483eb58be317e94a7749/eeeb30e1-336a-4d3f-8aca-5890d2cc2ac4.pdf"
+  },
+  "primary_2026_publisher": "https://ugrs.zju.edu.cn/2026/0710/c28218a3187939/page.htm",
+  "primary_2026_pdf_sha256": "d4287c6a04cdeefb3c9154a7748a519141c449e5e694d98a75d97d33be11e674",
+  "primary_2026_pages_visually_checked": [
+    1,
+    2
+  ],
+  "2023_primary_corroboration": "https://ugrs.zju.edu.cn/2023/0616/c28218a2773722/page.htm",
+  "2025_corroboration": "official_university_calendar_republished_by_ISM_and_user_provided_first_eight_periods",
+  "times": [
+    "08:00–08:45",
+    "08:50–09:35",
+    "10:00–10:45",
+    "10:50–11:35",
+    "11:40–12:25",
+    "13:25–14:10",
+    "14:15–15:00",
+    "15:05–15:50",
+    "16:15–17:00",
+    "17:05–17:50",
+    "18:50–19:35",
+    "19:40–20:25",
+    "20:30–21:15"
+  ],
+  "scope": {
+    "years": [
+      "2025-2026",
+      "2026-2027"
+    ],
+    "terms": [
+      "AW",
+      "SS"
+    ],
+    "main_campus_place_evidence_required": true,
+    "explicit_special_campus_places_excluded": true
+  },
+  "meaning": "display_reference_not_personal_school_api_metadata_or_executable_calendar",
+  "inference_boundary": "2025 main-campus applicability is corroborated by 2023/2026 primary tables and user-provided daytime values; the 2025 full PDF is published by ISM, not a captured personal API response",
+  "personal_values_or_paths": false
+}
