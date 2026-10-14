@@ -1,0 +1,47 @@
+{
+  "schema": "school-time-window-archive/1",
+  "date": "2026-10-15",
+  "timezone": "Asia/Shanghai",
+  "work_window": "2026-10-14 15:00–20:30",
+  "scope": "第46–48节：教务界面、字段投影、空项精简、考试关联与学校页面时刻读取",
+  "assembly": "按功能边界从最终工作区拆分过渡版本；不是伪造提交时间或把过渡树冒称历史源码快照",
+  "snapshot_match": {
+    "clock/web/app.js": true,
+    "clock/web/styles.css": true,
+    "fields/web/app.js": false,
+    "fields/web/styles.css": true,
+    "fields/tests/test_school_timetable_web.py": false,
+    "fields/validation/run_school_ui_fixture.py": true
+  },
+  "validation": {
+    "current_archive_snapshot_tests": 786,
+    "passed": 786,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "log": "validation/school_ingestion_window1_20261015_tests.txt",
+    "previous_acceptance_files": "school_ui / school_fields / school_visible_fields 为历史轮次证据，源码摘要各自独立"
+  },
+  "staged_sensitive_paths": [],
+  "obvious_credentials_findings": [],
+  "source_sha256": {
+    "browser/student_source_connector/core.js": "09d84016037b4507eacac8002af5479fc9b23d2f8ae6eab0b861c1be31d44a23",
+    "course_assistant/school_accounts.py": "0adb7dcf73c5c7e27a7c4066f35b383d51c509d27c3a27472e3b504e54d2714c",
+    "course_assistant/school_http.py": "e54ae80f9b5f35dba059925615ce50bfdfb93b4295b50241005257edb1c529fe",
+    "course_assistant/school_period_times.py": "17cb3b2ba484e99b0c74eac11638a2b12708b72577d81278e2f793db27d9d71d",
+    "course_assistant/student_source_client.py": "04c2e4fca7369aff38f4e202a6439b5b41b9ff1275c5f930b5a2593c9a264803",
+    "course_assistant/student_source_parsers.py": "0486922311b281ed671bc9461fac32e47fdb38bbc419cd4a7722f7f061f3ec3b",
+    "course_assistant/student_sources.py": "b6e4e325afef274519caf56d4b0a034473e11474b8baf46ba4fcb4be6b6104c5",
+    "tests/test_school_accounts.py": "519724f3c97025a6babef33d3fd3ced7694a843820e26bfbe70437bf8ba7d9fa",
+    "tests/test_school_http.py": "d8be8e86eb1648e5980fc6683ac32f93ea467efd1e51fd44e841dbe3e43d2b04",
+    "tests/test_school_http_app.py": "f31ee37bd9801a1121176788153a434b20de8a2ca9148ea36eabac9a7f02802d",
+    "tests/test_school_period_times.py": "87d36f09f7cabe05c1b1fc1b7ae786b119d2db538497fa5a9386e2fa19d88648",
+    "tests/test_school_timetable_web.py": "8b83aaff563fd7ce927c0a29f9b40200b6acc16947a6889f20c3186790e83783",
+    "tests/test_student_source_client.py": "06e6001a9f1f9364247cb46d15a3f1589dc85f5f2dd0f6b990907e2604dcc07a",
+    "tests/test_student_source_parsers.py": "b577bd1439da51e52ccb685052bf3b15841d1c2c94eee0862f3e72b87f9ee0ad",
+    "tests/test_web_contract.py": "613e5e03d853590f5da52429cfa261527e143db11a210532ded8613b82bba5ed",
+    "validation/run_school_ui_fixture.py": "a4df5400f8c6d9aae0ffd6dedb9b05a44dc259a4c0deb065a3899638f1e457b3",
+    "web/app.js": "b394ec8a5b0d3c4a9597b214c14a1cb6ff2ceac8ed798ecec6c8429310059a7c",
+    "web/styles.css": "a0d738e28f2bb000ac98da3a9feb8ec5cc84758ae7f17bf0476b73ce9d7b7a37"
+  }
+}

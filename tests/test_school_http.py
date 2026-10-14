@@ -11,6 +11,7 @@ from urllib.parse import parse_qs, urlsplit
 from urllib.error import HTTPError, URLError
 
 from course_assistant.school_http import SchoolHTTPClient, SSO, SCHOOL, PROFILE_ROUTE, SERVICE, MENU, PLAN_MAJOR_OPTIONS, _Page
+from course_assistant.school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT
 
 
 class Response(io.BytesIO):
@@ -423,6 +424,26 @@ class SchoolHTTPTests(unittest.TestCase):
         self.assertEqual(parse_qs(request["body"].decode()), {"xn": ["2026-2027"], "xq": ["1"], "queryModel.currentPage": ["1"], "queryModel.showCount": ["20"]})
         self.assertNotIn("DO-NOT-RETURN", str(result))
 
+    def test_source_field_diagnostics_locate_projection_loss_without_source_values(self):
+        source = {"kbList": [{"kcmc": "SYNTHETIC-PRIVATE-COURSE", "sfqd": "1", "skdd": "SYNTHETIC-PRIVATE-PLACE",
+                              "jsmc": "SYNTHETIC-UNVERIFIED-ALIAS",
+                              "meetings": [{"cdmc": None, "xqj": 2, "sfqd": False}],
+                              "SYNTHETIC-UNKNOWN-KEY": "SYNTHETIC-SECRET"},
+                             {"kcmc": "SYNTHETIC-OTHER", "sfqd": "", "cdmc": ""}]}
+        self.client([Response(source), Response('<div>课表查询</div>')])
+        result = self.request("timetable")
+        self.assertEqual(result["state"], "business")
+        diagnostics = result["source_field_diagnostics"]
+        self.assertEqual((diagnostics["domain"], diagnostics["source"]["row_count"], diagnostics["source"]["meeting_count"]),
+                         ("timetable", 2, 1))
+        self.assertEqual(diagnostics["source"]["fields"]["skdd"], {"present": 1, "empty": 0, "types": {"string": 1}})
+        self.assertEqual(diagnostics["projection"]["fields"]["skdd"], diagnostics["source"]["fields"]["skdd"])
+        self.assertNotIn("jsmc", diagnostics["projection"]["fields"])
+        self.assertEqual(result["payload"]["kbList"][0]["skdd"], "SYNTHETIC-PRIVATE-PLACE")
+        self.assertEqual(diagnostics["source"]["fields"]["sfqd"], {"present": 3, "empty": 1, "types": {"string": 2, "boolean": 1}})
+        self.assertEqual(diagnostics["projection"]["fields"]["cdmc"], {"present": 2, "empty": 2, "types": {"null": 1, "string": 1}})
+        self.assertNotIn("SYNTHETIC", json.dumps(diagnostics))
+
     def test_actual_jqgrid_legacy_zero_page_alias_is_removed_only_with_current_page(self):
         for operation, term in (("academic", "2026-2027-AW"), ("major_academic", "ALL-HISTORY"), ("exams", "2026-2027-A")):
             with self.subTest(operation=operation):
@@ -448,10 +469,77 @@ class SchoolHTTPTests(unittest.TestCase):
                 self.assertNotIn("payload", result)
 
     def test_timetable_uses_actual_list_mode_and_combined_term(self):
-        self.client([Response({"kbList": [{"kcmc": "合成课", "kcb": "合成班", "xxq": "秋、冬"}]})])
+        self.client([Response({"kbList": [{"kcmc": "合成课", "kcb": "合成班", "xxq": "秋、冬"}]}), Response('<div>课表查询</div>')])
         result = self.request("timetable")
         self.assertEqual(result["state"], "business")
-        self.assertEqual(parse_qs(self.opener.requests[-1]["body"].decode()), {"xnm": ["2026-2027"], "xqm": ["1|秋、冬"], "xqmmc": ["秋、冬"], "xxqf": ["1"], "xsfs": ["1"]})
+        self.assertEqual(parse_qs(self.opener.requests[-2]["body"].decode()), {"xnm": ["2026-2027"], "xqm": ["1|秋、冬"], "xqmmc": ["秋、冬"], "xxqf": ["1"], "xsfs": ["1"]})
+        self.assertEqual(result["payload"]["period_times"], [])
+        self.assertEqual(result["payload"]["period_times_source"]["state"], "not_available")
+
+    def test_timetable_clock_reads_fixed_page_once_with_same_menu_context(self):
+        html = '<table><tr><th colspan="2">时间</th><th>星期一</th><th>星期二</th></tr><tr><td>1</td><td>07:10—07:55</td><td>合成课 考试13:00—14:00</td></tr></table>'
+        self.client([Response({"kbList": [{"kcmc": "合成课", "kcb": "合成班"}]}), Response(html)])
+        result = self.request("timetable")
+        self.assertEqual(result["state"], "business")
+        self.assertEqual(result["payload"]["period_times"], [{"period": 1, "start_time": "07:10", "end_time": "07:55"}])
+        clocks = [request for request in self.opener.requests if urlsplit(request["url"]).path == TIMETABLE_PAGE]
+        self.assertEqual(len(clocks), 1)
+        self.assertEqual(clocks[0]["method"], "GET")
+        self.assertIsNone(clocks[0]["body"])
+        self.assertEqual(parse_qs(urlsplit(clocks[0]["url"]).query), {"gnmkdm": ["N253508"], "su": ["SYNTHETIC-MENU-OPAQUE"]})
+        self.assertNotIn("SYNTHETIC-MENU-OPAQUE", str(result))
+        self.assertNotIn("13:00", str(result))
+
+    def test_optional_clock_failure_and_page_permission_preserve_successful_list(self):
+        cases = [(URLError('SYNTHETIC-NETWORK'), "source_unavailable"),
+                 (Response('x' * (PERIOD_PAGE_LIMIT + 1)), "schema_changed"),
+                 (Response('<div>无权访问</div>', status=403), "permission_denied"),
+                 (Response({"unrelated": []}), "schema_changed")]
+        for page, state in cases:
+            with self.subTest(state=state):
+                self.client([Response({"kbList": [{"kcmc": "合成课"}]}), page])
+                result = self.request("timetable")
+                self.assertEqual(result["state"], "business")
+                self.assertEqual(result["payload"]["kbList"], [{"kcmc": "合成课"}])
+                self.assertEqual(result["payload"]["period_times"], [])
+                self.assertEqual(result["payload"]["period_times_source"]["state"], state)
+                self.assertEqual(len([request for request in self.opener.requests if urlsplit(request["url"]).path == TIMETABLE_PAGE]), 1)
+
+    def test_clock_in_weekday_column_does_not_replace_empty_period_clock_cell(self):
+        html = '<table><tr><th colspan="2">时间</th><th>星期一</th><th>星期二</th></tr><tr><td>1</td><td></td><td>13:00—14:00</td></tr></table>'
+        self.client([Response({"kbList": [{"kcmc": "合成课"}]}), Response(html)])
+        result = self.request("timetable")
+        self.assertEqual(result["state"], "business")
+        self.assertEqual(result["payload"]["period_times"], [])
+        self.assertEqual(result["payload"]["period_times_source"]["state"], "not_available")
+        self.assertNotIn("13:00", str(result))
+
+    def test_clock_subject_change_and_challenge_do_not_return_business_records(self):
+        for page, state in ((Response('<input name="xh" value="SYNTHETIC-SOURCE-B">'), "source_subject_changed"),
+                            (Response('<input name="captcha_value"><label>验证码</label>'), "captcha_required")):
+            self.client([Response({"kbList": [{"kcmc": "合成课"}]}), page])
+            result = self.request("timetable")
+            self.assertEqual(result["state"], state)
+            self.assertNotIn("payload", result)
+
+    def test_clock_login_page_refresh_is_bounded_and_never_a_clock_source(self):
+        self.client([Response({"kbList": [{"kcmc": "合成课"}]}), Response(LOGIN)] + service_script() +
+                    [Response({"kbList": [{"kcmc": "合成课"}]})])
+        result = self.request("timetable")
+        self.assertEqual(result["state"], "business")
+        self.assertEqual(result["payload"]["period_times"], [])
+        self.assertEqual(result["payload"]["period_times_source"]["state"], "source_unavailable")
+        self.assertEqual(len([request for request in self.opener.requests if urlsplit(request["url"]).path == TIMETABLE_PAGE]), 1)
+
+    def test_revoked_epoch_during_clock_page_read_cannot_publish_earlier_business_rows(self):
+        def close_during_read(request):
+            self.http.close()
+            return Response('<table><tr><th colspan="2">时间</th><th>星期一</th><th>星期二</th></tr><tr><td>1</td><td>07:10—07:55</td></tr></table>')
+        self.client([Response({"kbList": [{"kcmc": "SYNTHETIC-PRIVATE-COURSE"}]}), close_during_read])
+        result = self.request("timetable")
+        self.assertEqual(result["state"], "source_session_expired")
+        self.assertNotIn("payload", result)
+        self.assertNotIn("SYNTHETIC-PRIVATE-COURSE", str(result))
 
     def test_exam_uses_single_season_actual_parameter_map(self):
         self.client([Response({"items": [{"kcmc": "合成课", "kssj": "未知", "xxq": "冬"}]})])
@@ -495,7 +583,7 @@ class SchoolHTTPTests(unittest.TestCase):
     def test_captcha_plain_json_and_image_remain_same_session(self):
         for challenge in (Response("captcha_error", content_type="text/plain"), Response({"msg": "验证码错误", "success": False})):
             with self.subTest(challenge=challenge):
-                self.client([challenge, Response(b"\x89PNG\r\n\x1a\nSYNTHETIC-IMAGE", content_type="image/png"), Response({"kbList": [{"kcmc": "合成课", "kcb": "合成班"}]})])
+                self.client([challenge, Response(b"\x89PNG\r\n\x1a\nSYNTHETIC-IMAGE", content_type="image/png"), Response({"kbList": [{"kcmc": "合成课", "kcb": "合成班"}]}), Response('<div>课表查询</div>')])
                 epoch = self.http.session_epoch
                 self.assertEqual(self.request("timetable")["state"], "captcha_required")
                 image = self.http.get_captcha()
@@ -503,7 +591,7 @@ class SchoolHTTPTests(unittest.TestCase):
                 self.assertEqual(self.http.submit_captcha("AB12")["state"], "captcha_submitted")
                 self.assertEqual(self.request("timetable")["state"], "business")
                 self.assertEqual(self.http.session_epoch, epoch)
-                self.assertEqual(parse_qs(self.opener.requests[-1]["body"].decode())["captcha_value"], ["AB12"])
+                self.assertEqual(parse_qs(self.opener.requests[-2]["body"].decode())["captcha_value"], ["AB12"])
 
     def test_login_challenge_does_not_keep_password_or_create_identity(self):
         opener = ScriptOpener([Response(LOGIN + '<label>滑块验证码</label>')])

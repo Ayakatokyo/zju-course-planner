@@ -19,6 +19,7 @@ import time
 from urllib.parse import urlsplit
 
 from .student_source_parsers import BUSINESS_FIELDS, PARSER_VERSION, MAPPING_VERSION, parse_payload
+from .school_period_times import validate_period_metadata
 
 REALM = "restricted_personal_reference"
 SCHEMA = "student-acquisition/1"
@@ -30,6 +31,20 @@ FAIL_STATES = STOP_STATES | {"source_unavailable", "schema_changed", "incomplete
 ALIAS = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 CREDENTIAL_VALUE = re.compile(r"(?i)(?:bearer\s+|(?:^|[?&;\s])(?:ticket|token|password|passwd|jsessionid|sessionid|cookie)\s*=|(?:cookie|set-cookie|authorization)\s*:|-----BEGIN .*PRIVATE KEY)")
 SUBJECT_FIELDS = {"source_subject_id", "student_number", "xh", "xhm", "学号"}
+# These names are diagnostic candidates, not parsing aliases or verified school
+# semantics. Unknown response keys and all source values stay out of diagnostics.
+DIAGNOSTIC_FIELDS = {
+    "academic": frozenset({"xnm", "xn", "xqm", "xq", "xnxq", "sftg", "sfzx", "row_status",
+                           "completion_status", "completion_status_raw", "recognition_status",
+                           "recognition_status_raw", "major_status", "major_status_raw"}),
+    "timetable": frozenset({"xnm", "xn", "xqm", "xq", "xxq", "sfqd", "sfxz", "sfzx",
+                            "cdmc", "jsmc", "skdd", "place_raw", "地点", "上课地点",
+                            "sksj", "time_raw", "kcb", "dsz", "xqj", "jcs", "djj", "skcd", "zcd"}),
+    "exams": frozenset({"xnm", "xn", "xqm", "xq", "xxq", "jsmc", "qzjsmc", "ksdd", "cdmc",
+                        "kssj", "qzkssj", "exam_status", "exam_status_raw"}),
+}
+DIAGNOSTIC_SCHEMA = "school-business-field-diagnostics/1"
+DIAGNOSTIC_TYPES = frozenset({"null", "string", "boolean", "number", "object", "array"})
 
 
 class StudentSourceError(ValueError):
@@ -100,7 +115,94 @@ def sanitize_payload(domain, payload):
             return value
         fail("invalid_capture")
 
-    return visit(payload), removed
+    projection = visit(payload)
+    if domain == "timetable" and ("period_times" in payload or "period_times_source" in payload):
+        try:
+            times, source = validate_period_metadata(payload.get("period_times"), payload.get("period_times_source"))
+        except ValueError:
+            fail("schema_changed")
+        projection.update(period_times=times, period_times_source=source)
+        removed -= int("period_times" in payload) + int("period_times_source" in payload)
+    return projection, removed
+
+
+def business_field_diagnostics(domain, source, projection):
+    """Count fixed business candidates before/after projection, without values.
+
+    This runs only for a successful, authenticated business response. It does
+    not preserve unknown key names, identities, request scope or source rows.
+    Counts cannot establish what a school status code means.
+    """
+    if domain not in DIAGNOSTIC_FIELDS:
+        fail("invalid_field_diagnostics")
+
+    def summary(payload):
+        rows = next((payload[key] for key in ("items", "records", "kbList")
+                     if isinstance(payload.get(key), list)), [])
+        fields, meeting_count = {}, 0
+
+        def count(row):
+            if not isinstance(row, dict):
+                return
+            for key in DIAGNOSTIC_FIELDS[domain]:
+                if key not in row:
+                    continue
+                value = row[key]
+                kind = ("null" if value is None else "boolean" if isinstance(value, bool)
+                        else "string" if isinstance(value, str) else "number" if isinstance(value, (int, float))
+                        else "object" if isinstance(value, dict) else "array" if isinstance(value, list) else None)
+                if kind is None:
+                    fail("invalid_field_diagnostics")
+                item = fields.setdefault(key, {"present": 0, "empty": 0, "types": {}})
+                item["present"] += 1
+                item["empty"] += int(value is None or (isinstance(value, str) and not value.strip()))
+                item["types"][kind] = item["types"].get(kind, 0) + 1
+
+        for row in rows:
+            count(row)
+            if isinstance(row, dict):
+                for key in ("meetings", "meeting_segments", "上课时段"):
+                    meetings = row.get(key)
+                    if isinstance(meetings, list):
+                        meeting_count += len(meetings)
+                        for meeting in meetings:
+                            count(meeting)
+        return {"row_count": len(rows), "meeting_count": meeting_count, "fields": fields}
+
+    return validate_business_field_diagnostics(domain, {
+        "schema": DIAGNOSTIC_SCHEMA, "domain": domain,
+        "source": summary(source), "projection": summary(projection)})
+
+
+def validate_business_field_diagnostics(domain, value):
+    """Fail closed before transport diagnostics enter a personal API/cache."""
+    if (domain not in DIAGNOSTIC_FIELDS or not isinstance(value, dict)
+            or set(value) != {"schema", "domain", "source", "projection"}
+            or value.get("schema") != DIAGNOSTIC_SCHEMA or value.get("domain") != domain):
+        fail("invalid_field_diagnostics")
+    for side in ("source", "projection"):
+        summary = value[side]
+        if not isinstance(summary, dict) or set(summary) != {"row_count", "meeting_count", "fields"}:
+            fail("invalid_field_diagnostics")
+        for key in ("row_count", "meeting_count"):
+            if type(summary[key]) is not int or not 0 <= summary[key] <= 10000:
+                fail("invalid_field_diagnostics")
+        fields = summary["fields"]
+        if not isinstance(fields, dict) or set(fields) - DIAGNOSTIC_FIELDS[domain]:
+            fail("invalid_field_diagnostics")
+        for item in fields.values():
+            if not isinstance(item, dict) or set(item) != {"present", "empty", "types"}:
+                fail("invalid_field_diagnostics")
+            if (type(item["present"]) is not int or not 1 <= item["present"] <= 10000
+                    or type(item["empty"]) is not int or not 0 <= item["empty"] <= item["present"]
+                    or not isinstance(item["types"], dict) or not item["types"]
+                    or set(item["types"]) - DIAGNOSTIC_TYPES
+                    or any(type(count) is not int or not 1 <= count <= 10000 for count in item["types"].values())
+                    or sum(item["types"].values()) != item["present"]):
+                fail("invalid_field_diagnostics")
+    if value["source"]["row_count"] != value["projection"]["row_count"]:
+        fail("invalid_field_diagnostics")
+    return deepcopy(value)
 
 
 def _observed_subjects(payload):

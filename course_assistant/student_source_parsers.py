@@ -12,10 +12,11 @@ from copy import deepcopy
 from datetime import date, time
 from decimal import Decimal, InvalidOperation
 import re
+from .school_period_times import validate_period_metadata, period_source
 
 
-PARSER_VERSION = "student-source-parser-v3"
-MAPPING_VERSION = "student-source-mapping-v3"
+PARSER_VERSION = "student-source-parser-v5"
+MAPPING_VERSION = "student-source-mapping-v5"
 FIELD_STATES = frozenset({"known", "unknown", "not_provided", "not_applicable",
                           "pending_verification", "conflicting"})
 
@@ -40,8 +41,8 @@ ACADEMIC_FIELDS = {
     "source_selection_id_raw": ("xkkh", "source_selection_id_raw", "选课课号"),
     "course_code_raw": ("kcdm", "kch", "course_code_raw", "course_code", "课程代码", "课程号"),
     "course_name_raw": ("kcmc", "course_name_raw", "course_name", "课程名称"),
-    "academic_year_raw": ("xnm", "academic_year_raw", "academic_year", "学年"),
-    "term_raw": ("xqm", "term_raw", "term", "学期"),
+    "academic_year_raw": ("xnm", "xn", "academic_year_raw", "academic_year", "学年"),
+    "term_raw": ("xqm", "xq", "term_raw", "term", "学期"),
     "nominal_credits": ("xf", "nominal_credits", "credits_in_source", "学分", "额定学分"),
     "grade_raw": ("cj", "grade_raw", "grade", "成绩"),
     "grade_points_raw": ("jd", "grade_points_raw", "grade_points", "绩点"),
@@ -66,11 +67,11 @@ TIMETABLE_FIELDS = {
     "xxq_raw": ("xxq", "xxq_raw", "分学期"),
     "instructor_raw": ("xm", "jsxm", "instructor_raw", "teacher", "教师"),
     "time_raw": ("sksj", "time_raw", "上课时间"),
-    "place_raw": ("cdmc", "place_raw", "地点", "上课地点"),
+    "place_raw": ("cdmc", "skdd", "place_raw", "地点", "上课地点"),
 }
 MEETING_FIELDS = {
     "time_raw": ("sksj", "time_raw", "上课时间"),
-    "place_raw": ("cdmc", "place_raw", "地点", "上课地点"),
+    "place_raw": ("cdmc", "skdd", "place_raw", "地点", "上课地点"),
     "weekday": ("weekday", "xqj", "星期"),
     "periods": ("periods", "jcs", "节次"),
     "week_set": ("week_set", "weeks", "周集合"),
@@ -346,14 +347,17 @@ def _academic(row, index):
 
 def _segments(value):
     # Semicolons inside week annotations do not create an extra meeting.
-    value = re.sub(r"<br\s*/?>", "\n", value, flags=re.I)
+    # Only this explicit line-break spelling is interpreted. Other tags and
+    # entities remain source text; never unescape or execute school HTML.
+    value = re.sub(r"(?:<br\s*/?>|&lt;br\s*/?&gt;)", "\n", value, flags=re.I)
     result, part, depth = [], [], 0
     for char in value:
         if char in "{（(【[":
             depth += 1
         if char in "}）)】]" and depth:
             depth -= 1
-        if char in "\n;；" and not depth:
+        entity_end = char == ";" and re.search(r"&(?:[A-Za-z][A-Za-z0-9]+|#(?:[0-9]+|[xX][0-9A-Fa-f]+))$", "".join(part))
+        if char in "\n;；" and not depth and not entity_end:
             if "".join(part).strip():
                 result.append("".join(part).strip())
             part = []
@@ -377,6 +381,14 @@ def _timetable(row, index):
             places = _segments(result["place_raw"]) if isinstance(result["place_raw"], str) else []
             meeting_rows = [{"time_raw": item, "place_raw": places[pos] if len(places) == len(times) else None}
                             for pos, item in enumerate(times)]
+            if len(times) == 1:
+                # These row fields describe the only observed meeting. Keep
+                # their original aliases/states so conflicting assertions
+                # survive mapping. Multiple text segments do not establish
+                # which one a row-level weekday/period/week field belongs to.
+                structured_aliases = {alias for field, aliases in MEETING_FIELDS.items()
+                                      if field not in {"time_raw", "place_raw"} for alias in aliases}
+                meeting_rows[0].update({key: value for key, value in row.items() if key in structured_aliases})
             if places and len(places) != len(times):
                 result["issues"].append(_issue("meeting_place_alignment_unknown", index, "meetings"))
         elif raw_time is not None:
@@ -465,6 +477,15 @@ def parse_payload(domain, payload, scope=None):
     scope = {key: deepcopy(value) for key, value in (scope or {}).items() if key in _SCOPE_FIELDS}
     result = {"domain": domain, "parser_version": PARSER_VERSION, "mapping_version": MAPPING_VERSION,
               "scope": scope, "records": [], "row_failures": [], "issues": [], "status": "parsed"}
+    if domain == "timetable":
+        try:
+            times, source = validate_period_metadata(payload.get("period_times"), payload.get("period_times_source")) if (
+                isinstance(payload, dict) and ("period_times" in payload or "period_times_source" in payload)) else ([], period_source())
+        except ValueError:
+            times, source = [], period_source("schema_changed")
+            result["issues"].append(_issue("invalid_period_source"))
+            result["status"] = "partial"
+        result.update(period_times=times, period_times_source=source)
     containers = ("kbList", "records") if domain == "timetable" else ("items", "records")
     if domain == "profile":
         rows = [payload] if isinstance(payload, dict) else None

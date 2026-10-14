@@ -1,0 +1,437 @@
+{
+  "schema": "school-visible-field-review/1",
+  "recorded_at_utc": "2026-10-14T09:47:37.846Z",
+  "running_pid": 14864,
+  "scope": "current_authenticated_2025_2026_autumn_winter_and_history_queries",
+  "checks": [
+    {
+      "operation": "timetable",
+      "status": "partial_acquisition",
+      "rows": 11,
+      "present_fields": {
+        "course_name_raw": 11,
+        "course_code_raw": 11,
+        "instructor_raw": 11,
+        "time_raw": 9,
+        "place_raw": 9,
+        "xxq_raw": 11,
+        "sfqd_raw": 11
+      },
+      "explicit_chinese_season_rows": 10,
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "timetable",
+          "source": {
+            "row_count": 11,
+            "meeting_count": 0,
+            "fields": {
+              "xxq": {
+                "present": 11,
+                "empty": 0,
+                "types": {
+                  "string": 11
+                }
+              },
+              "sfqd": {
+                "present": 11,
+                "empty": 0,
+                "types": {
+                  "string": 11
+                }
+              },
+              "skdd": {
+                "present": 9,
+                "empty": 0,
+                "types": {
+                  "string": 9
+                }
+              },
+              "sksj": {
+                "present": 9,
+                "empty": 0,
+                "types": {
+                  "string": 9
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 11,
+            "meeting_count": 0,
+            "fields": {
+              "xxq": {
+                "present": 11,
+                "empty": 0,
+                "types": {
+                  "string": 11
+                }
+              },
+              "sfqd": {
+                "present": 11,
+                "empty": 0,
+                "types": {
+                  "string": 11
+                }
+              },
+              "skdd": {
+                "present": 9,
+                "empty": 0,
+                "types": {
+                  "string": 9
+                }
+              },
+              "sksj": {
+                "present": 9,
+                "empty": 0,
+                "types": {
+                  "string": 9
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "operation": "academic",
+      "status": "complete_within_scope",
+      "rows": 10,
+      "present_fields": {
+        "course_name_raw": 10,
+        "grade_raw": 10,
+        "nominal_credits": 10,
+        "grade_points_raw": 10
+      },
+      "explicit_chinese_season_rows": 0,
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 10,
+            "meeting_count": 0,
+            "fields": {}
+          },
+          "projection": {
+            "row_count": 10,
+            "meeting_count": 0,
+            "fields": {}
+          }
+        }
+      ]
+    },
+    {
+      "operation": "major_academic",
+      "status": "partial_acquisition",
+      "rows": 60,
+      "present_fields": {
+        "course_name_raw": 60,
+        "course_code_raw": 60,
+        "academic_year_raw": 41,
+        "term_raw": 41,
+        "grade_raw": 41,
+        "nominal_credits": 60,
+        "grade_points_raw": 41
+      },
+      "explicit_chinese_season_rows": 0,
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              },
+              "xq": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              },
+              "xq": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              }
+            }
+          }
+        },
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              },
+              "xq": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              },
+              "xq": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              }
+            }
+          }
+        },
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 1,
+                "empty": 0,
+                "types": {
+                  "string": 1
+                }
+              },
+              "xq": {
+                "present": 1,
+                "empty": 0,
+                "types": {
+                  "string": 1
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 1,
+                "empty": 0,
+                "types": {
+                  "string": 1
+                }
+              },
+              "xq": {
+                "present": 1,
+                "empty": 0,
+                "types": {
+                  "string": 1
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "operation": "exams",
+      "status": "complete_within_scope",
+      "rows": 8,
+      "present_fields": {
+        "course_name_raw": 8,
+        "term_raw": 8,
+        "final_exam_time_raw": 5,
+        "final_exam_place_raw": 5
+      },
+      "explicit_chinese_season_rows": 8,
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "exams",
+          "source": {
+            "row_count": 8,
+            "meeting_count": 0,
+            "fields": {
+              "jsmc": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              },
+              "xxq": {
+                "present": 8,
+                "empty": 0,
+                "types": {
+                  "string": 8
+                }
+              },
+              "kssj": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 8,
+            "meeting_count": 0,
+            "fields": {
+              "jsmc": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              },
+              "xxq": {
+                "present": 8,
+                "empty": 0,
+                "types": {
+                  "string": 8
+                }
+              },
+              "kssj": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "operation": "profile",
+      "status": "complete_within_scope",
+      "rows": 1,
+      "present_fields": {
+        "name": 1,
+        "source_subject_id": 1,
+        "cohort": 1,
+        "college_name": 1,
+        "major_or_category_raw": 1
+      },
+      "explicit_chinese_season_rows": 0,
+      "diagnostics": []
+    }
+  ],
+  "personal_values_saved": false,
+  "additional_private_projection_review": {
+    "timetable_rows": 11,
+    "nonempty_selection_ids": 11,
+    "unique_selection_ids": 11,
+    "exam_sources": [
+      {
+        "target_term": "2025-2026-A",
+        "rows": 8,
+        "rows_with_exam_values": 5,
+        "unique_timetable_matches": 8,
+        "explicit_chinese_season_rows": 8,
+        "explicit_season_includes_requested_rows": 8
+      },
+      {
+        "target_term": "2025-2026-W",
+        "rows": 8,
+        "rows_with_exam_values": 4,
+        "unique_timetable_matches": 8,
+        "explicit_chinese_season_rows": 8,
+        "explicit_season_includes_requested_rows": 8
+      }
+    ],
+    "identical_nonempty_raw_observations_between_exam_sources": 3
+  },
+  "after_v5_restart_actual_verification": {
+    "recorded_at_utc": "2026-10-14T12:24:11.184103+00:00",
+    "channel": "authenticated_chrome_local_application_normal_query_and_cdp_response_observation",
+    "target_term": "2025-2026-AW",
+    "api_results": [
+      {
+        "operation": "timetable",
+        "target_term": "2025-2026-AW",
+        "status": "partial_acquisition",
+        "records": 11,
+        "record_place_rows": 9,
+        "period_times_source_state": "not_available",
+        "period_time_rows": 0
+      },
+      {
+        "operation": "exams",
+        "target_term": "2025-2026-A",
+        "status": "complete_within_scope",
+        "records": 8,
+        "rows_with_exam_values": 5
+      },
+      {
+        "operation": "exams",
+        "target_term": "2025-2026-W",
+        "status": "complete_within_scope",
+        "records": 8,
+        "rows_with_exam_values": 4
+      }
+    ],
+    "ui": {
+      "course_card_occurrences": 14,
+      "exam_card_occurrences": 9,
+      "merged_source_card_occurrences": 3,
+      "unlocated_course_cards": 2,
+      "generated_placeholder_count_in_course_cards": 0,
+      "period_clock_cells": 0,
+      "related_exam_source_explanation_present": true,
+      "partial_exam_sync_notice": false,
+      "query_busy": false
+    },
+    "source_values_saved": false,
+    "official_school_dom": "not_completed_repeated_timeout",
+    "period_clock_source": "unresolved_static_page_not_recognized_dynamic_source_not_verified",
+    "scope_limitation": "not_available does not prove clocks are absent from all official interfaces"
+  },
+  "user_after_restart_spring_summer_projection_counts": {
+    "target_term": "2025-2026-SS",
+    "timetable_rows": 4,
+    "source_place_rows": 3,
+    "period_times_source_state": "not_available",
+    "period_time_rows": 0
+  }
+}

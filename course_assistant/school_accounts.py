@@ -23,6 +23,7 @@ from .auth import AccessError, SCHOOL_MODE, SCHOOL_REALM
 from .student_source_client import DOMAINS, StudentSourceClient, SourceClientError
 from .student_source_parsers import PARSER_VERSION, parse_payload
 from .student_sources import CREDENTIAL_VALUE, _observed_subjects, digest, sanitize_payload
+from .school_period_times import period_source
 from .student_plan_acquisition import OnDemandPlanService, StudentPlanAcquisitionError
 
 
@@ -310,10 +311,14 @@ class SchoolAccountService:
 
     def status(self, context):
         connection = self._connection(context)
+        profile = parse_payload("profile", connection.profile)["records"][0]
+        cohort_state = profile["field_states"]["cohort"]
         return {"school_client_enabled": True, "school_auth_status": "personal_client_authenticated" if connection.state == "connected" else "personal_client_session_unavailable",
                 "project_sso_status": "not_configured", "personal_data_source_status": connection.state,
                 "data_kind": "personal_source", "security_realm": SCHOOL_REALM,
                 "operations": ["profile", "academic", "major_academic", "timetable", "exams", "plan"],
+                "query_context": {"cohort": profile["cohort"] if cohort_state == "known" else None,
+                                  "cohort_state": cohort_state},
                 "recommendation_status": "input_not_ready_for_recommendation"}
 
     def _capture(self, context, operation, term, payloads):
@@ -414,10 +419,13 @@ class SchoolAccountService:
             if state == "source_subject_changed":
                 self._close_client(connection.client)
             records, issues, failures = [], [], []
+            period_metadata = {"period_times": [], "period_times_source": period_source()}
             payloads = []
             for page in result.get("pages", []):
                 payload = page["payload"]
                 parsed = parse_payload(DOMAINS[request["operation"]], payload, {"target_term": request["target_term"]})
+                if request["operation"] == "timetable":
+                    period_metadata = {key: parsed[key] for key in ("period_times", "period_times_source")}
                 records.extend(parsed["records"])
                 issues.extend(parsed["issues"])
                 failures.extend(parsed["row_failures"])
@@ -427,6 +435,10 @@ class SchoolAccountService:
                 "status": state, "data_kind": "personal_source", "security_realm": SCHOOL_REALM,
                 "operation": request["operation"], "target_term": request["target_term"], "data_source": result["data_source"],
                 "records": records, "issues": issues, "row_failures": failures, "coverage": result["coverage"],
+                **(period_metadata if request["operation"] == "timetable" else {}),
+                "source_field_diagnostics": [page["response"]["source_field_diagnostics"]
+                                             for page in result.get("pages", [])
+                                             if "source_field_diagnostics" in page.get("response", {})],
                 "captured_at": result["captured_at"], "checked_at": result["checked_at"],
                 "cache_captured_at": result["cache_captured_at"], "failure": result["failure"], "source_alias": alias}.items()}
 

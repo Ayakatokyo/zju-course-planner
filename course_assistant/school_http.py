@@ -24,7 +24,8 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .student_source_parsers import PROFILE_FIELDS
-from .student_sources import CREDENTIAL_VALUE, StudentSourceError, sanitize_payload
+from .school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT, parse_period_table, period_source
+from .student_sources import CREDENTIAL_VALUE, StudentSourceError, sanitize_payload, business_field_diagnostics
 
 SSO = "https://zjuam.zju.edu.cn"
 SCHOOL = "https://zdbk.zju.edu.cn"
@@ -416,6 +417,7 @@ class SchoolHTTPClient:
         self._catalogue_scope = None
         self._session_user_key = None
         self._session_menu_code = None
+        self._period_page_read = False
 
     @property
     def session_epoch(self):
@@ -484,7 +486,8 @@ class SchoolHTTPClient:
         parsed = urlsplit(url)
         origin = f"{parsed.scheme}://{parsed.netloc}"
         allowed = ({CAS_LOGIN, CAS_KEY, CAS_CAPTCHA_STATUS, CAS_CAPTCHA} if origin == SSO else
-                   {SERVICE, MENU, CAPTCHA, PROFILE_ROUTE, PLAN_CATALOGUE, PLAN_DOCUMENT, PLAN_MAJOR_OPTIONS} | {route for route, _ in DATA_ROUTES.values()})
+                   {SERVICE, MENU, CAPTCHA, PROFILE_ROUTE, PLAN_CATALOGUE, PLAN_DOCUMENT, PLAN_MAJOR_OPTIONS,
+                    TIMETABLE_PAGE} | {route for route, _ in DATA_ROUTES.values()})
         if origin not in {SSO, SCHOOL} or parsed.username or parsed.password or parsed.fragment or parsed.path not in allowed:
             _fail("route_not_confirmed")
         body = urlencode(form).encode("utf-8") if form is not None else None
@@ -927,10 +930,56 @@ class SchoolHTTPClient:
             source_year = re.match(r"^\((20\d{2}-20\d{2})-[^)]*\)", value) if isinstance(value, str) else None
             if year_range is not None and source_year and source_year[1] != year_range:
                 _fail("schema_changed")
+        if operation == "timetable":
+            projection.update(self._period_times())
         with self._state_lock:
             self._check_active()
             self._captcha_pending = False
-            return self._result("business", response, content_type="application/json", payload=projection)
+            diagnostics = business_field_diagnostics(domain, payload, projection)
+            return self._result("business", response, content_type="application/json", payload=projection,
+                                source_field_diagnostics=diagnostics)
+
+    def _period_times(self):
+        """At most one bounded same-context page read per external request.
+
+        Clock absence or page failure does not discard a successful list.
+        Authentication/challenge/subject changes still stop or refresh through
+        the normal client flow. No HTML or response identifiers are retained.
+        """
+        with self._state_lock:
+            self._check_active()
+            if self._period_page_read:
+                return {"period_times": [], "period_times_source": period_source("source_unavailable")}
+            self._period_page_read = True
+            owner = self._profile["source_subject_id"]
+        try:
+            response = self._raw("GET", self._school_url(TIMETABLE_PAGE, {"gnmkdm": DATA_ROUTES["timetable"][1]}),
+                                 limit=PERIOD_PAGE_LIMIT)
+            state = _classify(response)
+            if response.status == 403 and not re.search(r"type\s*=\s*['\"]?password|cas/login|请先登录|未登录",
+                                                       response.body.decode("utf-8", "replace"), re.I):
+                return {"period_times": [], "period_times_source": period_source("permission_denied")}
+            if state != "business":
+                if state == "captcha_required":
+                    with self._state_lock:
+                        self._check_active()
+                        self._captcha_text = None
+                        self._captcha_pending = True
+                _fail(state)
+            if response.content_type not in {"text/html", "application/xhtml+xml"}:
+                _fail("schema_changed")
+            times, source, subjects = parse_period_table(response.body.decode("utf-8", "strict"))
+            with self._state_lock:
+                self._check_active()
+                if subjects and subjects != {owner}:
+                    _fail("source_subject_changed")
+            return {"period_times": times, "period_times_source": source}
+        except SchoolHTTPError as error:
+            if error.code not in {"source_unavailable", "schema_changed", "permission_denied"}:
+                raise
+            return {"period_times": [], "period_times_source": period_source(error.code)}
+        except (ValueError, UnicodeError):
+            return {"period_times": [], "period_times_source": period_source("schema_changed")}
 
     @staticmethod
     def _select(page, control, label):
@@ -1085,6 +1134,7 @@ class SchoolHTTPClient:
                 if not self._authenticated or self._closed:
                     return self._result("awaiting_user_login")
                 self._operation_epoch = self._epoch
+                self._period_page_read = False
             try:
                 spec = self._spec(spec)
                 operation = spec["operation"]

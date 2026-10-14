@@ -1,0 +1,183 @@
+{
+  "schema": "school-ui-acceptance/1",
+  "recorded_at_utc": "2026-10-14T07:46:45.865961+00:00",
+  "git_base": "38c0d12dd2afec6656202ffecb48f49ea92d6adb",
+  "application_version": "0.2.0",
+  "engineering": {
+    "ran": 743,
+    "passed": 743,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "by_module": {
+      "test_application": 7,
+      "test_audit": 44,
+      "test_auth": 20,
+      "test_chat": 36,
+      "test_chat_history": 13,
+      "test_chat_http": 2,
+      "test_course_dedup": 15,
+      "test_course_source_adapters": 9,
+      "test_exporter": 6,
+      "test_importer": 13,
+      "test_live_chat_acceptance": 13,
+      "test_local_reference": 22,
+      "test_local_reference_observations": 22,
+      "test_model_client": 8,
+      "test_plan_requirements_audit": 12,
+      "test_planner": 32,
+      "test_recommendation": 24,
+      "test_recommendation_dialogue": 17,
+      "test_recommendation_storage": 22,
+      "test_reference_retrieval": 13,
+      "test_school_accounts": 40,
+      "test_school_http": 54,
+      "test_school_http_app": 10,
+      "test_school_timetable_web": 12,
+      "test_student_browser_bridge": 17,
+      "test_student_connector": 30,
+      "test_student_plan_acquisition": 32,
+      "test_student_source_cli": 21,
+      "test_student_source_client": 36,
+      "test_student_source_parsers": 27,
+      "test_student_source_provider": 11,
+      "test_student_source_sync": 11,
+      "test_student_sources": 36,
+      "test_web_contract": 56
+    },
+    "source_files_checked": 77,
+    "source_hashes_match": true,
+    "web_syntax": "pass",
+    "inputs_unchanged": true
+  },
+  "implementation": {
+    "academic_year": "select_authenticated_cohort_to_local_current_academic_year_common_range_not_official_open_list",
+    "navigation": [
+      "timetable",
+      "academic_with_term_or_major_history",
+      "single_season_exams",
+      "profile_and_on_demand_plan"
+    ],
+    "grades": {
+      "display_page_size": 15,
+      "filter_scope": "already_acquired_records",
+      "source_budget_unchanged": {
+        "pages": 3,
+        "page_size": 20
+      },
+      "repeat_attempts_preserved": true
+    },
+    "timetable": {
+      "known_fields_first": true,
+      "explicit_text_fallback": true,
+      "unknown_time_preserved": true,
+      "week_and_season_preserved": true,
+      "school_html_executed": false,
+      "encoded_break_parser_v4": true,
+      "legacy_v3_fragment_compatibility": true
+    },
+    "field_diagnostics": {
+      "schema": "school-business-field-diagnostics/1",
+      "fixed_candidate_counts_only": true,
+      "values_and_unknown_keys_absent": true,
+      "per_owner_page_cache": true,
+      "does_not_verify_status_semantics": true
+    }
+  },
+  "browser": {
+    "status": "verified",
+    "transport": "explicit_synthetic_school_fixture",
+    "fixture": "validation/run_school_ui_fixture.py",
+    "real_school_network_called": false,
+    "remote_model_called": false,
+    "mock_enabled": false,
+    "desktop_viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "mobile_viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "mobile_measured": {
+      "page_scroll_width": 375,
+      "grid_viewport_width": 341,
+      "grid_content_width": 910,
+      "observed_grid_scroll_left": 79
+    },
+    "synthetic_business_scope": {
+      "major_academic_acquired_rows": 60,
+      "major_academic_reported_total": 75,
+      "has_unread_content": true,
+      "timetable_rows": 11,
+      "located_meetings": 10,
+      "pending_meetings": 3,
+      "exams_rows": 2,
+      "plan_cohort": 2023,
+      "plan_status": "acquired_pending_review"
+    },
+    "checks": [
+      "primary_conversation_and_disabled_real_recommendation",
+      "four_query_sections",
+      "academic_year_select_4_choices",
+      "major_history_disabled_year_and_term",
+      "display_15_rows_and_second_page_16_to_30",
+      "source_unread_warning_preserved",
+      "filter_retains_3_same_code_attempts",
+      "safe_text_no_script_or_img_elements",
+      "seven_days_and_period_grid",
+      "multi_meeting_encoded_break_and_unknown_time",
+      "single_season_exams_independent_midterm_final_empty_dates",
+      "profile_8_fields_and_unknowns",
+      "on_demand_plan_pending_scope_and_rules",
+      "logout_account_B_has_no_A_result_plan_or_filter",
+      "desktop_visual_review",
+      "mobile_no_page_overflow_and_grid_keyboard_scroll"
+    ],
+    "screenshots_sha256": {
+      "school_ui_timetable_desktop_20261014.png": "3f0fea326bc4e98c7a3b0e8dbd35283130652b486b8f36d6a9a85ed4ef527031",
+      "school_ui_timetable_mobile_20261014.png": "90cc9cb672930a802237e7a7f4fa1eb351f07ee5c3ce9e2495b414c609ff0573",
+      "school_ui_grades_desktop_20261014.png": "6efb910e1abf2b7afc9c230984bf9f2f958f4999b21f9d811ee4361ce156b166"
+    },
+    "screenshots_personal_school_body": false,
+    "note": "Screenshots contain only synthetic identities and records. Chrome extension overlay is an existing browser element, not application UI.",
+    "temporary_tabs_closed": true,
+    "temporary_viewport_overrides_reset": true,
+    "synthetic_service_stopped": true
+  },
+  "running_personal_service": {
+    "entry": "http://127.0.0.1:18875/",
+    "existing_pid_preserved": 95270,
+    "restarted": false,
+    "user_choice": "retain_current_session_until_next_start",
+    "anonymous_login_page_checked": true,
+    "served_frontend_hashes_match_workspace": true,
+    "new_backend_loaded_in_existing_process": false,
+    "new_backend_enablement": "next_normal_start",
+    "new_real_school_query_performed": false,
+    "existing_user_tab_not_reloaded_by_agent": true
+  },
+  "field_source_review": {
+    "existing_private_projection_review": "field_names_and_counts_only_no_personal_values",
+    "timetable": "sfqd_and_xxq_preserved_place_whitelist_fields_not_seen_in_saved_projection",
+    "academic": "explicit_completion_status_fields_not_seen_in_saved_projection",
+    "preprojection_original_response_available": false,
+    "reason_resolution": "pending_actual_authenticated_source_projection_structure_comparison",
+    "upstream_grid_reference_is_not_current_list_response_evidence": true,
+    "formal_enrollment_or_earned_credit_inference_added": false
+  },
+  "delivery": {
+    "implemented": true,
+    "engineering_verified": true,
+    "synthetic_browser_verified": true,
+    "new_real_field_acceptance": "not_run",
+    "committed": false,
+    "pushed": false,
+    "packaged": false,
+    "deployed": false,
+    "course_directory_updates": false,
+    "enrollment_mutation": false,
+    "shared_rag_write": false,
+    "original_23_rules_reviewed": false
+  }
+}

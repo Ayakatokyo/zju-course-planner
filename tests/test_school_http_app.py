@@ -10,6 +10,7 @@ import time
 import unittest
 
 from course_assistant.server import Application, make_handler
+from course_assistant.student_sources import business_field_diagnostics
 
 
 class SyntheticSchool:
@@ -47,9 +48,12 @@ class SyntheticSchool:
                                           'cohort_provenance': 'source_row'}], 'total': 1}}
         payload = {'kcmc': '合成接口课程', 'kch': 'SYNTHETIC-COURSE-1', 'xf': '1.5', 'cj': '90'}
         container = 'kbList' if spec['operation'] == 'timetable' else 'items'
+        document = {container: [payload], 'total': 1, 'pageNo': 1}
         return {'state': 'business', 'http_status': 200, 'content_type': 'application/json',
                 'session_epoch': self.session_epoch, 'source_subject_id': self.owner,
-                'payload': {container: [payload], 'total': 1, 'pageNo': 1}}
+                'payload': document,
+                'source_field_diagnostics': business_field_diagnostics(
+                    'academic' if spec['operation'] == 'major_academic' else spec['operation'], document, document)}
 
     def close(self):
         self.closed = True
@@ -117,6 +121,7 @@ class SchoolAppHTTPTests(unittest.TestCase):
         self.assertEqual(boot['demo'], {})
         self.assertEqual(boot['source'], {})
         self.assertFalse(boot['chat']['available'])
+        self.assertEqual(boot['school']['query_context'], {'cohort': 2023, 'cohort_state': 'known'})
         with self.app.store.connect() as db:
             self.assertEqual(db.execute('SELECT COUNT(*) FROM workspaces').fetchone()[0], 0)
 
@@ -127,6 +132,8 @@ class SchoolAppHTTPTests(unittest.TestCase):
         self.assertEqual(self.clients[-1].calls, [])
         status, result, _ = self.request('POST', '/api/school/sync', body)
         self.assertEqual(status, 200)
+        self.assertEqual(result['source_field_diagnostics'][0]['source']['row_count'], 1)
+        self.assertEqual(result['source_field_diagnostics'][0]['domain'], 'academic')
         self.assertEqual(len(result['records']), 1)
         self.assertEqual(result['data_source'], 'live')
         self.assertEqual(result['data_kind'], 'personal_source')

@@ -10,6 +10,8 @@ import tempfile
 from urllib.request import Request, urlopen
 
 from course_assistant.student_source_client import SourceClientError, StudentSourceClient, to_envelopes
+from course_assistant.student_sources import business_field_diagnostics
+from course_assistant.school_period_times import period_source
 
 
 def business(rows=None, *, total=1, epoch=1, subject="SYNTHETIC-STUDENT-A", page=None):
@@ -58,6 +60,27 @@ class StudentSourceClientTests(unittest.TestCase):
 
     def fetch(self, client, **kwargs):
         return client.fetch("academic", "SYNTHETIC-TERM", **kwargs)
+
+    def test_field_diagnostics_reject_unbounded_keys_values_and_wrong_row_counts(self):
+        source = business([{"kcmc": "合成课", "sftg": None}])
+        diagnostics = business_field_diagnostics("academic", source["payload"], source["payload"])
+        invalid = []
+        other_key = deepcopy(diagnostics)
+        other_key["source"]["fields"]["SYNTHETIC-PRIVATE-KEY"] = {"present": 1, "empty": 0, "types": {"string": 1}}
+        invalid.append(other_key)
+        raw_value = deepcopy(diagnostics)
+        raw_value["source"]["fields"]["sftg"]["value"] = "SYNTHETIC-PRIVATE-VALUE"
+        invalid.append(raw_value)
+        wrong_rows = deepcopy(diagnostics)
+        wrong_rows["source"]["row_count"] = wrong_rows["projection"]["row_count"] = 2
+        invalid.append(wrong_rows)
+        for malformed in invalid:
+            with self.subTest(malformed_keys=sorted(malformed)):
+                client = self.client([{**source, "source_field_diagnostics": malformed}])
+                result = self.fetch(client)
+                self.assertEqual(result["status"], "schema_changed")
+                self.assertEqual(result["failure"], "invalid_field_diagnostics")
+                self.assertEqual(result["pages"], [])
 
     def test_cache_is_historical_detached_and_authorized_again(self):
         client = self.client([business()])
@@ -417,6 +440,45 @@ class StudentSourceClientTests(unittest.TestCase):
         self.assertEqual(result["coverage"]["captured_rows"], 20)
         self.assertIsNone(result["coverage"]["reported_total"])
         self.assertEqual(result["status"], "partial_acquisition")
+
+    def test_period_clock_metadata_is_cached_detached_and_never_crosses_grant_or_epoch(self):
+        clock = [{"period": 1, "start_time": "07:10", "end_time": "07:55"}]
+        source = {"state": "business", "http_status": 200, "content_type": "application/json", "session_epoch": 1,
+                  "payload": {"kbList": [{"kcmc": "SYNTHETIC-CLOCK-COURSE"}], "total": 1, "period_times": clock,
+                              "period_times_source": period_source("known")}}
+        other = deepcopy(source)
+        other["payload"]["period_times"][0]["start_time"] = "07:20"
+        client = self.client([source, other, {**deepcopy(other), "session_epoch": 2}])
+        live = client.fetch("timetable", "2026-2027-AW")
+        self.assertEqual(live["pages"][0]["payload"]["period_times"], clock)
+        live["pages"][0]["payload"]["period_times"][0]["start_time"] = "00:00"
+        cached = client.fetch("timetable", "2026-2027-AW")
+        self.assertEqual(cached["data_source"], "historical_cache")
+        self.assertEqual(cached["pages"][0]["payload"]["period_times"], clock)
+        self.scope = "SYNTHETIC-DIFFERENT-SCOPE"
+        different = client.fetch("timetable", "2026-2027-AW")
+        self.assertEqual(different["data_source"], "live")
+        self.assertEqual(different["pages"][0]["payload"]["period_times"][0]["start_time"], "07:20")
+        self.transport.session_epoch = 2
+        self.assertEqual(client.fetch("timetable", "2026-2027-AW")["data_source"], "live")
+        self.assertEqual(len(self.transport.requests), 3)
+        self.denied = True
+        with self.assertRaises(PermissionError):
+            client.fetch("timetable", "2026-2027-AW")
+        self.assertEqual(len(self.transport.requests), 3)
+
+    def test_period_clock_metadata_cannot_bypass_row_bounds_or_fixed_projection(self):
+        payload = {"kbList": [{"kcmc": "SYNTHETIC-CLOCK-COURSE"}] * 21, "period_times": [],
+                   "period_times_source": period_source()}
+        response = {"state": "business", "http_status": 200, "content_type": "application/json", "session_epoch": 1, "payload": payload}
+        client = self.client([response])
+        result = client.fetch("timetable", "2026-2027-AW")
+        self.assertEqual((result["status"], result["failure"], result["pages"]), ("schema_changed", "page_size_exceeded", []))
+        payload["kbList"] = payload["kbList"][:1]
+        payload["period_times_source"]["page_path"] = "https://foreign.invalid/"
+        client = self.client([response])
+        result = client.fetch("timetable", "2026-2027-AW")
+        self.assertEqual((result["status"], result["failure"], result["pages"]), ("schema_changed", "unsafe_business_projection", []))
 
     def test_real_loopback_bridge_transport_client_roundtrip_only_stripped_synthetic_data(self):
         from course_assistant.student_browser_bridge import BrowserBridgeTransport, BrowserBridgeServer

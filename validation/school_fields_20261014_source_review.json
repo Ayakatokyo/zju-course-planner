@@ -1,0 +1,283 @@
+{
+  "schema": "school-source-structure-review/1",
+  "recorded_at_utc": "2026-10-14T09:12:19.697Z",
+  "observation_channel": "authenticated_local_application_fixed_school_routes",
+  "school_dom_review": "not_completed_due_to_timeout",
+  "before_new_mapping_loaded": true,
+  "checks": [
+    {
+      "operation": "timetable",
+      "status": "partial_acquisition",
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "timetable",
+          "source": {
+            "row_count": 13,
+            "meeting_count": 0,
+            "fields": {
+              "sksj": {
+                "present": 12,
+                "empty": 0,
+                "types": {
+                  "string": 12
+                }
+              },
+              "sfqd": {
+                "present": 13,
+                "empty": 0,
+                "types": {
+                  "string": 13
+                }
+              },
+              "xxq": {
+                "present": 13,
+                "empty": 0,
+                "types": {
+                  "string": 13
+                }
+              },
+              "skdd": {
+                "present": 12,
+                "empty": 0,
+                "types": {
+                  "string": 12
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 13,
+            "meeting_count": 0,
+            "fields": {
+              "sksj": {
+                "present": 12,
+                "empty": 0,
+                "types": {
+                  "string": 12
+                }
+              },
+              "sfqd": {
+                "present": 13,
+                "empty": 0,
+                "types": {
+                  "string": 13
+                }
+              },
+              "xxq": {
+                "present": 13,
+                "empty": 0,
+                "types": {
+                  "string": 13
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "operation": "academic",
+      "status": "complete_within_scope",
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 12,
+            "meeting_count": 0,
+            "fields": {}
+          },
+          "projection": {
+            "row_count": 12,
+            "meeting_count": 0,
+            "fields": {}
+          }
+        }
+      ],
+      "coverage": {
+        "captured_rows": 12,
+        "reported_total": 12,
+        "complete_within_scope": true
+      }
+    },
+    {
+      "operation": "major_academic",
+      "status": "partial_acquisition",
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              },
+              "xq": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {}
+          }
+        },
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              },
+              "xq": {
+                "present": 20,
+                "empty": 0,
+                "types": {
+                  "string": 20
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {}
+          }
+        },
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "academic",
+          "source": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {
+              "xn": {
+                "present": 1,
+                "empty": 0,
+                "types": {
+                  "string": 1
+                }
+              },
+              "xq": {
+                "present": 1,
+                "empty": 0,
+                "types": {
+                  "string": 1
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 20,
+            "meeting_count": 0,
+            "fields": {}
+          }
+        }
+      ],
+      "coverage": {
+        "captured_rows": 60,
+        "reported_total": 104,
+        "complete_within_scope": false
+      }
+    },
+    {
+      "operation": "exams",
+      "status": "complete_within_scope",
+      "diagnostics": [
+        {
+          "schema": "school-business-field-diagnostics/1",
+          "domain": "exams",
+          "source": {
+            "row_count": 10,
+            "meeting_count": 0,
+            "fields": {
+              "xxq": {
+                "present": 10,
+                "empty": 0,
+                "types": {
+                  "string": 10
+                }
+              },
+              "jsmc": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              },
+              "kssj": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              }
+            }
+          },
+          "projection": {
+            "row_count": 10,
+            "meeting_count": 0,
+            "fields": {
+              "xxq": {
+                "present": 10,
+                "empty": 0,
+                "types": {
+                  "string": 10
+                }
+              },
+              "jsmc": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              },
+              "kssj": {
+                "present": 5,
+                "empty": 0,
+                "types": {
+                  "string": 5
+                }
+              }
+            }
+          }
+        }
+      ],
+      "coverage": {
+        "captured_rows": 10,
+        "reported_total": 10,
+        "complete_within_scope": true
+      }
+    },
+    {
+      "operation": "profile",
+      "status": "complete_within_scope",
+      "diagnostics": []
+    },
+    {
+      "operation": "plan",
+      "status": "acquired_pending_review",
+      "diagnostics": []
+    }
+  ],
+  "personal_values_headers_cookies_saved": false
+}

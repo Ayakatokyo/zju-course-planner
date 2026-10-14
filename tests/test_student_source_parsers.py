@@ -46,7 +46,7 @@ class StudentSourceParserTests(unittest.TestCase):
         payload = {"入学日期": "20220901", "当前所在级": "2024", "类（专业）": "合成类目", "xh": "SYNTHETIC-2025"}
         parsed = parse_payload("profile", payload)
         record = parsed["records"][0]
-        self.assertEqual((PARSER_VERSION, MAPPING_VERSION), ("student-source-parser-v3", "student-source-mapping-v3"))
+        self.assertEqual((PARSER_VERSION, MAPPING_VERSION), ("student-source-parser-v5", "student-source-mapping-v5"))
         self.assertEqual(record["cohort"], 2022)
         self.assertEqual(record["admission_date_raw"], "20220901")
         self.assertEqual(record["current_grade_raw"], "2024")
@@ -171,6 +171,113 @@ class StudentSourceParserTests(unittest.TestCase):
         self.assertEqual(meetings[1]["place_raw"], "合成乙")
         self.assertIsNone(meetings[0]["week_set"])
         self.assertIsNone(meetings[0]["periods"])
+
+    def test_major_history_xn_xq_survive_without_filling_missing_rows(self):
+        from course_assistant.student_sources import sanitize_payload
+        projection, _ = sanitize_payload("academic", {"items": [
+            {"xn": "2024-2025", "xq": "春、夏", "cj": "90"},
+            {"cj": "80"},
+            {"xn": "2024-2025", "xnm": "2023-2024", "xq": "1", "xqm": "2"},
+        ]})
+        records = parse_payload("academic", projection)["records"]
+        self.assertEqual((records[0]["academic_year_raw"], records[0]["term_raw"]),
+                         ("2024-2025", "春、夏"))
+        self.assertEqual(records[0]["field_assertions"]["academic_year_raw"][0]["source_field"], "xn")
+        self.assertIsNone(records[1]["academic_year_raw"])
+        self.assertIsNone(records[1]["term_raw"])
+        for field in ("academic_year_raw", "term_raw"):
+            self.assertIsNone(records[2][field])
+            self.assertEqual(records[2]["field_states"][field], "conflicting")
+        self.assertTrue(all(r["earned_credits"] is None for r in records))
+
+    def test_school_list_skdd_survives_projection_and_aligns_multiple_places(self):
+        from course_assistant.student_sources import sanitize_payload
+        payload = {"kbList": [{"sksj": "周二第3,4节&lt;br&gt;周四第1,2节",
+                                "skdd": "合成地点甲&lt;br&gt;合成地点乙", "sfqd": "1"}]}
+        projection, _ = sanitize_payload("timetable", payload)
+        record = parse_payload("timetable", projection)["records"][0]
+        self.assertEqual(record["place_raw"], payload["kbList"][0]["skdd"])
+        self.assertEqual(record["field_assertions"]["place_raw"][0]["source_field"], "skdd")
+        self.assertEqual([m["place_raw"] for m in record["meetings"]], ["合成地点甲", "合成地点乙"])
+        self.assertEqual(record["formal_enrollment_status"], "unknown")
+
+    def test_skdd_empty_conflicting_or_unaligned_places_are_not_invented(self):
+        records = parse_payload("timetable", {"kbList": [
+            {"sksj": "周二第3节", "skdd": ""},
+            {"sksj": "周二第3节", "skdd": "合成地点甲", "cdmc": "合成地点乙"},
+            {"sksj": "周二第3节<br>周四第1节", "skdd": "合成地点甲"},
+            {"meetings": [{"skdd": "合成地点丙", "xqj": 2, "jcs": [3]}]},
+        ]})["records"]
+        self.assertIsNone(records[0]["place_raw"])
+        self.assertIsNone(records[1]["place_raw"])
+        self.assertEqual(records[1]["field_states"]["place_raw"], "conflicting")
+        self.assertTrue(all(m["place_raw"] is None for m in records[2]["meetings"]))
+        self.assertEqual(records[3]["meetings"][0]["place_raw"], "合成地点丙")
+
+    def test_single_text_meeting_keeps_top_level_structured_fields_and_raw_codes(self):
+        row = {"sksj": "周二第3,4节", "cdmc": "合成地点", "xqj": "2", "jcs": [3, 4],
+               "zcd": "第1-8周", "week_set": [1, 2, 4], "djj": "3", "skcd": "2",
+               "sfqd": 1, "dsz": 0, "xxq": "1"}
+        original = deepcopy(row)
+        record = parse_payload("timetable", {"kbList": [row]})["records"][0]
+        self.assertEqual(len(record["meetings"]), 1)
+        meeting = record["meetings"][0]
+        self.assertEqual((meeting["weekday"], meeting["periods"], meeting["week_set"]),
+                         (2, [3, 4], [1, 2, 4]))
+        self.assertEqual(meeting["week_annotation_raw"], "第1-8周")
+        self.assertEqual((meeting["start_period_raw"], meeting["duration_raw"]), ("3", "2"))
+        self.assertEqual(meeting["field_assertions"]["weekday"][0]["source_field"], "xqj")
+        for field, value in (("sfqd_raw", 1), ("dsz_raw", 0), ("xxq_raw", "1")):
+            self.assertEqual(meeting[field], value)
+            self.assertEqual(meeting["field_states"][field], "pending_verification")
+        self.assertEqual(meeting["formal_enrollment_status"], "unknown")
+        self.assertIsNone(meeting["calendar_dates"])
+        self.assertEqual(record["raw_row"], original)
+        self.assertEqual(row, original)
+
+    def test_single_text_meeting_keeps_structured_alias_conflicts_and_explicit_unknowns(self):
+        row = {"sksj": "周二第3,4节", "xqj": 2, "weekday": 3,
+               "jcs": [3, 4], "periods": [1, 2],
+               "week_set": {"value": [1, 2], "state": "unknown"},
+               "zcd": {"raw_value": "合成待核周次", "state": "conflicting"}}
+        record = parse_payload("timetable", {"records": [row]})["records"][0]
+        meeting = record["meetings"][0]
+        for field in ("weekday", "periods", "week_annotation_raw"):
+            self.assertIsNone(meeting[field])
+            self.assertEqual(meeting["field_states"][field], "conflicting")
+        self.assertEqual({item["source_field"] for item in meeting["field_assertions"]["weekday"]},
+                         {"xqj", "weekday"})
+        self.assertIsNone(meeting["week_set"])
+        self.assertEqual(meeting["field_states"]["week_set"], "unknown")
+        self.assertTrue({"meetings.0.weekday", "meetings.0.periods", "meetings.0.week_annotation_raw"}
+                        <= {issue["field_path"] for issue in record["issues"]})
+
+    def test_multiple_text_meetings_do_not_broadcast_top_level_position_or_weeks(self):
+        row = {"sksj": "周二第3,4节<br>周四第1,2节", "cdmc": "合成甲<br>合成乙",
+               "xqj": 2, "jcs": [3, 4], "zcd": "第1-8周", "week_set": [1, 2, 4],
+               "djj": "3", "skcd": "2"}
+        record = parse_payload("timetable", {"kbList": [row]})["records"][0]
+        self.assertEqual(len(record["meetings"]), 2)
+        for meeting in record["meetings"]:
+            for field in ("weekday", "periods", "week_set", "week_annotation_raw",
+                          "start_period_raw", "duration_raw"):
+                self.assertIsNone(meeting[field])
+                self.assertEqual(meeting["field_states"][field], "unknown")
+        self.assertEqual([meeting["place_raw"] for meeting in record["meetings"]], ["合成甲", "合成乙"])
+        self.assertEqual(record["raw_row"], row)
+
+    def test_timetable_encoded_breaks_align_meetings_without_decoding_other_html(self):
+        for separator in ("&lt;br&gt;", "&LT;BR/&GT;", "<br />"):
+            with self.subTest(separator=separator):
+                row = {"sksj": "周二第3,4节" + separator + "周四第1,2节{秋1-8周；冬1-8周}",
+                       "cdmc": "合成甲" + separator + "&lt;img src=x onerror=alert(1)&gt;"}
+                record = parse_payload("timetable", {"kbList": [row]})["records"][0]
+                self.assertEqual(len(record["meetings"]), 2)
+                self.assertEqual(record["meetings"][0]["place_raw"], "合成甲")
+                self.assertEqual(record["meetings"][1]["place_raw"], "&lt;img src=x onerror=alert(1)&gt;")
+                self.assertIn("秋1-8周；冬1-8周", record["meetings"][1]["time_raw"])
+                self.assertEqual(record["raw_row"], row)
+                self.assertEqual(record["formal_enrollment_status"], "unknown")
 
     def test_missing_meeting_is_unknown_and_bad_segment_is_retained(self):
         parsed = parse_payload("timetable", {"kbList": [{"kcmc": "合成未知课"}, {"kcmc": "合成错格式课", "meetings": [{"xqj": 8}, None]}]})

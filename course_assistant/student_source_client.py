@@ -16,7 +16,8 @@ import threading
 import time
 
 from .student_source_parsers import PARSER_VERSION, MAPPING_VERSION, parse_payload
-from .student_sources import CREDENTIAL_VALUE, SCHEMA, SUBJECT_FIELDS, StudentSourceError, sanitize_payload, _observed_subjects
+from .student_sources import (CREDENTIAL_VALUE, SCHEMA, SUBJECT_FIELDS, StudentSourceError, sanitize_payload,
+                             _observed_subjects, validate_business_field_diagnostics)
 
 OPERATIONS = frozenset({"academic", "major_academic", "timetable", "exams", "plan_catalogue", "plan_document"})
 DOMAINS = {"academic": "academic", "major_academic": "academic", "timetable": "timetable", "exams": "exams"}
@@ -29,7 +30,7 @@ PLAN_FIELDS = PLAN_SCOPE | {"items", "records", "total", "totalCount", "totalRes
                            "pageSize", "showCount", "plan_ref", "source_alias", "version_sha256", "source_observation_kind",
                            "title", "cohort_provenance", "value", "raw_value", "state"} | SUBJECT_FIELDS
 RESPONSE_FIELDS = frozenset({"state", "http_status", "payload", "content_type", "session_epoch", "source_subject_id",
-                             "capture_method", "page_validation"})
+                             "capture_method", "page_validation", "source_field_diagnostics"})
 
 
 class SourceClientError(ValueError):
@@ -300,6 +301,14 @@ class StudentSourceClient:
             self._subjects[anchor_key] = next(iter(subjects))
         safe = {"state": "business", "http_status": None if dom else 200, "content_type": mime,
                 "session_epoch": epoch, "source_subject_id": subject, "payload": deepcopy(projected)}
+        if "source_field_diagnostics" in response:
+            try:
+                safe["source_field_diagnostics"] = validate_business_field_diagnostics(
+                    DOMAINS.get(spec["operation"]), response["source_field_diagnostics"])
+                if safe["source_field_diagnostics"]["projection"]["row_count"] != rows:
+                    raise SourceClientError("invalid_field_diagnostics")
+            except StudentSourceError:
+                raise SourceClientError("invalid_field_diagnostics") from None
         if dom:
             safe.update(capture_method="browser_dom", page_validation=deepcopy(response["page_validation"]))
         elif response.get("capture_method") == "browser_http":

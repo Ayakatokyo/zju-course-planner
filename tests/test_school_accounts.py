@@ -12,7 +12,8 @@ import unittest
 from course_assistant.auth import AccessError, AuthManager, SCHOOL_MODE, SCHOOL_REALM
 from course_assistant.school_accounts import SchoolAccountService
 from course_assistant.storage import Store
-from course_assistant.student_sources import digest
+from course_assistant.student_sources import digest, business_field_diagnostics
+from course_assistant.school_period_times import period_source
 
 
 PROFILE_A = {"source_subject_id": "SYNTHETIC-A", "name": "合成学生 A", "cohort": 2023,
@@ -102,6 +103,48 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertEqual(result["project_sso_status"], "not_configured")
         self.assertNotIn("SYNTHETIC-INPUT-NOT-OWNER", str(result))
         self.assertEqual(self.auth.authenticate(token), context)
+
+    def test_query_context_uses_authenticated_cohort_without_new_school_requests(self):
+        _, context, client, _ = self.login()
+        self.assertEqual(self.service.status(context)["query_context"], {"cohort": 2023, "cohort_state": "known"})
+        self.assertEqual(client.request_calls, [])
+        _, unknown_context, _, _ = self.login(FakeSchoolClient({"source_subject_id": "SYNTHETIC-C", "name": "合成 C"}))
+        self.assertEqual(self.service.status(unknown_context)["query_context"], {"cohort": None, "cohort_state": "unknown"})
+
+    def test_fetch_preserves_safe_source_diagnostics_with_cached_page(self):
+        payload = {"items": [{"kcmc": "合成课", "xf": "2", "sftg": None}], "total": 1}
+        diagnostics = business_field_diagnostics("academic", payload, payload)
+        response = {"state": "business", "http_status": 200, "content_type": "application/json",
+                    "payload": payload, "source_field_diagnostics": diagnostics}
+        _, context, client, _ = self.login(FakeSchoolClient(requests=[response]))
+        live = self.fetch(context)
+        self.assertEqual(live["source_field_diagnostics"], [diagnostics])
+        live["source_field_diagnostics"][0]["source"]["fields"].clear()
+        cached = self.fetch(context)
+        self.assertEqual(cached["source_field_diagnostics"], [diagnostics])
+        self.assertEqual(cached["data_source"], "historical_cache")
+        self.assertEqual(len(client.request_calls), 1)
+
+    def test_timetable_api_exposes_clock_source_only_for_authorized_own_page(self):
+        clock = [{"period": 1, "start_time": "07:10", "end_time": "07:55"}]
+        payload = {"kbList": [{"kcmc": "合成课"}], "total": 1, "period_times": clock, "period_times_source": period_source("known")}
+        response = {"state": "business", "http_status": 200, "content_type": "application/json", "payload": payload}
+        _, context, client, _ = self.login(FakeSchoolClient(requests=[response]))
+        result = self.fetch(context, operation="timetable")
+        self.assertEqual(result["period_times"], clock)
+        self.assertEqual(result["period_times_source"], period_source("known"))
+        self.assertEqual(len(result["records"]), 1)
+        result["period_times"][0]["start_time"] = "00:00"
+        cached = self.fetch(context, operation="timetable")
+        self.assertEqual(cached["period_times"], clock)
+        self.assertEqual(cached["data_source"], "historical_cache")
+        self.assertEqual(len(client.request_calls), 1)
+        _, other_context, _, _ = self.login(FakeSchoolClient(PROFILE_B, requests=[{
+            **response, "payload": {"kbList": [{"kcmc": "合成另一课"}], "total": 1, "period_times": [], "period_times_source": period_source()}}]))
+        other = self.fetch(other_context, operation="timetable")
+        self.assertEqual(other["period_times"], [])
+        self.assertEqual(other["data_source"], "live")
+        self.assertNotIn("period_times", self.fetch(context))
 
     def test_failed_login_or_missing_school_subject_creates_no_app_session(self):
         for client in (FakeSchoolClient(login_state="source_session_expired"), FakeSchoolClient(profile={"name": "合成学生"})):

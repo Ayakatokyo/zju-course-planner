@@ -321,3 +321,91 @@ pre { max-width: 100%; overflow: auto; padding: 14px; background: var(--surface)
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+.school-timetable-view { min-width: 0; margin-top: 20px; }
+.school-timetable-summary { margin-bottom: 12px; font-weight: 600; }
+.school-timetable-scroll { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: var(--radius); }
+.school-timetable { width: 100%; min-width: 980px; table-layout: fixed; border-spacing: 0; border-collapse: collapse; }
+.school-timetable caption { padding: 12px 16px; text-align: left; color: var(--muted); }
+.school-timetable th, .school-timetable td { border-top: 1px solid var(--line); border-right: 1px solid var(--line); }
+.school-timetable tr > :last-child { border-right: 0; }
+.school-timetable thead th { padding: 11px 8px; background: var(--surface); font-weight: 600; }
+.school-timetable thead th:first-child { width: 54px; }
+.school-timetable-period { height: 62px; padding: 10px 6px; text-align: center; background: var(--surface); font-weight: 500; }
+.school-timetable td { padding: 6px; vertical-align: top; }
+.school-timetable-empty { background: var(--bg); }
+.school-timetable-occupied { background: var(--surface); }
+.school-timetable-cell { display: flex; flex-direction: column; gap: 8px; }
+.school-meeting { display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); overflow-wrap: anywhere; line-height: 1.5; }
+.school-meeting strong { color: var(--ink); font-weight: 650; }
+.school-meeting-scope, .school-meeting-teacher, .school-meeting-status { font-size: 0.8125rem; color: var(--muted); }
+.school-meeting-place { font-size: 0.875rem; }
+.school-meeting-status { padding-top: 4px; border-top: 1px solid var(--line); }
+.school-meeting-exam { padding-top: 6px; border-top: 1px solid var(--line); font-size: 0.8125rem; line-height: 1.5; color: var(--muted); }
+.school-timetable:has(.school-period-clock) thead th:first-child { width: 86px; }
+.school-period-clock { display: block; margin-top: 5px; font-size: 0.75rem; font-weight: 400; line-height: 1.45; color: var(--muted); overflow-wrap: anywhere; }
+.school-timetable-note { margin-top: 12px; color: var(--muted); font-size: 0.875rem; }
+.school-timetable-pending { margin-top: 24px; }
+.school-timetable-pending h3 { margin-bottom: 12px; font-size: 1rem; }
+.school-timetable-pending-list { display: flex; flex-wrap: wrap; gap: 12px; }
+.school-meeting-pending { flex: 1 1 240px; max-width: 420px; background: var(--surface); }
+.school-timetable-source { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); }
+.school-timetable-source > summary { cursor: pointer; color: var(--primary); }
+.school-timetable-records { padding-left: 24px; }
+.school-timetable-records li { margin-top: 18px; padding-left: 4px; overflow-wrap: anywhere; }
+.school-timetable-records dl { margin-top: 8px; }
+.school-timetable-records dl > div { display: flex; gap: 12px; }
+.school-timetable-records dt { flex: 0 0 96px; color: var(--muted); }
+.school-timetable-records dd { min-width: 0; margin: 0; }
+@media (max-width: 680px) {
+  .school-timetable { min-width: 910px; }
+  .school-timetable-records dl > div { gap: 8px; }
+  .school-timetable-records dt { flex-basis: 88px; }
+  .school-meeting-pending { max-width: none; }
+}
+
+/* Personal school queries retain the existing product palette and controls. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.school-navigation { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.school-navigation .button { border-color: transparent; background: transparent; min-height: 44px; }
+.school-navigation .button:hover { background: var(--surface); }
+.school-navigation .button.selected { background: var(--selected); color: var(--primary); font-weight: 650; }
+.school-session { margin: 0; }
+.school-session > summary { min-height: 40px; padding: 7px 0; color: var(--muted); font-size: 0.875rem; }
+.school-session > button { margin-top: 8px; }
+.school-query-help { margin-top: 12px; }
+.school-empty, .school-loading { padding: 32px 0 12px; }
+.school-empty > p { margin-top: 12px; color: var(--muted); }
+.school-result-heading { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+.school-provenance { margin-top: 10px; color: var(--muted); font-size: 0.875rem; }
+.school-grade-filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; margin: 24px 0 16px; }
+.school-grade-filter .field { flex: 1 1 160px; }
+.school-grade-filter .field:first-child { flex: 2 1 240px; }
+.school-grade-filter input, .school-grade-filter select { width: 100%; min-height: 44px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.school-data-table { min-width: 680px; }
+.school-data-table td:first-child { min-width: 190px; }
+.school-pagination { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line); }
+.school-pagination p, .school-pagination span { font-size: 0.875rem; color: var(--muted); }
+.school-source-details, .school-query-details { margin-top: 24px; color: var(--muted); font-size: 0.875rem; }
+.school-source-details > p, .school-query-details > p { margin-top: 12px; }
+.school-profile { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; margin: 24px 0 0; }
+.school-profile > div { min-width: 0; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.school-profile dt { color: var(--muted); font-size: 0.875rem; }
+.school-profile dd { margin: 6px 0 0; overflow-wrap: anywhere; }
+.school-plan .toolbar { align-items: center; margin-bottom: 16px; }
+.school-plan > p, .school-plan > button { margin-top: 12px; }
+@media (max-width: 680px) {
+  .school-navigation { gap: 4px; }
+  .school-navigation .button { padding-inline: 10px; }
+  .school-query-form { gap: 12px; }
+  .school-query-form > button { width: 100%; }
+  .school-profile { grid-template-columns: 1fr; }
+  .school-pagination .button-group { justify-content: space-between; width: 100%; }
+}
+.school-grade-filter + .table-wrap .school-data-table th:first-child { width: 36%; }
+.school-grade-filter + .table-wrap .school-data-table th { white-space: nowrap; }
+.school-grade-filter + .table-wrap .school-data-table td:nth-child(n+2):nth-child(-n+5) { white-space: nowrap; }
+main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
+@media (min-width: 960px) {
+  .school-timetable { min-width: 100%; }
+}
