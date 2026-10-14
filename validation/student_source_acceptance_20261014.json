@@ -1,0 +1,61 @@
+{
+  "schema": "student-source-acceptance/1",
+  "recorded_at_utc": "2026-10-13T18:45:35.785159+00:00",
+  "source_alias": "OFFICIAL-UGR",
+  "engineering_validation": "student_source_20261014_validation.json",
+  "engineering_new_tests": 83,
+  "current_regression_tests": 468,
+  "real_source": {
+    "failure_class": "browser_entry_control_unavailable",
+    "http_status_observed": null,
+    "school_service_reachability": "unknown",
+    "login_form_visible": false,
+    "credentials_entered": false,
+    "target_term_status": "not_selected",
+    "source_subject_status": "unknown",
+    "domains": {
+      "profile": {
+        "captured_rows": 0,
+        "status": "not_attempted_due_entry_blocker"
+      },
+      "academic": {
+        "captured_rows": 0,
+        "status": "not_attempted_due_entry_blocker"
+      },
+      "timetable": {
+        "captured_rows": 0,
+        "status": "not_attempted_due_entry_blocker"
+      },
+      "exams": {
+        "captured_rows": 0,
+        "status": "not_attempted_due_entry_blocker"
+      }
+    },
+    "official_provider": "not_configured",
+    "student_plan_binding": "not_verified",
+    "recommendation_input": "input_not_ready_for_recommendation"
+  },
+  "private_receipt_sha256": "c1863eb8143af6fcc8e257b859d0720bff7c4082af42f96c9d5e947804c7d141",
+  "private_report_sha256": "ea99d3d3443f2621da4cb46f3bcf2b005ce2f3ff9b66f3b0c3647ab848544f62",
+  "private_report_checks": {
+    "created_exclusive": true,
+    "mode": "0o600",
+    "data_body_count": 0,
+    "rendered_browser_acceptance": "not_run",
+    "parent_mode": "0o700",
+    "final_cli_report_created": true
+  },
+  "script_sha256": {
+    "scripts/run_student_source_probe.py": "ef6f654e9c1b23441d3bf89e3102db41706dbe26b186f30043a20df3c33cb1e5"
+  },
+  "timeout_retry_scope": "browser_policy_only_no_automatic_network_adapter",
+  "actual_model_calls": "not_run",
+  "embedding": "not_run",
+  "main_app_personal_source_integration": "not_implemented",
+  "git_delivery": {
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  },
+  "private_directory_fix": "new_nested_directories_0700_and_existing_material_parent_checked_without_chmod"
+}
