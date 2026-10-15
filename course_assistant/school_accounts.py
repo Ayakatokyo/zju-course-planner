@@ -21,7 +21,7 @@ import time
 
 from .auth import AccessError, SCHOOL_MODE, SCHOOL_REALM
 from .student_source_client import DOMAINS, StudentSourceClient, SourceClientError
-from .student_source_parsers import PARSER_VERSION, parse_payload
+from .student_source_parsers import PARSER_VERSION, MAPPING_VERSION, parse_payload
 from .student_sources import CREDENTIAL_VALUE, _observed_subjects, digest, sanitize_payload
 from .school_period_times import period_source
 from .student_plan_acquisition import OnDemandPlanService, StudentPlanAcquisitionError
@@ -87,6 +87,8 @@ class _Connection:
     state: str = "connected"
     source: object = None
     plan: object = None
+    personal: object = None
+    personal_epoch: object = None
     pending: dict | None = None
     captcha_id: str | None = None
     captcha_expires: float = 0
@@ -122,10 +124,11 @@ class _BoundTransport:
 
 
 class SchoolAccountService:
-    def __init__(self, auth, client_factory, *, root=None, clock=time.time):
+    def __init__(self, auth, client_factory, *, root=None, clock=time.time, personal_pdf_extractor=None):
         if not callable(client_factory):
             _error("invalid_school_request")
         self.auth, self.client_factory, self.clock = auth, client_factory, clock
+        self.personal_pdf_extractor = personal_pdf_extractor
         self.root = _private_directory(root or auth.store.path.parent / "private" / "school_accounts")
         if auth.store.path.is_symlink():
             _error("invalid_private_store", 503)
@@ -431,7 +434,7 @@ class SchoolAccountService:
                 failures.extend(parsed["row_failures"])
                 payloads.append(payload)
             alias = self._capture(context, request["operation"], request["target_term"], payloads) if payloads and result["data_source"] == "live" else None
-            return {key: value for key, value in {
+            public = {key: value for key, value in {
                 "status": state, "data_kind": "personal_source", "security_realm": SCHOOL_REALM,
                 "operation": request["operation"], "target_term": request["target_term"], "data_source": result["data_source"],
                 "records": records, "issues": issues, "row_failures": failures, "coverage": result["coverage"],
@@ -441,6 +444,221 @@ class SchoolAccountService:
                                              if "source_field_diagnostics" in page.get("response", {})],
                 "captured_at": result["captured_at"], "checked_at": result["checked_at"],
                 "cache_captured_at": result["cache_captured_at"], "failure": result["failure"], "source_alias": alias}.items()}
+            # Register a separate observation, rather than treating the content
+            # hash of a stripped source projection as a capture timestamp.
+            if result.get("pages") and connection.state not in self._LOCAL_BLOCKED:
+                from .personal_observations import PersonalObservationError
+                from .personal_evidence import PersonalEvidenceError
+                epoch = connection.client.session_epoch
+                try:
+                    store, _ = self._personal_services(context, connection)
+                    observation = store.register(public, parser_version=PARSER_VERSION, mapping_version=MAPPING_VERSION)
+                    public["observation_id"] = observation["observation_id"]
+                except (PersonalObservationError, PersonalEvidenceError, AccessError) as error:
+                    self._authorize_local(context, connection, epoch)
+                    code = getattr(error, "code", getattr(error, "reason", None))
+                    if code not in {"invalid_private_store", "private_store_unavailable", "invalid_private_path",
+                                    "private_permissions_required", "observation_store_limit", "invalid_observation_result"}:
+                        raise
+                    # The school read remains usable if a new local registry
+                    # cannot be written. It must never acquire a fake receipt.
+                    public["observation_registration"] = {"status": "failed", "code": code}
+                except OSError:
+                    self._authorize_local(context, connection, epoch)
+                    public["observation_registration"] = {"status": "failed", "code": "private_store_unavailable"}
+                self._authorize_local(context, connection, epoch)
+            return public
+
+    _LOCAL_BLOCKED = frozenset({"source_subject_changed", "permission_denied", "source_session_expired",
+                                "awaiting_user_login", "captcha_required"})
+
+    def _authorize_local(self, context, connection, epoch):
+        scope = self._authorize(context, connection)
+        if connection.state in self._LOCAL_BLOCKED or connection.client.session_epoch != epoch:
+            _error("source_session_expired", 409)
+        return scope
+
+    @staticmethod
+    def _local_error(error):
+        code = getattr(error, "code", "local_query_unavailable")
+        # Module errors carry only controlled codes. Never send exception text,
+        # private paths, PDF parser output or an extracted document in errors.
+        raise AccessError("本机资料查询暂不可用，请检查来源状态后重试", 409, code)
+
+    def _personal_services(self, context, connection):
+        from .personal_observations import PersonalObservationStore
+        from .personal_evidence import PersonalEvidenceService
+        self._authorize(context, connection)
+        epoch = connection.client.session_epoch
+        if connection.state in self._LOCAL_BLOCKED:
+            _error(connection.state, 409)
+        if connection.personal is not None and connection.personal_epoch == epoch:
+            return connection.personal
+        def authorize():
+            scope = self._authorize_local(context, connection, epoch)
+            return {"scope_key": digest({"connection": scope["scope_key"], "http_epoch": epoch}),
+                    "owner_student_id": connection.owner, "security_realm": SCHOOL_REALM}
+        scope = authorize()
+        owner_path = _private_directory(self.root / digest({"realm": SCHOOL_REALM, "owner": connection.owner}))
+        # A new authenticated generation gets a separate registry. Same bytes
+        # under a new session cannot revive an old observation or citation.
+        directory = _private_directory(owner_path / "personal" / digest(scope))
+        def describe_document():
+            authorize()
+            profile = parse_payload("profile", connection.profile)["records"][0]
+            result = self._plan_service(context, connection).describe(profile)
+            authorize()
+            if result.get("status") != "acquired_pending_review":
+                raise StudentPlanAcquisitionError("source_unavailable")
+            return result
+        store = PersonalObservationStore(directory / "observations", authorize)
+        evidence = PersonalEvidenceService(directory / "evidence", authorize,
+            lambda alias: self.read_plan_document(context, alias), describe_document,
+            extractor=self.personal_pdf_extractor)
+        connection.personal, connection.personal_epoch = (store, evidence), epoch
+        return connection.personal
+
+    def local_chat_status(self, context):
+        connection = self._connection(context)
+        epoch = connection.client.session_epoch
+        base = {"configured": False, "available": False, "remote": False,
+                "reason": "real_recommendation_not_ready"}
+        if connection.state in self._LOCAL_BLOCKED:
+            local = {"available": False, "reason": connection.state,
+                     "observations": {"snapshots": []}, "evidence": {"ready": False, "status": "source_unavailable"},
+                     "plan": {"status": "source_unavailable"}}
+        else:
+            from .personal_observations import PersonalObservationError
+            from .personal_evidence import PersonalEvidenceError
+            try:
+                with connection.lock:
+                    store, evidence = self._personal_services(context, connection)
+                    plan_service = self._plan_service(context, connection)
+                    profile = parse_payload("profile", connection.profile)["records"][0]
+                plan = plan_service.describe(profile)
+                evidence_status = (evidence.describe() if plan.get("status") == "acquired_pending_review" else
+                    {"ready": False, "status": "not_prepared", "reason": plan.get("status", "plan_missing")})
+                local = {"available": True, "observations": store.describe(), "evidence": evidence_status, "plan": plan}
+            except (PersonalObservationError, PersonalEvidenceError, StudentPlanAcquisitionError, OSError) as error:
+                self._local_error(error)
+            self._authorize_local(context, connection, epoch)
+        self._authorize(context, connection)
+        if connection.client.session_epoch != epoch:
+            _error("source_session_expired", 409)
+        return {**base, "local": local, "capabilities": {"local_records": local["available"],
+                "local_evidence": local["available"] and local["evidence"]["ready"],
+                "model_dialogue": False, "real_recommendation": False}}
+
+    def local_query(self, context, path, body):
+        from .personal_observations import PersonalObservationError
+        from .personal_evidence import PersonalEvidenceError
+        connection = self._connection(context)
+        # Only obtain the services under the short connection lock. Extraction
+        # runs without the global app lock, so logout can revoke a pending job.
+        try:
+            with connection.lock:
+                store, evidence = self._personal_services(context, connection)
+                epoch = connection.client.session_epoch
+            if path == "/api/personal/records":
+                result = store.query(body)
+            elif path == "/api/evidence/prepare" and set(body) == {"source_alias"}:
+                result = evidence.prepare(body["source_alias"])
+            elif (path == "/api/evidence/search" and set(body) <= {"query", "limit"} and "query" in body
+                  and type(body.get("limit", 5)) is int and 1 <= body.get("limit", 5) <= 5):
+                result = evidence.search(body["query"], limit=body.get("limit", 5))
+            elif path == "/api/evidence/resolve" and set(body) == {"reference"}:
+                result = evidence.resolve(body["reference"])
+            else:
+                _error("invalid_school_request")
+            if path.startswith("/api/evidence/"):
+                current = evidence.describe()
+                if not current["ready"] or current["versions"] != result.get("versions"):
+                    raise PersonalEvidenceError("stale_input")
+        except (PersonalObservationError, PersonalEvidenceError, StudentPlanAcquisitionError, OSError) as error:
+            self._local_error(error)
+        self._authorize_local(context, connection, epoch)
+        return result
+
+    def personal_chat_scope(self, context):
+        """Server-only generation and input versions; no model identity claim."""
+        connection = self._connection(context)
+        epoch = connection.client.session_epoch
+        scope = self._authorize_local(context, connection, epoch)
+        status = self.local_chat_status(context)["local"]
+        plan = status["plan"]
+        versions = {"observations": [{"observation_id": item["observation_id"], "versions": item["versions"]}
+                    for item in status["observations"]["snapshots"]],
+                    "plan": {key: plan.get(key) for key in ("source_alias", "sha256", "status", "mapping_status", "binding_status", "rules_status")},
+                    "profile": digest(connection.profile),
+                    "parser": PARSER_VERSION, "mapping": MAPPING_VERSION}
+        self._authorize_local(context, connection, epoch)
+        return {"scope_key": digest({"connection": scope["scope_key"], "http_epoch": epoch}), "versions": versions}
+
+    def personal_chat_identity_scope(self, context):
+        """Authorization generation only, so progress need not wait for I/O."""
+        connection = self._connection(context)
+        epoch = connection.client.session_epoch
+        scope = self._authorize_local(context, connection, epoch)
+        return {"scope_key": digest({"connection": scope["scope_key"], "http_epoch": epoch})}
+
+    def prepare_personal_chat(self, context, question, *, before, authorize, emit, adopt):
+        from .personal_acquisition import prepare_sources
+        connection = self._connection(context)
+        # Serialize this question's source additions with other reads. Logout
+        # revokes the AuthManager session without waiting for this lock.
+        with connection.lock:
+            before()
+            result = prepare_sources(self, context, question, authorize=authorize, emit=emit)
+            adopt(bool(result))
+            return result
+
+    def personal_chat_tool(self, context, name, args):
+        """Internal tools locate resources through the authenticated connection.
+
+        The model never supplies an owner, source path, arbitrary URL or SQL.
+        Preparing an already permitted PDF is local; tools do not acquire new
+        school data or perform enrollment actions.
+        """
+        connection = self._connection(context)
+        epoch = connection.client.session_epoch
+        self._authorize_local(context, connection, epoch)
+        if name == "get_my_context":
+            local = self.local_chat_status(context)["local"]
+            profile = parse_payload("profile", connection.profile)["records"][0]
+            result = {"status": "available", "data_kind": "personal_source",
+                      "cohort": profile.get("cohort"), "major_name": profile.get("major_name"),
+                      "operations": [{"operation": item["operation"], "target_term": item["target_term"],
+                                      "coverage": item["coverage"], "captured_at": item["captured_at"]}
+                                     for item in local["observations"]["snapshots"][:20]],
+                      "capabilities": {"curriculum_available": local["plan"].get("status") == "acquired_pending_review",
+                                       "read_only_acquisition": True,
+                                       "real_recommendation": False},
+                      "note": "按当前登录本人范围查询；服务可按已提交问题准备必要的本人只读来源。来源是观察记录，培养适用及规则待审核。"}
+        elif name == "query_my_records":
+            request = {key: value for key, value in args.items() if key in {"operation", "query", "academic_year", "limit"}}
+            local = self.local_chat_status(context)["local"]
+            snapshots = [item for item in local["observations"]["snapshots"] if item["operation"] == request.get("operation")]
+            if args.get("target_term") is not None:
+                snapshots = [item for item in snapshots if item["target_term"] == args["target_term"]]
+            if not snapshots:
+                result = {"status": "not_ready", "operation": request.get("operation"), "records": [],
+                          "coverage": {}, "reason": "no_observation_in_scope", "data_kind": "personal_source"}
+            else:
+                request["observation_id"] = snapshots[0]["observation_id"]
+                result = self.local_query(context, "/api/personal/records", request)
+        elif name == "search_my_curriculum":
+            local = self.local_chat_status(context)["local"]
+            if local["plan"].get("status") != "acquired_pending_review":
+                result = {"status": "not_ready", "matches": [], "reason": "curriculum_not_acquired",
+                          "data_kind": "personal_source", "answer_support_verified": False}
+            else:
+                if not local["evidence"].get("ready"):
+                    self.local_query(context, "/api/evidence/prepare", {"source_alias": local["plan"]["source_alias"]})
+                result = self.local_query(context, "/api/evidence/search", args)
+        else:
+            _error("invalid_school_request")
+        self._authorize_local(context, connection, epoch)
+        return result
 
     @staticmethod
     def _captcha_image(result):

@@ -1,0 +1,661 @@
+{
+  "started_at_utc": "2026-10-15T06:58:59.860350+00:00",
+  "status": "passed",
+  "scope": "Real DeepSeek streaming + cold-start exclusively synthetic school transport; not personal-source acceptance",
+  "provider": "DeepSeek",
+  "model": "deepseek-flash",
+  "timeout_s": 30,
+  "real_school_network": false,
+  "real_personal_data": false,
+  "full_reasoning_saved": false,
+  "prefetched_sources": false,
+  "calls": [
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 70,
+      "reasoning_delta_chars": 308,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1658,
+      "usage": {
+        "prompt_tokens": 1544,
+        "completion_tokens": 143,
+        "total_tokens": 1687,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1544,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 70
+        }
+      },
+      "provider_reasoning_chars": 308
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 134,
+      "reasoning_delta_chars": 403,
+      "projected_record_count": 13,
+      "projected_summary_counts": [
+        {
+          "matched_records": 60,
+          "numeric_grade_count": 48,
+          "non_numeric_grade_count": 12,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 4087,
+      "usage": {
+        "prompt_tokens": 3731,
+        "completion_tokens": 561,
+        "total_tokens": 4292,
+        "prompt_cache_hit_tokens": 1536,
+        "prompt_cache_miss_tokens": 2195,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 134
+        }
+      },
+      "provider_reasoning_chars": 403
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 6,
+      "streaming": true,
+      "reasoning_delta_count": 0,
+      "reasoning_delta_chars": 0,
+      "projected_record_count": 13,
+      "projected_summary_counts": [
+        {
+          "matched_records": 60,
+          "numeric_grade_count": 48,
+          "non_numeric_grade_count": 12,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 1090,
+      "usage": {
+        "prompt_tokens": 4297,
+        "completion_tokens": 13,
+        "total_tokens": 4310,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 3529,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "provider_reasoning_chars": 0
+    }
+  ],
+  "results": [
+    {
+      "turn": 1,
+      "question": "我的成绩怎么样",
+      "status": "completed",
+      "code": null,
+      "reply": "本次查的是主修成绩来源（已读范围为本机主修历史成绩快照），不是本人全部成绩；当前已读匹配到60条，而来源报告总数为75条，还没有读完，所以下面的数字只是这份不完整快照的范围，不能当作完整历史。 [1] [2]\n\n这份快照里共60条匹配记录，其中48条是已知的0—100分纯数字来源成绩，另有12条是非数字成绩（例如“在修”“待认定”这类标记），还有部分记录完成状态未知，这两种状态要分开看，不能混为一谈。 [2]\n\n对这些已知数字成绩做一个简单的不加权概况：平均约78.81分，最低45分，最高98分。这只是数字的简单均值，不是GPA、绩点，也不代表已获学分或培养认定。 [2]\n\n从已读的少量记录看，成绩分布比较分散：既有通过的（如“合成课程 06”90分，状态为通过），也有未通过的（“合成课程 04”45分，状态为未通过），还有在修、待认定，以及完成状态未知但带分数的记录。 [3] [4] [5] [6] [7]\n\n因为读取还有剩余部分、且部分完成状态与成绩认定尚未确定，所以现在还不能给出正式平均成绩、学分缺口或毕业相关结论。如果你想看某门具体课程，可以告诉我课程名或课程码。 [1] [2]",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "history_reset": true,
+      "reply_origin": "personal_model_evidence",
+      "decision_kind": "answer",
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_count": 7,
+      "citation_kinds": [
+        "context",
+        "summary",
+        "record",
+        "record",
+        "record",
+        "record",
+        "record"
+      ],
+      "summary_counts": [
+        {
+          "matched_records": 60,
+          "numeric_grade_count": 48,
+          "non_numeric_grade_count": 12,
+          "unknown_grade_count": 0
+        }
+      ],
+      "diagnostics": {
+        "available": true,
+        "incomplete": false
+      },
+      "progress": {
+        "samples": [
+          {
+            "elapsed_ms": 4,
+            "status": "not_started",
+            "terminal": false,
+            "sequence": 0,
+            "event_kinds": [],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 71,
+            "status": "running",
+            "terminal": false,
+            "sequence": 2,
+            "event_kinds": [
+              "tool.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 149,
+            "status": "running",
+            "terminal": false,
+            "sequence": 3,
+            "event_kinds": [
+              "tool.start",
+              "tool.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 217,
+            "status": "running",
+            "terminal": false,
+            "sequence": 5,
+            "event_kinds": [
+              "tool.start",
+              "tool.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 276,
+            "status": "running",
+            "terminal": false,
+            "sequence": 6,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1246,
+            "status": "running",
+            "terminal": false,
+            "sequence": 7,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1314,
+            "status": "running",
+            "terminal": false,
+            "sequence": 8,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1387,
+            "status": "running",
+            "terminal": false,
+            "sequence": 18,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1526,
+            "status": "running",
+            "terminal": false,
+            "sequence": 44,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 83,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1599,
+            "status": "running",
+            "terminal": false,
+            "sequence": 71,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 199,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1669,
+            "status": "running",
+            "terminal": false,
+            "sequence": 76,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 212,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1948,
+            "status": "running",
+            "terminal": false,
+            "sequence": 77,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2031,
+            "status": "running",
+            "terminal": false,
+            "sequence": 78,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2125,
+            "status": "running",
+            "terminal": false,
+            "sequence": 80,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3149,
+            "status": "running",
+            "terminal": false,
+            "sequence": 83,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3218,
+            "status": "running",
+            "terminal": false,
+            "sequence": 113,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 16,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3286,
+            "status": "running",
+            "terminal": false,
+            "sequence": 129,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 73,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3350,
+            "status": "running",
+            "terminal": false,
+            "sequence": 132,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 84,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3423,
+            "status": "running",
+            "terminal": false,
+            "sequence": 148,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 130,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3497,
+            "status": "running",
+            "terminal": false,
+            "sequence": 163,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 176,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3565,
+            "status": "running",
+            "terminal": false,
+            "sequence": 178,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 201,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3633,
+            "status": "running",
+            "terminal": false,
+            "sequence": 187,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 240,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3704,
+            "status": "running",
+            "terminal": false,
+            "sequence": 210,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 289,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3839,
+            "status": "running",
+            "terminal": false,
+            "sequence": 214,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 307,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 6234,
+            "status": "running",
+            "terminal": false,
+            "sequence": 215,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 6361,
+            "status": "completed",
+            "terminal": true,
+            "sequence": 217,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end",
+              "answer.validated"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": false
+          }
+        ],
+        "observed_reasoning_while_running": true,
+        "observed_tool_event_while_running": true,
+        "progress_error_codes": [],
+        "elapsed_ms": 6361
+      }
+    },
+    {
+      "turn": 2,
+      "question": "你是谁",
+      "status": "completed",
+      "code": null,
+      "reply": "我是选课助手，可以查询当前登录账号已读取的教务记录和培养资料，并说明来源与待确认项。",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "history_reset": false,
+      "reply_origin": "model_selected_service_guidance",
+      "decision_kind": "general_chat",
+      "tools": [
+        "get_my_context"
+      ],
+      "citation_count": 0,
+      "citation_kinds": [],
+      "summary_counts": [],
+      "diagnostics": {
+        "available": true,
+        "incomplete": false
+      },
+      "progress": {
+        "samples": [
+          {
+            "elapsed_ms": 3,
+            "status": "not_started",
+            "terminal": false,
+            "sequence": 0,
+            "event_kinds": [],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 71,
+            "status": "running",
+            "terminal": false,
+            "sequence": 1,
+            "event_kinds": [],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 165,
+            "status": "running",
+            "terminal": false,
+            "sequence": 2,
+            "event_kinds": [
+              "tool.start",
+              "tool.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 223,
+            "status": "running",
+            "terminal": false,
+            "sequence": 4,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1329,
+            "status": "running",
+            "terminal": false,
+            "sequence": 5,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1455,
+            "status": "completed",
+            "terminal": true,
+            "sequence": 7,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end",
+              "answer.validated"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": false
+          }
+        ],
+        "observed_reasoning_while_running": false,
+        "observed_tool_event_while_running": true,
+        "progress_error_codes": [],
+        "elapsed_ms": 1455
+      }
+    }
+  ],
+  "checks": {
+    "cold_start_has_no_observations": true,
+    "cold_start_no_source_requests": true,
+    "new_personal_deepseek_defaults_thinking_on": true,
+    "turn_1_completed": true,
+    "turn_1_progress_reader_succeeded": true,
+    "grade_answer_has_summary_evidence": true,
+    "grade_model_queried_current_records": true,
+    "real_reasoning_visible_while_running": true,
+    "real_tool_events_visible_while_running": true,
+    "turn_2_completed": true,
+    "turn_2_progress_reader_succeeded": true,
+    "identity_uses_safe_general_chat": true,
+    "grade_cold_start_read_major_all_history": true,
+    "both_questions_ran_once_without_validation_retry": true,
+    "all_model_calls_stream_selected_thinking_model": true,
+    "summary_was_actually_projected_to_provider": true
+  },
+  "synthetic_school_requests": [
+    {
+      "operation": "major_academic",
+      "target_term": "ALL-HISTORY",
+      "page": 1
+    },
+    {
+      "operation": "major_academic",
+      "target_term": "ALL-HISTORY",
+      "page": 2
+    },
+    {
+      "operation": "major_academic",
+      "target_term": "ALL-HISTORY",
+      "page": 3
+    }
+  ],
+  "provider_requests": [
+    {
+      "operation": "chat",
+      "timeout_s": 29.99990512500517
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 29.99993941601133
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 29.9999371249869
+    }
+  ],
+  "elapsed_ms": 7867,
+  "assistant_semantic_review": {
+    "scope": "Only this synthetic generated answer; not human gold or full personal-source acceptance",
+    "major_grade_source_scope_explicit": true,
+    "incomplete_60_of_75_scope_explicit": true,
+    "unknown_completion_not_rephrased_as_unreviewed": true,
+    "numeric_summary_separate_from_gpa_and_earned_credits": true,
+    "complete_semantic_acceptance": false,
+    "remaining_observation": "A sentence mentions unknown completion status while citing only the numeric-grade summary; later record citations support the same status, but claim-level citation alignment can be tighter."
+  }
+}

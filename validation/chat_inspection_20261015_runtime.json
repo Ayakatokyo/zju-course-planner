@@ -1,0 +1,18 @@
+{
+  "pid": 63362,
+  "url": "http://127.0.0.1:18875/",
+  "health": {
+    "status": "ok",
+    "version": "0.2.0",
+    "school_auth_status": "not_configured",
+    "school_client_enabled": true
+  },
+  "assets_sha256": {
+    "app.js": "28d8cb44327d1ffafde5ad854932c046849c0cc0acf8b7ac8437dce71847b450",
+    "styles.css": "a04d2b397e5cff52683ed6f98489e0b8c096c893f34e7cff36ab63f3e6042611"
+  },
+  "school_requests": 0,
+  "model_requests": 0,
+  "relogin_required": true,
+  "mock_enabled": false
+}

@@ -1,0 +1,158 @@
+{
+  "scope": "real model plus exclusively synthetic local school transport; not personal-source acceptance",
+  "model": {
+    "provider": "DeepSeek",
+    "model": "deepseek-flash"
+  },
+  "results": [
+    {
+      "question": "在已读取的学期成绩中，SYNTHETIC-PE-REPEAT 有几条来源记录？保留重复记录，并说明覆盖范围。",
+      "status": "completed",
+      "reply": "在本机已读取的成绩范围内检索 SYNTHETIC-PE-REPEAT，共命中 3 条来源记录，均保留重复、未做合并：成绩分别为 70、71、72，名义学分分别为 1、1.5、2，学期均为 2026-2027 学年秋冬。 [1] [2] [3]\n\n覆盖范围方面：本次成绩读取仅覆盖 2026-2027 学年秋冬学期，已捕获 60 行，而该范围内报告的总行数为 75，仍有未读取部分，因此这不是完整历史，也不能据此判断该课程的全部修读次数。 [4]\n\n这些记录的完成状态字段为未知，名义学分不等于已获学分，也不代表正式选课或毕业结论；如需完整计数，需要先补齐尚未读取的成绩范围。 [1] [4]",
+      "code": null,
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citations": 4,
+      "reply_origin": "personal_model_evidence"
+    },
+    {
+      "question": "这份培养资料中 SYNTHETIC-001 的来源学分是什么？有没有不计入某模块的说明？请引用页码并说明适用审核状态。",
+      "status": "completed",
+      "reply": "本机已读范围显示：2023级合成专业，培养资料可用；成绩类记录仅覆盖2026-2027-AW学期，已读60行、还有未读部分，因此不是完整历史。 [1]\n\n培养资料第1页的模块表中，SYNTHETIC-001 列在 Synthetic AI 模块下，标注的名义学分为3。 [2]\n\n第1页另有一处说明：SYNTHETIC-001 需要先修 SYNTHETIC-000，并指向第2页的排除与适用性说明。 [3]\n\n第2页明确写到 SYNTHETIC-001 不计入 synthetic seminar 模块；同页还说明该文件只描述虚构队列 SYNTHETIC-2023，且已观察到的成绩不构成已获学分或认可的证明。 [4]\n\n这些片段均处于未审核状态，规则状态为未审核，且与本人的绑定关系未验证、所需上下文未完整传送，因此不能据此认定该课程对本人正式适用，也不能把名义学分当作已获学分。 [2] [3] [4]",
+      "code": null,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum"
+      ],
+      "citations": 4,
+      "reply_origin": "personal_model_evidence"
+    }
+  ],
+  "egress": [
+    {
+      "characters": 1168,
+      "messages_sha256": "d6cdc24750ec615b76f1994fc06119d3f3a7b505cb16476a9f17bc374cd11fb3",
+      "tool_fields": [],
+      "synthetic_assistant_content": "I'll check the context and search your records for that course.",
+      "requested_tools": [
+        "get_my_context",
+        "query_my_records"
+      ]
+    },
+    {
+      "characters": 4298,
+      "messages_sha256": "f5f1d2ca4498dc31917b3463c4940b8262f505a6145aada8988ba7c4d58fa48c",
+      "tool_fields": [
+        {
+          "top_level_fields": [
+            "answer_support_verified",
+            "capabilities",
+            "cohort",
+            "coverage",
+            "data_kind",
+            "evidence_id",
+            "major_name",
+            "operations",
+            "status"
+          ],
+          "record_fields": [],
+          "match_fields": []
+        },
+        {
+          "top_level_fields": [
+            "answer_support_verified",
+            "captured_at",
+            "checked_at",
+            "coverage",
+            "data_kind",
+            "historical_only",
+            "matched_records",
+            "observation_status",
+            "operation",
+            "projection_omitted_rows",
+            "records",
+            "returned_records",
+            "status",
+            "target_term",
+            "total_records",
+            "unknown"
+          ],
+          "record_fields": [
+            "academic_year_raw",
+            "completion_status_raw",
+            "course_code_raw",
+            "course_name_raw",
+            "evidence_id",
+            "field_states",
+            "grade_raw",
+            "nominal_credits",
+            "term_raw"
+          ],
+          "match_fields": []
+        }
+      ],
+      "synthetic_assistant_content": "{\"kind\":\"answer\",\"claims\":[{\"text\":\"在本机已读取的成绩范围内检索 SYNTHETIC-PE-REPEAT，共命中 3 条来源记录，均保留重复、未做合并：成绩分别为 70、71、72，名义学分分别为 1、1.5、2，学期均为 2026-2027 学年秋冬。\",\"evidence_ids\":[\"R3ea0354d-2\",\"R3ea0354d-3\",\"R3ea0354d-4\"]},{\"text\":\"覆盖范围方面：本次成绩读取仅覆盖 2026-2027 学年秋冬学期，已捕获 60 行，而该范围内报告的总行数为 75，仍有未读取部分，因此这不是完整历史，也不能据此判断该课程的全部修读次数。\",\"evidence_ids\":[\"C3ea0354d-1\"]},{\"text\":\"这些记录的完成状态字段为未知，名义学分不等于已获学分，也不代表正式选课或毕业结论；如需完整计数，需要先补齐尚未读取的成绩范围。\",\"evidence_ids\":[\"R3ea0354d-2\",\"C3ea0354d-1\"]}]}",
+      "requested_tools": []
+    },
+    {
+      "characters": 1173,
+      "messages_sha256": "7ee1dec3a3f8f304b4012f7176dff4a9554029e35789785fbe1a7bcea791b114",
+      "tool_fields": [],
+      "synthetic_assistant_content": "I'll check the local context and search the curriculum file for that identifier.",
+      "requested_tools": [
+        "get_my_context",
+        "search_my_curriculum"
+      ]
+    },
+    {
+      "characters": 4082,
+      "messages_sha256": "d400601288c2c125a5dc6f9ea431f5a4a29f3fc0c843d1199682716a73728a8a",
+      "tool_fields": [
+        {
+          "top_level_fields": [
+            "answer_support_verified",
+            "capabilities",
+            "cohort",
+            "coverage",
+            "data_kind",
+            "evidence_id",
+            "major_name",
+            "operations",
+            "status"
+          ],
+          "record_fields": [],
+          "match_fields": []
+        },
+        {
+          "top_level_fields": [
+            "answer_support_verified",
+            "coverage",
+            "data_kind",
+            "matches",
+            "projection_omitted_matches",
+            "status",
+            "unknown"
+          ],
+          "record_fields": [],
+          "match_fields": [
+            "binding_status",
+            "context_completeness",
+            "evidence_id",
+            "page",
+            "required_context_not_transmitted",
+            "review_status",
+            "rules_status",
+            "text",
+            "title"
+          ]
+        }
+      ],
+      "synthetic_assistant_content": "{\"kind\":\"answer\",\"claims\":[{\"text\":\"本机已读范围显示：2023级合成专业，培养资料可用；成绩类记录仅覆盖2026-2027-AW学期，已读60行、还有未读部分，因此不是完整历史。\",\"evidence_ids\":[\"Cb823cbcf-1\"]},{\"text\":\"培养资料第1页的模块表中，SYNTHETIC-001 列在 Synthetic AI 模块下，标注的名义学分为3。\",\"evidence_ids\":[\"Eb823cbcf-2\"]},{\"text\":\"第1页另有一处说明：SYNTHETIC-001 需要先修 SYNTHETIC-000，并指向第2页的排除与适用性说明。\",\"evidence_ids\":[\"Eb823cbcf-3\"]},{\"text\":\"第2页明确写到 SYNTHETIC-001 不计入 synthetic seminar 模块；同页还说明该文件只描述虚构队列 SYNTHETIC-2023，且已观察到的成绩不构成已获学分或认可的证明。\",\"evidence_ids\":[\"Eb823cbcf-4\"]},{\"text\":\"这些片段均处于未审核状态，规则状态为未审核，且与本人的绑定关系未验证、所需上下文未完整传送，因此不能据此认定该课程对本人正式适用，也不能把名义学分当作已获学分。\",\"evidence_ids\":[\"Eb823cbcf-2\",\"Eb823cbcf-3\",\"Eb823cbcf-4\"]}]}",
+      "requested_tools": []
+    }
+  ],
+  "real_school_network": false,
+  "real_personal_data": false
+}

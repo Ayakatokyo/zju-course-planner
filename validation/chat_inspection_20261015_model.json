@@ -1,0 +1,307 @@
+{
+  "started_at_utc": "2026-10-15T03:59:11.394149+00:00",
+  "status": "passed",
+  "scope": "Real DeepSeek + exclusively synthetic temporary school data; not personal-source acceptance",
+  "provider": "DeepSeek",
+  "selected_model": "deepseek-flash",
+  "thinking": true,
+  "timeout_s": 30,
+  "real_school_network": false,
+  "real_personal_data": false,
+  "full_reasoning_saved": false,
+  "directory_ids": [
+    "deepseek-flash",
+    "deepseek-v4-pro"
+  ],
+  "results": [
+    {
+      "turn": 1,
+      "question": "请用本轮工具查询 SYNTHETIC-PE-REPEAT 的来源记录：有几条、各自成绩与名义学分原值是什么？保留重复，说明已读范围和未知状态。",
+      "status": "completed",
+      "reply": "本次已核对本机已读范围：当前身份为2023级合成专业，成绩类记录仅覆盖2026-2027学年秋冬学期这一范围，且该范围内已读入60条、来源报告共75条，属于部分读取，尚有未读入的行。 [1]\n\n在本次检索到的已读记录中，课程代码 SYNTHETIC-PE-REPEAT（合成体育重复修读）共出现3条，均为2026-2027学年秋冬学期，重复记录按原样保留、未做去重。 [2] [3] [4]\n\n第1条：成绩原值70，名义学分原值1；第2条：成绩原值71，名义学分原值1.5；第3条：成绩原值72，名义学分原值2。三者成绩与名义学分字段在来源中均为已知原值。 [2] [3] [4]\n\n这三条记录的完成状态字段均为未知（unreviewed/pending_review 状态），本机也未验证已获学分，且不能据此推断正式选课中选、完整修读历史或毕业相关结论。 [2] [3] [4]\n\n由于本学期成绩记录为部分读取，若有其他学期或其他未读入的记录中还存在同一课程代码，本轮未读入的部分无法确认，因此上述“3条”仅指本次已读范围内命中的条数，不等于完整历史条数。 [1] [2]",
+      "code": null,
+      "model": "deepseek-flash",
+      "thinking": true,
+      "history_reset": true,
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_count": 4,
+      "diagnostics": {
+        "available": true,
+        "incomplete": false
+      },
+      "run": {
+        "status": "completed",
+        "model": "deepseek-flash",
+        "thinking": true,
+        "duration_ms": 7763,
+        "event_count": 9,
+        "event_kinds": [
+          "model.start",
+          "model.end",
+          "tool.start",
+          "tool.end",
+          "tool.start",
+          "tool.end",
+          "model.start",
+          "model.end",
+          "answer.validated"
+        ],
+        "provider_reasoning_chars": 651,
+        "reasoning_is_execution_proof": false,
+        "model_calls": [
+          {
+            "status": "completed",
+            "elapsed_ms": 2389,
+            "usage": {
+              "prompt_tokens": 1051,
+              "completion_tokens": 147,
+              "total_tokens": 1198,
+              "prompt_cache_hit_tokens": 0,
+              "prompt_cache_miss_tokens": 1051,
+              "prompt_tokens_details": {
+                "cached_tokens": 0
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 37
+              }
+            },
+            "reasoning_chars": 130
+          },
+          {
+            "status": "completed",
+            "elapsed_ms": 4700,
+            "usage": {
+              "prompt_tokens": 1873,
+              "completion_tokens": 598,
+              "total_tokens": 2471,
+              "prompt_cache_hit_tokens": 1024,
+              "prompt_cache_miss_tokens": 849,
+              "prompt_tokens_details": {
+                "cached_tokens": 1024
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 124
+              }
+            },
+            "reasoning_chars": 521
+          }
+        ]
+      }
+    },
+    {
+      "turn": 2,
+      "question": "请再次用本轮工具核对同一门 SYNTHETIC-PE-REPEAT 的三条来源记录，比较名义学分原值；不能把来源成绩或名义学分当作已获学分，也不能判断毕业资格。请自然中文说明。",
+      "status": "completed",
+      "reply": "本轮重新核对了本机已读范围：当前为2023级合成专业，成绩记录只覆盖2026-2027学年秋冬学期，该范围内已读入60条，来源报告共75条，仍属部分读取，尚有行未读入，因此无法假定掌握完整历史。 [1]\n\n在本次已读记录中，课程代码 SYNTHETIC-PE-REPEAT（合成体育重复修读）本轮仍命中3条，同为2026-2027学年秋冬学期，重复记录按原值保留、未合并。 [2] [3] [4]\n\n三条记录的名义学分原值依次为1、1.5、2，互不相同，来源均为已知原值；对应成绩原值依次为70、71、72。名义学分只是来源记载的课程名义值，不等于我实际已获得的学分。 [2] [3] [4]\n\n这三条的完成状态字段在本机记录中仍为未知（待审核），本机也未核验已获学分，不能把来源成绩或名义学分当作已获学分，也无法据此判断毕业资格或是否满足任何毕业要求。 [2] [3] [4]",
+      "code": null,
+      "model": "deepseek-flash",
+      "thinking": true,
+      "history_reset": false,
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_count": 4,
+      "diagnostics": {
+        "available": true,
+        "incomplete": false
+      },
+      "run": {
+        "status": "completed",
+        "model": "deepseek-flash",
+        "thinking": true,
+        "duration_ms": 6873,
+        "event_count": 9,
+        "event_kinds": [
+          "model.start",
+          "model.end",
+          "tool.start",
+          "tool.end",
+          "tool.start",
+          "tool.end",
+          "model.start",
+          "model.end",
+          "answer.validated"
+        ],
+        "provider_reasoning_chars": 162,
+        "reasoning_is_execution_proof": false,
+        "model_calls": [
+          {
+            "status": "completed",
+            "elapsed_ms": 2301,
+            "usage": {
+              "prompt_tokens": 2527,
+              "completion_tokens": 134,
+              "total_tokens": 2661,
+              "prompt_cache_hit_tokens": 2304,
+              "prompt_cache_miss_tokens": 223,
+              "prompt_tokens_details": {
+                "cached_tokens": 2304
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 30
+              }
+            },
+            "reasoning_chars": 127
+          },
+          {
+            "status": "completed",
+            "elapsed_ms": 3918,
+            "usage": {
+              "prompt_tokens": 3336,
+              "completion_tokens": 392,
+              "total_tokens": 3728,
+              "prompt_cache_hit_tokens": 2560,
+              "prompt_cache_miss_tokens": 776,
+              "prompt_tokens_details": {
+                "cached_tokens": 2560
+              },
+              "completion_tokens_details": {
+                "reasoning_tokens": 7
+              }
+            },
+            "reasoning_chars": 35
+          }
+        ]
+      }
+    }
+  ],
+  "checks": {
+    "configured_model_in_actual_directory": true,
+    "turn_1_completed_with_current_tool_evidence": true,
+    "turn_1_run_reasoning_usage_present": true,
+    "turn_2_completed_with_current_tool_evidence": true,
+    "turn_2_run_reasoning_usage_present": true,
+    "same_conversation_next_turn": true,
+    "second_turn_keeps_authorized_model_history": true,
+    "second_turn_provider_received_prior_reasoning": true,
+    "all_egress_uses_selected_thinking_model": true,
+    "chat_did_not_fetch_school_sources": true,
+    "two_turns_completed": true
+  },
+  "calls": [
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "user_messages": 1,
+      "prior_assistant_reasoning_messages": 0,
+      "prior_assistant_reasoning_chars": 0,
+      "status": "completed",
+      "elapsed_ms": 2389,
+      "usage": {
+        "prompt_tokens": 1051,
+        "completion_tokens": 147,
+        "total_tokens": 1198,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1051,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 37
+        }
+      },
+      "provider_reasoning_chars": 130
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 5,
+      "user_messages": 1,
+      "prior_assistant_reasoning_messages": 1,
+      "prior_assistant_reasoning_chars": 130,
+      "status": "completed",
+      "elapsed_ms": 4700,
+      "usage": {
+        "prompt_tokens": 1873,
+        "completion_tokens": 598,
+        "total_tokens": 2471,
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 849,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 124
+        }
+      },
+      "provider_reasoning_chars": 521
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 7,
+      "user_messages": 2,
+      "prior_assistant_reasoning_messages": 2,
+      "prior_assistant_reasoning_chars": 651,
+      "status": "completed",
+      "elapsed_ms": 2301,
+      "usage": {
+        "prompt_tokens": 2527,
+        "completion_tokens": 134,
+        "total_tokens": 2661,
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 223,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 30
+        }
+      },
+      "provider_reasoning_chars": 127
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 10,
+      "user_messages": 2,
+      "prior_assistant_reasoning_messages": 3,
+      "prior_assistant_reasoning_chars": 778,
+      "status": "completed",
+      "elapsed_ms": 3918,
+      "usage": {
+        "prompt_tokens": 3336,
+        "completion_tokens": 392,
+        "total_tokens": 3728,
+        "prompt_cache_hit_tokens": 2560,
+        "prompt_cache_miss_tokens": 776,
+        "prompt_tokens_details": {
+          "cached_tokens": 2560
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 7
+        }
+      },
+      "provider_reasoning_chars": 35
+    }
+  ],
+  "directory_elapsed_ms": 126,
+  "provider_requests": [
+    {
+      "operation": "models",
+      "timeout_s": 30
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 30
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 30
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 30
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 30
+    }
+  ],
+  "elapsed_ms": 15114
+}

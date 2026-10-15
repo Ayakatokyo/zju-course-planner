@@ -198,8 +198,8 @@ class SchoolAppHTTPTests(unittest.TestCase):
     def test_school_data_cannot_enter_synthetic_model_or_recommendation(self):
         self.login()
         self.app.chat.turn = lambda *args: self.fail('personal data cannot call remote model')
-        for path, body in [('/api/chat/turn', {'message': 'SYNTHETIC-PRIVATE-TEXT'}),
-                           ('/api/import', {'bundle': {}}), ('/api/generate', {}), ('/api/save', {})]:
+        self.assertEqual(self.request('POST', '/api/chat/turn', {'message': 'SYNTHETIC-PRIVATE-TEXT'})[0], 400)
+        for path, body in [('/api/import', {'bundle': {}}), ('/api/generate', {}), ('/api/save', {})]:
             self.assertEqual(self.request('POST', path, body)[0], 409)
 
     def test_logout_not_blocked_by_query_and_late_data_is_denied(self):

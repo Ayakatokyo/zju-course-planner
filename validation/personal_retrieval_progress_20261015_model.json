@@ -1,0 +1,1068 @@
+{
+  "started_at_utc": "2026-10-15T06:48:22.358328+00:00",
+  "status": "passed",
+  "scope": "Real DeepSeek streaming + cold-start exclusively synthetic school transport; not personal-source acceptance",
+  "provider": "DeepSeek",
+  "model": "deepseek-flash",
+  "timeout_s": 30,
+  "real_school_network": false,
+  "real_personal_data": false,
+  "full_reasoning_saved": false,
+  "prefetched_sources": false,
+  "calls": [
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 62,
+      "reasoning_delta_chars": 259,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1350,
+      "usage": {
+        "prompt_tokens": 1493,
+        "completion_tokens": 119,
+        "total_tokens": 1612,
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1493,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 62
+        }
+      },
+      "provider_reasoning_chars": 259
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 349,
+      "reasoning_delta_chars": 1093,
+      "projected_record_count": 13,
+      "projected_summary_counts": [
+        {
+          "matched_records": 60,
+          "numeric_grade_count": 48,
+          "non_numeric_grade_count": 12,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 4560,
+      "usage": {
+        "prompt_tokens": 3644,
+        "completion_tokens": 631,
+        "total_tokens": 4275,
+        "prompt_cache_hit_tokens": 1536,
+        "prompt_cache_miss_tokens": 2108,
+        "prompt_tokens_details": {
+          "cached_tokens": 1536
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 349
+        }
+      },
+      "provider_reasoning_chars": 1093
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 6,
+      "streaming": true,
+      "reasoning_delta_count": 0,
+      "reasoning_delta_chars": 0,
+      "projected_record_count": 13,
+      "projected_summary_counts": [
+        {
+          "matched_records": 60,
+          "numeric_grade_count": 48,
+          "non_numeric_grade_count": 12,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 914,
+      "usage": {
+        "prompt_tokens": 4282,
+        "completion_tokens": 13,
+        "total_tokens": 4295,
+        "prompt_cache_hit_tokens": 640,
+        "prompt_cache_miss_tokens": 3642,
+        "prompt_tokens_details": {
+          "cached_tokens": 640
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "provider_reasoning_chars": 0
+    }
+  ],
+  "results": [
+    {
+      "turn": 1,
+      "question": "我的成绩怎么样",
+      "status": "completed",
+      "code": null,
+      "reply": "本次查看范围是你本机已读的全部历史成绩记录，已读到60条，但尚未覆盖完整历史（快照中同类记录约75条），因此下面的概况只是目前已读快照的分布，不代表全部成绩。 [1]\n\n在当前已读快照的全部匹配行里，已知的0至100分纯数字来源成绩共48条，简单不加权平均为78.81分，最低45分、最高98分；另有12条非数字成绩（如“在修”“待认定”等）。这是简单均值，不是GPA、绩点，也不等于已获学分或修读认定。 [1]\n\n已读到的记录中包含不同完成状态，例如有一条标记为未通过、一条为在修、一条为待认定，这些状态本身尚未经过学业审核认定。 [2] [3] [4]\n\n由于成绩历史尚未读取完整、且完成状态多为未审核，目前无法给出正式平均成绩、学分缺口或毕业相关结论。 [5] [1]",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "history_reset": true,
+      "reply_origin": "personal_model_evidence",
+      "decision_kind": "answer",
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_count": 5,
+      "citation_kinds": [
+        "summary",
+        "record",
+        "record",
+        "record",
+        "context"
+      ],
+      "summary_counts": [
+        {
+          "matched_records": 60,
+          "numeric_grade_count": 48,
+          "non_numeric_grade_count": 12,
+          "unknown_grade_count": 0
+        }
+      ],
+      "diagnostics": {
+        "available": true,
+        "incomplete": false
+      },
+      "progress": {
+        "samples": [
+          {
+            "elapsed_ms": 1,
+            "status": "not_started",
+            "terminal": false,
+            "sequence": 0,
+            "event_kinds": [],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 78,
+            "status": "running",
+            "terminal": false,
+            "sequence": 2,
+            "event_kinds": [
+              "tool.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 149,
+            "status": "running",
+            "terminal": false,
+            "sequence": 3,
+            "event_kinds": [
+              "tool.start",
+              "tool.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 224,
+            "status": "running",
+            "terminal": false,
+            "sequence": 5,
+            "event_kinds": [
+              "tool.start",
+              "tool.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 281,
+            "status": "running",
+            "terminal": false,
+            "sequence": 6,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1002,
+            "status": "running",
+            "terminal": false,
+            "sequence": 7,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1058,
+            "status": "running",
+            "terminal": false,
+            "sequence": 8,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1118,
+            "status": "running",
+            "terminal": false,
+            "sequence": 17,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1179,
+            "status": "running",
+            "terminal": false,
+            "sequence": 30,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1239,
+            "status": "running",
+            "terminal": false,
+            "sequence": 40,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 42,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1298,
+            "status": "running",
+            "terminal": false,
+            "sequence": 45,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 65,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1354,
+            "status": "running",
+            "terminal": false,
+            "sequence": 58,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 115,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1415,
+            "status": "running",
+            "terminal": false,
+            "sequence": 68,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 163,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1600,
+            "status": "running",
+            "terminal": false,
+            "sequence": 69,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1659,
+            "status": "running",
+            "terminal": false,
+            "sequence": 70,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1718,
+            "status": "running",
+            "terminal": false,
+            "sequence": 71,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1778,
+            "status": "running",
+            "terminal": false,
+            "sequence": 72,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2463,
+            "status": "running",
+            "terminal": false,
+            "sequence": 73,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2528,
+            "status": "running",
+            "terminal": false,
+            "sequence": 81,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2595,
+            "status": "running",
+            "terminal": false,
+            "sequence": 88,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2661,
+            "status": "running",
+            "terminal": false,
+            "sequence": 95,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 11,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2723,
+            "status": "running",
+            "terminal": false,
+            "sequence": 106,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 49,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2791,
+            "status": "running",
+            "terminal": false,
+            "sequence": 114,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 80,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2857,
+            "status": "running",
+            "terminal": false,
+            "sequence": 128,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 116,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2924,
+            "status": "running",
+            "terminal": false,
+            "sequence": 146,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 170,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 2990,
+            "status": "running",
+            "terminal": false,
+            "sequence": 163,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 226,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3051,
+            "status": "running",
+            "terminal": false,
+            "sequence": 172,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 267,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3118,
+            "status": "running",
+            "terminal": false,
+            "sequence": 177,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 300,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3182,
+            "status": "running",
+            "terminal": false,
+            "sequence": 187,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 343,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3248,
+            "status": "running",
+            "terminal": false,
+            "sequence": 195,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 363,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3315,
+            "status": "running",
+            "terminal": false,
+            "sequence": 207,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 393,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3376,
+            "status": "running",
+            "terminal": false,
+            "sequence": 214,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 403,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3441,
+            "status": "running",
+            "terminal": false,
+            "sequence": 219,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 412,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3510,
+            "status": "running",
+            "terminal": false,
+            "sequence": 228,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 427,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3576,
+            "status": "running",
+            "terminal": false,
+            "sequence": 239,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 444,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3643,
+            "status": "running",
+            "terminal": false,
+            "sequence": 243,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 456,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3705,
+            "status": "running",
+            "terminal": false,
+            "sequence": 257,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 485,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3765,
+            "status": "running",
+            "terminal": false,
+            "sequence": 266,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 500,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3830,
+            "status": "running",
+            "terminal": false,
+            "sequence": 278,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 519,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3892,
+            "status": "running",
+            "terminal": false,
+            "sequence": 292,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 540,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 3952,
+            "status": "running",
+            "terminal": false,
+            "sequence": 299,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 552,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4011,
+            "status": "running",
+            "terminal": false,
+            "sequence": 304,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 579,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4068,
+            "status": "running",
+            "terminal": false,
+            "sequence": 312,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 605,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4189,
+            "status": "running",
+            "terminal": false,
+            "sequence": 337,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 709,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4253,
+            "status": "running",
+            "terminal": false,
+            "sequence": 339,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 716,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4314,
+            "status": "running",
+            "terminal": false,
+            "sequence": 352,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 780,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4376,
+            "status": "running",
+            "terminal": false,
+            "sequence": 361,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 811,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4436,
+            "status": "running",
+            "terminal": false,
+            "sequence": 368,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 844,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4498,
+            "status": "running",
+            "terminal": false,
+            "sequence": 370,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 854,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4558,
+            "status": "running",
+            "terminal": false,
+            "sequence": 385,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 887,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4617,
+            "status": "running",
+            "terminal": false,
+            "sequence": 391,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 908,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4680,
+            "status": "running",
+            "terminal": false,
+            "sequence": 409,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 941,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4744,
+            "status": "running",
+            "terminal": false,
+            "sequence": 415,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 966,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 4809,
+            "status": "running",
+            "terminal": false,
+            "sequence": 421,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 997,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 6387,
+            "status": "running",
+            "terminal": false,
+            "sequence": 422,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 6516,
+            "status": "completed",
+            "terminal": true,
+            "sequence": 424,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end",
+              "answer.validated"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": false
+          }
+        ],
+        "observed_reasoning_while_running": true,
+        "observed_tool_event_while_running": true,
+        "progress_error_codes": [],
+        "elapsed_ms": 6516
+      }
+    },
+    {
+      "turn": 2,
+      "question": "你是谁",
+      "status": "completed",
+      "code": null,
+      "reply": "我是选课助手，可以查询当前登录账号已读取的教务记录和培养资料，并说明来源与待确认项。",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "history_reset": false,
+      "reply_origin": "model_selected_service_guidance",
+      "decision_kind": "general_chat",
+      "tools": [
+        "get_my_context"
+      ],
+      "citation_count": 0,
+      "citation_kinds": [],
+      "summary_counts": [],
+      "diagnostics": {
+        "available": true,
+        "incomplete": false
+      },
+      "progress": {
+        "samples": [
+          {
+            "elapsed_ms": 5,
+            "status": "not_started",
+            "terminal": false,
+            "sequence": 0,
+            "event_kinds": [],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 88,
+            "status": "running",
+            "terminal": false,
+            "sequence": 1,
+            "event_kinds": [],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 179,
+            "status": "running",
+            "terminal": false,
+            "sequence": 2,
+            "event_kinds": [
+              "tool.start",
+              "tool.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 236,
+            "status": "running",
+            "terminal": false,
+            "sequence": 4,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1178,
+            "status": "running",
+            "terminal": false,
+            "sequence": 5,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": true
+          },
+          {
+            "elapsed_ms": 1319,
+            "status": "completed",
+            "terminal": true,
+            "sequence": 7,
+            "event_kinds": [
+              "tool.start",
+              "tool.end",
+              "model.start",
+              "model.end",
+              "answer.validated"
+            ],
+            "active_reasoning_chars": 0,
+            "turn_in_flight": false
+          }
+        ],
+        "observed_reasoning_while_running": false,
+        "observed_tool_event_while_running": true,
+        "progress_error_codes": [],
+        "elapsed_ms": 1319
+      }
+    }
+  ],
+  "checks": {
+    "cold_start_has_no_observations": true,
+    "cold_start_no_source_requests": true,
+    "new_personal_deepseek_defaults_thinking_on": true,
+    "turn_1_completed": true,
+    "turn_1_progress_reader_succeeded": true,
+    "grade_answer_has_summary_evidence": true,
+    "grade_model_queried_current_records": true,
+    "real_reasoning_visible_while_running": true,
+    "real_tool_events_visible_while_running": true,
+    "turn_2_completed": true,
+    "turn_2_progress_reader_succeeded": true,
+    "identity_uses_safe_general_chat": true,
+    "grade_cold_start_read_major_all_history": true,
+    "both_questions_ran_once_without_validation_retry": true,
+    "all_model_calls_stream_selected_thinking_model": true,
+    "summary_was_actually_projected_to_provider": true
+  },
+  "synthetic_school_requests": [
+    {
+      "operation": "major_academic",
+      "target_term": "ALL-HISTORY",
+      "page": 1
+    },
+    {
+      "operation": "major_academic",
+      "target_term": "ALL-HISTORY",
+      "page": 2
+    },
+    {
+      "operation": "major_academic",
+      "target_term": "ALL-HISTORY",
+      "page": 3
+    }
+  ],
+  "provider_requests": [
+    {
+      "operation": "chat",
+      "timeout_s": 29.999879667011555
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 29.999938082997687
+    },
+    {
+      "operation": "chat",
+      "timeout_s": 29.999941374990158
+    }
+  ],
+  "elapsed_ms": 7886
+}

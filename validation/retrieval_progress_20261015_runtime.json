@@ -1,0 +1,33 @@
+{
+  "recorded_at_utc": "2026-10-15T07:04:22.364492+00:00",
+  "port": 18875,
+  "pid": 72836,
+  "old_pid": 63362,
+  "command": "python3 -m course_assistant.server --enable-school --port 18875",
+  "school_or_model_requests_during_activation": false,
+  "school_session_reset": true,
+  "externally_deployed": false,
+  "committed": false,
+  "pushed": false,
+  "static_assets": {
+    "index.html": {
+      "sha256": "e0a72211be0b6e1c4be5c433a1c4ad0c01aeeb19e53bc1f69a567cfa2263b7a5",
+      "matches_source": true
+    },
+    "app.js": {
+      "sha256": "c10f8604c0dda7781025ed6320d05249802c7d58f15cd4177cf6511653b11a78",
+      "matches_source": true
+    },
+    "styles.css": {
+      "sha256": "146d5cf3f4e0b1611c80f675d6c90d5ca97b99d8e21f13f292de43b8e02a985f",
+      "matches_source": true
+    }
+  },
+  "health": {
+    "status": "ok",
+    "version": "0.2.0",
+    "school_auth_status": "not_configured",
+    "school_client_enabled": true
+  },
+  "full_test_source_hashes_current": true
+}

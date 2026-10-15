@@ -24,7 +24,7 @@ from .model_client import ModelClient, read_config, strict_json
 
 class Application:
     def __init__(self, db_path=None, *, mock_enabled=False, clock=None, model=None, recommendation_demo=False, recommendation_case='default',
-                 school_enabled=False, school_client_factory=None, school_root=None):
+                 school_enabled=False, school_client_factory=None, school_root=None, personal_pdf_extractor=None):
         self.source = read_sources()
         self.school_enabled = bool(school_enabled or school_client_factory is not None)
         default_db = ROOT / ('private/school_app/planning.sqlite3' if self.school_enabled else 'runtime/planning.sqlite3')
@@ -53,7 +53,8 @@ class Application:
             if school_client_factory is None:
                 from .school_http import SchoolHTTPClient
                 school_client_factory = SchoolHTTPClient
-            self.school = SchoolAccountService(self.auth, school_client_factory, root=school_root, **options)
+            self.school = SchoolAccountService(self.auth, school_client_factory, root=school_root,
+                                                personal_pdf_extractor=personal_pdf_extractor, **options)
         fixture_name = 'recommendation_bundle.json' if recommendation_demo else 'bundle.json'
         self.fixture = validate_demo(load_json(ROOT / 'demo' / fixture_name), self.source)
         require(recommendation_case in {'default', 'unknown', 'locked_friday'}, '未登记的合成推荐场景')
@@ -75,6 +76,8 @@ class Application:
         self.lock = threading.RLock()
         from .chat import ChatService
         self.chat = ChatService(self, model if model is not None else ModelClient())
+        from .personal_chat import PersonalChatService
+        self.personal_chat = PersonalChatService(self, self.chat.model)
 
     def auth_status(self, context=None):
         status = {'authenticated': False, 'mock_enabled': self.auth.mock_enabled,
@@ -249,11 +252,11 @@ class Application:
                     'school_client_enabled': self.school_enabled}
         if context and context.auth_mode == SCHOOL_MODE:
             self.auth.require_context(context)
-            require(not parsed.query, '接口不接受查询身份或资源范围')
+            require(not parsed.query or parsed.path in {'/api/chat/conversations', '/api/chat/runs'}, '接口不接受查询身份或资源范围')
             if path == '/api/bootstrap':
                 return {'identity': context.identity(), 'school': self.require_school().status(context),
                         'source': {}, 'demo': {}, 'saved_plans': [], 'versions': {},
-                        'chat': {'configured': False, 'available': False, 'reason': 'real_recommendation_not_ready'}}
+                        'chat': self.personal_chat.status(context)}
             if path == '/api/school/status':
                 return self.require_school().status(context)
             if path == '/api/school/profile':
@@ -261,7 +264,21 @@ class Application:
             if path == '/api/saved':
                 return []
             if path == '/api/chat/status':
-                return {'configured': False, 'available': False, 'reason': 'real_recommendation_not_ready'}
+                return self.personal_chat.status(context)
+            if path == '/api/chat/models':
+                return self.personal_chat.models(context)
+            if parsed.path == '/api/chat/runs':
+                query = parse_qs(parsed.query, keep_blank_values=True)
+                if (set(query) - {'limit'} or len(query.get('limit', ['20'])) != 1
+                        or not re.fullmatch(r'(?:[1-9]|[1-4][0-9]|50)', query.get('limit', ['20'])[0])):
+                    raise AccessError('运行列表只接受单个 1–50 的 limit 数量', 400, 'invalid_run_request')
+                return self.personal_chat.recent_runs(context, limit=int(query.get('limit', ['20'])[0]))
+            if parsed.path == '/api/chat/conversations':
+                query = parse_qs(parsed.query, keep_blank_values=True)
+                if (set(query) - {'limit'} or len(query.get('limit', ['50'])) != 1
+                        or not re.fullmatch(r'[1-9][0-9]{0,2}', query.get('limit', ['50'])[0])):
+                    raise AccessError('历史列表只接受单个 limit 数量', 400, 'invalid_chat_limit')
+                return self.personal_chat.conversations(context, limit=int(query.get('limit', ['50'])[0]))
             raise AccessError('本人教务数据尚未形成可执行推荐输入', 409, 'real_recommendation_not_ready')
         if parsed.path == '/api/chat/conversations':
             query = parse_qs(parsed.query, keep_blank_values=True)
@@ -285,6 +302,21 @@ class Application:
     def post(self, path, body, context=None):
         if context and context.auth_mode == SCHOOL_MODE:
             self.auth.require_context(context)
+            if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve'}:
+                return self.require_school().local_query(context, path, body)
+            if path == '/api/chat/turn':
+                return self.personal_chat.turn(body, context)
+            if path == '/api/chat/history':
+                return self.personal_chat.history(body, context)
+            if path == '/api/chat/settings':
+                return self.personal_chat.configure(body, context)
+            if path == '/api/chat/models/refresh':
+                require(body == {}, '模型目录刷新不接受额外参数')
+                return self.personal_chat.models(context, refresh=True)
+            if path == '/api/chat/run':
+                return self.personal_chat.read_run(body, context)
+            if path == '/api/chat/progress':
+                return self.personal_chat.read_progress(body, context)
             if path == '/api/school/sync':
                 return self.require_school().fetch(context, body)
             if path == '/api/school/captcha':
@@ -430,7 +462,7 @@ def make_handler(app):
                 self.check_host()
                 parsed = urlparse(self.path)
                 path = parsed.path
-                require(not parsed.query or path == '/api/chat/conversations', '接口不接受查询身份或资源范围')
+                require(not parsed.query or path in {'/api/chat/conversations', '/api/chat/runs'}, '接口不接受查询身份或资源范围')
                 if path in {'/api/school/profile', '/api/school/captcha'}:
                     context = self.context()
                     service = app.require_school()
@@ -445,6 +477,13 @@ def make_handler(app):
                         app.auth.require_context(context)
                         self.response(result)
                     return
+                if path in {'/api/bootstrap', '/api/chat/status', '/api/chat/conversations', '/api/chat/models', '/api/chat/runs'}:
+                    context = self.context()
+                    if context.auth_mode == SCHOOL_MODE:
+                        result = app.get(self.path if parsed.query else path, context)
+                        app.auth.require_context(context)
+                        self.response(result)
+                        return
                 with app.lock:
                     if path == '/api/auth/session':
                         try:
@@ -505,6 +544,15 @@ def make_handler(app):
                         self.send_bytes(data, content_type, suffix=suffix, filename='cultivation-plan.pdf')
                     else:
                         self.response(result)
+                    return
+                if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve'}:
+                    context = self.context()
+                    if context.auth_mode != SCHOOL_MODE:
+                        raise AccessError('请先连接学校账号', 403, 'school_connection_required')
+                    app.auth.check_csrf(context, self.headers.get('X-CSRF-Token'))
+                    result = app.post(path, body, context)
+                    app.auth.require_context(context)
+                    self.response(result)
                     return
                 with app.lock:
                     if path == '/api/auth/mock-login':
