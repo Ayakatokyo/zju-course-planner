@@ -1,0 +1,63 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 500 >>
+stream
+BT /F1 10 Tf 42 740 Td 18 TL
+(SYNTHETIC CURRICULUM - LOCAL SEARCH TEST) Tj T*
+(Version 1) Tj T*
+(This is synthetic validation material. It is not a school policy.) Tj T*
+() Tj T*
+(Module                 Course code       Nominal credits) Tj T*
+(Synthetic AI           SYNTHETIC-001     3) Tj T*
+(Synthetic seminar      SYNTHETIC-002     2) Tj T*
+() Tj T*
+(SYNTHETIC-001 requires the synthetic prerequisite SYNTHETIC-000.) Tj T*
+(See the exclusions and applicability note on physical page 2.) Tj T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 451 >>
+stream
+BT /F1 10 Tf 42 740 Td 18 TL
+(SYNTHETIC CURRICULUM - EXCLUSIONS) Tj T*
+(Version 1) Tj T*
+() Tj T*
+(SYNTHETIC-001 does not count toward the synthetic seminar module.) Tj T*
+(Only the fictional cohort SYNTHETIC-2023 is described here.) Tj T*
+(An observed grade is not proof of earned credits or recognition.) Tj T*
+(Applicability and all rules remain unreviewed.) Tj T*
+() Tj T*
+(This page is required context for the table on physical page 1.) Tj T*
+ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000189 00000 n 
+0000000315 00000 n 
+0000000866 00000 n 
+0000000992 00000 n 
+trailer << /Size 8 /Root 1 0 R >>
+startxref
+1494
+%%EOF
