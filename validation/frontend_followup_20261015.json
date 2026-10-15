@@ -1,0 +1,165 @@
+[
+  {
+    "name": "desktop_saved",
+    "bodyWidth": 1440,
+    "rows": 3,
+    "saved": 1,
+    "viewport": [
+      1440,
+      1000
+    ]
+  },
+  {
+    "name": "mobile_history_collapsed",
+    "bodyWidth": 390,
+    "historyOpen": false,
+    "viewport": [
+      390,
+      844
+    ]
+  },
+  {
+    "name": "mobile_partial_failure",
+    "bodyWidth": 390,
+    "draft": "",
+    "systemText": "本轮未完成合成界面夹具，未调用模型。\n合成界面夹具，未调用模型：预设的界面失败状态已完成的查询结果如下。AI实践（合成） · 3 学分数据分析（合成） · 3 学分模型方法（合成） · 3 学分体育固定课（合成） · 1 学分已获基础课（合成） · 3 学分在修基础课（合成） · 2 学分待核对基础课（合成） · 待确认 学分"
+  },
+  {
+    "name": "tablet_grades",
+    "bodyWidth": 780,
+    "disabledYearBackground": "oklch(0.966 0.008 270)",
+    "mainWidth": 780,
+    "rows": 3,
+    "viewport": [
+      780,
+      900
+    ]
+  },
+  {
+    "name": "final_timetable",
+    "bodyWidth": 1440,
+    "cardCount": 12,
+    "cardOverflow": false,
+    "clockCount": 13,
+    "insets": [
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ],
+      [
+        "6px",
+        "6px",
+        "6px",
+        "6px"
+      ]
+    ],
+    "mainWidth": 1280,
+    "maxCenterOffset": 0.24609375,
+    "occupied": 11,
+    "pending": 3,
+    "viewport": [
+      1440,
+      1000
+    ]
+  },
+  {
+    "name": "before_fix_local_service_disconnected",
+    "queryEnabled": true,
+    "status": "未完成或待确认，请完成页面提示后重试。",
+    "statusClass": "status-message error",
+    "acceptance": "failed_then_fixed; see final_local_service_disconnected"
+  },
+  {
+    "name": "fixture_restart_session_cleared",
+    "historyHidden": true,
+    "loginVisible": true,
+    "personalPanelsVisible": false,
+    "personalTextStillPresent": false
+  },
+  {
+    "name": "owner_b_after_restart",
+    "hasA": false,
+    "hasB": true,
+    "sourceDetailsOpen": false
+  },
+  {
+    "name": "final_local_service_disconnected",
+    "queryEnabled": true,
+    "status": "暂时无法连接本机服务，请确认服务正在运行后重试。",
+    "statusClass": "status-message error"
+  },
+  {
+    "name": "final_expired_session",
+    "loginVisible": true,
+    "personalPanelsVisible": false,
+    "personalTextPresent": false,
+    "status": "本机会话已失效，请重新登录。"
+  },
+  {
+    "name": "keyboard_navigation",
+    "focusedId": "tab-school",
+    "schoolSelected": "true"
+  },
+  {
+    "name": "logout_cleared",
+    "historyHidden": true,
+    "loginVisible": true,
+    "schoolContent": ""
+  }
+]

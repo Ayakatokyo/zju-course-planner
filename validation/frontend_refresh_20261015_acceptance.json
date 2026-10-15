@@ -1,0 +1,162 @@
+{
+  "recorded_at_utc": "2026-10-14T17:26:12.695236+00:00",
+  "git_base": "d8cd26019a2c0a862ab61c11c660c3cf05d59d7f",
+  "scope": "frontend display refresh; real school/model/business acceptance unchanged",
+  "status": "implemented_and_engineering_browser_verified; awaiting_user_visual_acceptance",
+  "engineering": {
+    "ran": 790,
+    "passed": 790,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "by_module": {
+      "test_application": 7,
+      "test_audit": 44,
+      "test_auth": 20,
+      "test_chat": 36,
+      "test_chat_history": 13,
+      "test_chat_http": 2,
+      "test_course_dedup": 15,
+      "test_course_source_adapters": 9,
+      "test_exporter": 6,
+      "test_importer": 13,
+      "test_live_chat_acceptance": 13,
+      "test_local_reference": 22,
+      "test_local_reference_observations": 22,
+      "test_model_client": 8,
+      "test_plan_requirements_audit": 12,
+      "test_planner": 32,
+      "test_recommendation": 24,
+      "test_recommendation_dialogue": 17,
+      "test_recommendation_storage": 22,
+      "test_reference_retrieval": 13,
+      "test_school_accounts": 41,
+      "test_school_http": 60,
+      "test_school_http_app": 10,
+      "test_school_period_times": 9,
+      "test_school_timetable_web": 25,
+      "test_student_browser_bridge": 17,
+      "test_student_connector": 30,
+      "test_student_plan_acquisition": 32,
+      "test_student_source_cli": 21,
+      "test_student_source_client": 38,
+      "test_student_source_parsers": 33,
+      "test_student_source_provider": 11,
+      "test_student_source_sync": 11,
+      "test_student_sources": 36,
+      "test_web_contract": 66
+    }
+  },
+  "fixtures": [
+    "validation/run_school_ui_fixture.py --clock-reference",
+    "validation/run_frontend_chat_fixture.py --check"
+  ],
+  "browser": {
+    "engine": "Chrome via cua_repl",
+    "sizes": [
+      [
+        1280,
+        900
+      ],
+      [
+        1440,
+        1000
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        780,
+        900
+      ]
+    ],
+    "school_four_pages_max_width": 1280,
+    "timetable_mobile": {
+      "viewport_width": 390,
+      "document_width": 390,
+      "scroll_content_width": 910,
+      "scroll_viewport_width": 324,
+      "keyboard_scroll_verified": true
+    },
+    "grades": {
+      "read": 60,
+      "source_total": 75,
+      "display_page_size": 15,
+      "pages": 4,
+      "first_and_last_rows": 15,
+      "repeat_filter_rows": 3,
+      "year_plus_repeat_rows": 1,
+      "no_match": 0,
+      "clear_filter_restored": 15,
+      "coverage_warning_retained": true
+    },
+    "chat": {
+      "source": "local_scripted_synthetic_fixture_no_model",
+      "initial_options": 3,
+      "comparison_options": 2,
+      "hard_friday_options": 1,
+      "history_restored_turns": 3,
+      "saved_count": 1,
+      "mobile_history_default_open": false,
+      "body_width_mobile": 390,
+      "option_tables_scroll": [
+        324,
+        430
+      ],
+      "json_export": {
+        "bytes": 82762,
+        "sha256": "e0685be4c0fbc4d298930d845b5e995d03bdf2a74deb41e438b7a29dcc4f5cea",
+        "ui_confirmation": true,
+        "download_event_wait": "tool timeout; actual synthetic file separately verified",
+        "history_did_not_replay_actions": true
+      }
+    },
+    "final_geometry_and_states": "frontend_followup_20261015.json",
+    "visual_review": "independent code and screenshot review; disabled hover/background and focus screenshot issues fixed; no blocking findings",
+    "not_run": [
+      "real school re-login or new school acquisition",
+      "real model calls",
+      "user visual acceptance",
+      "new real recommendation implementation",
+      "physical mobile device test",
+      "captured slow loading/CAPTCHA live interaction"
+    ]
+  },
+  "source_sha256": {
+    "web/app.js": "cfeb802c4a2cfaac043f8bab98b4725a787b188797a71ade1effc943cbedee28",
+    "web/styles.css": "8721b3238d36f6e2f003a49ac980eb294ad8dd1589b98177462d8184dadea289",
+    "web/index.html": "e0a72211be0b6e1c4be5c433a1c4ad0c01aeeb19e53bc1f69a567cfa2263b7a5",
+    "validation/run_frontend_chat_fixture.py": "578627834efb01e8b6f3df40667186ce25144ee679fb2359ac41d5ecdb6e2c5a",
+    "validation/run_school_ui_fixture.py": "3c90a35aef3a373c715186cfe0dd60b78af61377b66bfffae7de6edc61088d7d"
+  },
+  "screenshots": {
+    "validation/frontend_chat_desktop_20261015.jpg": "a7bce893761eacec3ac6eff6b3182aa61dd13099085921c1b700870ddda49999",
+    "validation/frontend_chat_empty_20261015.jpg": "4338fb47c9ca46b65f9c822e23f9a4f912f5c81fdd152204fa6eb7db0455a01e",
+    "validation/frontend_chat_failure_20261015.jpg": "8a7912a0c842fc0e5c882493d788a3c20cba9f8e5a2dcf300769d8e3b7619282",
+    "validation/frontend_chat_mobile_20261015.jpg": "caac5b1eb9fb905f137a5cbfa85d94ba416db58084d98f3b58a0a9af3dc22a76",
+    "validation/frontend_empty_20261015.jpg": "efc36e80e519ad0b1e919d6411b5fb0668717e91f9c3baa56ae6f16c4cc75f3f",
+    "validation/frontend_exams_desktop_20261015.jpg": "1fc6d5856318dc19c93cc995ff3d13625891a2e199d98cbed7f13a7cb3a2badf",
+    "validation/frontend_exams_mobile_20261015.jpg": "b28844c28bf4f50501370684ee40b63c192c1c4af796860b55744d74011b8c55",
+    "validation/frontend_grades_desktop_20261015.jpg": "db126b5ec03cb886c8dffcbf3b06dada65c61588a2732d67f5b996da2e3c9af7",
+    "validation/frontend_grades_mobile_20261015.jpg": "01b5de828b1113a6d1c6fa537538c2117b98548f59adf0864756bfaef5f564eb",
+    "validation/frontend_login_20261015.jpg": "50e115a464f7271b362e7578b8d88fef069591bb232dd8dc41a2d3ccf0f0bbde",
+    "validation/frontend_login_mobile_20261015.jpg": "17c01063b99a4dc80833c5b9155206b79c5dbd9d57046260191f34baab9f5677",
+    "validation/frontend_network_error_20261015.jpg": "74a56e5728dfd4d5e23330f79fde2b5b96bd5b95a2b473539f56de16657220fb",
+    "validation/frontend_profile_desktop_20261015.jpg": "3274679120031e6199c179afd5fe1e1b99f2b3da06a7cfd6dc8e599d5a6c5d51",
+    "validation/frontend_profile_mobile_20261015.jpg": "af2ff3611bcc75e4f91bde9080169eeb99eb184b4c2c4c8029d7ad296fff6b17",
+    "validation/frontend_saved_desktop_20261015.jpg": "1f83ed5b99fc9844c28de16adad9b03ea96e1233c58c144d65ccb67513dba9ad",
+    "validation/frontend_timetable_desktop_20261015.jpg": "33bfdff6408751fdf203a4d1c0112a6a252d36807a492f86d010ffdd1cda0ac9",
+    "validation/frontend_timetable_detail_20261015.jpg": "4062121d4c62f43cf4ef648232981798d1531454cb9ce0037915f37b43e33f08",
+    "validation/frontend_timetable_mobile_20261015.jpg": "3d64e33d8e839dddd95dafacfbd062d37d4c6cc7e9c60e49bd4a7b4353ca1f61"
+  },
+  "delivery": {
+    "school_port": 18875,
+    "school_pid": 20753,
+    "school_restarted": false,
+    "assets_match": "frontend_live_assets_20261015.json",
+    "committed": false,
+    "pushed": false,
+    "deployed": false
+  }
+}
