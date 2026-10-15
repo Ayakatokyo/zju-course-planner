@@ -1,0 +1,44 @@
+{
+  "recorded_at_utc": "2026-10-15T04:11:05.497624+00:00",
+  "scope": "Synthetic UI fixture only; actual DeepSeek API tested separately with synthetic data",
+  "browser": "Chrome",
+  "real_school_network": false,
+  "real_personal_data": false,
+  "screenshots_contain_synthetic_only": true,
+  "checks": {
+    "twenty_turns_in_local_scroll": true,
+    "up_down_latest_controls": true,
+    "directory_refresh_preserves_older_reading_position": true,
+    "model_switch_revokes_consent_preserves_ui_history": true,
+    "thinking_setting_applied_to_next_run": true,
+    "visible_usage_timeline_and_provider_reasoning": true,
+    "mobile_375x812_no_document_overflow": true,
+    "mobile_history_and_runs_independently_scroll": true,
+    "mobile_send_visible_and_successful": true,
+    "temporary_viewport_reset": true,
+    "synthetic_fixture_cleaned": true,
+    "final_source_hashes_match": true,
+    "private_db_0600_parent_0700": true
+  },
+  "metrics": "chat_inspection_20261015/browser_metrics.json",
+  "model_receipt": "chat_inspection_20261015_model.json",
+  "artifacts_sha256": {
+    "validation/chat_inspection_20261015/browser_metrics.json": "2b79c27c3da447e5adfe91d610832249a80f8bae131b7d2f660e2d9b79a2b71a",
+    "validation/chat_inspection_20261015/desktop_run.png": "bdc3a79b5c5fd40cf828e61e641e8e9132e6e85a2430aa987521e4921545fdb5",
+    "validation/chat_inspection_20261015/mobile_long_chat.png": "7d9a3817c85b4403f0044595f2b429783773b42661a5e9516a8198904a895374",
+    "validation/chat_inspection_20261015/desktop_long_chat.png": "da15680a9b38aaecffd362bf0fb7eeb29341e0088bedece5813404d078ad545b"
+  },
+  "limits": [
+    "Synthetic scripted UI is not a real model reply; actual API receipt is separate",
+    "No physical mobile or real personal question acceptance",
+    "Provider reasoning is visible output, not complete internal thought or correctness proof",
+    "Original 20-turn per-conversation limit remains; new conversation continues use"
+  ],
+  "git": {
+    "new_work_committed": false,
+    "new_work_pushed": false,
+    "external_deployment": false
+  },
+  "test_receipt": "chat_inspection_20261015_validation.json",
+  "runtime_receipt": "chat_inspection_20261015_runtime.json"
+}

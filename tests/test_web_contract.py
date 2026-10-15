@@ -15,7 +15,7 @@ class WebContractTests(unittest.TestCase):
         setup = r"""
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const elements=new Map();
-const element=selector=>{if(!elements.has(selector))elements.set(selector,{innerHTML:'',hidden:false,value:'',textContent:'',className:'',listeners:{},addEventListener(type,callback){this.listeners[type]=callback;},focus(){},setAttribute(){},classList:{toggle(){}}});return elements.get(selector);};
+const element=selector=>{if(!elements.has(selector))elements.set(selector,{innerHTML:'',hidden:false,value:'',textContent:'',className:'',listeners:{},attributes:{},addEventListener(type,callback){this.listeners[type]=callback;},focus(){},setAttribute(name,value){this.attributes[name]=String(value);},getAttribute(name){return this.attributes[name]??null;},classList:{toggle(){}}});return elements.get(selector);};
 const context=vm.createContext({document:{querySelector:element,querySelectorAll:()=>[],body:{append(){}},createElement:()=>({click(){},remove(){}})},fetch:async()=>{throw Error('unexpected fetch');},crypto:require('node:crypto'),Blob,atob,URL:{createObjectURL:()=> 'blob:synthetic',revokeObjectURL(){}},setTimeout(){}});
 let source=fs.readFileSync(process.argv[1],'utf8').replace(/\nbootstrap\(\);\s*$/,'');
 vm.runInContext(source,context);
@@ -456,9 +456,9 @@ assert.doesNotMatch(fs.readFileSync(process.argv[1],'utf8'),/localStorage|sessio
     def test_school_bootstrap_preserves_primary_entry_without_synthetic_or_model_calls(self):
         self.run_js("""
 const identity={student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client',data_kind:'personal_source'};
-const paths=[];context.fetch=async(path)=>{paths.push(path);if(path==='/api/auth/session')return {ok:true,json:async()=>({authenticated:true,school_client_enabled:true,identity,csrf_token:'memory-only'})};if(path==='/api/bootstrap')return {ok:true,json:async()=>({identity,school:{status:'ready'},chat:{configured:false,reason:'real_recommendation_not_ready'}})};throw Error('unexpected '+path);};
-await evaluate('bootstrap()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap']);assert.equal(evaluate('state.tab'),'assistant');assert.equal(element('#tab-school').hidden,false);assert.equal(element('#tab-saved').hidden,true);assert.equal(element('#conversation-sidebar').hidden,true);assert.equal(element('#mode-badge').textContent,'本人教务');assert.match(element('#panel-assistant').innerHTML,/真实推荐待接入/);
-evaluate("state.agentStatus={configured:true,remote:true};state.agentDraft='private fixture';state.agentConsent=true");assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');await evaluate('refreshAgentStatus()');await evaluate('refreshAgentHistory()');await evaluate('refreshSaved()');assert.equal(paths.length,2);
+const paths=[];context.fetch=async(path)=>{paths.push(path);if(path==='/api/auth/session')return {ok:true,json:async()=>({authenticated:true,school_client_enabled:true,identity,csrf_token:'memory-only'})};if(path==='/api/bootstrap')return {ok:true,json:async()=>({identity,school:{status:'ready'},chat:{configured:false,reason:'real_recommendation_not_ready'}})};if(path==='/api/chat/status')return {ok:true,json:async()=>({configured:false,reason:'real_recommendation_not_ready'})};throw Error('unexpected '+path);};
+await evaluate('bootstrap()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap']);assert.equal(evaluate('state.tab'),'assistant');assert.equal(element('#tab-school').hidden,false);assert.equal(element('#tab-saved').hidden,true);assert.equal(element('#conversation-sidebar').hidden,true);assert.equal(element('#mode-badge').textContent,'本人教务');assert.match(element('#panel-assistant').innerHTML,/本人资料对话待接入/);
+evaluate("state.agentStatus={configured:true,remote:true};state.agentDraft='private fixture';state.agentConsent=true");assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');await evaluate('refreshAgentStatus()');await evaluate('refreshAgentHistory()');await evaluate('refreshSaved()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap','/api/chat/status']);
 evaluate("switchTab('saved')");assert.equal(evaluate('state.tab'),'assistant');
 """)
 
@@ -698,6 +698,178 @@ evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-A',auth_mo
 evaluate("state.schoolStatus={query_context:{cohort:2023,cohort_state:'known'}}");context.fetch=async()=>{throw Error('context must not refetch profile');};await evaluate('ensureSchoolQueryContext()');
 """)
 
+
+    def test_personal_chat_defaults_to_sending_without_a_permission_checkbox(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,provider:'DeepSeek',model:'fixture',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1',summary:'本轮问题及检索到的相关教务记录、培养资料片段会发送给当前模型；不发送账号凭据。'}};state.agentDraft='我的成绩如何？';state.agentConsent=true;renderAssistant();renderAuth()");
+let markup=element('#panel-assistant').innerHTML;assert.match(markup,/询问课程、成绩或培养要求/);assert.doesNotMatch(markup,/id="agent-personal-consent"|对话设置|agent-chat-settings/);assert.doesNotMatch(markup,/本机资料查询|personal-operation|personal-observation|personal-prepare|准备本机培养资料|合成测试需求|agent-remote-consent/);assert.equal(element('#conversation-sidebar').hidden,false);assert.equal(evaluate('agentCanSend()'),true);
+evaluate('state.agentConsent=false');assert.equal(evaluate('agentCanSend()'),true);
+evaluate("state.agentStatus.personal_data_use=undefined;renderAssistant()");assert.equal(evaluate('agentCanSend()'),false);assert.match(element('#panel-assistant').innerHTML,/本人资料对话待接入/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/personal-operation|personal-observation/);
+""")
+
+    def test_personal_turn_automatically_sends_required_scope_and_presents_tool_evidence(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.csrfToken='memory-only';state.agentStatus={configured:true,available:true,remote:true,provider:'DeepSeek',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentConsent=false;state.agentDraft='专业选修要求是什么？'");
+const calls=[];context.fetch=async(path,options)=>{const body=options.body?JSON.parse(options.body):null;calls.push({path,body});if(body)assert.equal(options.headers['X-CSRF-Token'],'memory-only');if(path==='/api/chat/progress')return {ok:true,json:async()=>({request_id:body.request_id,status:'not_started',events:[],next_sequence:0,terminal:false,active_reasoning:null,available:true})};if(path==='/api/chat/conversations?limit=100')return {ok:true,json:async()=>({conversations:[],has_more:false,data_kind:'personal_source'})};assert.equal(path,'/api/chat/turn');assert.equal(options.headers['X-CSRF-Token'],'memory-only');return {ok:true,json:async()=>({conversation_id:'personal-chat',turn_id:1,status:'completed',reply:'相关片段如下；本人适用仍待核验。',data_kind:'personal_source',tool_results:[{name:'query_my_records',result:{operation:'major_academic',target_term:'ALL-HISTORY',data_source:'historical_cache',coverage:{captured_rows:2,has_more:true},records:[{course_name_raw:'体育重复',grade_raw:'85'},{course_name_raw:'体育重复',grade_raw:'90'}]}},{name:'search_my_curriculum',result:{matches:[{reference:'opaque-reference',title:'要求<img src=x>',text:'至少 8 学分<script>bad()</script>',page:3,review_status:'unreviewed',locator:{path:'/private/never-show'},required_context:[{title:'必要前提',text:'条件 <img src=x>',page:2}]}]}}],citations:[]})};};
+await evaluate('sendAgentTurn()');assert.deepEqual(Object.keys(calls[0].body).sort(),['consent_personal','conversation_id','data_use_version','expected_turn','message','request_id']);assert.equal(calls[0].body.consent_personal,true);assert.equal(calls[0].body.data_use_version,'personal-retrieval-v1');assert.deepEqual(calls.map(item=>item.path),['/api/chat/turn','/api/chat/progress','/api/chat/conversations?limit=100']);assert.equal(calls.filter(item=>item.path==='/api/chat/turn').length,1);assert.deepEqual(calls[1].body,{request_id:calls[0].body.request_id,after_sequence:0});let markup=element('#panel-assistant').innerHTML;assert.match(markup,/相关片段如下/);assert.match(markup,/PDF 第 3 页/);assert.match(markup,/原文待审核/);assert.match(markup,/必要前提/);assert.match(markup,/&lt;script&gt;/);assert.equal((markup.match(/体育重复/g)||[]).length,2);assert.match(markup,/还有未读取内容/);assert.doesNotMatch(markup,/<script>|<img|\/private\/never-show|opaque-reference|personal-operation|personal-observation|personal-prepare|data-action="save-agent-option"/);
+""")
+
+    def test_personal_default_send_still_requires_ready_source_and_idle_state(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,provider:'DeepSeek',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentConsent=false;state.agentDraft='查询已读成绩'");
+const calls=[];context.fetch=async path=>{calls.push(path);throw Error('blocked state must not send');};assert.equal(evaluate('agentCanSend()'),true);
+for(const key of ['agentBusy','agentSettingsBusy','agentActionBusy','busy','agentHistoryLoadBusy','agentHistoryPending','schoolReauth']){
+ evaluate(`state.${key}=true`);assert.equal(evaluate('agentCanSend()'),false,key);await evaluate('sendAgentTurn()');evaluate(`state.${key}=false`);
+}
+for(const available of [false,undefined,null]){context.available=available;evaluate('state.agentStatus.available=available');assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');}
+evaluate('state.agentStatus.available=true;state.agentStatus.configured=false');assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');
+evaluate('state.agentStatus.configured=true;state.agentStatus.personal_data_use=undefined');assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');assert.deepEqual(calls,[]);
+""")
+
+    def test_personal_history_uses_personal_realm_and_never_replays_actions(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}");
+const calls=[];context.fetch=async(path,options)=>{calls.push(path);if(path==='/api/chat/conversations?limit=100')return {ok:true,json:async()=>({conversations:[{conversation_id:'personal-history',title:'培养要求问题'}],has_more:false,data_kind:'personal_source'})};assert.equal(path,'/api/chat/history');assert.deepEqual(JSON.parse(options.body),{conversation_id:'personal-history'});return {ok:true,json:async()=>({conversation_id:'personal-history',turn_id:1,turns:[{status:'completed',message:'历史问题',reply:'历史回答',tool_results:[],citations:[],reply_origin:'verified_explicit_action',download:{data_base64:'must-not-replay'}}],in_progress:false,action_pending:false,option_receipts:{},data_kind:'personal_source'})};};
+await evaluate('refreshAgentHistory()');assert.match(element('#conversation-list').innerHTML,/培养要求问题/);await evaluate("loadAgentConversation('personal-history')");assert.equal(evaluate('state.agentDraft'),'');assert.equal(evaluate('state.agentConversationId'),'personal-history');assert.match(element('#panel-assistant').innerHTML,/历史问题/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/agent-personal-consent/);assert.deepEqual(calls,['/api/chat/conversations?limit=100','/api/chat/history']);
+context.fetch=async()=>({ok:true,json:async()=>({conversation_id:'wrong-realm',turn_id:1,turns:[{message:'合成内容不可串入'}],data_kind:'synthetic'})});await evaluate("loadAgentConversation('wrong-realm')");assert.equal(evaluate('state.agentTurns.length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/合成内容不可串入/);
+""")
+
+    def test_personal_status_uses_current_scope_version_and_source_expiry_clears_data(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,provider:'Old',model:'m1',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentDraft='问题'");
+context.fetch=async()=>({ok:true,json:async()=>({configured:true,available:true,remote:true,provider:'New',model:'m2',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v2'}})});await evaluate('refreshAgentStatus()');assert.equal(evaluate('state.agentStatus.personal_data_use.version'),'personal-retrieval-v2');assert.equal(evaluate('agentCanSend()'),true);
+evaluate("state.agentTurns=[{status:'completed',message:'私人问题',reply:'私人回答',tool_results:[],citations:[]}];state.agentHistory=[{conversation_id:'p',title:'私人标题'}];renderAssistant();renderAgentHistory()");await evaluate("schoolFailure('source_session_expired',currentSchoolRequest(),null)");assert.equal(evaluate('agentCanSend()'),false);assert.equal(evaluate('state.agentTurns.length'),0);assert.equal(evaluate('state.agentHistory.length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/私人回答/);assert.doesNotMatch(element('#conversation-list').innerHTML,/私人标题/);
+""")
+
+    def test_personal_late_chat_history_and_401_cannot_cross_owner(self):
+        self.run_js(r"""
+const seed=owner=>evaluate(`clearWorkspace();state.auth={authenticated:true,identity:{student_id:'${owner}',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentDraft='条件';renderAssistant()`);
+seed('PERSONAL-A');let release;context.fetch=()=>new Promise(resolve=>{release=resolve;});const pending=evaluate('sendAgentTurn()');seed('PERSONAL-B');release({ok:true,json:async()=>({conversation_id:'A-chat',turn_id:1,status:'completed',reply:'A 的私有原文',tool_results:[],citations:[],data_kind:'personal_source'})});await pending;assert.equal(evaluate('state.agentTurns.length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/A 的私有原文/);
+const late401=evaluate('sendAgentTurn()');seed('PERSONAL-C');release({ok:false,status:401,text:async()=>JSON.stringify({error:'old session expired'})});await late401;assert.equal(evaluate('state.auth.authenticated'),true);assert.equal(evaluate('state.auth.identity.student_id'),'PERSONAL-C');assert.equal(evaluate('state.agentTurns.length'),0);
+const history=evaluate("loadAgentConversation('A-history')");seed('PERSONAL-D');release({ok:true,json:async()=>({conversation_id:'A-history',turn_id:1,turns:[{message:'A的历史私密'}],data_kind:'personal_source'})});await history;assert.equal(evaluate('state.agentTurns.length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/A的历史私密/);
+""")
+
+    def test_personal_records_preserve_unknown_status_and_cannot_offer_save_or_export(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");const markup=evaluate("personalRecordTable({operation:'major_academic',records:[{course_name_raw:'甲',completion_status_raw:'failed'},{course_name_raw:'乙',completion_status_raw:'in_progress'},{course_name_raw:'丙',completion_status_raw:'passed'},{course_name_raw:'丁',completion_status_raw:'pending_recognition'},{course_name_raw:'戊',completion_status_raw:'unknown'},{course_name_raw:'己',completion_status_raw:'passed',field_states:{completion_status_raw:'unknown'}}]})");assert.match(markup,/未通过/);assert.match(markup,/在修/);assert.match(markup,/通过/);assert.match(markup,/待认定/);assert.match(markup,/待确认/);assert.doesNotMatch(markup,/>failed<|>in_progress<|>passed<|>pending_recognition<|>unknown</);
+const card=evaluate("agentToolCard({name:'recommend_my_courses',result:{plans:[{option_id:'must-not-save'}]}})");assert.match(card,/真实课表推荐待/);assert.doesNotMatch(card,/data-action="save-agent-option"|data-action="export-agent-option"/);const calls=[];context.fetch=async path=>{calls.push(path);throw Error('must not act');};await evaluate("saveAgentOption('must-not-save')");await evaluate("exportAgentOption('must-not-save','json')");await evaluate("applyAgentTurnActions({status:'completed',reply_origin:'verified_explicit_action',download:{data_base64:'must-not-download'}},state.agentEpoch)");assert.deepEqual(calls,[]);
+""")
+
+    def test_personal_citations_render_structured_records_context_and_numbered_curriculum(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}}");
+const record=evaluate("agentCitation({kind:'record',citation_number:1,operation:'academic',text:'{\"internal_record\":\"never show\"}',evidence_id:'SECRET-RECORD-REF',record:{course_name_raw:'合成体育<img src=x>',grade_raw:'85',completion_status_raw:'passed',raw_row:{private:'never show'}}})");assert.match(record,/\[1\] 本人来源记录/);assert.match(record,/合成体育&lt;img/);assert.match(record,/85/);assert.match(record,/通过/);assert.doesNotMatch(record,/<img|internal_record|SECRET-RECORD-REF|raw_row|never show|原文待审核/);
+const context=evaluate("agentCitation({kind:'context',citation_number:2,text:'{\"internal_context\":true}',context:{cohort:2023,major_name:'信息管理',owner:'never-show-owner',operations:[{operation:'major_academic',target_term:'ALL-HISTORY',coverage:{captured_rows:3,complete_within_scope:false,has_more:true}}],capabilities:{debug:true}}})");assert.match(context,/\[2\] 本轮已知范围/);assert.match(context,/入学年/);assert.match(context,/2023/);assert.match(context,/信息管理/);assert.match(context,/主修成绩 · 全部已读历史/);assert.match(context,/还有未读取内容/);assert.doesNotMatch(context,/internal_context|never-show-owner|capabilities|debug|PDF 第/);
+const unknown=evaluate("agentCitation({kind:'context',context:{cohort:2023,major_name:'不可展示专业',field_states:{cohort:'unknown',major_name:'unknown'},operations:[]},text:'{\"must_not_parse\":1}'})");assert.match(unknown,/尚无可展示的已知值/);assert.doesNotMatch(unknown,/2023|不可展示专业|must_not_parse/);
+const curriculum=evaluate("agentCitation({kind:'curriculum',citation_number:3,title:'培养要求',text:'至少 8 学分',physical_page:4,required_context:[{page:3,text:'完整前提'}],locator:{path:'/private/never-show'},evidence_id:'SECRET-CURRICULUM-REF'})");assert.match(curriculum,/\[3\] 培养要求/);assert.match(curriculum,/PDF 第 4 页/);assert.match(curriculum,/原文待审核/);assert.match(curriculum,/完整前提/);assert.doesNotMatch(curriculum,/\/private\/never-show|SECRET-CURRICULUM-REF/);
+const omitted=evaluate("agentCitation({kind:'curriculum',citation_number:4,text:'范围片段',page:5,context_omitted:true,required_context:[]})");assert.match(omitted,/上下文因展示预算未载入/);assert.doesNotMatch(omitted,/local_context_budget|context_omitted/);
+""")
+
+    def test_model_directory_is_real_cached_and_remote_refresh_is_explicit(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,remote:true,model:'configured-but-not-listed',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}");
+const calls=[];context.fetch=async(path,options)=>{calls.push({path,body:options.body?JSON.parse(options.body):null});return {ok:true,json:async()=>({models:[{id:'provider-real-a'},{id:'provider-real-b'}],source:'provider_cache',configured:true})};};
+await evaluate('refreshAgentModels(false)');assert.deepEqual(calls,[{path:'/api/chat/models',body:null}]);let controls=evaluate('renderAgentModelControls()');assert.match(controls,/value="provider-real-a"/);assert.match(controls,/value="provider-real-b"/);assert.doesNotMatch(controls,/value="configured-but-not-listed"/);assert.match(controls,/configured-but-not-listed（当前配置）/);assert.match(controls,/<option[^>]*value="@refresh"[^>]*>刷新模型目录/);
+element('#agent-model').value='@refresh';element('#agent-model').listeners.change({target:element('#agent-model')});for(let i=0;i<20&&evaluate('state.agentModelsBusy');i++)await Promise.resolve();assert.equal(evaluate('state.agentModelsBusy'),false);assert.deepEqual(calls[1],{path:'/api/chat/models/refresh',body:{}});assert.doesNotMatch(JSON.stringify(calls),/chat\/settings|chat\/turn/);evaluate('state.agentBusy=true');await evaluate('refreshAgentModels(true)');assert.equal(calls.length,2);assert.match(evaluate('renderAgentModelControls()'),/<select id="agent-model"[^>]*disabled/);
+evaluate('state.agentBusy=false;state.agentModels=[]');controls=evaluate('renderAgentModelControls()');assert.doesNotMatch(controls,/<select id="agent-model"[^>]*disabled/);assert.match(controls,/<option[^>]*value="@refresh"/);
+evaluate('state.agentBusy=false');context.fetch=async()=>({ok:false,status:404,text:async()=>JSON.stringify({error:'not found'})});await evaluate('refreshAgentModels(false)');assert.match(element('#panel-assistant').innerHTML,/当前服务暂不支持模型切换/);
+""")
+
+    def test_model_settings_keep_conversation_draft_and_reject_fake_ids(self):
+        self.run_js(r"""
+assert.notEqual(evaluate("agentPolicyKey({model:'real-a',thinking:false,settings_revision:0})"),evaluate("agentPolicyKey({model:'real-a',thinking:true,settings_revision:0})"));assert.notEqual(evaluate("agentPolicyKey({model:'real-a',thinking:false,settings_revision:0})"),evaluate("agentPolicyKey({model:'real-a',thinking:false,settings_revision:2})"));
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,model:'real-a',thinking:false,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentModels=[{id:'real-a'},{id:'real-b'}];state.agentConversationId='same-conversation';state.agentTurns=[{message:'此前问题',status:'completed',reply:'此前回答',tool_results:[],citations:[]}];state.agentDraft='保留未发草稿'");
+element('#agent-model').value='made-up-model';const calls=[];let release;context.fetch=(path,options)=>{calls.push({path,body:JSON.parse(options.body)});return new Promise(resolve=>{release=resolve;});};await evaluate('saveAgentSettings()');assert.equal(calls.length,0);
+element('#agent-model').value='real-b';const pending=evaluate('saveAgentSettings()');assert.equal(evaluate('state.agentSettingsBusy'),true);assert.equal(evaluate('agentCanSend()'),false);assert.deepEqual(calls,[{path:'/api/chat/settings',body:{model:'real-b',thinking:false}}]);release({ok:true,json:async()=>({configured:true,available:true,remote:true,model:'real-b',thinking:false,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}})});await pending;assert.equal(evaluate('state.agentConversationId'),'same-conversation');assert.equal(evaluate('state.agentTurns.length'),1);assert.equal(evaluate('state.agentDraft'),'保留未发草稿');assert.equal(evaluate('state.agentStatus.model'),'real-b');assert.equal(evaluate('state.agentStatus.thinking'),false);assert.equal(evaluate('agentCanSend()'),true);
+""")
+
+    def test_thinking_button_toggles_via_settings_and_busy_states_prevent_duplicates(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,provider:'DeepSeek',model:'real-a',thinking:false,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentModels=[{id:'real-a'}];state.agentDraft='保留未发送问题';renderAssistant()");
+const buttonMarkup=()=>element('#panel-assistant').innerHTML.match(/<button\b[^>]*id="agent-thinking"[^>]*>/)?.[0];
+assert.ok(buttonMarkup(),'thinking is an interactive button');assert.match(buttonMarkup(),/type="button"/);assert.match(buttonMarkup(),/aria-pressed="false"/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/<input[^>]*id="agent-thinking"|对话设置|agent-personal-consent/);
+element('#agent-model').value='real-a';const calls=[];let release;context.fetch=(path,options)=>{calls.push({path,body:JSON.parse(options.body)});return new Promise(resolve=>{release=resolve;});};
+for(const key of ['agentBusy','agentSettingsBusy','agentActionBusy','busy','agentHistoryLoadBusy','agentModelsBusy']){
+ evaluate(`state.${key}=true;renderAssistant()`);assert.match(buttonMarkup(),/disabled/,key);element('#agent-thinking').listeners.click({preventDefault(){}});await Promise.resolve();assert.equal(calls.length,0,key);evaluate(`state.${key}=false`);
+}
+evaluate('renderAssistant()');element('#agent-thinking').setAttribute('aria-pressed','false');const pending=element('#agent-thinking').listeners.click({preventDefault(){}});assert.equal(evaluate('state.agentSettingsBusy'),true);assert.equal(evaluate('agentCanSend()'),false);assert.deepEqual(calls,[{path:'/api/chat/settings',body:{model:'real-a',thinking:true}}]);element('#agent-thinking').listeners.click({preventDefault(){}});assert.equal(calls.length,1);
+release({ok:true,json:async()=>({configured:true,available:true,remote:true,provider:'DeepSeek',model:'real-a',thinking:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}})});await pending;for(let i=0;i<20&&evaluate('state.agentSettingsBusy');i++)await Promise.resolve();assert.equal(evaluate('state.agentSettingsBusy'),false);assert.equal(evaluate('state.agentStatus.thinking'),true);assert.match(buttonMarkup(),/aria-pressed="true"/);assert.equal(evaluate('state.agentDraft'),'保留未发送问题');assert.equal(evaluate('agentCanSend()'),true);
+element('#agent-thinking').setAttribute('aria-pressed','true');const failed=element('#agent-thinking').listeners.click({preventDefault(){}});assert.deepEqual(calls[1],{path:'/api/chat/settings',body:{model:'real-a',thinking:false}});release({ok:false,status:503,text:async()=>JSON.stringify({error:'synthetic settings failure'})});await failed;for(let i=0;i<20&&evaluate('state.agentSettingsBusy');i++)await Promise.resolve();assert.equal(evaluate('state.agentSettingsBusy'),false);assert.equal(evaluate('state.agentStatus.thinking'),true);assert.match(buttonMarkup(),/aria-pressed="true"/);assert.ok(evaluate('state.agentModelsError'));assert.equal(evaluate('state.agentDraft'),'保留未发送问题');
+""")
+
+    def test_run_details_show_actual_event_timeline_usage_and_visible_provider_reasoning(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}");
+const calls=[];context.fetch=async(path,options)=>{calls.push({path,body:options.body?JSON.parse(options.body):null});if(path==='/api/chat/runs?limit=20')return {ok:true,json:async()=>({runs:[{run_id:'RUN-1',status:'failed',model:'real-a',started_at:1792022400}],has_more:false})};return {ok:true,json:async()=>({run:{run_id:'RUN-1',status:'failed',model:'real-a',thinking:true},reasoning_notice:'供应商实际返回文本，不代表完整内部思考。',events:[{kind:'model.start',at:1792022400,sequence:1,model:'real-a'},{kind:'tool.end',tool_name:'query_my_records',elapsed_ms:10,status:'completed'},{kind:'model.end',usage:{prompt_tokens:123,completion_tokens:45,total_tokens:168},reasoning_content:'供应商可见推理 <script>bad()</script>',prompt:{private:'DO-NOT-RENDER'}},{kind:'error',code:'model_timeout',error:{message:'稍后重试<img src=x>'}}]})};};
+await evaluate('refreshAgentRuns()');assert.equal(evaluate('state.agentRuns.length'),1);await evaluate("toggleAgentRun('RUN-1')");const markup=evaluate("renderAgentRunContent('RUN-1')");assert.match(markup,/模型请求/);assert.match(markup,/检索返回/);assert.match(markup,/本人教务记录/);assert.match(markup,/输入 123 tokens/);assert.match(markup,/输出 45 tokens/);assert.match(markup,/合计 168 tokens/);assert.match(markup,/model_timeout/);assert.match(markup,/供应商实际返回文本，不代表完整内部思考/);assert.match(markup,/&lt;script&gt;/);assert.doesNotMatch(markup,/<script>|<img|DO-NOT-RENDER|"private"/);assert.deepEqual(calls,[{path:'/api/chat/runs?limit=20',body:null},{path:'/api/chat/run',body:{run_id:'RUN-1'}}]);
+evaluate("state.agentRunDetails['RUN-EMPTY']={run:{run_id:'RUN-EMPTY'},events:[]}");assert.match(evaluate("renderAgentRunContent('RUN-EMPTY')"),/未提供供应商可见推理文本/);
+""")
+
+    def test_delayed_model_and_run_metadata_never_repopulate_another_owner(self):
+        self.run_js(r"""
+const seed=owner=>evaluate(`clearWorkspace();state.auth={authenticated:true,identity:{student_id:'${owner}',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}`);seed('PERSONAL-A');let release;context.fetch=()=>new Promise(resolve=>{release=resolve;});const directory=evaluate('refreshAgentModels(false)');seed('PERSONAL-B');release({ok:true,json:async()=>({models:[{id:'A-private-model'}]})});await directory;assert.equal(evaluate('state.agentModels.length'),0);
+const detail=evaluate("toggleAgentRun('A-run')");seed('PERSONAL-C');release({ok:true,json:async()=>({run:{run_id:'A-run'},events:[{kind:'model.end',reasoning_content:'A private reasoning'}]})});await detail;assert.equal(evaluate('Object.keys(state.agentRunDetails).length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/A private reasoning/);
+evaluate("state.agentRunDetails.secret={events:[{reasoning_content:'secret'}]};state.agentModels=[{id:'secret-model'}]");evaluate('clearSchoolWorkspace()');assert.equal(evaluate('Object.keys(state.agentRunDetails).length'),0);assert.equal(evaluate('state.agentModels.length'),0);
+""")
+
+    def test_chat_scroll_preserves_reader_position_pages_and_follows_only_when_expected(self):
+        self.run_js(r"""
+const scroll=element('#agent-dialogue-scroll');let top=0;scroll.scrollHeight=2000;scroll.clientHeight=400;Object.defineProperty(scroll,'scrollTop',{get:()=>top,set:value=>{top=Math.max(0,Math.min(value,scroll.scrollHeight-scroll.clientHeight));},configurable:true});
+evaluate("state.boot={};state.auth={authenticated:true};renderAssistant()");assert.equal(top,1600);scroll.scrollTop=300;scroll.listeners.scroll();assert.equal(evaluate('state.agentScroll.nearBottom'),false);
+evaluate("state.agentTurns=[{status:'completed',message:'新问题',reply:'新回答',tool_results:[],citations:[]}]");scroll.scrollHeight=2500;evaluate('renderAssistant()');assert.equal(top,300);assert.equal(evaluate('state.agentScroll.newMessages'),true);assert.match(element('#agent-latest').textContent,/有新回复/);
+evaluate('scrollAgentDialogue(1)');assert.equal(top,640);evaluate('scrollAgentDialogue(-1)');assert.equal(top,300);evaluate("scrollAgentDialogue('latest')");assert.equal(top,2100);assert.equal(evaluate('state.agentScroll.newMessages'),false);
+scroll.scrollTop=150;scroll.listeners.scroll();evaluate('renderAssistant()');assert.equal(top,150);evaluate('state.agentScroll.forceLatest=true;renderAssistant()');assert.equal(top,2100);
+scroll.scrollHeight=2900;evaluate("state.agentTurns.push({pending:true,message:'本人新发的问题'});state.agentScroll.forceLatest=true;renderAssistant()");assert.equal(top,2500);
+const css=fs.readFileSync(process.argv[1].replace(/app\.js$/,'styles.css'),'utf8');assert.match(css,/body:has\(#panel-assistant:not\(\[hidden\]\)\)[^}]*height: 100svh[^}]*overflow: hidden/);assert.match(css,/\.agent-dialogue[^}]*min-height: 0[^}]*overflow: auto/);assert.match(css,/\.agent-run-content[^}]*max-height: 340px[^}]*overflow: auto/);assert.match(element('#panel-assistant').innerHTML,/对话上下翻页/);
+""")
+
+    def test_scripted_personal_fixture_uses_preflight_and_preserves_streaming_overrides(self):
+        import json
+        from unittest.mock import patch
+        from validation.run_personal_ui_fixture import ScriptedPersonalModel
+
+        marker = "服务器已完成本轮本机范围检查（service_preflight get_my_context）：\n"
+        messages = [{"role": "system", "content": marker + json.dumps({"operations": [
+            {"operation": "academic", "target_term": "2025-2026-AW"},
+            {"operation": "major_academic", "target_term": "ALL-HISTORY"}]})},
+            {"role": "user", "content": "我的成绩怎么样"}]
+        model = ScriptedPersonalModel().with_options("synthetic-only", True)
+        first = model.complete(messages, [])
+        call = first["tool_calls"][0]["function"]
+        self.assertEqual(call["name"], "query_my_records")
+        self.assertEqual(json.loads(call["arguments"])["operation"], "major_academic")
+        self.assertEqual(json.loads(call["arguments"])["target_term"], "ALL-HISTORY")
+        self.assertEqual(json.loads(call["arguments"])["query"], "")
+        exact = model.complete(messages[:-1] + [{"role": "user", "content": "查询 SYNTHETIC-PE-REPEAT"}], [])
+        self.assertEqual(json.loads(exact["tool_calls"][0]["function"]["arguments"])["query"], "SYNTHETIC-PE-REPEAT")
+        identity = model.complete([{"role": "user", "content": "你是谁？"}], [])
+        self.assertEqual(json.loads(identity["content"]), {"kind": "general_chat", "intent": "identity"})
+        deltas, observed = [], []
+        model.stream_delay = 0.3
+        with patch("validation.run_personal_ui_fixture.time.sleep") as delay:
+            message, metadata = model.complete_stream_with_metadata(messages, [], observer=observed.append,
+                                                                    on_reasoning=deltas.append)
+        self.assertEqual("".join(deltas), message["reasoning_content"])
+        self.assertEqual(delay.call_count, 4)
+        self.assertIn("合成", message["reasoning_content"])
+        self.assertEqual(observed, [metadata])
+
+        class MetadataOverride(ScriptedPersonalModel):
+            def complete_with_metadata(self, messages, tools, observer=None):
+                result = {"role": "assistant", "content": "custom", "reasoning_content": "custom visible reasoning"}
+                metadata = {"status": "completed", "provider_reasoning": "custom visible reasoning", "elapsed_ms": 47,
+                            "usage": {"total_tokens": 17}}
+                if observer:
+                    observer(metadata)
+                return result, metadata
+
+        custom, chunks, receipts = MetadataOverride(), [], []
+        custom.thinking = True
+        _, receipt = custom.complete_stream_with_metadata(messages, [], observer=receipts.append,
+                                                          on_reasoning=chunks.append)
+        self.assertEqual("".join(chunks), "custom visible reasoning")
+        self.assertEqual(receipt["elapsed_ms"], 47)
+        self.assertEqual(receipts[0]["usage"], {"total_tokens": 17})
 
 if __name__ == "__main__":
     unittest.main()

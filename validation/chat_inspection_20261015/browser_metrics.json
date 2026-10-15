@@ -1,0 +1,76 @@
+{
+  "desktopInitial": {
+    "body": [
+      1920,
+      929
+    ],
+    "chat": {
+      "height": 343,
+      "top": 5469,
+      "total": 5812
+    },
+    "composer": {
+      "bottom": 911,
+      "top": 531.71875
+    },
+    "turns": 20,
+    "viewport": [
+      1920,
+      929
+    ]
+  },
+  "beforeRefresh": {
+    "height": 343,
+    "top": 4886,
+    "total": 5812
+  },
+  "afterRefresh": {
+    "height": 343,
+    "top": 4886,
+    "total": 5812
+  },
+  "mobile": {
+    "body": [
+      375,
+      812
+    ],
+    "chat": {
+      "height": 195,
+      "top": 6695,
+      "total": 6890
+    },
+    "composer": {
+      "bottom": 802,
+      "top": 534.8828125
+    },
+    "footer": {
+      "bottom": 801,
+      "top": 735.5
+    },
+    "turns": 20,
+    "viewport": [
+      375,
+      812
+    ]
+  },
+  "mobilePageUp": 6529.5,
+  "switchedRun": {
+    "model": "synthetic-fast",
+    "thinking": false,
+    "completed": true,
+    "visibleUsage": true
+  },
+  "mobileRunsOpen": {
+    "body": [
+      375,
+      812
+    ],
+    "chatHeight": 130,
+    "footerBottom": 801,
+    "runHeight": 89.0390625,
+    "viewport": [
+      375,
+      812
+    ]
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "directSendCompleted": true,
+  "firstRunThinking": false,
+  "secondRunOrdinary": true,
+  "mobile": {
+    "body": [
+      375,
+      812
+    ],
+    "chatHeight": 305,
+    "model": {
+      "centerY": 760.625,
+      "height": 42,
+      "width": 139,
+      "x": 133,
+      "y": 739.625
+    },
+    "removedControls": 0,
+    "send": {
+      "centerY": 760.625,
+      "height": 44.75,
+      "width": 64,
+      "x": 280,
+      "y": 738.25
+    },
+    "thinking": {
+      "centerY": 760.62109375,
+      "height": 37.4453125,
+      "width": 94,
+      "x": 31,
+      "y": 741.8984375
+    },
+    "turns": 20,
+    "viewport": [
+      375,
+      812
+    ]
+  },
+  "desktop": {
+    "body": [
+      1920,
+      873
+    ],
+    "consentControls": 0,
+    "sendEnabled": true,
+    "thinkingOn": "true",
+    "viewport": [
+      1920,
+      873
+    ]
+  }
+}

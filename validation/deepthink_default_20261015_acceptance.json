@@ -1,0 +1,90 @@
+{
+  "recorded_at_utc": "2026-10-15T05:38:19.797729+00:00",
+  "scope": "User-authorized direct personal send + button-style thinking toggle; exclusively synthetic UI verification",
+  "user_decision": "No personal-send checkbox; submitted questions use current DeepSeek model and required relevant data by default",
+  "tests": {
+    "ran": 955,
+    "passed": 955,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "by_module": {
+      "test_application": 7,
+      "test_audit": 44,
+      "test_auth": 20,
+      "test_chat": 36,
+      "test_chat_history": 13,
+      "test_chat_http": 2,
+      "test_chat_inspection_http": 8,
+      "test_chat_runs": 14,
+      "test_course_dedup": 15,
+      "test_course_source_adapters": 9,
+      "test_exporter": 6,
+      "test_importer": 13,
+      "test_live_chat_acceptance": 13,
+      "test_local_reference": 22,
+      "test_local_reference_observations": 22,
+      "test_model_client": 16,
+      "test_personal_chat": 19,
+      "test_personal_chat_http": 5,
+      "test_personal_dialogue": 25,
+      "test_personal_evidence": 33,
+      "test_personal_http": 15,
+      "test_personal_observations": 24,
+      "test_plan_requirements_audit": 12,
+      "test_planner": 32,
+      "test_recommendation": 24,
+      "test_recommendation_dialogue": 17,
+      "test_recommendation_storage": 22,
+      "test_reference_retrieval": 13,
+      "test_school_accounts": 41,
+      "test_school_http": 60,
+      "test_school_http_app": 10,
+      "test_school_period_times": 9,
+      "test_school_timetable_web": 25,
+      "test_student_browser_bridge": 17,
+      "test_student_connector": 30,
+      "test_student_plan_acquisition": 32,
+      "test_student_source_cli": 21,
+      "test_student_source_client": 38,
+      "test_student_source_parsers": 33,
+      "test_student_source_provider": 11,
+      "test_student_source_sync": 11,
+      "test_student_sources": 36,
+      "test_web_contract": 80
+    }
+  },
+  "source_hashes_match": true,
+  "live_assets_match": {
+    "app.js": "c66724aa3e803c07d8f4d7ad2df4ac4b2a50c9bde4f22eb17e5d930a709cd846",
+    "styles.css": "26c0da3c3488284bfdd1fbb442b6025147271748a6070ac9d9c73d2f4558b7a7"
+  },
+  "backend_restarted": false,
+  "real_school_network": false,
+  "real_model_inference": false,
+  "real_personal_data": false,
+  "backend_authorization_or_projection_changed": false,
+  "automatic_chat_on_login_or_model_change": false,
+  "browser_checks": "deepthink_default_20261015/browser_checks.json",
+  "artifact_sha256": {
+    "validation/deepthink_default_20261015/desktop_ready.png": "ee94523f6f51bf4664db37a308c0a669b422f59346e64438ee15ac96ff95f6de",
+    "validation/deepthink_default_20261015/mobile_long.png": "3dc81dd6e5633faf602a7adca03ed6bceda70d19039b809cb523e99b4b78e9b7",
+    "validation/deepthink_default_20261015/browser_checks.json": "77e893317f884199e8f71ee96192a91b37e0ae2e603c26c195f79d6380163ade"
+  },
+  "cleanup": {
+    "viewport_reset": true,
+    "synthetic_tab_closed": true,
+    "fixture_stop_requested": true,
+    "fixture_stopped": true
+  },
+  "reference_limit": "Official chat page read returned 403; browser reached sign-in but inspection timed out. Button interaction follows requested DeepThink direction; exact current pixel matching not verified.",
+  "limits": [
+    "Synthetic model protocol UI is not real model inference",
+    "No physical phone or software keyboard acceptance"
+  ],
+  "git": {
+    "committed": false,
+    "pushed": false,
+    "external_deployment": false
+  }
+}

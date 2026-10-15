@@ -1,0 +1,133 @@
+{
+  "recorded_at_utc": "2026-10-15T03:28:51.664775+00:00",
+  "scope": "Direct personal dialogue implemented; engineering and exclusively synthetic model/browser checks. Real personal-data dialogue still awaits user acceptance.",
+  "git_base": "a0c3bf7b15326c5df9535c233fd7ee4ad19850aa",
+  "implemented": [
+    "server-authenticated owner/realm/generation retrieval",
+    "personal PDF extraction and lexical/exact code search with page/context citations",
+    "immutable read observations and limited record tools",
+    "model-selected retrieval and cited natural-language answers",
+    "direct chat composer, personal data-use consent, history; no manual query panel"
+  ],
+  "engineering": {
+    "ran": 918,
+    "passed": 918,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "by_module": {
+      "test_application": 7,
+      "test_audit": 44,
+      "test_auth": 20,
+      "test_chat": 36,
+      "test_chat_history": 13,
+      "test_chat_http": 2,
+      "test_course_dedup": 15,
+      "test_course_source_adapters": 9,
+      "test_exporter": 6,
+      "test_importer": 13,
+      "test_live_chat_acceptance": 13,
+      "test_local_reference": 22,
+      "test_local_reference_observations": 22,
+      "test_model_client": 8,
+      "test_personal_chat": 19,
+      "test_personal_chat_http": 5,
+      "test_personal_dialogue": 25,
+      "test_personal_evidence": 33,
+      "test_personal_http": 15,
+      "test_personal_observations": 24,
+      "test_plan_requirements_audit": 12,
+      "test_planner": 32,
+      "test_recommendation": 24,
+      "test_recommendation_dialogue": 17,
+      "test_recommendation_storage": 22,
+      "test_reference_retrieval": 13,
+      "test_school_accounts": 41,
+      "test_school_http": 60,
+      "test_school_http_app": 10,
+      "test_school_period_times": 9,
+      "test_school_timetable_web": 25,
+      "test_student_browser_bridge": 17,
+      "test_student_connector": 30,
+      "test_student_plan_acquisition": 32,
+      "test_student_source_cli": 21,
+      "test_student_source_client": 38,
+      "test_student_source_parsers": 33,
+      "test_student_source_provider": 11,
+      "test_student_source_sync": 11,
+      "test_student_sources": 36,
+      "test_web_contract": 73
+    }
+  },
+  "syntax": "pass",
+  "inputs_unchanged": true,
+  "model": {
+    "provider": {
+      "provider": "DeepSeek",
+      "model": "deepseek-flash"
+    },
+    "cases": 2,
+    "completed": 2,
+    "real_api": true,
+    "real_school_transport": false,
+    "real_personal_data": false,
+    "receipt": "personal_agent_20261015_model.json"
+  },
+  "browser": {
+    "transport": "synthetic school",
+    "model": "explicit scripted protocol fixture; not real model",
+    "checked": [
+      "direct question chooses context and curriculum tool with automatic local prepare",
+      "follow-up chooses record query; repeated attempts and partial scope retained",
+      "numbered citations with physical pages and local full-page context",
+      "same-session history restored; consent resets on reload",
+      "375x812 viewport: measured viewport 375, document scrollWidth 360; no manual query panel"
+    ],
+    "screenshots": {
+      "validation/personal_d1_20261015/chat_desktop.png": "db21fadcadd93880a96367957f7e2ce6f3d18b354ecb98074f3abb232a76a681",
+      "validation/personal_d1_20261015/chat_empty_desktop.png": "f3f93c82634b2570511ab0c8b462876dcce51b956a8ecec97b2e637b5aee9d3e",
+      "validation/personal_d1_20261015/chat_narrow.png": "848218c09ff0189e3ad24c90e24bf0779fd412a148f05b16fbbe25c1bada8980",
+      "validation/personal_d1_20261015/chat_records_desktop.png": "1be90cd64e83c0d1c2e21fea4ebe85eb9f13b4576710802703c1b3f64cf636ee",
+      "validation/personal_d1_20261015/pdf_page-1.png": "352c21e572e7227630db111b5aa28072edc35099816c59cf0dde4faf7c8ede7e",
+      "validation/personal_d1_20261015/pdf_page-2.png": "9b993799a548571d307b2d8489199ab65fd3ca26ff907a6c9f016018dc4120b7"
+    }
+  },
+  "pdf": {
+    "fixture": "personal_d1_20261015/synthetic_curriculum.pdf",
+    "physical_pages": 2,
+    "real_pdftotext": true,
+    "rendered_and_visually_checked": true
+  },
+  "runtime": {
+    "url": "http://127.0.0.1:18875/",
+    "previous_pid": 45846,
+    "current_pid": 58034,
+    "health": "ok",
+    "mock_enabled": false,
+    "served_app_matches": true,
+    "relogin_required": true,
+    "school_network_during_activation": false
+  },
+  "not_accepted": [
+    "real personal-data model answers",
+    "human evaluation of semantic support and official applicability",
+    "embedding search",
+    "real academic audit and course recommendation",
+    "production deployment"
+  ],
+  "git": {
+    "new_changes_committed": false,
+    "new_changes_pushed": false,
+    "previous_frontend_commit": "a0c3bf7b15326c5df9535c233fd7ee4ad19850aa"
+  },
+  "owning_source_sha256": {
+    "course_assistant/personal_chat.py": "fe429c1453c47bcf0ce0a9a8dca14ffc9f9e48c25da58e0127a55f966361e456",
+    "course_assistant/personal_dialogue.py": "266c1152c0e2002d438a30552cd9daa4598652e00630bbfed3edc0a4bc2b154c",
+    "course_assistant/personal_evidence.py": "761944e2e7453edfe993846fe6b940a26103e5985675eb7aec7c09afebe5de47",
+    "course_assistant/personal_observations.py": "5974c21a44767409a6d1cd7dc5acc59ff3dfd81ab110e86d10376ee510580068",
+    "course_assistant/school_accounts.py": "a8e8cfea2d0249a7659f7c68cb0d490c5af4ba1146a18ea9ca871927bbd62e59",
+    "course_assistant/server.py": "f67b109425320d1373c4032e0ee68702f46bbd21b11a53364fff32fd2f389859",
+    "web/app.js": "a4b5b262fc2c889ef9ea74d7a6d54e8f7bd8f4913d5125f462eb29ab3b7cdd0e",
+    "web/styles.css": "013b797b2062f5a7ec9516daf6267d8aaff55971b8ee3a2148f8486ce6617035"
+  }
+}

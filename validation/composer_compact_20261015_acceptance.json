@@ -1,0 +1,55 @@
+{
+  "recorded_at_utc": "2026-10-15T05:19:26.359298+00:00",
+  "scope": "Frontend layout and copy only; synthetic UI fixture",
+  "tests": {
+    "ran": 103,
+    "passed": 103,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "full_953_suite_this_round": false
+  },
+  "syntax": "passed",
+  "diff_check": "passed",
+  "inputs_unchanged": true,
+  "real_school_network": false,
+  "real_model_network": false,
+  "real_personal_data": false,
+  "backend_restarted": false,
+  "live_assets_match": {
+    "app.js": "02e382a8868f28a409f24f1a5531db9042091fc0d5cae92f85b42002ce44d206",
+    "styles.css": "9c81dab6627901dea01a0cad1a7087e43c67051a1865f1ac5bc9e6d005d09183"
+  },
+  "source_sha256": {
+    "web/app.js": "02e382a8868f28a409f24f1a5531db9042091fc0d5cae92f85b42002ce44d206",
+    "web/styles.css": "9c81dab6627901dea01a0cad1a7087e43c67051a1865f1ac5bc9e6d005d09183",
+    "tests/test_web_contract.py": "c0ac5985b544e6ac0a5b5fddfa141ba96de620ac776cce2c9b2d64bad4531015"
+  },
+  "artifacts_sha256": {
+    "validation/composer_compact_20261015/browser_metrics.json": "3d15bd3b1f4f41cd1714deb3ee9eb1901ed73a200a728d9be6dd44832c0eacc8",
+    "validation/composer_compact_20261015/desktop_empty.png": "bb560f399d255d91e386b88e836958f642187d8251975989ca32cb881f2df202",
+    "validation/composer_compact_20261015/mobile_settings.png": "7ee64b0f941899a9bdf2159dd8a35e7581cbd20d0aca8f9282ef561c54b19a2d",
+    "validation/composer_compact_20261015/desktop_long.png": "24f6e347850021c8e98776576a60465b56aa52940faf52cc0772f44b137eaa1a",
+    "validation/composer_compact_20261015/mobile_long.png": "977c8805a8861115186d3a7691f0eaebac3691c1f304c055b66fafd58ec1e044"
+  },
+  "browser_checks": [
+    "Desktop empty + 20-turn history",
+    "375x812 20-turn history, no body overflow",
+    "Model and Send adjacent on same row",
+    "Details default collapsed; provider and data scope visible on expand",
+    "Model switch clears prior consent",
+    "Keyboard Tab from model goes to Send; Enter submits one synthetic turn",
+    "Source records and run details still available",
+    "Viewport reset, synthetic tab closed, fixture stopped"
+  ],
+  "git": {
+    "new_changes_committed": false,
+    "new_changes_pushed": false,
+    "external_deployment": false
+  },
+  "limits": [
+    "No real personal question or real API retest in this cosmetic round",
+    "No physical phone or software keyboard test"
+  ],
+  "server_sessions_not_reset": true
+}

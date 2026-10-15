@@ -1,0 +1,105 @@
+{
+  "recorded_at_utc": "2026-10-15T07:05:45.365882+00:00",
+  "scope": "Synthetic UI protocol fixture and real DeepSeek with exclusively synthetic school data; real personal Q&A remains user acceptance",
+  "implemented": {
+    "source_preparation": [
+      "generic grades read major_academic ALL-HISTORY even if a semester cache exists",
+      "explicit adjacent school year and AW/SS term",
+      "curriculum on demand",
+      "no guessed timetable/exam term"
+    ],
+    "streaming": "DeepSeek SSE reasoning_content with authenticated bounded progress",
+    "default_thinking": "new personal DeepSeek session ON; explicit OFF honored",
+    "general_chat": "model-selected bounded service guidance",
+    "grade_summary": "all matching rows in selected snapshot, not first15/GPA/recognition"
+  },
+  "tests": {
+    "receipt": "retrieval_progress_20261015_validation.json",
+    "ran": 1013,
+    "passed": 1013,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "real_model": {
+    "initial": "personal_retrieval_progress_20261015_model.json",
+    "final": "personal_retrieval_progress_20261015_model_final.json",
+    "synthetic_only": true,
+    "real_school_network": false,
+    "real_personal_data_sent": false,
+    "validation_retries": false,
+    "real_streaming_reasoning_observed": true,
+    "final_turns": 2,
+    "final_provider_calls": 3,
+    "assistant_semantic_review_not_human_gold": true,
+    "remaining": "One summary-linked sentence also mentions unknown completion states; later record citations provide them. Citation existence is not semantic proof."
+  },
+  "browser": {
+    "fixture": "run_personal_ui_fixture.py --scripted-model --streaming",
+    "desktop": {
+      "viewport": [
+        1512,
+        771
+      ],
+      "document": [
+        1512,
+        771
+      ],
+      "process_before_answer": true,
+      "stream_observed": true,
+      "grade_summary": {
+        "matched_records": 60,
+        "numeric_grade_count": 48,
+        "non_numeric_grade_count": 12,
+        "unknown_grade_count": 0,
+        "min": "45",
+        "max": "98",
+        "simple_mean": "78.81",
+        "displayed_records": 13
+      },
+      "identity_reply_completed": true
+    },
+    "narrow": {
+      "viewport": [
+        375,
+        812
+      ],
+      "document": [
+        375,
+        812
+      ],
+      "history_expanded_chat_height": 220,
+      "history_collapsed_chat_height_after_reload": 345,
+      "send_bottom": 783,
+      "reasoning_panel_height": 179,
+      "reasoning_content_overflow_scroll": true,
+      "stream_observed": true
+    },
+    "history": {
+      "restored_turns": 3,
+      "lazy_process_loaded": true
+    },
+    "physical_phone_or_keyboard_tested": false,
+    "fixture_stopped": true,
+    "fixture_tab_closed": true,
+    "viewport_reset": true,
+    "production_browser": "current18875 anonymous login verified; no school login/request"
+  },
+  "runtime_receipt": "retrieval_progress_20261015_runtime.json",
+  "committed": false,
+  "pushed": false,
+  "external_deployment": false,
+  "screenshots": {
+    "validation/retrieval_progress_20261015/desktop_completed.png": "7697186e42b14d121b8e48959db81e92b64c1eac374d42e7a9da92db700fd3bd",
+    "validation/retrieval_progress_20261015/desktop_grade_summary.png": "d1f9fa869e216264d9eb680e7359b76fcacee34e2d19555b4b80db8344038c24",
+    "validation/retrieval_progress_20261015/desktop_process.png": "b3343ef85988805345fe3afbe2a7296b05f2fbc12768f124fb686962d5488676",
+    "validation/retrieval_progress_20261015/desktop_streaming.png": "b431d1178a57c26175ca18900e2afd5c4e772bd905b41bec853fd180fc855f6f",
+    "validation/retrieval_progress_20261015/desktop_streaming_final.png": "252b82801865326560d08f7cc0c0fa401eec318677afdacf44856ccc2cf89ffd",
+    "validation/retrieval_progress_20261015/mobile_completed.png": "a5dd310b878628a08fb5f635d03e7703b12dda501488b758825171669cfc63c5",
+    "validation/retrieval_progress_20261015/mobile_streaming.png": "c1760f2f2f5cf679618749053b2b34a12936e67f144bc8a6d31ae44dfbb28be1"
+  },
+  "validation_sources": {
+    "validation/run_personal_ui_fixture.py": "faa99bf7a28da21145398185d76f6702e7c5f990b7d802ffc3c9bc09b4864740",
+    "validation/run_personal_retrieval_progress_check.py": "48ffdc35a67f14a1a94230b8b79eeaa217a813713fee021b4f463a7f50015349"
+  }
+}
