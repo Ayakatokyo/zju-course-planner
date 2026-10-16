@@ -1,0 +1,151 @@
+{
+  "recorded_at_utc": "2026-10-16T02:43:51.683383+00:00",
+  "scope": "latest engineering, actual personal model/tool calls, bounded source checks, and compact answer UI; user acceptance pending",
+  "historical_archive": {
+    "head": "50bad733ff9f7aa6614e37dee1db7eeed7ec5a71",
+    "pushed": true,
+    "current_repairs_included": false
+  },
+  "engineering": {
+    "tests": {
+      "ran": 1045,
+      "passed": 1045,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "by_module": {
+        "test_application": 7,
+        "test_audit": 44,
+        "test_auth": 20,
+        "test_chat": 36,
+        "test_chat_history": 13,
+        "test_chat_http": 2,
+        "test_chat_inspection_http": 8,
+        "test_chat_progress": 8,
+        "test_chat_runs": 16,
+        "test_course_dedup": 15,
+        "test_course_source_adapters": 9,
+        "test_exporter": 6,
+        "test_importer": 13,
+        "test_live_chat_acceptance": 13,
+        "test_local_reference": 22,
+        "test_local_reference_observations": 22,
+        "test_model_client": 30,
+        "test_personal_acquisition": 9,
+        "test_personal_chat": 23,
+        "test_personal_chat_http": 5,
+        "test_personal_dialogue": 33,
+        "test_personal_dialogue_recovery": 13,
+        "test_personal_evidence": 33,
+        "test_personal_http": 15,
+        "test_personal_observations": 32,
+        "test_personal_progress_web": 16,
+        "test_personal_retrieval_progress": 7,
+        "test_plan_requirements_audit": 12,
+        "test_planner": 32,
+        "test_recommendation": 24,
+        "test_recommendation_dialogue": 17,
+        "test_recommendation_storage": 22,
+        "test_reference_retrieval": 13,
+        "test_school_accounts": 41,
+        "test_school_http": 60,
+        "test_school_http_app": 10,
+        "test_school_period_times": 9,
+        "test_school_timetable_web": 25,
+        "test_student_browser_bridge": 17,
+        "test_student_connector": 30,
+        "test_student_plan_acquisition": 32,
+        "test_student_source_cli": 21,
+        "test_student_source_client": 38,
+        "test_student_source_parsers": 33,
+        "test_student_source_provider": 11,
+        "test_student_source_sync": 11,
+        "test_student_sources": 36,
+        "test_web_contract": 81
+      }
+    },
+    "record": "agent_semantic_compact_final_20261016_validation.json",
+    "duration_seconds": 65.996,
+    "all_100_source_hashes_match": true,
+    "syntax": "pass",
+    "connector_syntax": "pass",
+    "diff_check": true,
+    "inputs_unchanged": true
+  },
+  "earlier_actual_personal_round": {
+    "requests_completed": 6,
+    "model_calls": 12,
+    "one_turn_repair_observed": true,
+    "semantic_issues_found": true,
+    "counts_do_not_imply_semantic_acceptance": true
+  },
+  "latest_actual_personal_round": {
+    "requests": 5,
+    "completed": 5,
+    "model_calls": 10,
+    "repair_attempts": 0,
+    "thinking_requests": 5,
+    "requests_with_actual_reasoning": 5,
+    "tools_contract": "personal-question-tools-v4",
+    "question_categories": [
+      "grade_overview",
+      "term_overview",
+      "curriculum_requirement",
+      "named_course",
+      "prior_run_diagnostics"
+    ],
+    "private_evidence_only": true
+  },
+  "semantics": {
+    "status": "bounded_source_fields_and_selected_claims_verified; not general semantic acceptance",
+    "grade_summary_independently_recomputed": true,
+    "completion_knownness_all_matching_rows_verified": true,
+    "term_item_values_and_corresponding_citations_verified": true,
+    "curriculum_current_pdf_reextracted_and_visually_checked": true,
+    "curriculum_cited_requirement_and_review_limits_verified": true,
+    "course_source_fields_and_prior_run_diagnostics": {
+      "independently_audited": true,
+      "source_observation_values_and_citations_match": true,
+      "diagnostic_matches_actual_prior_run": true,
+      "stable_course_identity_verified": false
+    },
+    "remaining": [
+      "unsourced descriptive course grouping is not official curriculum classification",
+      "same-name observations do not verify stable course identity",
+      "unread source rows remain unknown",
+      "curriculum applicability and full rules remain unreviewed",
+      "no real recommendation or credit recognition accepted"
+    ]
+  },
+  "actual_frontend": {
+    "answer_evidence_entries_per_turn": 1,
+    "bottom_duplicate_runtime_entries": 0,
+    "running_process_observed_open": true,
+    "reasoning_and_actual_trace_observed_before_answer": true,
+    "terminal_process_observed_closed": true,
+    "actual_cited_curriculum_first": true,
+    "other_retrieval_hits_default_collapsed": true,
+    "source_context_default_collapsed": true,
+    "completed_answer_in_chat_view": true,
+    "desktop_document_overflow_observed": false,
+    "final_compact_narrow_or_physical_mobile_test": "not_run",
+    "screenshots_private_only": true
+  },
+  "runtime": {
+    "port": 18875,
+    "loopback_only": true,
+    "school_client_enabled": true,
+    "mock_enabled": false,
+    "delivered_assets_match_current_files": true,
+    "asset_sha256": {
+      "web/index.html": "e0a72211be0b6e1c4be5c433a1c4ad0c01aeeb19e53bc1f69a567cfa2263b7a5",
+      "web/app.js": "bd6b16314bfd8f307dd171bb9a5c4c055e4eed1f6945ab959e0f9f0cc0f460dd",
+      "web/styles.css": "5c96482d8e9c64ea6ec45c50c263c67dda268c8aa728e09551f2b5e27c8bfb36"
+    },
+    "current_school_login_preserved": true,
+    "external_deployment": false
+  },
+  "user_acceptance": "pending",
+  "new_changes_committed": false,
+  "new_changes_pushed": false
+}

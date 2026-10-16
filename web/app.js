@@ -6,7 +6,7 @@ const clone = value => JSON.parse(JSON.stringify(value));
 const rows = value => Array.isArray(value) ? value : (value?.records || []);
 const showValue = value => value === null || value === undefined ? '待确认' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
 const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false,  agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
-Object.assign(state,{agentProgressPoll:null,agentProcessOpen:{},agentReasoningScroll:{}});
+Object.assign(state,{agentProgressPoll:null,agentProcessOpen:{},agentEvidenceOpen:{},agentReasoningScroll:{},agentTraceScroll:{}});
 Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{},agentScroll:{initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''}});
 Object.assign(state,{schoolEpoch:0,schoolBusy:false,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});
 const statusNames = {pass:['满足','success'],fail:['不满足','danger'],satisfied:['满足','success'],unsatisfied:['不满足','danger'],pending:['待确认','warning'],unknown:['待确认','warning'],valid:['可行','success'],invalid:['不满足','danger'],passed:['满足','success'],failed:['不满足','danger'],needs_confirmation:['待确认','warning'],not_applicable:['不适用',''],candidate_pending_human_review:['待审核','warning']};
@@ -19,7 +19,7 @@ function isSchoolIdentity(){return state.auth?.authenticated===true&&state.auth.
 function clearPersonalLocal(){if(isSchoolIdentity()){clearAgentConversation();state.agentHistory=[];state.agentHistoryError='';state.agentHistoryHasMore=false;state.agentStatus=null;renderAgentHistory();renderAssistant();}}
 function clearSchoolWorkspace(){state.schoolEpoch+=1;clearAgentDiagnostics();clearPersonalLocal();if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);Object.assign(state,{schoolBusy:false,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});}
 function clearAgentDiagnostics(){Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{}});}
-function clearAgentConversation(){stopAgentProgress();state.agentProcessOpen={};state.agentReasoningScroll={};state.agentEpoch+=1;if(state.agentModelsBusy)state.agentModelsStatus='idle';state.agentModelsBusy=false;state.agentSettingsBusy=false;state.agentScroll={initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''};Object.assign(state,{agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{}});Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
+function clearAgentConversation(){stopAgentProgress();state.agentProcessOpen={};state.agentEvidenceOpen={};state.agentReasoningScroll={};state.agentTraceScroll={};state.agentEpoch+=1;if(state.agentModelsBusy)state.agentModelsStatus='idle';state.agentModelsBusy=false;state.agentSettingsBusy=false;state.agentScroll={initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''};Object.assign(state,{agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{}});Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
   clearAgentConversation();clearSchoolWorkspace();state.agentStatus=null;
   Object.assign(state,{mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],agentHistory:[],agentHistoryError:'',agentHistoryHasMore:false,selected:0,dirty:false,busy:false});
@@ -215,6 +215,7 @@ function agentToolCard(tool,turn={}){
     }
     if(tool.name==='search_my_curriculum')return Array.isArray(result.matches)&&result.matches.length?`<details class="agent-personal-evidence"><summary>培养资料依据 · ${result.matches.length} 个片段</summary>${result.matches.map(personalChatEvidence).join('')}</details>`:'';
     if(tool.name==='resolve_my_evidence')return `<details class="agent-personal-evidence"><summary>回查的培养资料依据</summary>${personalChatEvidence(result.evidence||result.match||result)}</details>`;
+    if(tool.name==='get_my_run_diagnostics')return result.status==='not_ready'?'<p class="field-help">当前对话还没有可核对的上一轮运行记录。</p>':`<details class="agent-personal-evidence"><summary>上一轮实际运行记录</summary>${agentDiagnosticMarkup(result.diagnostic)}</details>`;
     if(recommendationTools.includes(tool.name)||['generate_my_plan','validate_my_plan'].includes(tool.name))return notice('真实课表推荐待输入与规则核验，当前未生成真实推荐。');
     return '';
   }
@@ -246,14 +247,16 @@ function agentPlanTable(plan,constraints={}){
   const examText=section=>section.exam_state==='none'?'无考试':section.exam_state==='scheduled'&&section.exams?.length?section.exams.map(exam=>`${exam.exam_date||'日期待确认'} ${exam.start_time_local||'时间待确认'}${exam.end_time_local?'–'+exam.end_time_local:''}`).join('、'):section.exam_state==='scheduled'?'已安排，时间待确认':'待确认';
   return `<div class="table-wrap"><table class="data-table agent-plan-table"><thead><tr><th>课程</th><th>上课时间</th><th>考试</th></tr></thead><tbody>${sections.map(section=>`<tr><td>${esc(section.course_name||section.course_id||'课程待确认')}</td><td>${section.meetings?.length?section.meetings.map(meeting=>esc(meetingText(meeting))).join('<br>'):'时段待确认'}</td><td>${esc(examText(section))}</td></tr>`).join('')}${(constraints.fixed_meetings||[]).map(meeting=>`<tr><td>${esc(meeting.title||'固定安排')}</td><td>${esc(meetingText(meeting))}</td><td>—</td></tr>`).join('')}</tbody></table></div>${!sections.length?notice('课程时段待确认。'):''}`;
 }
-function agentCitation(citation){
+function agentCitation(citation,options={}){
   const item=citation.chunk||citation;
   if(isSchoolIdentity()){
     const number=personalCitationNumber(item);
     if(item.kind==='summary')return `<li class="agent-citation"><strong>${number}来源成绩概况</strong>${personalGradeSummary(item.source_grade_summary,item)}</li>`;
     if(item.kind==='record')return `<li class="agent-citation"><strong>${number}本人来源记录</strong>${item.record&&typeof item.record==='object'?personalRecordTable({operation:item.operation,records:[item.record]}):'<p class="field-help">本条记录尚无可展示字段，请重新提问以核对来源。</p>'}</li>`;
     if(item.kind==='context')return `<li class="agent-citation"><strong>${number}本轮已知范围</strong>${personalCitationContext(item.context)}</li>`;
-    if(item.kind==='curriculum'||!item.kind&&Number.isSafeInteger(item.page))return `<li class="agent-citation">${personalChatEvidence(item)}</li>`;
+    if(item.kind==='diagnostic')return `<li class="agent-citation"><strong>${number}上一轮实际运行记录</strong>${agentDiagnosticMarkup(item.diagnostic)}</li>`;
+    if(item.kind==='course_reference')return `<li class="agent-citation"><strong>${number}${esc(item.course?.course_name||item.title||'本地课程参考')}</strong><p>${esc(item.course?.course_code||'')}</p><p class="field-help">${esc(item.text||'本地课程名称与代码参考；当前开课与本人可选资格待核实。')}</p></li>`;
+    if(item.kind==='curriculum'||!item.kind&&Number.isSafeInteger(item.page))return `<li class="agent-citation">${personalChatEvidence(item,options)}</li>`;
     return '<li class="agent-citation"><p class="field-help">来源类型待确认，暂不展示原文。</p></li>';
   }
   const sourceFiles={S1:'course_slides.pdf',S2:'journalism_2026.pdf',S3:'materials_2026.pdf',S4:'business_analytics_2026.pdf'};
@@ -279,14 +282,53 @@ function agentDisplayReply(turn){
   }
   return turn.reply||'';
 }
+function renderPersonalEvidence(turn,key){
+  const citations=(turn.citations||[]).map(item=>item.chunk||item),numbers=new Map(citations.filter(item=>typeof item.evidence_id==='string').map(item=>[item.evidence_id,item.citation_number])),shown=new Set(),sections=[];
+  const number=item=>numbers.get(item?.evidence_id),marked=item=>{if(typeof item?.evidence_id==='string')shown.add(item.evidence_id);},seen=item=>typeof item?.evidence_id==='string'&&shown.has(item.evidence_id);
+  for(const tool of turn.tool_results||[]){
+    const result=tool.result||{};
+    if(tool.error){sections.push(notice('本次资料检索未完成，详情见本轮说明。'));continue;}
+    if(tool.name==='query_my_records'){
+      if(result.status==='not_ready'||result.query_executed===false||result.reason==='no_observation_in_scope'){sections.push(notice(['academic','major_academic'].includes(result.operation)?'尚未取得成绩来源，当前无法查询或评价成绩。':'尚未取得本次查询所需的本人来源，不能把未知当作零条记录。','neutral'));continue;}
+      const records=(Array.isArray(result.records)?result.records:[]).filter(item=>!seen(item)),summary=result.source_grade_summary&&!seen(result.source_grade_summary)?result.source_grade_summary:null;
+      if(!summary&&!records.length&&result.records?.length)continue;
+      const summaryMarkup=summary?`<h4>${personalCitationNumber({citation_number:number(summary)})}来源成绩概况</h4>${personalGradeSummary(summary,result)}`:'';
+      if(summary)marked(summary);
+      const recordNumbers=records.map(number);records.forEach(marked);
+      const emptyKnown=result.matched_records===0||result.coverage?.captured_rows===0&&result.coverage?.complete_within_scope===true;
+      const recordMarkup=records.length||emptyKnown?personalRecordTable({...result,records,citation_numbers:recordNumbers}):'<p class="field-help">本次未取得可展示记录，条数待确认。</p>';
+      sections.push(`<section class="agent-evidence-section">${summaryMarkup}<h4>本人来源记录${records.length?' · 展示 '+records.length+' 条':''}</h4>${summary?'':`<p class="field-help">${esc(personalSourceKind(result))} · ${esc(personalTermLabel(result.target_term))} · ${esc(schoolCoverageText(result))}</p>`}<p class="field-help">同码多条来源记录分别保留；来源学分不等于已获学分。</p>${recordMarkup}</section>`);
+      continue;
+    }
+    if(tool.name==='search_my_curriculum'||tool.name==='resolve_my_evidence'){
+      const items=tool.name==='search_my_curriculum'?(Array.isArray(result.matches)?result.matches:[]):[result.evidence||result.match||result];
+      const matches=items.filter(item=>!seen(item));if(!matches.length)continue;
+      const cited=matches.filter(item=>Number.isSafeInteger(number(item))&&number(item)>0),other=matches.filter(item=>!cited.includes(item));
+      const evidenceMarkup=item=>{marked(item);return personalChatEvidence({...item,citation_number:number(item)});};
+      sections.push(`<section class="agent-evidence-section"><h4>培养资料依据</h4>${cited.map(evidenceMarkup).join('')}${other.length?`<details class="agent-other-evidence"><summary>其他检索片段（${other.length}）</summary>${other.map(evidenceMarkup).join('')}</details>`:''}</section>`);continue;
+    }
+    if(tool.name==='get_my_run_diagnostics'){
+      if(seen(result))continue;marked(result);
+      sections.push(`<section class="agent-evidence-section"><h4>${personalCitationNumber({citation_number:number(result)})}上一轮实际运行记录</h4>${result.status==='not_ready'?'<p class="field-help">当前对话还没有可核对的上一轮运行记录。</p>':agentDiagnosticMarkup(result.diagnostic)}</section>`);
+    }
+  }
+  const remaining=citations.filter(item=>!seen(item));
+  if(remaining.length)sections.push(`<ul class="agent-evidence-citations">${remaining.map(item=>agentCitation(item)).join('')}</ul>`);
+  if(!sections.length)return '';
+  return `<details class="agent-evidence" data-evidence-key="${esc(key)}" ${state.agentEvidenceOpen[key]===true?'open':''}><summary>查看依据</summary><div class="agent-evidence-body">${sections.join('')}</div></details>`;
+}
 function renderAgentTurns(){
   if(!state.agentTurns.length)return isSchoolIdentity()?'<div class="agent-welcome"><h1>有什么想了解的？</h1><p>询问课程、成绩或培养要求。</p></div>':'<div class="agent-welcome"><span class="welcome-symbol" aria-hidden="true">课</span><h1>想怎么安排这学期的课？</h1><p>从修读目标和时间偏好开始，逐步比较、调整你的课表。</p><p class="agent-empty">当前为合成演示，推荐结果用于验证。</p></div>';
-  return state.agentTurns.map(turn=>{
+  return state.agentTurns.map((turn,index)=>{
     const completed=['completed','ok'].includes(turn.status);
     const label=turn.reply_origin==='verified_clarification_prompt'?'待澄清':completed?'选课助手':'本轮未完成';
     const reply=turn.error||agentDisplayReply(turn);
-    const answer=turn.pending?'':`<strong>${turn.error?'请求未完成':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${turn.partial_tools_completed?'<p>已完成的查询结果如下。</p>':''}${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}${renderAgentTurnRun(turn)}`;
-    return `<article class="agent-turn"><div class="agent-message user"><p>${esc(turn.message)}</p></div><div class="agent-message ${completed&&!turn.error||turn.pending?'assistant':'system'}">${renderAgentProcess(turn)}${turn.pending&&!isSchoolIdentity()?'<p class="agent-pending" role="status">正在回复…</p>':answer}</div></article>`;
+    const key=turn.request_id||turn.run_id||`turn-${turn.turn_id??index}`;
+    const failedEvents=[...(agentTurnProgress(turn)?.events||[])].map(agentEventData).reverse();
+    const failure=!completed&&isSchoolIdentity()?agentFailureText(failedEvents.find(event=>event.kind==='answer.rejected')||failedEvents.find(event=>event.kind==='error')||{}):'';
+    const evidence=isSchoolIdentity()?renderPersonalEvidence(turn,key):`${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}`;
+    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${turn.partial_tools_completed?'<p>已完成的查询结果如下。</p>':''}${evidence}</div>`;
+    return `<article class="agent-turn" data-turn-key="${esc(key)}"><div class="agent-message user" data-scroll-anchor="${esc(key)}:question"><p>${esc(turn.message)}</p></div><div class="agent-message ${completed&&!turn.error||turn.pending?'assistant':'system'}">${renderAgentProcess(turn)}${turn.pending&&!isSchoolIdentity()?'<p class="agent-pending" role="status">正在回复…</p>':answer}</div></article>`;
   }).join('');
 }
 function personalText(value,missing='待确认'){return value!=='unknown'&&['string','number','boolean'].includes(typeof value)&&String(value).trim()?String(value):missing;}
@@ -303,7 +345,10 @@ function personalCitationContext(value){
 }
 function personalPageLabel(item){const locator=item?.locator&&typeof item.locator==='object'?item.locator:{};const value=item?.page??item?.physical_page??locator.page??locator.pdf_page??locator.physical_page;const pages=Array.isArray(value)?value:[value];const valid=pages.filter(page=>Number.isSafeInteger(page)&&page>0);return valid.length?`PDF 第 ${valid.join('、')} 页`:'页码待确认';}
 function personalContextMarkup(items){return Array.isArray(items)&&items.length?items.map(item=>{const value=typeof item==='string'?{text:item}:item||{};return `<div class="personal-context"><strong>${esc(personalText(value.title,'必要上下文'))}</strong><p>${esc(personalText(value.text??value.excerpt,'上下文原文未提供'))}</p>${typeof item==='object'?`<span class="field-help">${esc(personalPageLabel(value))}</span>`:''}</div>`;}).join(''):'<p class="field-help">必要上下文未提供，不能据此补推完整要求。</p>';}
-function personalChatEvidence(item){const evidence=item&&typeof item==='object'?item:{};return `<article class="personal-evidence"><div class="personal-evidence-heading"><strong>${personalCitationNumber(evidence)}${esc(personalText(evidence.title,'培养资料片段'))}</strong><span class="badge">${esc(personalPageLabel(evidence))}</span><span class="badge warning">${esc(personalReviewLabel(evidence.review_status||(evidence.kind==='curriculum'?'unreviewed':null)))}</span></div><p class="personal-excerpt">${esc(personalText(evidence.text??evidence.excerpt,'原文未提供'))}</p><details><summary>查看原文上下文</summary>${evidence.context_omitted?'<p class="field-help">本机上下文因展示预算未载入，请缩小问题后重新检索。</p>':personalContextMarkup(evidence.required_context)}<p class="field-help">本人适用、文本版面及跨页关系仍需核验。</p></details></article>`;}
+function personalChatEvidence(item,options={}){
+  const evidence=item&&typeof item==='object'?item:{},context=`${evidence.context_omitted?'<p class="field-help">本机上下文因展示预算未载入，请缩小问题后重新检索。</p>':personalContextMarkup(evidence.required_context)}<p class="field-help">本人适用、文本版面及跨页关系仍需核验。</p>`;
+  return `<article class="personal-evidence"><div class="personal-evidence-heading"><strong>${personalCitationNumber(evidence)}${esc(personalText(evidence.title,'培养资料片段'))}</strong><span class="badge">${esc(personalPageLabel(evidence))}</span><span class="badge warning">${esc(personalReviewLabel(evidence.review_status||(evidence.kind==='curriculum'?'unreviewed':null)))}</span></div><p class="personal-excerpt">${esc(personalText(evidence.text??evidence.excerpt,'原文未提供'))}</p>${options.inlineContext?`<div class="personal-evidence-context"><h5>原文上下文</h5>${context}</div>`:`<details><summary>查看原文上下文</summary>${context}</details>`}</article>`;
+}
 function personalGradeSummary(value,source={}){
   if(!value||typeof value!=='object')return '<p class="field-help">来源统计尚未取得，不能据此评价完整成绩。</p>';
   const counts=[['matched_records','匹配来源记录'],['numeric_grade_count','数字成绩'],['non_numeric_grade_count','非数字成绩'],['unknown_grade_count','未知成绩']];
@@ -318,7 +363,7 @@ function personalRecordTable(result){
   const academic=['academic','major_academic'].includes(operation);
   const fields=academic?[['grade_raw','来源成绩'],['nominal_credits','来源学分'],['academic_year_raw','记录学年'],['term_raw','来源学期'],['completion_status_raw','来源修读状态']]:operation==='exams'?[['final_exam_time_raw','期末时间'],['final_exam_place_raw','期末地点'],['midterm_exam_time_raw','期中时间'],['midterm_exam_place_raw','期中地点'],['exam_time_raw','考试时间'],['exam_date','考试日期'],['start_time','开始时间'],['end_time','结束时间'],['place_raw','考试地点']]:[['time_raw','上课时间'],['place_raw','上课地点'],['academic_year_raw','记录学年'],['term_raw','来源学期']];
   const available=fields.filter(([key])=>records.some(record=>record&&schoolKnownField(record,key)&&personalText(record[key],'')!==''));
-  return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map(record=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${esc(name)}${code?`<small>${esc(code)}</small>`:''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map((record,index)=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${personalCitationNumber({citation_number:result.citation_numbers?.[index]})}${esc(name)}${code?`<small>${esc(code)}</small>`:''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
 }
 function stopAgentProgress(session=state.agentProgressPoll){
   if(!session)return;session.stopped=true;if(session.timer!==undefined&&typeof clearTimeout==='function')clearTimeout(session.timer);if(state.agentProgressPoll===session)state.agentProgressPoll=null;
@@ -346,26 +391,58 @@ async function pollAgentProgress(session){
 }
 function agentTurnProgress(turn){
   const detail=turn.run_id?state.agentRunDetails[turn.run_id]:null;if(!detail)return turn.progress||null;
-  return {request_id:turn.progress?.request_id,run_id:turn.run_id,status:detail.run?.status||turn.status,model:detail.run?.model??turn.model,thinking:detail.run?.thinking??turn.thinking,events:detail.events||[],active_reasoning:null,reasoning_notice:detail.reasoning_notice,available:true,confirmed:true,next_sequence:turn.progress?.next_sequence||0};
+  return {request_id:detail.run?.request_id||turn.request_id||turn.progress?.request_id,run_id:turn.run_id,status:detail.run?.status||turn.status,model:detail.run?.model??turn.model,thinking:detail.run?.thinking??turn.thinking,duration_ms:detail.run?.duration_ms,error_code:detail.run?.error_code,events:detail.events||[],active_reasoning:null,reasoning_notice:detail.reasoning_notice,available:true,confirmed:true,next_sequence:turn.progress?.next_sequence||0};
 }
 function agentProcessStage(progress){
   if(['completed','ok','success'].includes(progress.status))return '本轮处理完成';
   if(['failed','error','revoked','cancelled'].includes(progress.status))return '本轮处理未完成';
   if(progress.status==='not_started'||progress.confirmed===false)return '请求已发送，等待运行状态';
   const event=agentEventData((progress.events||[]).at(-1)),kind=event.kind||event.type;
-  const sourceNames={read_my_major_academic:'主修成绩',read_my_academic:'学期成绩',read_my_curriculum:'培养资料'};if(kind==='tool.start'&&sourceNames[event.tool_name])return '正在读取'+sourceNames[event.tool_name];if(kind==='tool.end'&&sourceNames[event.tool_name])return sourceNames[event.tool_name]+'读取已返回';if(kind==='tool.start')return '正在检索当前本人资料';if(kind==='tool.end')return '资料检索已返回，继续处理';if(kind==='answer.validated')return '格式与引用检查完成';if(kind==='error')return '运行出现错误';
-  return progress.thinking===true?'模型正在深度思考':'模型正在处理';
+  const sourceNames={read_my_major_academic:'主修成绩',read_my_academic:'学期成绩',read_my_curriculum:'培养资料'};
+  if(kind==='tool.start'&&sourceNames[event.tool_name])return '正在读取'+sourceNames[event.tool_name];
+  if(kind==='tool.end'&&sourceNames[event.tool_name])return sourceNames[event.tool_name]+(event.status==='not_ready'?'资料尚未就绪':['failed','error','timeout'].includes(event.status)?'读取未完成':'读取已返回');
+  if(kind==='tool.start')return '正在检索当前本人资料';
+  if(kind==='tool.end')return event.status==='not_ready'?'查询资料尚未就绪':['failed','error','timeout'].includes(event.status)?'资料查询未完成':'资料检索已返回，继续处理';
+  if(kind==='model.end')return event.status==='timeout'?'模型服务返回超时':['failed','error','cancelled','aborted'].includes(event.status)?'模型调用未完成':'模型已返回，正在检查答复或继续处理';
+  if(kind==='answer.validated')return '格式与引用检查完成';if(kind==='answer.rejected')return '答复检查未通过';if(kind==='answer.repair')return '正在修正答复格式与引用';if(kind==='error')return '运行出现错误';
+  if(kind==='model.start')return progress.thinking===true?'模型正在深度思考':'模型正在处理';
+  return '正在准备本轮处理';
+}
+function agentShortId(value){return typeof value==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(value)?value.replace(/^RUN-/,'').slice(0,8):'';}
+function agentDuration(value){return Number.isFinite(value)&&value>=0?(value<1000?`${Math.round(value)} ms`:`${(value/1000).toFixed(1)} 秒`):'';}
+function agentFailureText(event){
+  const code=event.error_code||event.code||event.error?.code,detail=event.failure_detail;
+  const reasons={invalid_final_answer:'模型答复格式未通过检查',unverified_personal_answer:'答复引用未通过本轮证据检查',unsupported_personal_claim:'答复包含当前证据不能确认的结论',model_timeout:'模型服务返回超时',model_service_unavailable:'模型服务暂不可用',model_step_limit:'本轮达到模型调用上限',personal_model_changed:'模型设置已变化',personal_scope_changed:'本人授权范围已变化',source_session_expired:'学校会话已失效',source_unavailable:'学校来源暂不可用',invalid_tool_arguments:'工具参数未通过检查',tool_unavailable:'资料工具暂不可用'};
+  const details={invalid_json:'未返回有效 JSON',answer_not_object:'答复结构不是对象',clarification_text_invalid:'澄清文本格式无效',answer_shape_invalid:'答复结构不符合约定',claims_not_array:'结论列表格式无效',claim_count_out_of_bounds:'结论条数超出允许范围',claim_shape_invalid:'结论字段格式无效',claim_text_invalid:'结论文字格式无效',evidence_list_invalid:'引用列表格式无效',evidence_not_current:'引用不属于本轮有效证据',repair_evidence_omitted:'修正后遗漏了原有有效依据'};
+  const safeCode=/^[a-z][a-z0-9_]{0,79}$/.test(code||'');
+  return [reasons[code]||(safeCode?'运行错误':''),details[detail]||''].filter(Boolean).join('：')+(safeCode?`（${code}）`:'');
+}
+function agentProcessDescription(progress){
+  const events=(progress.events||[]).map(agentEventData),parts=[];
+  const source=events.filter(event=>(event.kind||event.type)==='tool.end'&&String(event.tool_name||'').startsWith('read_my_')).at(-1);
+  if(source)parts.push(`${agentToolName(source.tool_name)}${['completed','ok'].includes(source.status)?'已返回':'未完成'}${agentEventScope(source)?'，'+agentEventScope(source):''}`);
+  const queries=events.filter(event=>(event.kind||event.type)==='tool.end'&&!String(event.tool_name||'').startsWith('read_my_')),models=events.filter(event=>(event.kind||event.type)==='model.end');
+  const queryIssues=[['not_ready','次资料未就绪'],['failed','次未完成'],['error','次出错'],['timeout','次超时']].map(([status,label])=>{const count=queries.filter(event=>event.status===status).length;return count?`${count} ${label}`:'';}).filter(Boolean);
+  if(queries.length)parts.push(`收到 ${queries.length} 次本机查询返回${queryIssues.length?'（'+queryIssues.join('，')+'）':''}`);
+  const modelFailures=models.filter(event=>['failed','error','timeout','cancelled','aborted'].includes(event.status)).length;
+  if(models.length)parts.push(`模型调用已结束 ${models.length} 次${modelFailures?'（'+modelFailures+' 次未完成）':''}`);
+  const reversed=[...events].reverse(),failure=reversed.find(event=>(event.kind||event.type)==='answer.rejected')||reversed.find(event=>(event.kind||event.type)==='error');
+  if(failure&&(!['completed','ok','success'].includes(progress.status)))parts.push(agentFailureText(failure));
+  if(!parts.length)parts.push(progress.confirmed===false?'等待服务端开始本轮处理':'按当前本人权限处理本轮问题');
+  return parts.filter(Boolean).join('；')+'。';
 }
 function renderAgentProcess(turn){
   if(!isSchoolIdentity()||!turn.pending&&!turn.run_id&&!turn.progress)return '';
-  const progress=agentTurnProgress(turn)||(turn.pending?{status:'not_started',confirmed:false,events:[]}:null),key=turn.request_id||turn.run_id||'',lazy=!progress,open=lazy?state.agentProcessOpen[key]===true:state.agentProcessOpen[key]!==false;
+  const progress=agentTurnProgress(turn)||(turn.pending?{status:'not_started',confirmed:false,events:[]}:null),key=turn.request_id||turn.run_id||'',lazy=!progress;
+  const running=turn.pending===true||['running','processing','started','not_started'].includes(progress?.status),open=Object.hasOwn(state.agentProcessOpen,key)?state.agentProcessOpen[key]===true:running;
   const summary=lazy?`<summary data-action="agent-process-load" data-run-id="${esc(turn.run_id)}">处理过程 · 点击载入</summary>`:`<summary>处理过程 · ${esc(agentProcessStage(progress))}</summary>`;
   if(lazy)return `<details class="agent-process" data-process-key="${esc(key)}" ${open?'open':''}>${summary}<p class="field-help">按当前本人权限读取这轮的本机运行记录。</p></details>`;
   const events=(progress.events||[]).map(agentEventData),completed=events.filter(event=>typeof event.reasoning_content==='string'&&event.reasoning_content.trim()),active=progress.active_reasoning&&typeof progress.active_reasoning.text==='string'?progress.active_reasoning:null;
-  const tools=events.filter(event=>['tool.start','tool.end'].includes(event.kind||event.type)).slice(-4),names={get_my_context:'本人已知范围',query_my_records:'本人教务记录',search_my_curriculum:'培养资料',resolve_my_evidence:'来源回查',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'};
+  const trace=events.filter(event=>['tool.start','tool.end','model.start','model.end','answer.validated','answer.rejected','answer.repair','error'].includes(event.kind||event.type));
   const mode=progress.confirmed===false?'等待服务端确认本轮模式':progress.thinking===true?'本轮已开启深度思考':progress.thinking===false?'本轮普通模式，未开启深度思考':'本轮模式待确认';
-  const content=completed.map((event,index)=>`<section><h4>已返回的推理片段 ${index+1}</h4><p>${esc(event.reasoning_content)}</p></section>`).join('')+(active?.text?`<section><h4>正在返回的推理${Number.isSafeInteger(active.call)?' · 第 '+active.call+' 次模型调用':''}</h4><p>${esc(active.text)}</p>${active.truncated||active.redacted?'<p class="field-help">此片段已按展示边界截断或脱敏。</p>':''}</section>`:'');
-  return `<details class="agent-process" data-process-key="${esc(key)}" ${open?'open':''}>${summary}<div class="agent-process-body"><p class="field-help">${esc(mode)}${progress.model?' · '+esc(progress.model):''}</p>${tools.length?`<ul class="agent-process-tools">${tools.map(event=>`<li>${esc(names[event.tool_name]||'受限资料检索')}：${(event.kind||event.type)==='tool.start'?(String(event.tool_name).startsWith('read_my_')?'开始读取':'开始查询'):'已返回'}</li>`).join('')}</ul>`:''}${content?`<div class="agent-process-reasoning" data-reasoning-key="${esc(key)}"><strong>供应商可见推理</strong><p class="field-help">${esc(progress.reasoning_notice||'仅显示供应商实际返回的推理文本，不代表模型完整内部思考。')}</p>${content}</div>`:`<p class="field-help">${turn.pending?'尚未收到供应商可见推理文本。':'本轮未返回供应商可见推理文本。'}</p>`}${turn.progress_error?`<p class="field-help" role="status">${esc(turn.progress_error)}</p>`:''}${progress.available===false?'<p class="field-help">当前服务没有可用的实时进度。</p>':''}</div></details>`;
+  const content=completed.map((event,index)=>`<section><h4>第 ${event.step||event.call||index+1} 次模型调用 · 已返回</h4><p>${esc(event.reasoning_content)}</p>${event.reasoning_truncated||event.reasoning_redacted?'<p class="field-help">此片段已按展示边界截断或脱敏。</p>':''}</section>`).join('')+(active?.text?`<section><h4>正在返回的推理${Number.isSafeInteger(active.call)?' · 第 '+active.call+' 次模型调用':''}</h4><p>${esc(active.text)}</p>${active.truncated||active.redacted?'<p class="field-help">此片段已按展示边界截断或脱敏。</p>':''}</section>`:'');
+  const ids=[agentShortId(progress.run_id||turn.run_id)?`运行 ${agentShortId(progress.run_id||turn.run_id)}`:'',agentShortId(progress.request_id||turn.request_id)?`请求 ${agentShortId(progress.request_id||turn.request_id)}`:'',agentDuration(progress.duration_ms)].filter(Boolean).join(' · ');
+  return `<details class="agent-process" data-process-key="${esc(key)}" data-scroll-anchor="${esc(key)}:process" ${open?'open':''}>${summary}<div class="agent-process-body"><p class="agent-process-description">${esc(agentProcessDescription(progress))}</p><p class="field-help">${esc(mode)}${progress.model?' · '+esc(progress.model):''}${ids?'<br>'+esc(ids):''}</p>${trace.length?`<section class="agent-process-execution"><h4>实际调用记录</h4><ol class="agent-process-trace" data-trace-key="${esc(key)}">${trace.map(event=>agentRunEventMarkup(event,true)).join('')}</ol></section>`:''}<section class="agent-process-provider"><h4>供应商可见推理${completed.length?' · '+completed.length+' 段':''}</h4>${content?`<div class="agent-process-reasoning" data-reasoning-key="${esc(key)}">${content}</div><p class="field-help">${esc(progress.reasoning_notice||'仅显示供应商实际返回的推理文本，不代表模型完整内部思考。')}</p>`:`<p class="field-help">${turn.pending?'尚未收到供应商可见推理文本。':'本轮未返回供应商可见推理文本。'}</p>`}</section>${turn.progress_error?`<p class="field-help" role="status">${esc(turn.progress_error)}</p>`:''}${progress.available===false?'<p class="field-help">当前服务没有可用的实时进度。</p>':''}${renderAgentTurnRun(turn)}</div></details>`;
 }
 async function hydrateAgentProcess(turn,capture=agentDiagnosticsCapture()){
   if(!isSchoolIdentity()||typeof turn.run_id!=='string')return;
@@ -373,7 +450,7 @@ async function hydrateAgentProcess(turn,capture=agentDiagnosticsCapture()){
   catch(error){if(sameAgentDiagnostics(capture)&&state.agentTurns.includes(turn))turn.progress_error='本轮运行过程暂未载入，可稍后从运行详情重试。';}
 }
 async function loadAgentProcess(runId){
-  const turn=state.agentTurns.find(item=>item.run_id===runId);if(!turn||!personalChatReady())return;state.agentProcessOpen[runId]=true;const capture=agentDiagnosticsCapture();await hydrateAgentProcess(turn,capture);if(sameAgentDiagnostics(capture))renderAssistant();
+  const turn=state.agentTurns.find(item=>item.run_id===runId);if(!turn||!personalChatReady())return;state.agentProcessOpen[turn.request_id||runId]=true;const capture=agentDiagnosticsCapture();await hydrateAgentProcess(turn,capture);if(sameAgentDiagnostics(capture))renderAssistant();
 }
 
 function agentDiagnosticsCapture(){return {...currentSchoolRequest(),agentEpoch:state.agentEpoch};}
@@ -402,24 +479,46 @@ async function saveAgentSettings(options={}){
   catch(error){if(sameAgentDiagnostics(capture))state.agentModelsError=error.status===404||error.status===405?'当前服务暂不支持模型切换，原配置继续有效。':'模型设置未更新，请稍后重试。';}
   finally{if(sameAgentDiagnostics(capture)){state.agentSettingsBusy=false;renderAssistant();renderAgentHistory();}}
 }
-function agentRunStatus(value){return ({running:'处理中',processing:'处理中',started:'处理中',completed:'已完成',ok:'已完成',success:'已完成',failed:'未完成',error:'出错',cancelled:'已取消',revoked:'已撤销'})[value]||'状态待确认';}
+function agentRunStatus(value){return ({running:'处理中',processing:'处理中',started:'处理中',completed:'已完成',ok:'已完成',success:'已完成',accepted:'已通过',rejected:'未通过',failed:'未完成',error:'出错',not_ready:'资料未就绪',timeout:'超时',skipped:'未执行',cancelled:'已取消',aborted:'已中止',revoked:'已撤销'})[value]||'状态待确认';}
 function agentUsageText(value){if(!value||typeof value!=='object')return '';const fields=[['prompt_tokens','输入'],['completion_tokens','输出'],['total_tokens','合计']].filter(([key])=>Number.isSafeInteger(value[key])&&value[key]>=0);return fields.map(([key,label])=>`${label} ${value[key]} tokens`).join(' · ');}
-function agentEventData(event){return event&&typeof event==='object'?{...(event.data&&typeof event.data==='object'?event.data:{}),...(event.payload&&typeof event.payload==='object'?event.payload:{}),...event}:{};}
-function agentRunEventMarkup(raw){
-  const event=agentEventData(raw),kind=event.kind||event.type,names={'model.start':'模型请求','model.end':'模型返回','tool.start':'开始检索','tool.end':'检索返回','answer.validated':'格式与引用检查',error:'运行错误',run_started:'开始运行',run_completed:'运行完成',model_request:'模型请求',model_response:'模型返回',tool_start:'开始检索',tool_result:'检索返回'};
-  const elapsed=Number.isFinite(event.elapsed_ms)&&event.elapsed_ms>=0?`${Math.round(event.elapsed_ms)} ms`:Number.isFinite(event.duration_ms)&&event.duration_ms>=0?`${Math.round(event.duration_ms)} ms`:'';
-  const toolNames={get_my_context:'本人已知范围',query_my_records:'本人教务记录',search_my_curriculum:'培养资料检索',resolve_my_evidence:'来源回查',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'};
-  const tool=event.tool_name||event.tool,usage=agentUsageText(event.usage),code=personalText(event.code??event.error?.code,''),error=personalText(event.error?.message??(kind==='error'?event.message:null),'');
-  return `<li class="agent-run-event"><div><strong>${esc(names[kind]||personalText(event.label,'运行事件'))}</strong><span class="field-help">${esc(schoolCaptureTime(event.at))}${elapsed?' · '+esc(elapsed):''}</span></div>${event.model?`<p>${esc(personalText(event.model,''))}</p>`:''}${tool?`<p>${esc(toolNames[tool]||'受限资料工具')}</p>`:''}${usage?`<p class="field-help">${esc(usage)}</p>`:''}${event.status?`<p class="field-help">${esc(agentRunStatus(event.status))}</p>`:''}${code||error?`<p class="agent-run-error">${esc([code,error].filter(Boolean).join(' · '))}</p>`:''}</li>`;
+function agentEventData(event){return event&&typeof event==='object'?{...(event.fields&&typeof event.fields==='object'?event.fields:{}),...(event.data&&typeof event.data==='object'?event.data:{}),...(event.payload&&typeof event.payload==='object'?event.payload:{}),...event}:{};}
+function agentToolName(name){return ({get_my_context:'本人已知范围',query_my_records:'本人教务记录',search_course_catalog:'本地课程参考',read_my_timetable:'读取本人课表',read_my_exams:'读取本人考试',search_my_curriculum:'培养资料检索',resolve_my_evidence:'来源回查',get_my_run_diagnostics:'上一轮运行诊断',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'})[name]||'受限资料工具';}
+function agentEventScope(event){
+  const values=[],operations={academic:'学期成绩',major_academic:'主修成绩',curriculum:'培养资料',timetable:'课表',exams:'考试'},operation=operations[event.operation];
+  if(operation)values.push(operation);
+  if(typeof event.target_term==='string'&&/^(?:ALL-HISTORY|(?:19|20|21)\d{2}-(?:19|20|21)\d{2}-(?:AW|SS|A|W|S|SU))$/.test(event.target_term))values.push(personalTermLabel(event.target_term));
+  const modes={overview:'范围总览',all_records:'范围总览',all:'范围总览',filtered:'按条件筛选',course_keyword:'按课程关键词筛选',curriculum_keyword:'按培养关键词检索',course_search:'按课程筛选',course:'按课程筛选',exact_code:'精确课程码',lexical:'词法检索',empty:'范围总览',search:'按条件检索'};if(modes[event.query_mode])values.push(modes[event.query_mode]);
+  const count=value=>Number.isSafeInteger(value)&&value>=0;
+  if(count(event.captured_rows))values.push(`已读取 ${event.captured_rows}${count(event.reported_total)?' / 来源报告 '+event.reported_total:''} 条`);
+  else if(count(event.record_count)&&!count(event.returned_records))values.push(`本次返回 ${event.record_count} 条来源行`);
+  if(count(event.matched_records))values.push(`匹配 ${event.matched_records} 条`);
+  else if(event.tool_name==='search_my_curriculum'&&count(event.match_count))values.push(`命中 ${event.match_count} 个片段`);
+  if(count(event.returned_records))values.push(`返回 ${event.returned_records} 条`);
+  if(event.has_more===true)values.push('还有未读取内容');else if(event.complete_within_scope===true)values.push('当前范围已完整读取');else if(event.complete_within_scope===false)values.push('覆盖尚不完整');
+  return values.join(' · ');
+}
+function agentRunEventMarkup(raw,compact=false){
+  const event=agentEventData(raw),kind=event.kind||event.type,names={'model.start':'模型请求','model.end':'模型返回','tool.start':'开始调用','tool.end':'调用返回','answer.validated':'格式与引用检查','answer.rejected':'答复检查未通过','answer.repair':'修正答复格式与引用',error:'运行错误',run_started:'开始运行',run_completed:'运行完成',model_request:'模型请求',model_response:'模型返回',tool_start:'开始调用',tool_result:'调用返回'};
+  const elapsed=agentDuration(event.elapsed_ms??event.duration_ms),tool=event.tool_name||event.tool,usage=agentUsageText(event.usage),failure=agentFailureText(event),scope=agentEventScope(event);
+  const at=event.at??event.created_at,clock=at===undefined?'':schoolCaptureTime(at),step=Number.isSafeInteger(event.step)&&event.step>0?`第 ${event.step} 次模型调用`:Number.isSafeInteger(event.call)&&event.call>0?`第 ${event.call} 次模型调用`:'';
+  const initiators={source_preparation:'来源准备',service_acquisition:'服务读取来源',service_preflight:'服务范围预检',model:'模型选择',model_selected:'模型选择',service:'服务准备',service_preparation:'来源准备',answer_repair:'答复修复'},actor=initiators[event.initiated_by]||(String(tool||'').startsWith('read_my_')?'来源准备':'');
+  const countText=[['claim_count','条结论'],['evidence_count','条证据'],['citation_count','条引用']].filter(([key])=>Number.isSafeInteger(event[key])&&event[key]>=0).map(([key,label])=>`${event[key]} ${label}`).join(' · ');
+  const meta=[actor,step,event.model||'',event.status?agentRunStatus(event.status):'',elapsed,compact?'':clock].filter(Boolean).join(' · '),title=tool?`${agentToolName(tool)} · ${names[kind]||'调用记录'}`:names[kind]||'运行事件';
+  return `<li class="agent-run-event${compact?' compact':''}"><div><strong>${esc(title)}</strong>${event.sequence?`<span class="field-help">#${esc(event.sequence)}</span>`:''}</div>${meta?`<p class="field-help">${esc(meta)}</p>`:''}${tool&&/^[a-z][a-z0-9_]{0,79}$/.test(tool)?`<code>${esc(tool)}</code>`:''}${scope?`<p>${esc(scope)}</p>`:''}${countText?`<p class="field-help">${esc(countText)}</p>`:''}${!compact&&usage?`<p class="field-help">${esc(usage)}</p>`:''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}</li>`;
+}
+function agentDiagnosticMarkup(value){
+  if(!value||typeof value!=='object')return '<p class="field-help">本轮没有取得可展示的运行诊断。</p>';
+  const events=Array.isArray(value.events)?value.events:[],id=agentShortId(value.run_id);
+  return `<p class="field-help">${esc(agentRunStatus(value.status))}${value.model?' · '+esc(value.model):''} · ${value.thinking===true?'已开启深度思考':value.thinking===false?'普通模式':'模式待确认'}${id?' · 运行 '+esc(id):''}</p><p class="field-help">这是受控服务与工具调用记录；本轮没有通用终端脚本执行能力。</p><ol class="agent-run-timeline">${events.map(event=>agentRunEventMarkup(event)).join('')}</ol>`;
 }
 function renderAgentRunContent(runId){
   if(state.agentRunBusy[runId])return '<p class="field-help" role="status">正在读取本机运行记录…</p>';
   if(state.agentRunErrors[runId])return notice(state.agentRunErrors[runId]);
   const detail=state.agentRunDetails[runId];if(!detail)return '<p class="field-help">展开后读取本机运行记录。</p>';
   const run=detail.run||{},events=Array.isArray(detail.events)?detail.events:[],reasoning=events.map(agentEventData).filter(event=>typeof event.reasoning_content==='string'&&event.reasoning_content.trim());
-  return `<div class="agent-run-content"><p class="field-help">${esc(agentRunStatus(run.status))} · ${esc(personalText(run.model,'模型待确认'))} · ${run.thinking===true?'思考模式':'普通模式'}${agentUsageText(run.usage)?' · '+esc(agentUsageText(run.usage)):''}</p><ol class="agent-run-timeline">${events.map(agentRunEventMarkup).join('')}</ol><details class="agent-provider-reasoning"><summary>供应商可见推理${reasoning.length?' · '+reasoning.length+' 段':''}</summary><p class="field-help">${esc(personalText(detail.reasoning_notice,'仅展示供应商实际返回的推理文本，不代表模型完整内部思考。'))}</p>${reasoning.length?reasoning.map(event=>`<p class="agent-reasoning-text">${esc(event.reasoning_content)}</p>`).join(''):'<p class="field-help">本次记录未提供供应商可见推理文本。</p>'}</details></div>`;
+  return `<div class="agent-run-content"><p class="field-help">${esc(agentRunStatus(run.status))} · ${esc(personalText(run.model,'模型待确认'))} · ${run.thinking===true?'思考模式':run.thinking===false?'普通模式':'模式待确认'}${agentDuration(run.duration_ms)?' · '+esc(agentDuration(run.duration_ms)):''}${agentUsageText(run.usage)?' · '+esc(agentUsageText(run.usage)):''}<br>运行 ${esc(agentShortId(runId))}${agentShortId(run.request_id)?' · 请求 '+esc(agentShortId(run.request_id)):''}</p><ol class="agent-run-timeline">${events.map(event=>agentRunEventMarkup(event)).join('')}</ol><details class="agent-provider-reasoning"><summary>供应商可见推理${reasoning.length?' · '+reasoning.length+' 段':''}</summary><p class="field-help">${esc(personalText(detail.reasoning_notice,'仅展示供应商实际返回的推理文本，不代表模型完整内部思考。'))}</p>${reasoning.length?reasoning.map(event=>`<p class="agent-reasoning-text">${esc(event.reasoning_content)}</p>`).join(''):'<p class="field-help">本次记录未提供供应商可见推理文本。</p>'}</details></div>`;
 }
-function renderAgentTurnRun(turn){if(!isSchoolIdentity()||typeof turn.run_id!=='string')return '';const id=turn.run_id;return `<details class="agent-run-details" ${state.agentRunOpen[id]?'open':''}><summary data-action="agent-run-toggle" data-run-id="${esc(id)}">运行详情</summary>${renderAgentRunContent(id)}</details>`;}
+function renderAgentTurnRun(turn){if(!isSchoolIdentity()||typeof turn.run_id!=='string')return '';const id=turn.run_id;return `<details class="agent-run-details" ${state.agentRunOpen[id]?'open':''}><summary data-action="agent-run-toggle" data-run-id="${esc(id)}">查看完整运行详情</summary>${renderAgentRunContent(id)}</details>`;}
 function renderAgentRunList(){return `<details class="agent-runs" ${state.agentRunsOpen?'open':''}><summary data-action="agent-runs-toggle">运行记录</summary><div class="agent-runs-body"><button class="button small" data-action="agent-runs-refresh" ${state.agentRunsBusy?'disabled':''}>${state.agentRunsBusy?'正在读取…':'更新运行记录'}</button>${state.agentRunsError?notice(state.agentRunsError):''}${!state.agentRuns.length?'<p class="field-help">尚无可展示的运行记录。</p>':state.agentRuns.map(run=>`<details class="agent-run-details" ${state.agentRunOpen[run.run_id]?'open':''}><summary data-action="agent-run-toggle" data-run-id="${esc(run.run_id)}">${esc(agentRunStatus(run.status))} · ${esc(personalText(run.model,'模型待确认'))} · ${esc(schoolCaptureTime(run.started_at??run.created_at))}</summary>${renderAgentRunContent(run.run_id)}</details>`).join('')}</div></details>`;}
 async function refreshAgentRuns(){
   if(!personalChatReady()||state.agentRunsBusy)return;const capture=agentDiagnosticsCapture();state.agentRunsBusy=true;state.agentRunsError='';renderAssistant();
@@ -436,21 +535,48 @@ async function toggleAgentRun(runId){
 }
 function captureAgentReasoningScroll(){
   $$('.agent-process-reasoning').forEach(element=>{if(!element.dataset.reasoningKey||!(element.clientHeight>0))return;state.agentReasoningScroll[element.dataset.reasoningKey]={top:element.scrollTop,nearBottom:element.scrollHeight-element.clientHeight-element.scrollTop<=32};});
+  $$('.agent-process-trace').forEach(element=>{if(!element.dataset.traceKey||!(element.clientHeight>0))return;state.agentTraceScroll[element.dataset.traceKey]={top:element.scrollTop,nearBottom:element.scrollHeight-element.clientHeight-element.scrollTop<=32};});
 }
 function restoreAgentReasoningScroll(){
   $$('.agent-process-reasoning').forEach(element=>{const key=element.dataset.reasoningKey;if(!key||!(element.clientHeight>0))return;const previous=state.agentReasoningScroll[key];element.scrollTop=!previous||previous.nearBottom?element.scrollHeight:previous.top;element.addEventListener('scroll',()=>{state.agentReasoningScroll[key]={top:element.scrollTop,nearBottom:element.scrollHeight-element.clientHeight-element.scrollTop<=32};});});
+  $$('.agent-process-trace').forEach(element=>{const key=element.dataset.traceKey;if(!key||!(element.clientHeight>0))return;const previous=state.agentTraceScroll[key];element.scrollTop=!previous||previous.nearBottom?element.scrollHeight:previous.top;element.addEventListener('scroll',()=>{state.agentTraceScroll[key]={top:element.scrollTop,nearBottom:element.scrollHeight-element.clientHeight-element.scrollTop<=32};});});
 }
-function captureAgentScroll(){const element=$('#agent-dialogue-scroll');if(!state.agentScroll.initialized||!element||!Number.isFinite(element.scrollTop))return;state.agentScroll.top=element.scrollTop;state.agentScroll.nearBottom=element.scrollHeight-element.clientHeight-element.scrollTop<=64;}
+function captureAgentScroll(){
+  const element=$('#agent-dialogue-scroll');if(!state.agentScroll.initialized||!element||!Number.isFinite(element.scrollTop))return;
+  const scroll=state.agentScroll;scroll.top=element.scrollTop;scroll.nearBottom=element.scrollHeight-element.clientHeight-element.scrollTop<=64;
+  if(typeof element.getBoundingClientRect==='function'&&typeof element.querySelectorAll==='function'){
+    const viewport=element.getBoundingClientRect(),anchor=[...element.querySelectorAll('[data-scroll-anchor]')].find(item=>{const box=item.getBoundingClientRect();return box.bottom>viewport.top&&box.top<viewport.bottom;});
+    scroll.anchor=anchor?{key:anchor.dataset.scrollAnchor,offset:anchor.getBoundingClientRect().top-viewport.top}:null;
+  }
+}
 function agentScrollVersion(){return JSON.stringify(state.agentTurns.map(turn=>[turn.turn_id,turn.pending,turn.reply?.length,turn.error,turn.tool_results?.length,turn.citations?.length,turn.progress?.next_sequence,turn.progress?.active_reasoning?.text?.length,turn.progress_error,turn.run_id?state.agentRunDetails[turn.run_id]?.events?.length:0]));}
 function renderAgentScrollControls(){return state.agentTurns.length?`<nav class="agent-scroll-controls" aria-label="对话上下翻页"><button class="button small" type="button" data-action="agent-scroll-up">上翻一页</button><button class="button small" type="button" data-action="agent-scroll-down">下翻一页</button><button id="agent-latest" class="button small" type="button" data-action="agent-scroll-latest">${state.agentScroll.newMessages?'有新回复 · 回到最新':'回到最新'}</button></nav>`:'';}
 function updateAgentScroll(){captureAgentScroll();if(state.agentScroll.nearBottom)state.agentScroll.newMessages=false;const button=$('#agent-latest');if(button)button.textContent=state.agentScroll.newMessages?'有新回复 · 回到最新':'回到最新';}
 function restoreAgentScroll(){
   const element=$('#agent-dialogue-scroll');if(!element)return;const scroll=state.agentScroll,version=agentScrollVersion(),changed=scroll.version!==version;
   const follow=scroll.forceLatest||!scroll.initialized||changed&&scroll.nearBottom;
-  if(follow){element.scrollTop=element.scrollHeight||0;scroll.newMessages=false;}else{element.scrollTop=scroll.top;if(changed)scroll.newMessages=true;}
+  const last=state.agentTurns.at(-1),lastKey=last?.request_id||last?.run_id,finished=lastKey&&scroll.pendingKey===lastKey&&!last.pending;
+  const anchors=typeof element.querySelectorAll==='function'?[...element.querySelectorAll('[data-scroll-anchor]')]:[];
+  if(follow){
+    const answer=finished&&anchors.find(item=>item.dataset.answerKey===lastKey);
+    if(answer&&typeof answer.getBoundingClientRect==='function'&&typeof element.getBoundingClientRect==='function')element.scrollTop=Math.max(0,element.scrollTop+answer.getBoundingClientRect().top-element.getBoundingClientRect().top-8);
+    else element.scrollTop=element.scrollHeight||0;
+    scroll.newMessages=false;
+  }else{
+    const anchor=scroll.anchor&&anchors.find(item=>item.dataset.scrollAnchor===scroll.anchor.key);
+    element.scrollTop=anchor&&typeof element.getBoundingClientRect==='function'?element.scrollTop+anchor.getBoundingClientRect().top-element.getBoundingClientRect().top-scroll.anchor.offset:scroll.top;
+    if(changed)scroll.newMessages=true;
+  }
+  scroll.pendingKey=last?.pending?lastKey:null;
   scroll.initialized=true;scroll.forceLatest=false;scroll.version=version;element.addEventListener('scroll',updateAgentScroll);element.addEventListener('keydown',event=>{if(event.target!==element||!['PageUp','PageDown','End'].includes(event.key))return;event.preventDefault();scrollAgentDialogue(event.key==='End'?'latest':event.key==='PageUp'?-1:1);});updateAgentScroll();
 }
 function scrollAgentDialogue(direction){const element=$('#agent-dialogue-scroll');if(!element)return;const maximum=Math.max(0,(element.scrollHeight||0)-(element.clientHeight||0));element.scrollTop=direction==='latest'?maximum:Math.min(maximum,Math.max(0,(element.scrollTop||0)+direction*(element.clientHeight||0)*0.85));if(direction==='latest')state.agentScroll.newMessages=false;updateAgentScroll();}
+function bindAgentDisclosureChoice(element,choices,key){
+  const summary=element.querySelector('summary');if(!summary||!key)return;
+  // Native details emits toggle after programmatic rendering too. Record only
+  // summary activation so the running default does not become a manual choice.
+  summary.addEventListener('click',()=>{if(summary.dataset.action!=='agent-process-load')choices[key]=!element.open;});
+}
 
 function renderAssistant() {
   const panel=$('#panel-assistant');if(!state.boot){panel.innerHTML='';return;}
@@ -467,7 +593,8 @@ function renderAssistant() {
   $('#agent-draft-form').addEventListener('submit',event=>{event.preventDefault();sendAgentTurn();});
   $('#agent-model')?.addEventListener('change',event=>{if(event.target.value==='@refresh')refreshAgentModels(true);else saveAgentSettings();});
   $('#agent-thinking')?.addEventListener('click',()=>saveAgentSettings({thinking:state.agentStatus?.thinking!==true}));
-  $$('.agent-process').forEach(element=>element.addEventListener('toggle',()=>{if(element.dataset.processKey)state.agentProcessOpen[element.dataset.processKey]=element.open;}));
+  $$('.agent-process').forEach(element=>bindAgentDisclosureChoice(element,state.agentProcessOpen,element.dataset.processKey));
+  $$('.agent-evidence').forEach(element=>bindAgentDisclosureChoice(element,state.agentEvidenceOpen,element.dataset.evidenceKey));
   restoreAgentScroll();restoreAgentReasoningScroll();
 }
 function renderAgentHistory(){

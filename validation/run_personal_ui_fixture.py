@@ -119,6 +119,8 @@ class ScriptedPersonalModel:
             available = [item for item in context.get("operations", []) if isinstance(item, dict)]
             scope = next((item for operation in ("major_academic", "academic") for item in available
                           if item.get("operation") == operation), None)
+            if scope is None and context.get("capabilities", {}).get("live_record_query"):
+                scope = {"operation": "major_academic", "target_term": "ALL-HISTORY"}
             if scope is None:
                 return {"role": "assistant", "content": json.dumps({"kind": "not_ready", "reason": "insufficient_evidence"})}
             return call("query_my_records", {"operation": scope["operation"], "target_term": scope["target_term"],

@@ -213,7 +213,8 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .agent-settings-error { margin: 8px 0; color: var(--danger); font-size: 0.8125rem; }
 .agent-turn { margin-bottom: 36px; }
 .agent-message { min-width: 0; margin-bottom: 18px; }
-.agent-message > strong { display: block; margin-bottom: 8px; font-size: 0.9375rem; font-weight: 600; }
+.agent-message > strong, .agent-answer > strong { display: block; margin-bottom: 8px; font-size: 0.9375rem; font-weight: 600; }
+.agent-answer > p { max-width: 75ch; }
 .agent-message p { white-space: pre-wrap; }
 .agent-message.user {
   width: fit-content;
@@ -228,13 +229,27 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .agent-pending { margin: 18px 0; color: var(--muted); }
 .agent-process { margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--canvas); }
 .agent-process > summary { font-size: 0.875rem; color: var(--primary); }
-.agent-process-body { margin-top: 10px; }
-.agent-process-body > p { margin-top: 8px; }
-.agent-process-tools { margin: 10px 0; padding-left: 20px; color: var(--muted); font-size: 0.8125rem; }
-.agent-process-reasoning { max-height: 180px; overflow: auto; overscroll-behavior: contain; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.agent-process-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px 18px; margin-top: 12px; }
+.agent-process-body > p { grid-column: 1 / -1; margin: 0; }
+.agent-process-description { font-size: 0.875rem; }
+.agent-process-execution, .agent-process-provider { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.agent-process-body h4 { margin: 0 0 8px; font-size: 0.8125rem; font-weight: 600; }
+.agent-process-trace { max-height: 180px; overflow: auto; overscroll-behavior: contain; margin: 0; padding: 0 8px 0 0; list-style: none; }
+.agent-process-trace .agent-run-event { margin-top: 8px; padding: 8px 0 0; font-size: 0.8125rem; }
+.agent-process-trace .agent-run-event:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.agent-run-event code { font-size: 0.75rem; overflow-wrap: anywhere; }
+.agent-process-trace .agent-run-event p { margin: 3px 0 0; }
+.agent-process-reasoning { max-height: 180px; overflow: auto; overscroll-behavior: contain; padding-right: 8px; }
 .agent-process-reasoning > strong { font-size: 0.875rem; }
 .agent-process-reasoning h4 { margin: 12px 0 4px; color: var(--muted); font-size: 0.8125rem; font-weight: 550; }
+.agent-process-reasoning section:first-child h4 { margin-top: 0; }
 .agent-process-reasoning section > p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.875rem; }
+.agent-process-provider > .field-help { margin-top: 8px; }
+.agent-process-body > .agent-run-details { grid-column: 1 / -1; margin: 0; padding-top: 10px; border-top: 1px solid var(--line); }
+@media (max-width: 700px) {
+  .agent-process-body { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .agent-process-trace, .agent-process-reasoning { max-height: 128px; }
+}
 .agent-empty { color: var(--muted); }
 .agent-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 320px; padding: 32px 12px; text-align: center; }
 .agent-welcome p { color: var(--muted); }
@@ -315,6 +330,15 @@ details > p, details > .table-wrap { margin-top: 14px; }
 .agent-citations ul { list-style: none; padding: 0; margin: 14px 0 0; }
 .agent-citation { padding: 14px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .agent-citation > p { margin-top: 10px; }
+.agent-evidence { margin-top: 20px; }
+.agent-evidence-body { margin-top: 12px; }
+.agent-evidence-section { padding: 14px 0; border-top: 1px solid var(--line); }
+.agent-evidence-section > h4 { margin: 0 0 10px; font-size: 0.875rem; }
+.agent-evidence-section > h4:not(:first-child) { margin-top: 18px; }
+.agent-evidence-section > p { margin: 8px 0; }
+.agent-evidence-citations { margin: 0; padding: 0; list-style: none; }
+.personal-evidence-context { margin-top: 12px; }
+.personal-evidence-context h5 { margin: 0 0 6px; font-size: 0.8125rem; }
 pre { max-width: 100%; overflow: auto; padding: 14px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .page-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
