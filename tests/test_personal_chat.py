@@ -60,8 +60,11 @@ class FakeDialogue:
     def __init__(self, app, model, authorize, execute):
         self.app, self.model, self.authorize, self.execute = app, model, authorize, execute
 
-    def run(self, message, data_use="personal_retrieval", history=(), execution_context=None, emit=None):
+    def run(self, message, data_use="personal_retrieval", history=(), execution_context=None, task_context=None,
+            clarification_context=None, emit=None):
         self.app.received_execution_context = deepcopy(execution_context)
+        self.app.received_task_context = deepcopy(task_context)
+        self.app.received_clarification_context = deepcopy(clarification_context)
         if self.app.lock._is_owned():
             raise AssertionError("model execution must not hold the app lock")
         self.authorize()
@@ -71,8 +74,10 @@ class FakeDialogue:
         self.authorize()
         messages.append({"role": "assistant", "content": reply["reply"]})
         return {"status": "completed", "reply": reply["reply"],
-                "tool_results": [{"name": "get_my_context", "arguments": {}, "result": result}],
-                "citations": [], "reply_origin": "personal_model_evidence", "model_decision": {"kind": "answer", "evidence_ids": []},
+                "tool_results": deepcopy(getattr(self.app, "dialogue_tool_results", [
+                    {"name": "get_my_context", "arguments": {}, "result": result}])),
+                "citations": [], "reply_origin": getattr(self.app, "reply_origin", "personal_model_evidence"),
+                "model_decision": deepcopy(getattr(self.app, "model_decision", {"kind": "answer", "evidence_ids": []})),
                 "partial_tools_completed": False}, messages
 
 
@@ -302,6 +307,52 @@ class PersonalChatTests(unittest.TestCase):
         second = self.turn(first)
         self.assertTrue(second["history_reset"])
         self.assertEqual(len(self.model.calls[1]), 1)
+
+    def test_task_scope_survives_fresh_sources_but_not_model_change(self):
+        self.app.dialogue_tool_results = [{"name": "query_my_records",
+            "arguments": {"operation": "academic", "mode": "summary", "query": ""},
+            "result": {"status": "complete_within_scope", "operation": "academic",
+                "target_term": "2023-2024-AW", "mode": "summary", "records": [{"grade_raw": "NEVER-CARRY-FACT"}],
+                "observation_id": "NEVER-CARRY-OBS", "next_page_token": "NEVER-CARRY-PAGE"}}]
+        first = self.turn(message="请概括2023-2024秋冬成绩")
+        self.app.school.version = "SYNTHETIC-FRESH-V2"
+        second = self.turn(first, message="那春夏呢？")
+        hint = self.app.received_task_context
+        self.assertEqual(hint["tasks"], [{"tool": "query_my_records", "operation": "academic",
+            "target_term": "2023-2024-AW", "mode": "summary", "query": ""}])
+        self.assertNotIn("NEVER-CARRY", str(hint))
+        self.assertFalse(hint["facts_reusable"])
+        self.model.model = "synthetic-model-2"
+        self.turn(second, message="再查询")
+        self.assertIsNone(self.app.received_task_context)
+
+    def test_clarification_trail_survives_freshness_and_stops_after_completion(self):
+        self.app.reply_origin = "personal_model_clarification"
+        self.app.model_decision = {"kind": "clarify", "request_basis": "current_message"}
+        first = self.turn(message="查春夏成绩概况")
+        self.assertEqual(first["task_status"], "awaiting_user")
+        self.app.school.version = "SYNTHETIC-FRESH-V2"
+        self.app.model_decision["request_basis"] = "pending_task"
+        second = self.turn(first, message="2023-2024学年")
+        context = self.app.received_clarification_context
+        self.assertEqual(context["request"], "查春夏成绩概况")
+        self.assertEqual(context["question"], first["reply"])
+        stored = self.app.store.chat_one(self.context, first["conversation_id"])["state"]["turns"][-1]
+        self.assertEqual(stored["pending_clarification"]["supplements"], ["2023-2024学年"])
+        self.app.reply_origin = "personal_model_evidence"
+        self.app.model_decision = {"kind": "answer", "evidence_ids": []}
+        third = self.turn(second, message="确认")
+        self.assertEqual(third["task_status"], "completed")
+        self.turn(third, message="查课程代码")
+        self.assertIsNone(self.app.received_clarification_context)
+
+    def test_clarification_context_clears_after_egress_change(self):
+        self.app.reply_origin = "personal_model_clarification"
+        self.app.model_decision = {"kind": "clarify"}
+        first = self.turn(message="查课表")
+        self.model.model = "synthetic-model-2"
+        self.turn(first, message="春夏")
+        self.assertIsNone(self.app.received_clarification_context)
 
     def test_model_error_clears_reservation_and_can_continue_next_turn(self):
         first = self.turn()

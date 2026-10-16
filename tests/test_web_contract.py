@@ -228,7 +228,7 @@ const markup=element('#panel-assistant').innerHTML;assert.match(markup,/本轮�
         self.run_js("""
 evaluate("state.boot={demo:{courses:[]}};state.agentTurns=[{message:'查询',status:'completed',reply_origin:'verified_tool_presentation',reply:'状态待确认',tool_results:[],citations:[]},{message:'继续',status:'completed',reply_origin:'verified_clarification_prompt',reply:'请选择课程范围',tool_results:[],citations:[]},{message:'计算',status:'failed',partial_tools_completed:true,reply:'模型后续调用失败',tool_results:[{name:'get_my_context',arguments:{},result:{data_kind:'synthetic'}}],citations:[]}];renderAssistant()");
 const markup=element('#panel-assistant').innerHTML;
-assert.ok(markup.includes('<strong>选课助手</strong>'));assert.ok(markup.includes('<strong>待澄清</strong>'));assert.ok(markup.includes('<strong>本轮未完成</strong>'));assert.match(markup,/已完成的查询结果如下/);assert.match(markup,/模型后续调用失败/);
+assert.ok(markup.includes('<strong>浙大教务助手</strong>'));assert.ok(markup.includes('<strong>待澄清</strong>'));assert.ok(markup.includes('<strong>本轮未完成</strong>'));assert.match(markup,/已完成的查询结果如下/);assert.match(markup,/模型后续调用失败/);
 """)
 
     def test_chat_transport_retry_reuses_request_id_and_malformed_result_is_rejected(self):
@@ -434,9 +434,25 @@ for(const pendingState of [{in_progress:true},{action_pending:true}]){
     def test_history_load_rejects_mismatched_or_malformed_response_contract(self):
         self.run_js("""
 for(const malformed of [{conversation_id:'wrong-conv'},{turn_id:'2'},{turn_id:-1},{turns:{}},{data_kind:'real'}]){
-  evaluate("clearWorkspace();state.auth={authenticated:true};state.boot={demo:{courses:[]}};state.agentStatus={configured:true,remote:true};state.agentConsent=true");
+  evaluate("clearWorkspace();state.auth={authenticated:true};state.boot={demo:{courses:[]}};state.agentStatus={configured:true,remote:true};state.agentConsent=true;state.agentConversationId='current-conv';state.agentTurnId=1;state.agentTurns=[{message:'当前问题',status:'completed',reply:'当前答案'}];state.agentDraft='未发送追问';state.agentOptionReceipts={current:{saved_id:3}}");
   context.fetch=async()=>({ok:true,json:async()=>({conversation_id:'requested-conv',turn_id:2,turns:[],data_kind:'synthetic',option_receipts:{bad:{saved_id:99}},...malformed})});
-  await evaluate("loadAgentConversation('requested-conv')");assert.equal(evaluate('state.agentConversationId'),null);assert.equal(evaluate('state.agentTurnId'),0);assert.equal(evaluate('state.agentTurns.length'),0);assert.equal(evaluate('Object.keys(state.agentOptionReceipts).length'),0);assert.equal(evaluate('state.agentConsent'),false);assert.equal(evaluate('state.agentHistoryLoadBusy'),false);assert.match(element('#global-status').textContent,/历史对话响应不完整/);
+  await evaluate("loadAgentConversation('requested-conv')");assert.equal(evaluate('state.agentConversationId'),'current-conv');assert.equal(evaluate('state.agentTurnId'),1);assert.equal(evaluate('state.agentTurns[0].reply'),'当前答案');assert.equal(evaluate('state.agentDraft'),'未发送追问');assert.equal(evaluate('state.agentOptionReceipts.current.saved_id'),3);assert.equal(evaluate('state.agentOptionReceipts.bad'),undefined);assert.equal(evaluate('state.agentConsent'),true);assert.equal(evaluate('state.agentHistoryLoadBusy'),false);assert.match(element('#global-status').textContent,/历史对话响应不完整/);
+}
+""")
+
+    def test_failed_history_switch_keeps_current_conversation_draft_and_reading_state(self):
+        self.run_js(r"""
+for(const failure of ['network','service','401']){
+ evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentConversationId='CURRENT';state.agentTurnId=2;state.agentTurns=[{request_id:'CURRENT-REQUEST',status:'completed',message:'当前问题',reply:'当前答案'}];state.agentDraft='尚未发送的追问';state.agentRetry={request_id:'RETRY-CURRENT'};state.agentProcessOpen={'CURRENT-REQUEST':true};state.agentEvidenceOpen={'CURRENT-REQUEST':true};state.agentReasoningScroll={'CURRENT-REQUEST':{top:80,nearBottom:false}};renderAssistant()");
+ const scroll=element('#agent-dialogue-scroll');scroll.scrollHeight=1600;scroll.clientHeight=400;scroll.scrollTop=300;evaluate('captureAgentScroll()');
+ let release;const paths=[];context.fetch=path=>{paths.push(path);return new Promise((resolve,reject)=>{release=failure==='network'?()=>reject(Error('offline')):()=>resolve({ok:false,status:failure==='401'?401:503,text:async()=>JSON.stringify({error:'暂未载入历史'})});});};
+ const beforeEpoch=evaluate('state.agentEpoch'),pending=evaluate("loadAgentConversation('REQUESTED')");
+ assert.equal(evaluate('state.agentHistoryLoadBusy'),true);assert.equal(evaluate('agentCanSend()'),false);assert.equal(evaluate('state.agentConversationId'),'CURRENT');assert.equal(evaluate('state.agentDraft'),'尚未发送的追问');assert.match(element('#panel-assistant').innerHTML,/当前答案/);
+ release();await pending;assert.deepEqual(paths,['/api/chat/history']);
+ if(failure==='401'){
+  assert.equal(evaluate('state.auth.authenticated'),false);assert.equal(evaluate('state.agentConversationId'),null);assert.equal(evaluate('state.agentDraft'),'');assert.doesNotMatch(element('#panel-assistant').innerHTML,/当前答案/);continue;
+ }
+ assert.equal(evaluate('state.agentEpoch'),beforeEpoch);assert.equal(evaluate('state.agentHistoryLoadBusy'),false);assert.equal(evaluate('state.agentConversationId'),'CURRENT');assert.equal(evaluate('state.agentTurnId'),2);assert.equal(evaluate('state.agentTurns[0].reply'),'当前答案');assert.equal(evaluate('state.agentDraft'),'尚未发送的追问');assert.equal(evaluate('state.agentRetry.request_id'),'RETRY-CURRENT');assert.equal(evaluate("state.agentProcessOpen['CURRENT-REQUEST']"),true);assert.equal(evaluate("state.agentEvidenceOpen['CURRENT-REQUEST']"),true);assert.equal(evaluate("state.agentReasoningScroll['CURRENT-REQUEST'].top"),80);assert.equal(scroll.scrollTop,300);assert.equal(evaluate('agentCanSend()'),true);assert.match(element('#global-status').textContent,/无法连接本机服务|暂未载入历史/);
 }
 """)
 
@@ -702,7 +718,7 @@ evaluate("state.schoolStatus={query_context:{cohort:2023,cohort_state:'known'}}"
     def test_personal_chat_defaults_to_sending_without_a_permission_checkbox(self):
         self.run_js(r"""
 evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,provider:'DeepSeek',model:'fixture',data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1',summary:'本轮问题及检索到的相关教务记录、培养资料片段会发送给当前模型；不发送账号凭据。'}};state.agentDraft='我的成绩如何？';state.agentConsent=true;renderAssistant();renderAuth()");
-let markup=element('#panel-assistant').innerHTML;assert.match(markup,/询问课程、成绩或培养要求/);assert.doesNotMatch(markup,/id="agent-personal-consent"|对话设置|agent-chat-settings/);assert.doesNotMatch(markup,/本机资料查询|personal-operation|personal-observation|personal-prepare|准备本机培养资料|合成测试需求|agent-remote-consent/);assert.equal(element('#conversation-sidebar').hidden,false);assert.equal(evaluate('agentCanSend()'),true);
+let markup=element('#panel-assistant').innerHTML;assert.match(markup,/查询成绩、课表、考试和培养要求/);assert.doesNotMatch(markup,/id="agent-personal-consent"|对话设置|agent-chat-settings/);assert.doesNotMatch(markup,/本机资料查询|personal-operation|personal-observation|personal-prepare|准备本机培养资料|合成测试需求|agent-remote-consent/);assert.equal(element('#conversation-sidebar').hidden,false);assert.equal(evaluate('agentCanSend()'),true);
 evaluate('state.agentConsent=false');assert.equal(evaluate('agentCanSend()'),true);
 evaluate("state.agentStatus.personal_data_use=undefined;renderAssistant()");assert.equal(evaluate('agentCanSend()'),false);assert.match(element('#panel-assistant').innerHTML,/本人资料对话待接入/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/personal-operation|personal-observation/);
 """)
@@ -731,7 +747,7 @@ evaluate('state.agentStatus.configured=true;state.agentStatus.personal_data_use=
 evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}");
 const calls=[];context.fetch=async(path,options)=>{calls.push(path);if(path==='/api/chat/conversations?limit=100')return {ok:true,json:async()=>({conversations:[{conversation_id:'personal-history',title:'培养要求问题'}],has_more:false,data_kind:'personal_source'})};assert.equal(path,'/api/chat/history');assert.deepEqual(JSON.parse(options.body),{conversation_id:'personal-history'});return {ok:true,json:async()=>({conversation_id:'personal-history',turn_id:1,turns:[{status:'completed',message:'历史问题',reply:'历史回答',tool_results:[],citations:[],reply_origin:'verified_explicit_action',download:{data_base64:'must-not-replay'}}],in_progress:false,action_pending:false,option_receipts:{},data_kind:'personal_source'})};};
 await evaluate('refreshAgentHistory()');assert.match(element('#conversation-list').innerHTML,/培养要求问题/);await evaluate("loadAgentConversation('personal-history')");assert.equal(evaluate('state.agentDraft'),'');assert.equal(evaluate('state.agentConversationId'),'personal-history');assert.match(element('#panel-assistant').innerHTML,/历史问题/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/agent-personal-consent/);assert.deepEqual(calls,['/api/chat/conversations?limit=100','/api/chat/history']);
-context.fetch=async()=>({ok:true,json:async()=>({conversation_id:'wrong-realm',turn_id:1,turns:[{message:'合成内容不可串入'}],data_kind:'synthetic'})});await evaluate("loadAgentConversation('wrong-realm')");assert.equal(evaluate('state.agentTurns.length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/合成内容不可串入/);
+context.fetch=async()=>({ok:true,json:async()=>({conversation_id:'wrong-realm',turn_id:1,turns:[{message:'合成内容不可串入'}],data_kind:'synthetic'})});await evaluate("loadAgentConversation('wrong-realm')");assert.equal(evaluate('state.agentConversationId'),'personal-history');assert.equal(evaluate('state.agentTurns.length'),1);assert.match(element('#panel-assistant').innerHTML,/历史问题/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/合成内容不可串入/);
 """)
 
     def test_personal_status_uses_current_scope_version_and_source_expiry_clears_data(self):
@@ -844,6 +860,10 @@ const css=fs.readFileSync(process.argv[1].replace(/app\.js$/,'styles.css'),'utf8
         self.assertEqual(json.loads(exact["tool_calls"][0]["function"]["arguments"])["query"], "SYNTHETIC-PE-REPEAT")
         identity = model.complete([{"role": "user", "content": "你是谁？"}], [])
         self.assertEqual(json.loads(identity["content"]), {"kind": "general_chat", "intent": "identity"})
+        summary_reply = model.complete(messages + [first, {"role": "tool", "tool_call_id": "synthetic-summary",
+            "content": json.dumps({"source_grade_summary": {"evidence_id": "S-FIXTURE", "available_sections": ["counts"]}})}], [])
+        self.assertEqual(json.loads(summary_reply["content"]), {"kind": "answer", "claims": [
+            {"kind": "source_summary", "evidence_id": "S-FIXTURE", "sections": ["counts"]}]})
         deltas, observed = [], []
         model.stream_delay = 0.3
         with patch("validation.run_personal_ui_fixture.time.sleep") as delay:

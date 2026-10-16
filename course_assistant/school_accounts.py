@@ -750,12 +750,28 @@ class SchoolAccountService:
                     "capabilities": {"curriculum_available": curriculum, "personal_record_query": True, "live_record_query": True,
                         "curriculum_local_search": True, "read_only_acquisition": True,
                         "course_catalog_search": catalog.get("status") == "ready",
+                        "recommendation_input_check": True,
                         "real_recommendation": False},
                     "course_catalog": catalog,
-                    "source_receipts": [{key: deepcopy(receipt[key]) for key in
-                        ("operation", "target_term", "status", "ready", "data_source", "clarification", "failure") if key in receipt}
+                    "source_receipts": [{**{key: deepcopy(receipt[key]) for key in
+                        ("operation", "target_term", "status", "data_source", "clarification", "failure") if key in receipt},
+                        "ready": self._live_receipt_ready(receipt)}
                         for receipt in receipts],
                     "note": "教务事实须由本轮实际接口读取回执支持；旧本机观察不作为本轮最新资料。课程目录仅为本地静态参考。"}
+            elif name == "check_recommendation_inputs":
+                if (set(args) - {"recommendation_kind", "target_term"} or "recommendation_kind" not in args
+                        or "target_term" in args and not isinstance(args["target_term"], str)):
+                    _error("invalid_school_request")
+                from .recommendation_readiness import assess_recommendation_readiness
+                try:
+                    # Validate before reading even the configured local catalog.
+                    assess_recommendation_readiness({}, **args)
+                except ValueError:
+                    _error("invalid_school_request")
+                current = self.personal_chat_live_tool(context, "get_my_context", {},
+                    receipts=receipts, emit=emit, authorize=authorize, adopt=adopt, before=before)
+                result = {"status": "available", "data_kind": "personal_source", "check_executed": True,
+                    "readiness": assess_recommendation_readiness(current, **args)}
             elif name == "query_my_records":
                 if set(args) - {"operation", "target_term", "query", "academic_year", "limit", "cursor", "mode"} or args.get("operation") not in DOMAINS:
                     _error("invalid_school_request")
@@ -771,8 +787,10 @@ class SchoolAccountService:
                     term = next(iter(scopes))
                 self._request_body({"operation": operation, "target_term": term, "force_refresh": True})
                 matching = [receipt for receipt in candidates if receipt.get("target_term") == term]
-                if not matching and any(receipt.get("status") == "needs_clarification" for receipt in candidates):
-                    return unavailable(operation, term, "source_scope_needs_clarification")
+                # A lexical preflight can lack a scope that the model resolves
+                # from the actual pending clarification. Explicit canonical
+                # arguments still require a fresh authorized read; a null or
+                # ambiguous scope above cannot use a historical observation.
                 receipt = matching[-1] if matching else read(operation, term)
                 if not self._live_receipt_ready(receipt):
                     return unavailable(operation, term, "fresh_source_read_failed")

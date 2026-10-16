@@ -20,11 +20,13 @@ from .storage import chat_title
 from .chat_model_settings import ChatModelSettings
 from .chat_runs import ChatRunStore, ChatRunError, tool_event_fields
 from .chat_progress import ChatProgress
+from .personal_tasks import (previous_task_context, previous_clarification_context,
+                             next_clarification_context)
 
 
 DATA_USE_VERSION = "personal-retrieval-v1"
 SERVICE = "personal-retrieval-chat-v1"
-TOOLS_VERSION = "personal-question-tools-v5-live-sources"
+TOOLS_VERSION = "personal-question-tools-v8-typed-readiness"
 DATA_USE_SUMMARY = "本轮问题及检索到的相关教务记录、培养资料片段会发送给当前模型；不发送账号凭据。"
 SENSITIVE = re.compile(r"(?i)(sk[-_][a-z0-9_-]{12,}|bearer\s+\S+|(?:password|passwd|cookie|token|api[_ -]?key|密码|口令)\s*(?:[:=：]|是|为|\bis\b)\s*\S+|(?:密码|口令)\s+\S+|(?<!\d)\d{10}(?!\d))")
 
@@ -414,6 +416,8 @@ class PersonalChatService:
                 reset = state.get("workspace_versions") != versions
                 state.update(personal_service=SERVICE, personal_scope=scope)
                 same_egress = (state.get("workspace_versions") or {}).get("egress_digest") == versions["egress_digest"]
+                task_context = previous_task_context(state) if same_egress else None
+                clarification_context = previous_clarification_context(state) if same_egress else None
                 history = self._intent_history(state) if reset and same_egress else [] if reset else deepcopy(state.get("messages", []))
                 if callable(getattr(self.app.school, "personal_chat_live_tool", None)):
                     history = self._intent_history(state) if same_egress else []
@@ -502,7 +506,8 @@ class PersonalChatService:
             execution_context = self._execution_context(context, state, scope, identifier)
             response, messages = self._dialogue(authorize, execute_tool).run(
                 body["message"], data_use="personal_retrieval", history=history,
-                execution_context=execution_context, emit=emit)
+                execution_context=execution_context, task_context=task_context,
+                clarification_context=clarification_context, emit=emit)
             if (type(response) is not dict or response.get("status") not in {"completed", "failed"} or
                     type(response.get("reply")) is not str or type(response.get("tool_results")) is not list or
                     type(response.get("citations")) is not list or type(messages) is not list):
@@ -539,6 +544,13 @@ class PersonalChatService:
             # data. A local sanitized turn still releases the reservation.
             if fatal is not None:
                 response = self._failure(fatal)
+            pending = next_clarification_context(body["message"], response,
+                previous=clarification_context, task_context=task_context)
+            decision = response.get("model_decision")
+            decision = decision if isinstance(decision, dict) else {}
+            response["task_status"] = ("failed" if response["status"] == "failed" else
+                "awaiting_user" if pending else "needs_clarification" if decision.get("kind") == "clarify" else
+                "blocked" if decision.get("kind") == "not_ready" else "completed")
             response.update(conversation_id=identifier, turn_id=turn_id, personal_scope=scope,
                             versions=deepcopy(versions), data_kind="personal_source", preview_only=True,
                             history_reset=reset or response.get("history_reset", False),
@@ -548,7 +560,8 @@ class PersonalChatService:
                          workspace_versions=deepcopy(versions), personal_service=SERVICE, personal_scope=scope)
             for previous in state.get("turns", []):
                 previous["is_stale"] = previous.get("versions") != versions
-            state.setdefault("turns", []).append({"message": body["message"], **deepcopy(response)})
+            state.setdefault("turns", []).append({"message": body["message"], **deepcopy(response),
+                                                  "pending_clarification": pending})
             try:
                 self.app.store.chat_finish(context, identifier, body["request_id"], turn_id, state, response)
             finally:

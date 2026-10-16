@@ -74,6 +74,11 @@ class LiveSourceDialogueTests(unittest.TestCase):
     def answer(text, proof):
         return final({"kind": "answer", "claims": [{"text": text, "evidence_ids": [proof]}]})
 
+    @staticmethod
+    def summary_answer(proof, sections=("counts", "numeric_grades")):
+        return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": proof,
+                                                    "sections": list(sections)}]})
+
     def test_summary_mode_answers_with_full_aggregate_and_no_record_page(self):
         args = {"operation": "major_academic", "mode": "summary", "query": "", "limit": 1}
         def respond(messages, tools):
@@ -84,11 +89,14 @@ class LiveSourceDialogueTests(unittest.TestCase):
             self.assertTrue(remote["retrieval"]["summary_only"])
             self.assertFalse(remote["retrieval"]["has_more"])
             self.assertNotIn("next_page_token", remote)
-            return self.answer("本轮取得40条合成记录，数字成绩简单不加权均值80.00；不是正式GPA。", remote["source_grade_summary"]["evidence_id"])
+            return self.summary_answer(remote["source_grade_summary"]["evidence_id"])
         response, _, _ = self.run_protocol([call("query_my_records", args), respond])
         self.assertEqual(response["status"], "completed", response)
         self.assertEqual([citation["kind"] for citation in response["citations"]], ["summary"])
         self.assertEqual(self.executed[-1], ("query_my_records", args))
+        self.assertIn("本次匹配40条记录", response["reply"])
+        self.assertIn("简单不加权均值为80.00", response["reply"])
+        self.assertIn("不是GPA", response["reply"])
 
     def test_local_course_reference_is_citable_and_retains_its_distinct_status(self):
         def respond(messages, tools):
@@ -108,7 +116,7 @@ class LiveSourceDialogueTests(unittest.TestCase):
 
     def test_records_then_curriculum_keeps_five_hits_in_reserved_envelope(self):
         for row in self.rows:
-            row["course_name_raw"] += "合成扩展课程描述" * 24
+            row["course_name_raw"] += "合成扩展课程描述" * 23
         self.curriculum["matches"] = [{"title": f"合成模块{index}", "text": "合成条款与模块上下文。" * 50,
             "page": index + 1, "review_status": "unreviewed", "required_context": []} for index in range(5)]
         def page(args):
@@ -194,10 +202,11 @@ class LiveSourceDialogueTests(unittest.TestCase):
         args = {"operation": "academic", "target_term": "2098-2099-SS", "mode": "summary"}
         def respond(messages, tools):
             remote = self.last_tool(messages)
-            return self.answer("本轮明确学期的合成来源已经取得。", remote["source_grade_summary"]["evidence_id"])
+            return self.summary_answer(remote["source_grade_summary"]["evidence_id"], ("counts",))
         response, _, _ = self.run_protocol([call("query_my_records", args), respond])
         self.assertEqual(response["status"], "completed", response)
         self.assertEqual(self.executed[-1][1]["target_term"], "2098-2099-SS")
+        self.assertIn("2098-2099学年春夏学期成绩来源", response["reply"])
         self.context["api_operations"] = []
         self.executed = []
         rejected, _, _ = self.run_protocol([call("query_my_records", args)])

@@ -1,0 +1,119 @@
+{
+  "scope": "Actual authorized own-school and DeepSeek calls; bounded support audit, not full semantic or user acceptance",
+  "tool_contract": "personal-question-tools-v7-source-tasks",
+  "turns": [
+    {
+      "task": "missing_year_clarification",
+      "status": "completed",
+      "task_status": "awaiting_user",
+      "model_generations": 1,
+      "reasoning_returned_generations": 1,
+      "logical_source_reads": 0,
+      "checks": {
+        "protocol_completed": true,
+        "current_owner_run": true,
+        "awaiting_user": true,
+        "no_scope_guess": true
+      }
+    },
+    {
+      "task": "year_supplement_spring_summer",
+      "status": "completed",
+      "task_status": "completed",
+      "model_generations": 2,
+      "reasoning_returned_generations": 2,
+      "logical_source_reads": 1,
+      "checks": {
+        "protocol_completed": true,
+        "current_owner_run": true,
+        "expected_scope": true,
+        "only_expected_source_read": true,
+        "unique_source_0": true,
+        "fresh_signed_records_0": true,
+        "all_matching_summary_0": true,
+        "correct_source_descriptor_0": true,
+        "summary_citation_0": true,
+        "term_label_not_major_0": true
+      }
+    },
+    {
+      "task": "autumn_winter_followup",
+      "status": "completed",
+      "task_status": "completed",
+      "model_generations": 2,
+      "reasoning_returned_generations": 2,
+      "logical_source_reads": 1,
+      "checks": {
+        "protocol_completed": true,
+        "current_owner_run": true,
+        "expected_scope": true,
+        "only_expected_source_read": true,
+        "unique_source_0": true,
+        "fresh_signed_records_0": true,
+        "all_matching_summary_0": true,
+        "correct_source_descriptor_0": true,
+        "summary_citation_0": true,
+        "term_label_not_major_0": true
+      }
+    },
+    {
+      "task": "major_unknown_fields",
+      "status": "completed",
+      "task_status": "completed",
+      "model_generations": 2,
+      "reasoning_returned_generations": 2,
+      "logical_source_reads": 1,
+      "checks": {
+        "protocol_completed": true,
+        "current_owner_run": true,
+        "expected_scope": true,
+        "only_expected_source_read": true,
+        "unique_source_0": true,
+        "fresh_signed_records_0": true,
+        "all_matching_summary_0": true,
+        "correct_source_descriptor_0": true,
+        "summary_citation_0": true,
+        "registered_grade_diagnostics_preserved": true
+      }
+    },
+    {
+      "task": "recommendation_input_check",
+      "status": "failed",
+      "task_status": "failed",
+      "model_generations": 2,
+      "reasoning_returned_generations": 2,
+      "logical_source_reads": 1,
+      "checks": {
+        "protocol_completed": false,
+        "current_owner_run": true,
+        "preparation_check_executed": true,
+        "generation_gate_retained": true,
+        "preparation_citation": true
+      }
+    }
+  ],
+  "expected_turn_count": 5,
+  "observed_turn_count": 5,
+  "limited_support_passed": false,
+  "full_semantics": "not_accepted",
+  "official_curriculum_applicability": "not_accepted",
+  "real_recommendation": "not_accepted",
+  "user_experience": "pending_user",
+  "embedding_dense_retrieval": "not_implemented",
+  "raw_personal_details": "private_only",
+  "upstream_unregistered_field_meaning": "not_established",
+  "known_failures": [
+    {
+      "task": "recommendation_input_check",
+      "stage": "final_answer",
+      "code": "unsupported_personal_claim",
+      "tool_check_completed": true,
+      "final_model_body_retained": false,
+      "false_positive_or_actual_overclaim": "not_established",
+      "retest": "v8_finite_preparation_support_passed_see_separate_receipt"
+    }
+  ],
+  "limited_qa_support_passed": true,
+  "current_engineering_receipt": "academic_task_completion_20261016_validation.json",
+  "retest_receipt": "academic_task_completion_readiness_real_retest_20261016_acceptance.json"
+}

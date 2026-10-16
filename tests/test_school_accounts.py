@@ -124,13 +124,15 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertEqual(self.service.status(unknown_context)["query_context"], {"cohort": None, "cohort_state": "unknown"})
 
     def test_fetch_preserves_safe_source_diagnostics_with_cached_page(self):
-        payload = {"items": [{"kcmc": "合成课", "xf": "2", "sftg": None}], "total": 1}
+        payload = {"items": [{"kcmc": "合成课", "xf": "2", "sftg": None, "cj": None, "jd": ""}], "total": 1}
         diagnostics = business_field_diagnostics("academic", payload, payload)
         response = {"state": "business", "http_status": 200, "content_type": "application/json",
                     "payload": payload, "source_field_diagnostics": diagnostics}
         _, context, client, _ = self.login(FakeSchoolClient(requests=[response]))
         live = self.fetch(context)
         self.assertEqual(live["source_field_diagnostics"], [diagnostics])
+        self.assertEqual(live["source_field_diagnostics"][0]["source"]["fields"]["cj"],
+                         {"present": 1, "empty": 1, "types": {"null": 1}})
         live["source_field_diagnostics"][0]["source"]["fields"].clear()
         cached = self.fetch(context)
         self.assertEqual(cached["source_field_diagnostics"], [diagnostics])
@@ -708,12 +710,24 @@ class SchoolAccountTests(unittest.TestCase):
                 ([{"operation": "academic", "target_term": "2026-2027-AW"},
                   {"operation": "academic", "target_term": "2026-2027-SS"}], {"operation": "academic"}),
                 ([{"operation": "academic", "target_term": None, "status": "needs_clarification", "ready": False}],
-                 {"operation": "academic", "target_term": "2026-2027-AW"})):
+                 {"operation": "academic"})):
             with self.subTest(args=args):
                 result = self.live(context, "query_my_records", args, receipts)
                 self.assertEqual(result["status"], "not_ready")
                 self.assertFalse(result["query_executed"])
         self.assertEqual(len(client.request_calls), before)
+
+    def test_live_explicit_scope_after_clarification_reads_fresh_instead_of_using_history(self):
+        _, context, client, _ = self.login()
+        self.fetch(context)
+        before = len(client.request_calls)
+        receipts = [{"operation": "academic", "target_term": None,
+                     "status": "needs_clarification", "ready": False}]
+        result = self.live(context, "query_my_records",
+            {"operation": "academic", "target_term": "2026-2027-AW"}, receipts)
+        self.assertEqual(len(client.request_calls), before + 1)
+        self.assertEqual(result["freshness"], "fetched_in_current_turn")
+        self.assertEqual(result["observation_id"], receipts[-1]["observation_id"])
 
     def test_live_major_defaults_to_all_history_and_explicit_term_remains_validated(self):
         _, context, client, _ = self.login()
@@ -784,6 +798,95 @@ class SchoolAccountTests(unittest.TestCase):
             self.live(context, "search_course_catalog", {"query": "合成目录", "path": "/private/arbitrary"}, [])
         with self.assertRaises(AccessError):
             self.live(context, "query_my_records", {"operation": "academic", "owner": "SYNTHETIC-B"}, [])
+
+    def test_live_recommendation_check_uses_current_receipts_without_school_or_private_queries(self):
+        _, context, client, _ = self.login()
+        receipts = [{"operation": "major_academic", "target_term": "ALL-HISTORY", "status": "partial_acquisition",
+                     "ready": True, "data_source": "live", "observation_id": "OBS-" + "a" * 32}]
+        events, adopts = [], []
+        with patch.object(self.service.course_catalog, "describe", return_value={"status": "ready"}) as catalog, \
+             patch.object(self.service, "fetch", side_effect=AssertionError("no_new_school_read")), \
+             patch.object(self.service, "acquire_plan", side_effect=AssertionError("no_new_curriculum_read")), \
+             patch.object(self.service, "local_query", side_effect=AssertionError("no_private_query")), \
+             patch.object(self.service, "local_chat_status", side_effect=AssertionError("no_old_snapshot_read")):
+            result = self.live(context, "check_recommendation_inputs",
+                {"recommendation_kind": "timetable", "target_term": "2026-2027-AW"}, receipts,
+                events=events, adopts=adopts)
+        self.assertEqual(result["status"], "available")
+        self.assertTrue(result["check_executed"])
+        readiness = result["readiness"]
+        self.assertEqual(readiness["gate"], "real_recommendation_not_ready")
+        self.assertFalse(readiness["can_generate"])
+        self.assertFalse(readiness["can_save_or_export"])
+        selected = {source["id"]: source for source in readiness["sources"]}
+        self.assertEqual(selected["academic_records"]["status"], "partial")
+        self.assertEqual(selected["existing_timetable"]["status"], "missing")
+        self.assertTrue(selected["course_reference"]["query_supported"])
+        self.assertNotIn(receipts[0]["observation_id"], json.dumps(result))
+        self.assertEqual(client.request_calls, [])
+        self.assertEqual(events, [])
+        self.assertEqual(adopts, [])
+        catalog.assert_called_once_with()
+
+    def test_live_context_explicitly_advertises_check_but_not_real_recommendation(self):
+        _, context, client, _ = self.login()
+        result = self.live(context, "get_my_context", {}, [])
+        self.assertTrue(result["capabilities"]["recommendation_input_check"])
+        self.assertFalse(result["capabilities"]["real_recommendation"])
+        self.assertEqual(client.request_calls, [])
+
+    def test_live_recommendation_check_rejects_unvalidated_or_other_scope_source_receipts(self):
+        _, context, client, _ = self.login()
+        for receipt in (
+            {"operation": "major_academic", "target_term": "ALL-HISTORY", "status": "complete_within_scope",
+             "ready": True, "data_source": "live", "observation_id": "INVALID"},
+            {"operation": "academic", "target_term": "2026-2027-SS", "status": "complete_within_scope",
+             "ready": True, "data_source": "live", "observation_id": "OBS-" + "a" * 32},
+            {"operation": "major_academic", "target_term": "ALL-HISTORY", "status": "complete_within_scope",
+             "ready": True, "data_source": "historical_cache", "observation_id": "OBS-" + "a" * 32},
+            {"operation": "academic", "target_term": "2026-2027-AW", "status": "complete_within_scope",
+             "ready": True, "data_source": "live", "observation_id": "OBS-" + "a" * 32}):
+            with self.subTest(receipt=receipt):
+                result = self.live(context, "check_recommendation_inputs",
+                    {"recommendation_kind": "courses", "target_term": "2026-2027-AW"}, [receipt])
+                academic = next(source for source in result["readiness"]["sources"] if source["id"] == "academic_records")
+                self.assertEqual(academic["status"], "missing")
+        self.assertEqual(client.request_calls, [])
+
+    def test_live_recommendation_check_validates_only_kind_and_canonical_half_year(self):
+        _, context, client, _ = self.login()
+        with patch.object(self.service.course_catalog, "describe") as catalog:
+            for args in ({}, {"recommendation_kind": "all"}, {"recommendation_kind": []},
+                         {"recommendation_kind": "courses", "target_term": "上学期"},
+                         {"recommendation_kind": "courses", "target_term": None},
+                         {"recommendation_kind": "courses", "target_term": "2026-2027-A"},
+                         {"recommendation_kind": "courses", "target_term": "2026-2028-AW"},
+                         {"recommendation_kind": "courses", "owner": "SYNTHETIC-B"},
+                         {"recommendation_kind": "courses", "readiness": {"can_generate": True}}):
+                with self.subTest(args=args), self.assertRaises(AccessError) as error:
+                    self.live(context, "check_recommendation_inputs", args, [])
+                self.assertEqual(error.exception.reason, "invalid_school_request")
+            catalog.assert_not_called()
+        result = self.live(context, "check_recommendation_inputs", {"recommendation_kind": "courses"}, [])
+        self.assertIsNone(result["readiness"]["target_term"])
+        self.assertEqual(client.request_calls, [])
+
+    def test_live_recommendation_check_rechecks_authority_after_local_metadata_read(self):
+        _, context, client, _ = self.login()
+        def revoked():
+            self.service.logout(context)
+            return {"status": "ready"}
+        with patch.object(self.service.course_catalog, "describe", side_effect=revoked), self.assertRaises(AccessError):
+            self.live(context, "check_recommendation_inputs", {"recommendation_kind": "courses"}, [])
+        self.assertEqual(client.request_calls, [])
+
+    def test_live_recommendation_check_rejects_other_owner_before_local_metadata(self):
+        _, context, client, _ = self.login()
+        with patch.object(self.service.course_catalog, "describe") as catalog, self.assertRaises(AccessError):
+            self.live(replace(context, student_id="SYNTHETIC-B"), "check_recommendation_inputs",
+                      {"recommendation_kind": "courses"}, [])
+        catalog.assert_not_called()
+        self.assertEqual(client.request_calls, [])
 
     def test_academic_candidate_positions_are_unique_across_pages_not_stable_attempts(self):
         def response(names):

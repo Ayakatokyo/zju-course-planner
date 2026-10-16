@@ -3,7 +3,9 @@ from copy import deepcopy
 import json
 import unittest
 
-from course_assistant.personal_dialogue import PersonalDialogueError, PersonalDialogueService, MAX_CLAIM_REFERENCES
+from course_assistant.personal_dialogue import PersonalDialogueError, PersonalDialogueService, MAX_CLAIM_REFERENCES, EVIDENCE_LIMITS, MAX_EGRESS_CHARS
+from course_assistant.personal_observations import source_grade_summary
+from course_assistant.recommendation_readiness import assess_recommendation_readiness
 from tests.test_personal_dialogue import ScriptedModel, call, final
 
 
@@ -35,17 +37,293 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
     def emit(self, kind, fields):
         self.events.append((kind, deepcopy(fields)))
 
-    def run_model(self, responses, *, execution_context=None, max_steps=5, emit=None):
+    def run_model(self, responses, *, execution_context=None, task_context=None, clarification_context=None, max_steps=5, emit=None):
         model = ScriptedModel(responses)
         service = PersonalDialogueService(model, self.authorize, self.execute, max_steps=max_steps)
         result, history = service.run("合成测试请求", data_use="personal_retrieval",
-            execution_context=execution_context, emit=emit or self.emit)
+            execution_context=execution_context, task_context=task_context, clarification_context=clarification_context, emit=emit or self.emit)
         return result, history, model
 
     @staticmethod
     def valid_record_answer(messages, tools):
         value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
         return final({"kind": "answer", "claims": [{"text": "合成课程的来源分数是88。", "evidence_ids": [value["records"][0]["evidence_id"]]}]})
+
+    def set_summary(self, operation="academic", term="2023-2024-SS", *, complete=True):
+        self.context["operations"] = [{"operation": operation, "target_term": term}]
+        rows = [{"course_name_raw": "合成课程", "grade_raw": grade,
+                 "completion_status_raw": None,
+                 "field_states": {"grade_raw": "known" if grade is not None else "unknown",
+                                  "course_name_raw": "known", "completion_status_raw": "unknown"}}
+                for grade in ("80", "90", None, "通过")]
+        coverage = {"captured_rows": 4, "reported_total": 4 if complete else 8, "complete_within_scope": complete}
+        self.records.update(operation=operation, target_term=term, mode="summary", records=[],
+            matched_records=len(rows), coverage=coverage, source_grade_summary=source_grade_summary(rows, coverage))
+
+    @staticmethod
+    def typed_summary_answer(messages, tools):
+        value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+        summary = value["source_grade_summary"]
+        return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary["evidence_id"],
+            "sections": summary["available_sections"]}]})
+
+    def test_summary_scope_and_numbers_render_from_executed_source_not_model_wording(self):
+        for operation, term, label in (("academic", "2023-2024-SS", "2023-2024学年春夏学期成绩来源"),
+                                       ("academic", "2023-2024-AW", "2023-2024学年秋冬学期成绩来源"),
+                                       ("major_academic", "ALL-HISTORY", "本次取得的主修成绩来源")):
+            with self.subTest(operation=operation, term=term):
+                self.executed.clear()
+                self.set_summary(operation, term)
+                result, _, _ = self.run_model([call("query_my_records", {"operation": operation, "target_term": term, "mode": "summary"}),
+                                              self.typed_summary_answer])
+                self.assertEqual(result["status"], "completed", result.get("code"))
+                self.assertIn(label, result["reply"])
+                self.assertIn("本次匹配4条记录", result["reply"])
+                self.assertIn("纯数字成绩2条", result["reply"])
+                self.assertIn("成绩未知1条", result["reply"])
+                self.assertIn("85.00", result["reply"])
+                self.assertEqual(result["citations"][0]["record_source"]["target_term"], term)
+                self.assertFalse(result["citations"][0]["record_source"]["full_student_history_verified"])
+                if operation == "academic":
+                    self.assertNotIn("主修", result["reply"])
+
+    def test_free_text_summary_is_repaired_once_without_rereading_or_resending_bad_draft(self):
+        self.set_summary()
+        def bad_answer(messages, tools):
+            value = json.loads(messages[-1]["content"])
+            return final({"kind": "answer", "claims": [{"text": "UNTRUSTED-SCOPE：你的主修成绩均值99。",
+                "evidence_ids": [value["source_grade_summary"]["evidence_id"]]}]})
+        result, history, model = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS", "mode": "summary"}),
+            bad_answer, self.typed_summary_answer])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "summary_requires_structured_claim")
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "query_my_records"])
+        self.assertNotIn("UNTRUSTED-SCOPE", json.dumps(model.calls[-1][0], ensure_ascii=False))
+        self.assertNotIn("UNTRUSTED-SCOPE", json.dumps(history, ensure_ascii=False))
+        self.assertNotIn("主修", result["reply"])
+        self.assertIn("85.00", result["reply"])
+
+    def test_record_source_descriptor_covers_timetable_and_exam_without_changing_record_claims(self):
+        for operation, term, expected in (("timetable", "2023-2024-SS", "2023-2024学年春夏学期课表来源"),
+                                           ("exams", "2023-2024-W", "2023-2024学年冬学期考试来源")):
+            with self.subTest(operation=operation):
+                self.context["operations"] = [{"operation": operation, "target_term": term}]
+                self.records.update(operation=operation, target_term=term)
+                def answer(messages, tools):
+                    value = json.loads(messages[-1]["content"])
+                    self.assertEqual(value["record_source"]["label"], expected)
+                    return final({"kind": "answer", "claims": [{"text": "这是本次取得的合成课程安排记录。",
+                        "evidence_ids": [value["records"][0]["evidence_id"]]}]})
+                result, _, _ = self.run_model([call("query_my_records", {"operation": operation, "target_term": term}), answer])
+                self.assertEqual(result["status"], "completed", result.get("code"))
+                self.assertEqual(result["citations"][0]["record_source"]["label"], expected)
+
+    def test_returned_term_mismatch_cannot_mint_source_evidence(self):
+        self.set_summary()
+        self.records["target_term"] = "2023-2024-AW"
+        result, _, _ = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS"}),
+            final({"kind": "not_ready", "reason": "insufficient_evidence"})])
+        self.assertTrue(result["tool_results"][-1]["error"])
+        self.assertEqual(result["tool_results"][-1]["result"]["code"], "invalid_tool_result")
+        self.assertEqual(result["citations"], [])
+
+    def test_typed_summary_rejects_free_text_fields_and_non_summary_evidence(self):
+        self.set_summary()
+        def injected(messages, tools):
+            summary = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["source_grade_summary"]
+            return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary["evidence_id"],
+                "sections": ["counts"], "text": "UNTRUSTED-PRIVATE"}]})
+        result, _, _ = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS"}), injected, injected])
+        self.assertEqual(result["code"], "invalid_final_answer")
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "source_summary_shape_invalid")
+        def wrong_kind(messages, tools):
+            evidence_id = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
+            return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": evidence_id, "sections": ["counts"]}]})
+        result, _, _ = self.run_model([call("get_my_context", {}), wrong_kind, wrong_kind])
+        self.assertEqual(result["code"], "unverified_personal_answer")
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "source_summary_evidence_kind_invalid")
+
+    def test_partial_summary_and_selected_sections_do_not_imply_complete_history(self):
+        self.set_summary(complete=False)
+        def counts_only(messages, tools):
+            summary = json.loads(messages[-1]["content"])["source_grade_summary"]
+            return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary["evidence_id"], "sections": ["counts"]}]})
+        result, _, _ = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS"}), counts_only])
+        self.assertEqual(result["status"], "completed")
+        self.assertIn("来源读取尚未确认完整", result["reply"])
+        self.assertNotIn("85.00", result["reply"])
+        self.assertNotIn("完成状态字段", result["reply"])
+
+    def test_summary_sections_must_be_supported_and_unique(self):
+        for sections in ([], ["counts", "counts"], ["all"], ["counts", 1]):
+            with self.subTest(sections=sections):
+                self.set_summary()
+                def malformed(messages, tools):
+                    summary = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["source_grade_summary"]
+                    return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary["evidence_id"], "sections": sections}]})
+                result, _, _ = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS"}), malformed, malformed])
+                self.assertEqual(result["code"], "invalid_final_answer")
+                self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "source_summary_sections_invalid")
+
+    def test_two_term_summaries_and_record_detail_keep_independent_sources(self):
+        proofs, budget, claims = {}, [0, 0, {}], []
+        for index, term in enumerate(("2023-2024-AW", "2023-2024-SS")):
+            self.set_summary(term=term)
+            self.records["records"] = [{"course_name_raw": "合成算法", "grade_raw": "80", "field_states": {"grade_raw": "known"}}]
+            args = {"operation": "academic", "target_term": term, "query": "", "mode": "records", "limit": 15}
+            local, remote = PersonalDialogueService._project("query_my_records", self.records, args, "12345678", proofs, index, budget, set())
+            self.assertEqual(remote["record_source"]["target_term"], term)
+            claims.append({"kind": "source_summary", "evidence_id": remote["source_grade_summary"]["evidence_id"], "sections": ["counts"]})
+            if index == 1:
+                claims.append({"text": "合成算法的来源成绩为80。", "evidence_ids": [remote["records"][0]["evidence_id"]]})
+        reply, decision, citations = PersonalDialogueService._final(json.dumps({"kind": "answer", "claims": claims}), proofs)
+        self.assertIn("2023-2024学年秋冬学期成绩来源", reply)
+        self.assertIn("2023-2024学年春夏学期成绩来源", reply)
+        self.assertIn("合成算法的来源成绩为80", reply)
+        self.assertEqual(len(decision["evidence_ids"]), 3)
+        self.assertEqual([item["record_source"]["target_term"] for item in citations],
+                         ["2023-2024-AW", "2023-2024-SS", "2023-2024-SS"])
+
+    def test_summary_no_numeric_values_and_omitted_completion_field_stay_unknown(self):
+        self.set_summary()
+        source = self.records["source_grade_summary"]
+        source.update(numeric_grade_count=0, non_numeric_grade_count=1, unknown_grade_count=3,
+                      numeric_min=None, numeric_max=None, numeric_mean_unweighted=None)
+        del source["completion_status_counts"]
+        local, remote = PersonalDialogueService._project("query_my_records", self.records,
+            {"operation": "academic", "target_term": "2023-2024-SS", "limit": 15}, "12345678", proofs := {}, 0, [0, 0, {}], set())
+        self.assertEqual(remote["source_grade_summary"]["available_sections"], ["counts", "numeric_grades"])
+        claim = {"kind": "source_summary", "evidence_id": remote["source_grade_summary"]["evidence_id"], "sections": ["numeric_grades"]}
+        reply, _, _ = PersonalDialogueService._final(json.dumps({"kind": "answer", "claims": [claim]}), proofs)
+        self.assertIn("无法计算简单均值", reply)
+        self.assertNotIn("0.00", reply)
+        claim["sections"] = ["completion_status"]
+        with self.assertRaises(PersonalDialogueError) as caught:
+            PersonalDialogueService._final(json.dumps({"kind": "answer", "claims": [claim]}), proofs)
+        self.assertEqual(caught.exception.validation_diagnostic["failure_detail"], "source_summary_contract_invalid")
+
+    def test_source_descriptor_is_derived_and_cannot_be_overwritten_by_tool_copy(self):
+        self.set_summary()
+        self.records["record_source"] = {"label": "UNTRUSTED-SOURCE-LABEL"}
+        self.records["source_grade_summary"]["record_source"] = {"label": "UNTRUSTED-SUMMARY-LABEL"}
+        result, _, model = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS"}), self.typed_summary_answer])
+        self.assertEqual(result["status"], "completed")
+        self.assertNotIn("UNTRUSTED", result["reply"])
+        self.assertNotIn("UNTRUSTED", json.dumps(model.calls[-1][0], ensure_ascii=False))
+
+    def test_clarification_data_is_bounded_system_context_and_basis_requires_pending(self):
+        pending = {"source": "previous_turn_clarification", "request": "查我的课表", "supplements": [],
+            "question": "要查哪个学年和学期？", "previous_task": None,
+            "authorization_granted": False, "facts_reusable": False, "fresh_sources_required": True}
+        answer = final({"kind": "clarify", "question": "春夏还是秋冬？", "request_basis": "pending_task"})
+        result, _, model = self.run_model([answer], clarification_context=pending)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["model_decision"]["request_basis"], "pending_task")
+        self.assertIn("previous_clarification", model.calls[0][0][0]["content"])
+        self.assertEqual(sum(row["role"] == "user" for row in model.calls[0][0]), 1)
+        result, _, _ = self.run_model([answer, final({"kind": "clarify", "question": "要查哪个学年？"})])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "clarification_context_missing")
+        self.assertEqual(result["model_decision"]["request_basis"], "current_message")
+
+    def test_pending_clarification_requires_explicit_basis_before_updating_task(self):
+        pending = {"source": "previous_turn_clarification", "request": "查我的春夏成绩", "supplements": [],
+            "question": "要查哪个学年？", "previous_task": None,
+            "authorization_granted": False, "facts_reusable": False, "fresh_sources_required": True}
+        result, _, _ = self.run_model([
+            final({"kind": "clarify", "question": "还需要明确具体范围吗？"}),
+            final({"kind": "clarify", "question": "要查该学年春夏的哪些课程？", "request_basis": "pending_task"})],
+            clarification_context=pending)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "clarification_basis_required")
+        self.assertEqual(result["model_decision"]["request_basis"], "pending_task")
+
+    def test_term_encoding_rejection_corrects_once_without_dispatching_or_echoing_proposal(self):
+        bad = call("query_my_records", {"operation": "major_academic", "target_term": "全部历史"})
+        good = call("query_my_records", {"operation": "major_academic", "target_term": "ALL-HISTORY"}, "corrected")
+        result, history, model = self.run_model([bad, good, self.valid_record_answer])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["argument_corrections"], 1)
+        self.assertEqual(result["repair_attempts"], 0)
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "query_my_records"])
+        self.assertNotIn("全部历史", json.dumps(model.calls[1][0], ensure_ascii=False))
+        self.assertFalse(any(row["role"] == "system" for row in history))
+        self.assertEqual(self.events[0], ("tool.rejected", {"tool_name": "query_my_records", "count": 1,
+            "error_code": "invalid_tool_arguments", "failure_detail": "argument_schema_mismatch", "attempt": 1, "status": "retrying"}))
+
+    def test_previous_task_is_a_bounded_system_hint_and_never_old_evidence(self):
+        task = {"source": "previous_turn_executed_tools", "turn_status": "completed",
+            "tasks": [{"tool": "query_my_records", "operation": "academic", "target_term": "2023-2024-AW", "query": "", "mode": "summary"}],
+            "authorization_granted": False, "facts_reusable": False, "fresh_sources_required": True, "tasks_truncated": False}
+        result, _, model = self.run_model([final({"kind": "clarify", "question": "要看同学年的春夏成绩吗？"})], task_context=task)
+        self.assertEqual(result["status"], "completed")
+        self.assertIn('"target_term":"2023-2024-AW"', model.calls[0][0][0]["content"])
+        self.assertEqual(sum(row["role"] == "user" for row in model.calls[0][0]), 1)
+        self.assertEqual(self.executed, [("get_my_context", {})])
+        with self.assertRaises(PersonalDialogueError) as caught:
+            self.run_model([], task_context={**task, "records": [{"grade_raw": 88}]})
+        self.assertEqual(caught.exception.code, "invalid_task_context")
+
+    def test_second_malformed_term_stops_without_executing_records(self):
+        result, history, model = self.run_model([
+            call("query_my_records", {"operation": "major_academic", "target_term": "全部"}, "first"),
+            call("query_my_records", {"operation": "major_academic", "target_term": "全部"}, "second")])
+        self.assertEqual(result["code"], "invalid_tool_arguments")
+        self.assertEqual(len(model.calls), 2)
+        self.assertEqual(self.executed, [("get_my_context", {})])
+        self.assertEqual(history, [])
+        self.assertEqual(self.events[-1][1]["status"], "failed")
+
+    def test_term_recovery_does_not_relax_identity_paging_or_current_scope_validation(self):
+        for extra in ({"student_id": "other"}, {"page_token": "PAGE-12345678-1"}, {"limit": 16}):
+            with self.subTest(extra=extra):
+                self.executed.clear()
+                result, _, model = self.run_model([call("query_my_records", {
+                    "operation": "major_academic", "target_term": "全部", **extra})])
+                self.assertEqual(result["code"], "invalid_tool_arguments")
+                self.assertEqual(len(model.calls), 1)
+                self.assertEqual(self.executed, [("get_my_context", {})])
+        result, _, model = self.run_model([call("query_my_records", {
+            "operation": "academic", "target_term": "2098-2099-SS"})])
+        self.assertEqual(result["code"], "invalid_tool_arguments")
+        self.assertEqual(len(model.calls), 1)
+
+    def test_rejected_batch_dispatches_neither_valid_nor_invalid_members(self):
+        batch = call("query_my_records", {"operation": "major_academic"}, "valid")
+        batch["tool_calls"].extend(call("query_my_records", {
+            "operation": "major_academic", "target_term": "全部"}, "invalid")["tool_calls"])
+        result, _, _ = self.run_model([batch, final({"kind": "clarify", "question": "要查看哪个范围？"})])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(self.executed, [("get_my_context", {})])
+        self.assertEqual(self.events[0][1]["count"], 2)
+
+    def test_corrected_arguments_still_require_current_authorization(self):
+        def revoke(messages, tools):
+            self.denied = True
+            return call("query_my_records", {"operation": "major_academic"}, "corrected")
+        result, history, _ = self.run_model([call("query_my_records", {
+            "operation": "major_academic", "target_term": "全部"}), revoke])
+        self.assertEqual(result["code"], "grant_revoked")
+        self.assertEqual(result["tool_results"], [])
+        self.assertEqual(history, [])
+
+    def test_schema_correction_consumes_existing_step_budget(self):
+        result, _, model = self.run_model([call("query_my_records", {
+            "operation": "major_academic", "target_term": "全部"})], max_steps=1)
+        self.assertEqual(result["code"], "turn_budget_exceeded")
+        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(self.executed, [("get_my_context", {})])
+
+    def test_schema_correction_consumes_existing_tool_budget(self):
+        model = ScriptedModel([call("query_my_records", {"operation": "major_academic", "target_term": "全部"}),
+            call("query_my_records", {"operation": "major_academic"}, "corrected")])
+        service = PersonalDialogueService(model, self.authorize, self.execute, max_tools=2)
+        result, _ = service.run("合成查询", data_use="personal_retrieval", emit=self.emit)
+        self.assertEqual(result["code"], "turn_budget_exceeded")
+        self.assertEqual(self.executed, [("get_my_context", {})])
 
     def test_one_format_repair_reuses_tool_results_and_preserves_clean_history(self):
         malformed = {"role": "assistant", "content": '```json\n{"kind":"answer"}\n```'}
@@ -175,6 +453,24 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertNotIn(self.previous["run_id"], json.dumps(history))
         self.assertEqual([kind for kind, _ in self.events], ["tool.start", "tool.end"])
 
+    def test_diagnostics_admit_registered_timetable_exam_reads_but_not_arbitrary_read_names(self):
+        for name, operation, term in (("read_my_timetable", "timetable", "2023-2024-AW"),
+                                      ("read_my_exams", "exams", "2023-2024-A")):
+            with self.subTest(name=name):
+                previous = deepcopy(self.previous)
+                previous["events"][0]["fields"].update(tool_name=name, operation=operation, target_term=term)
+                def explain(messages, tools):
+                    value = json.loads(messages[-1]["content"])
+                    self.assertEqual(value["diagnostic"]["events"][0]["fields"]["tool_name"], name)
+                    return final({"kind": "answer", "claims": [{"text": "上一轮只读取得相应安排，随后答复格式检查未完成。",
+                        "evidence_ids": [value["evidence_id"]]}]})
+                result, _, _ = self.run_model([call("get_my_run_diagnostics"), explain], execution_context=previous)
+                self.assertEqual(result["status"], "completed", result.get("code"))
+        previous["events"][0]["fields"]["tool_name"] = "read_my_arbitrary_endpoint"
+        with self.assertRaises(PersonalDialogueError) as caught:
+            self.run_model([], execution_context=previous)
+        self.assertEqual(caught.exception.code, "invalid_execution_context")
+
     def test_no_prior_run_cannot_produce_diagnostic_evidence(self):
         result, history, model = self.run_model([call("get_my_run_diagnostics")])
         self.assertNotIn("get_my_run_diagnostics", {row["function"]["name"] for row in model.calls[0][1]})
@@ -216,6 +512,183 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
                 result, _, _ = self.run_model([final(value), final(value)])
                 self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], detail)
                 self.assertNotIn("NEVER-SEND", json.dumps(result["validation_diagnostics"]))
+
+
+class ReadinessDialogueTests(unittest.TestCase):
+    def setUp(self):
+        self.executed = []
+        self.context = {"status": "available", "operations": [],
+            "api_operations": ["academic", "major_academic", "timetable", "exams"],
+            "capabilities": {"recommendation_input_check": True, "live_record_query": True,
+                "course_catalog_search": True, "read_only_acquisition": True, "curriculum_local_search": True},
+            "course_catalog": {"status": "ready"}, "source_receipts": []}
+        self.arguments = {"recommendation_kind": "timetable", "target_term": "2023-2024-AW"}
+        self.override = None
+
+    def execute(self, name, args):
+        self.executed.append((name, deepcopy(args)))
+        if name == "get_my_context":
+            return deepcopy(self.context)
+        if name == "check_recommendation_inputs":
+            return deepcopy(self.override) if self.override is not None else self.wrapper(args)
+        raise AssertionError("readiness_must_not_acquire_other_sources")
+
+    def wrapper(self, args):
+        return {"status": "available", "data_kind": "personal_source", "check_executed": True,
+                "readiness": assess_recommendation_readiness(self.context, **args)}
+
+    def run_model(self, responses):
+        model = ScriptedModel(responses)
+        service = PersonalDialogueService(model, lambda: {"scope_key": "SYNTHETIC-READINESS"}, self.execute)
+        response, history = service.run("先检查2023-2024秋冬的选课课表推荐输入。", data_use="personal_retrieval")
+        return response, history, model
+
+    @staticmethod
+    def readiness_answer(messages, tools):
+        value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+        return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
+            "evidence_id": value["evidence_id"], "sections": ["next_step"]}]})
+
+    def test_supported_readiness_tool_yields_bounded_proof_without_generation_or_other_reads(self):
+        result, _, model = self.run_model([call("check_recommendation_inputs", self.arguments), self.readiness_answer])
+        self.assertEqual(result["status"], "completed", result.get("code"))
+        declared = {tool["function"]["name"] for tool in model.calls[0][1]}
+        self.assertIn("check_recommendation_inputs", declared)
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "check_recommendation_inputs"])
+        proof = result["citations"][0]
+        self.assertEqual(proof["kind"], "recommendation_readiness")
+        self.assertEqual(proof["readiness"]["status"], "not_ready")
+        self.assertFalse(proof["readiness"]["can_generate"])
+        self.assertFalse(proof["readiness"]["can_save_or_export"])
+        self.assertEqual(result["tool_results"][-1]["result"]["status"], "available")
+        self.assertIn("真实推荐尚未就绪", result["reply"])
+        self.assertIn("2023-2024学年秋冬学期", result["reply"])
+        self.assertIn("方案生成、保存和导出均未开放", result["reply"])
+        self.assertNotIn("来源准备：", result["reply"])
+        self.assertNotIn("仍需核实：", result["reply"])
+        remote = json.loads(next(row["content"] for row in reversed(model.calls[-1][0]) if row["role"] == "tool"))
+        self.assertEqual(set(remote["readiness"]), set(proof["readiness"]))
+        self.assertIn("它们不是全量候选", remote["readiness"]["next_step"])
+
+    def test_missing_or_non_boolean_capability_never_declares_or_executes_readiness(self):
+        for capability in (False, 1, None):
+            with self.subTest(capability=capability):
+                self.executed.clear()
+                self.context["capabilities"]["recommendation_input_check"] = capability
+                result, _, model = self.run_model([call("check_recommendation_inputs", self.arguments)])
+                self.assertEqual(result["code"], "tool_not_allowed")
+                self.assertNotIn("check_recommendation_inputs", {tool["function"]["name"] for tool in model.calls[0][1]})
+                self.assertEqual(self.executed, [("get_my_context", {})])
+
+    def test_invalid_identity_scope_or_kind_arguments_are_not_executed(self):
+        for arguments in ({}, {"recommendation_kind": "all"}, {"recommendation_kind": "courses", "target_term": None},
+                          {"recommendation_kind": "courses", "target_term": "2023-2024-A"},
+                          {"recommendation_kind": "courses", "owner_student_id": "SYNTHETIC-OTHER"}):
+            with self.subTest(arguments=arguments):
+                self.executed.clear()
+                result, _, model = self.run_model([call("check_recommendation_inputs", arguments)])
+                self.assertEqual(result["code"], "invalid_tool_arguments")
+                self.assertEqual(len(model.calls), 1)
+                self.assertEqual(self.executed, [("get_my_context", {})])
+
+    def test_unsupported_generation_and_private_tool_fields_never_mint_readiness_proof(self):
+        for injection in ("private", "generation"):
+            with self.subTest(injection=injection):
+                self.executed.clear()
+                self.override = self.wrapper(self.arguments)
+                if injection == "private":
+                    self.override["readiness"]["sources"][0]["owner_student_id"] = "PRIVATE-OWNER"
+                else:
+                    self.override["readiness"]["can_generate"] = True
+                result, _, model = self.run_model([call("check_recommendation_inputs", self.arguments),
+                    final({"kind": "not_ready", "reason": "recommendation_not_ready"})])
+                self.assertEqual(result["status"], "completed")
+                self.assertTrue(result["tool_results"][-1]["error"])
+                self.assertEqual(result["tool_results"][-1]["result"]["code"], "invalid_tool_result")
+                self.assertFalse(any(proof["kind"] == "recommendation_readiness" for proof in result["citations"]))
+                self.assertNotIn("PRIVATE-OWNER", json.dumps(model.calls))
+
+    def test_readiness_has_independent_utf8_budget_and_no_unevidenced_remote_fallback(self):
+        wrapper, args = self.wrapper(self.arguments), self.arguments
+        proofs, occupied = {}, {kind: limit for kind, limit in EVIDENCE_LIMITS.items() if kind != "P"}
+        budget = [MAX_EGRESS_CHARS - EVIDENCE_LIMITS["P"], 0, occupied]
+        _, remote = PersonalDialogueService._project("check_recommendation_inputs", wrapper, args,
+            "12345678", proofs, 0, budget, set())
+        self.assertIn("evidence_id", remote)
+        self.assertEqual(proofs[remote["evidence_id"]]["kind"], "recommendation_readiness")
+        self.assertLessEqual(budget[2]["P"], 6000)
+        _, exhausted = PersonalDialogueService._project("check_recommendation_inputs", wrapper, args,
+            "12345678", proofs, 1, [6000, 0, {"P": 6000}], set())
+        self.assertEqual(exhausted["status"], "not_ready")
+        self.assertNotIn("evidence_id", exhausted)
+        self.assertNotIn("readiness", exhausted)
+
+    def test_readiness_proof_never_supports_generated_plan_assertion(self):
+        def unsupported(messages, tools):
+            value = json.loads(messages[-1]["content"])
+            return final({"kind": "answer", "claims": [{"text": "已生成推荐课表。",
+                "evidence_ids": [value["evidence_id"]]}]})
+        result, _, _ = self.run_model([call("check_recommendation_inputs", self.arguments), unsupported])
+        self.assertEqual(result["code"], "unsupported_personal_claim")
+        self.assertEqual(result["repair_attempts"], 0)
+
+    def test_benign_readiness_free_text_uses_one_format_repair_without_reexecuting_check(self):
+        def ordinary(messages, tools):
+            value = json.loads(messages[-1]["content"])
+            return final({"kind": "answer", "claims": [{"text": "UNTRUSTED-READINESS-DRAFT：需要核对推荐输入。",
+                "evidence_ids": [value["evidence_id"]]}]})
+        result, history, model = self.run_model([call("check_recommendation_inputs", self.arguments), ordinary, self.readiness_answer])
+        self.assertEqual(result["status"], "completed", result.get("code"))
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "readiness_requires_structured_claim")
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "check_recommendation_inputs"])
+        self.assertNotIn("UNTRUSTED-READINESS-DRAFT", json.dumps(model.calls[-1][0], ensure_ascii=False))
+        self.assertNotIn("UNTRUSTED-READINESS-DRAFT", json.dumps(history, ensure_ascii=False))
+        self.assertIn("真实推荐尚未就绪", result["reply"])
+
+    def test_readiness_claim_rejects_extra_capabilities_text_and_invalid_sections(self):
+        cases = [({"text": "UNTRUSTED-TEXT"}, ["sources"]), ({"can_generate": True}, ["sources"]),
+                 ({}, []), ({}, ["sources", "sources"]), ({}, ["all"])]
+        for extra, sections in cases:
+            with self.subTest(extra=extra, sections=sections):
+                self.executed.clear()
+                def malformed(messages, tools):
+                    value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+                    return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
+                        "evidence_id": value["evidence_id"], "sections": sections, **extra}]})
+                result, _, _ = self.run_model([call("check_recommendation_inputs", self.arguments), malformed, malformed])
+                self.assertEqual(result["code"], "invalid_final_answer")
+                self.assertFalse("UNTRUSTED" in result["reply"])
+
+    def test_typed_readiness_can_mix_with_ordinary_record_and_curriculum_claims(self):
+        proofs = {}
+        _, remote = PersonalDialogueService._project("check_recommendation_inputs", self.wrapper(self.arguments),
+            self.arguments, "12345678", proofs, 0, [0, 0, {}], set())
+        proofs.update({"record-reference": {"kind": "record", "tool_index": 1, "record": {"course_name_raw": "合成课程", "grade_raw": "80"}},
+                       "curriculum-reference": {"kind": "curriculum", "tool_index": 2, "text": "合成模块选修3学分。"}})
+        value = {"kind": "answer", "claims": [
+            {"kind": "recommendation_readiness", "evidence_id": remote["evidence_id"], "sections": ["dependencies"]},
+            {"text": "合成课程的来源成绩为80。", "evidence_ids": ["record-reference"]},
+            {"text": "这份培养片段写有合成模块选修3学分。", "evidence_ids": ["curriculum-reference"]}]}
+        reply, decision, citations = PersonalDialogueService._final(json.dumps(value), proofs)
+        self.assertIn("真实推荐尚未就绪", reply)
+        self.assertIn("合成课程的来源成绩为80", reply)
+        self.assertIn("合成模块选修3学分", reply)
+        self.assertEqual(len(decision["evidence_ids"]), 3)
+        self.assertEqual([citation["kind"] for citation in citations], ["recommendation_readiness", "record", "curriculum"])
+        proofs[remote["evidence_id"]]["readiness"]["can_generate"] = True
+        with self.assertRaises(PersonalDialogueError) as caught:
+            PersonalDialogueService._final(json.dumps(value), proofs)
+        self.assertEqual(caught.exception.validation_diagnostic["failure_detail"], "readiness_contract_invalid")
+
+    def test_readiness_claim_cannot_relabel_other_evidence_kind(self):
+        def wrong_kind(messages, tools):
+            value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
+                "evidence_id": value["evidence_id"], "sections": ["next_step"]}]})
+        result, _, _ = self.run_model([call("get_my_context"), wrong_kind, wrong_kind])
+        self.assertEqual(result["code"], "unverified_personal_answer")
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "readiness_evidence_kind_invalid")
 
 
 if __name__ == "__main__":

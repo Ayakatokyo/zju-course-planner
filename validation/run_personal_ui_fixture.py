@@ -127,11 +127,20 @@ class ScriptedPersonalModel:
                                               "query": "SYNTHETIC-PE-REPEAT" if "SYNTHETIC-PE-REPEAT" in question else "", "limit": 15})
         result = current[0]
         rows = result.get("matches") or result.get("records") or []
-        summary_id = result.get("source_grade_summary", {}).get("evidence_id")
+        summary = result.get("source_grade_summary", {})
+        summary_id = summary.get("evidence_id")
         ids = ([summary_id] if summary_id else []) + [row["evidence_id"] for row in rows if row.get("evidence_id")]
-        decision = ({"kind": "answer", "claims": [{"text": "合成协议验证：以下片段仅来自当前已读范围，内容及适用仍待核验。",
-                                                     "evidence_ids": ids[:3]}]}
-                    if ids else {"kind": "not_ready", "reason": "insufficient_evidence"})
+        if summary_id:
+            fallback_sections = ["counts", "numeric_grades"] + (["completion_status"]
+                if isinstance(summary.get("completion_status_counts"), dict) else [])
+            sections = [section for section in ("counts", "numeric_grades", "completion_status")
+                        if section in summary.get("available_sections", fallback_sections)]
+            decision = {"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary_id,
+                "sections": sections}]}
+        else:
+            decision = ({"kind": "answer", "claims": [{"text": "合成协议验证：以下片段仅来自当前已读范围，内容及适用仍待核验。",
+                                                         "evidence_ids": ids[:3]}]}
+                        if ids else {"kind": "not_ready", "reason": "insufficient_evidence"})
         return {"role": "assistant", "content": json.dumps(decision, ensure_ascii=False)}
 
 

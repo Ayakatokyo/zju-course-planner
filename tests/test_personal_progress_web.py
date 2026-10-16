@@ -81,7 +81,7 @@ const events=[
 context.detail={run:{run_id:'RUN-12345678abcdef',request_id:'12345678-abcd-1234-abcd-123456789012',status:'failed',model:'provider-real',thinking:true,duration_ms:12600},events};
 evaluate("state.agentRunDetails[detail.run.run_id]=detail;state.agentTurns=[{request_id:detail.run.request_id,run_id:detail.run.run_id,status:'failed',message:'查看成绩',reply:'答复尚未完成',tool_results:[],citations:[]}];renderAssistant()");
 const html=element('#panel-assistant').innerHTML;
-assert.match(html,/服务读取来源/);assert.match(html,/read_my_major_academic/);assert.match(html,/已读取 60 \/ 来源报告 104 条/);assert.match(html,/还有未读取内容/);assert.match(html,/匹配 60 条/);assert.match(html,/返回 15 条/);assert.match(html,/本轮已开启深度思考/);assert.match(html,/第 2 次模型调用/);assert.match(html,/修正答复格式与引用/);assert.match(html,/结论条数超出允许范围/);assert.match(html,/9 条结论/);assert.match(html,/invalid_final_answer/);assert.match(html,/运行 12345678 · 请求 12345678 · 12.6 秒/);assert.match(html,/实际调用记录/);assert.match(html,/供应商可见推理 · 2 段/);assert.match(html,/第一段实际返回/);assert.match(html,/第二段实际返回/);assert.doesNotMatch(html,/PRIVATE-QUERY|PRIVATE-FILE|内部思维已展示|运行Python脚本/);
+assert.match(html,/服务读取来源/);assert.match(html,/read_my_major_academic/);assert.match(html,/已读取 60 \/ 来源报告 104 条/);assert.match(html,/还有未读取内容/);assert.match(html,/匹配 60 条/);assert.match(html,/返回 15 条/);assert.match(html,/本轮已开启深度思考/);assert.match(html,/第 2 次模型调用/);assert.match(html,/修正答复格式与引用/);assert.match(html,/结论条数超出允许范围/);assert.match(html,/9 条结论/);assert.match(html,/invalid_final_answer/);assert.match(html,/运行 12345678 · 请求 12345678 · 12.6 秒/);assert.match(html,/实际处理记录/);assert.match(html,/供应商可见推理 · 2 段/);assert.match(html,/第一段实际返回/);assert.match(html,/第二段实际返回/);assert.doesNotMatch(html,/PRIVATE-QUERY|PRIVATE-FILE|内部思维已展示|运行Python脚本/);
 assert.ok(html.indexOf('第一段实际返回')<html.indexOf('答复尚未完成'));
 // The HTTP service returns flat fields. Also accept the durable store envelope
 // without confusing it with proof that this is the actual HTTP response shape.
@@ -129,6 +129,19 @@ assert.match(evaluate("agentProcessStage({status:'running',events:[{kind:'tool.e
 assert.deepEqual(Array.from(evaluate("['not_ready','accepted','rejected','skipped','timeout'].map(agentRunStatus)")),['资料未就绪','已通过','未通过','未执行','超时']);
 """)
 
+    def test_rejected_tool_arguments_show_check_and_repair_without_claiming_execution(self):
+        self.run_js(r"""
+context.rejection={kind:'tool.rejected',sequence:3,tool_name:'query_my_records',error_code:'invalid_tool_arguments',failure_detail:'argument_schema_mismatch',status:'retrying',attempt:1,count:1,arguments:{query:'PRIVATE-QUERY'}};
+const markup=evaluate('agentRunEventMarkup(rejection)');
+assert.match(markup,/本人教务记录 · 工具参数检查/);assert.match(markup,/参数未通过检查，未执行；正在修正/);assert.doesNotMatch(markup,/开始调用|调用返回|PRIVATE-QUERY|运行Python|脚本执行/);
+assert.match(evaluate("agentProcessStage({status:'running',events:[rejection]})"),/参数检查未通过，正在修正/);
+const failed=evaluate("agentRunEventMarkup({...rejection,status:'failed',attempt:2})");assert.match(failed,/参数未通过检查，未执行；本轮未完成/);assert.doesNotMatch(failed,/正在修正/);
+const description=evaluate("agentProcessDescription({status:'running',events:[{kind:'tool.end',tool_name:'get_my_context',status:'completed'},rejection]})");assert.match(description,/收到 1 次本机查询返回/);assert.doesNotMatch(description,/收到 2 次/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentTurns=[{pending:true,request_id:'REQUEST-A',progress:{status:'running',confirmed:true,events:[rejection]}}];renderAssistant()");
+const process=element('#panel-assistant').innerHTML;assert.match(process,/实际处理记录/);assert.match(process,/工具参数检查/);assert.match(process,/未执行；正在修正/);assert.doesNotMatch(process,/实际调用记录|PRIVATE-QUERY/);
+const stored=evaluate("agentRunEventMarkup({kind:'tool.rejected',fields:{tool_name:'query_my_records',error_code:'invalid_tool_arguments',failure_detail:'argument_schema_mismatch',status:'retrying'}})");assert.match(stored,/工具参数检查/);assert.match(stored,/未执行；正在修正/);
+""")
+
     def test_process_defaults_close_on_completion_and_preserve_only_manual_choices(self):
         self.run_js(r"""
 evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentTurns=[{pending:true,request_id:'REQUEST-A',run_id:'RUN-A',progress:{status:'running',confirmed:true,thinking:true,events:[]}}]");
@@ -143,6 +156,46 @@ details.open=true;summary.listeners.click();assert.doesNotMatch(opening(),/\sope
 evaluate("state.agentTurns[0].pending=true;state.agentTurns[0].progress.status='running'");assert.doesNotMatch(opening(),/\sopen\s*$/);
 details.open=false;summary.listeners.click();evaluate("state.agentTurns[0].pending=false;state.agentTurns[0].progress.status='completed'");assert.match(opening(),/\sopen\s*$/);
 evaluate('clearAgentConversation()');assert.equal(evaluate('Object.keys(state.agentProcessOpen).length'),0);
+""")
+
+    def test_personal_clarification_waits_for_input_without_blocking_the_composer(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentTurns=[{request_id:'REQUEST-A',run_id:'RUN-A',status:'completed',task_status:'awaiting_user',reply_origin:'personal_model_clarification',message:'查一下课表',reply:'需要查询哪个学年和学期？',tool_results:[],citations:[],progress:{status:'completed',confirmed:true,events:[]}}];state.agentDraft='2024-2025秋冬';renderAssistant()");
+let html=element('#panel-assistant').innerHTML;assert.match(html,/<strong>待补充信息<\/strong>/);assert.match(html,/<summary>处理过程 · 本轮已结束，待补充信息<\/summary>/);assert.doesNotMatch(html,/本轮处理完成|这段对话仍在处理/);assert.equal(evaluate('state.agentHistoryPending'),false);assert.equal(evaluate('agentCanSend()'),true);assert.doesNotMatch(html.match(/<textarea[^>]*>/)[0],/disabled/);
+// Completed run details cannot overwrite the server's task state.
+evaluate("state.agentRunDetails['RUN-A']={run:{run_id:'RUN-A',status:'completed'},events:[]};renderAssistant()");assert.match(element('#panel-assistant').innerHTML,/本轮已结束，待补充信息/);
+evaluate("state.agentTurns[0].task_status='needs_clarification';renderAssistant()");assert.match(element('#panel-assistant').innerHTML,/本轮已结束，待补充信息/);
+// Lazy history preserves the load action and communicates the same task state.
+evaluate("delete state.agentRunDetails['RUN-A'];delete state.agentTurns[0].progress;renderAssistant()");html=element('#panel-assistant').innerHTML;assert.match(html,/<summary data-action="agent-process-load"[^>]*>处理过程 · 本轮已结束，待补充信息<\/summary>/);
+// Old responses still label the clarification, but do not invent a task status.
+evaluate("delete state.agentTurns[0].task_status;state.agentTurns[0].progress={status:'completed',confirmed:true,events:[]};renderAssistant()");html=element('#panel-assistant').innerHTML;assert.match(html,/<strong>待补充信息<\/strong>/);assert.match(html,/本轮处理完成/);
+evaluate("state.agentTurns[0].task_status='completed';state.agentTurns[0].reply_origin='personal_model_evidence';renderAssistant()");assert.doesNotMatch(element('#panel-assistant').innerHTML,/待补充信息/);
+assert.doesNotMatch(evaluate("agentProcessStage({status:'running',events:[{kind:'model.start'}]},'awaiting_user')"),/本轮已结束/);
+""")
+
+    def test_terminal_turn_overrides_stale_running_progress_when_final_details_fail(self):
+        self.run_js(r"""
+for(const choice of ['untouched','open','closed']){
+ evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,thinking:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentDraft='查课表'");
+ let requestId,release;context.fetch=(path,options)=>{
+  if(path==='/api/chat/turn'){requestId=JSON.parse(options.body).request_id;return new Promise(resolve=>{release=resolve;});}
+  if(path==='/api/chat/progress')return Promise.resolve({ok:true,json:async()=>({request_id:requestId,run_id:'RUN-A',status:'running',thinking:true,events:[{kind:'model.start'}],next_sequence:1,available:true,active_reasoning:{call:1,text:'实际收到但最终详情尚未载入的片段'}})});
+  if(path==='/api/chat/run')return Promise.resolve({ok:false,status:503,text:async()=>JSON.stringify({error:'合成详情不可用'})});
+  if(path==='/api/chat/conversations?limit=100')return Promise.resolve({ok:true,json:async()=>({conversations:[],data_kind:'personal_source'})});
+  throw Error(path);
+ };
+ const pending=evaluate('sendAgentTurn()');for(let index=0;index<20;index++)await Promise.resolve();
+ assert.match(element('#panel-assistant').innerHTML.match(/<details class="agent-process"[^>]*>/)[0],/\sopen[\s>]/);
+ if(choice!=='untouched'){context.manualOpen=choice==='open';evaluate('state.agentProcessOpen[state.agentTurns[0].request_id]=manualOpen');}
+ release({ok:true,json:async()=>({conversation_id:'CHAT-A',turn_id:1,run_id:'RUN-A',status:'completed',task_status:'awaiting_user',reply_origin:'personal_model_clarification',reply:'需要哪个学年？',tool_results:[],citations:[],data_kind:'personal_source'})});await pending;
+ let html=element('#panel-assistant').innerHTML,opening=html.match(/<details class="agent-process"[^>]*>/)[0];
+ assert.equal(/\sopen[\s>]/.test(opening),choice==='open');assert.match(html,/本轮已结束，待补充信息/);assert.match(html,/最后收到的推理片段/);assert.match(html,/实际收到但最终详情尚未载入的片段/);assert.match(html,/本轮运行过程暂未载入/);assert.doesNotMatch(html,/正在返回的推理|模型正在深度思考/);
+ assert.equal(evaluate('state.agentTurns[0].progress.status'),'running','the raw progress snapshot remains unchanged');assert.equal(evaluate('agentTurnProgress(state.agentTurns[0]).status'),'completed');
+ if(choice==='untouched')assert.equal(evaluate('Object.keys(state.agentProcessOpen).length'),0);
+ // A delayed running run cache must also yield to the confirmed turn result.
+ evaluate("state.agentRunDetails['RUN-A']={run:{run_id:'RUN-A',status:'running'},events:[]};renderAssistant()");html=element('#panel-assistant').innerHTML;assert.match(html,/本轮已结束，待补充信息/);assert.equal(/\sopen[\s>]/.test(html.match(/<details class="agent-process"[^>]*>/)[0]),choice==='open');
+ evaluate("state.agentTurns[0].status='failed'");assert.equal(evaluate('agentTurnProgress(state.agentTurns[0]).status'),'failed');assert.match(evaluate('renderAgentProcess(state.agentTurns[0])'),/本轮处理未完成/);
+}
 """)
 
     def test_personal_evidence_has_one_closed_entry_and_merged_numbered_records(self):
@@ -178,6 +231,21 @@ const html=evaluate("renderPersonalEvidence({tool_results:[{name:'search_my_curr
 assert.equal((html.match(/<summary>查看依据/g)||[]).length,1);assert.equal((html.match(/实际引用条款/g)||[]).length,1);assert.ok(html.indexOf('[1] 实际引用的专业选修')<html.indexOf('其他检索片段（2）'));assert.ok(html.indexOf('其他检索片段（2）')<html.indexOf('未引用的首个噪声命中'));
 assert.match(html,/<details class="agent-other-evidence"><summary>其他检索片段（2）/);assert.match(html,/<details><summary>查看原文上下文/);assert.match(html,/引用条款完整上下文/);assert.match(html,/噪声完整上下文/);assert.match(html,/另一个可核对片段/);assert.doesNotMatch(html,/<details[^>]*\sopen[\s>]/);
 const remaining=evaluate("renderPersonalEvidence({tool_results:[],citations:[{...cited,kind:'curriculum',citation_number:1}]},'REQUEST-B')");assert.match(remaining,/<details><summary>查看原文上下文/);assert.match(remaining,/引用条款完整上下文/);assert.doesNotMatch(remaining,/personal-evidence-context/);
+""")
+
+    def test_recommendation_readiness_stays_in_one_evidence_entry_and_never_claims_a_plan(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
+context.readiness={status:'not_ready',can_generate:false,can_save_or_export:false,sources:[{id:'course_reference',status:'available'},{id:'academic_records',status:'partial'},{id:'curriculum',status:'needs_clarification'},{id:'existing_timetable',status:'failed'},{id:'exams',status:'missing'}],dependencies:[{id:'identity_and_study_facts',status:'required_dependency_unverified',missing:['stable_course_and_attempt_identity','completion_recognition_and_repeat_policy']},{id:'current_candidate_pool',status:'required_dependency_unverified',missing:['bounded_current_offerings','personal_eligibility_and_fresh_capacity']}],delivery_dependency:'real_draft_freeze_and_export_contract_not_connected',next_step:'PRIVATE-UNEXPECTED-TEXT'};
+context.readiness.recommendation_kind='timetable';context.readiness.target_term='2024-2025-SS';
+context.readinessResult={evidence_id:'P-SYNTHETIC-1',check_executed:true,readiness:context.readiness};
+context.readinessTurn={tool_results:[{name:'check_recommendation_inputs',result:context.readinessResult}],citations:[{kind:'recommendation_readiness',evidence_id:'P-SYNTHETIC-1',citation_number:2,readiness:context.readiness}]};
+const html=evaluate("renderPersonalEvidence(readinessTurn,'REQUEST-A')");assert.equal((html.match(/<summary>查看依据/g)||[]).length,1);assert.equal((html.match(/推荐准备检查/g)||[]).length,1);assert.match(html,/\[2\] 推荐准备检查/);assert.match(html,/检查已完成，真实推荐尚未就绪/);assert.match(html,/课程名称与代码参考：可用/);assert.match(html,/成绩记录：部分取得/);assert.match(html,/培养资料：需补充查询范围/);assert.match(html,/已有课表：读取未完成/);assert.match(html,/已有考试：尚未具备/);assert.match(html,/稳定课程与修读实例身份/);assert.match(html,/本人资格与最新余量/);assert.match(html,/保存与导出契约仍待接通/);assert.doesNotMatch(html,/<details[^>]*\sopen[\s>]/);assert.doesNotMatch(html,/PRIVATE-UNEXPECTED-TEXT|stable_course_and_attempt_identity|real_recommendation_not_ready|data-action="save-agent-option"|已推荐/);
+const citation=evaluate("agentCitation(readinessTurn.citations[0])");assert.match(citation,/\[2\] 推荐准备检查/);assert.doesNotMatch(citation,/来源类型待确认/);
+assert.match(html,/课表推荐 · 2024-2025学年春夏/);
+assert.match(evaluate("agentRunEventMarkup({kind:'tool.end',tool_name:'check_recommendation_inputs',status:'completed'})"),/推荐输入检查/);
+const unexecuted=evaluate('personalRecommendationReadiness(readiness,false)');assert.match(unexecuted,/状态待确认/);assert.doesNotMatch(unexecuted,/检查已完成|课程名称与代码参考：可用/);
+const unknown=evaluate("personalRecommendationReadiness({...readiness,target_term:'/private/never-show',recommendation_kind:'PRIVATE-KIND',sources:[{id:'/private/never-show',status:'PRIVATE-STATUS'}],dependencies:[{id:'PRIVATE-DEPENDENCY',status:'required_dependency_unverified',missing:['PRIVATE-DETAIL']}]},true)");assert.match(unknown,/其他来源：待确认/);assert.match(unknown,/其他依赖：其他项目待确认/);assert.doesNotMatch(unknown,/\/private|PRIVATE-/);
 """)
 
 if __name__ == '__main__':

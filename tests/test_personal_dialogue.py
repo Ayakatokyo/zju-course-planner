@@ -398,8 +398,10 @@ class PersonalDialogueTests(unittest.TestCase):
             self.assertEqual(summary["completion_status_counts"], {"known":0,"unknown":22})
             self.assertFalse(summary["coverage"]["complete_within_scope"])
             self.assertFalse(remote["retrieval"]["complete_within_loaded_snapshot"])
-            return final({"kind": "answer", "claims": [{"text": "当前部分来源范围内共匹配22条纯数字成绩，简单不加权均值64.55；这不是绩点，也不能证明已获学分。",
-                "evidence_ids": [summary["evidence_id"]]}]})
+            self.assertEqual(summary["record_source"]["operation"], "academic")
+            self.assertEqual(summary["record_source"]["label"], "2099-2100学年秋冬学期成绩来源")
+            return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary["evidence_id"],
+                "sections": ["counts", "numeric_grades", "completion_status"]}]})
         result, messages, _ = self.run_service([call("query_my_records", {"operation": "academic", "query": "我的成绩怎么样"}), summary_answer])
         self.assertEqual(result["status"], "completed", result.get("code"))
         citation = result["citations"][0]
@@ -408,6 +410,9 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(citation["source_grade_summary"]["matched_records"], 22)
         self.assertEqual(citation["source_grade_summary"]["completion_status_counts"], {"known":0,"unknown":22})
         self.assertIn("[1]", result["reply"])
+        self.assertIn("2099-2100学年秋冬学期成绩来源", result["reply"])
+        self.assertIn("64.55", result["reply"])
+        self.assertNotIn("主修", result["reply"])
         self.assertNotIn("NEVER-SEND", json.dumps(messages))
 
     def test_invalid_summary_cannot_mint_evidence_or_echo_untrusted_fields(self):

@@ -1,0 +1,125 @@
+{
+  "scope": "Real DeepSeek + exclusively synthetic school sources, v8 recommendation retest",
+  "tool_contract": "personal-question-tools-v8-typed-readiness",
+  "real_school_network": false,
+  "real_personal_data": false,
+  "timestamp_utc": "2026-10-16T06:54:21.369761+00:00",
+  "source_sha256": {
+    "course_assistant/auth.py": "f4b2e51bdd3953c436febe6de190dc638b03299de1aa03bf6b4888fcf04af371",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/chat_progress.py": "e47b4a1a5a43978e4fd909cc43c1ac4d42a882c8c63974d5a0bf8455b8ace56c",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "course_assistant/school_accounts.py": "e8365019bb2d8e665fd700756733fedbc174909f41a8d9571fdb474481115c49",
+    "course_assistant/student_browser_bridge.py": "a32c9f477a45b5a29170ce6c7d5ebd1849b004da82906386e98ce377986c6325",
+    "course_assistant/server.py": "638d42c5e30101949447ef8642e6e880423a684a4bde4e76feba49b48f625635",
+    "course_assistant/student_sources.py": "69ac7526efa176c58382d0c6ff761bdef12ea79eadb783bce21618acf5644432",
+    "course_assistant/chat_model_settings.py": "3517bc218934ade342b01c547d0cbdd852ac86371b7df6fd047705115d5a3572",
+    "course_assistant/school_period_times.py": "17cb3b2ba484e99b0c74eac11638a2b12708b72577d81278e2f793db27d9d71d",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/recommendation_readiness.py": "8933b9d1ebb326ba5709c4e97112e92045a1ba2424506776c3adc716e06795e5",
+    "course_assistant/chat_runs.py": "a4a7b79be86c8995b7c18bc0a00109b52c9bbe826d884c8f83f3afb345ebc462",
+    "course_assistant/personal_tasks.py": "f226c6bfda6d42977fee6de65b0d6e2adbd384edc3a5d45fad4cfe7292a38033",
+    "course_assistant/model_client.py": "adc57059094cccfc5315e76449247df4232ce4f7dbdc31d0616dff0030c34fb3",
+    "course_assistant/student_source_parsers.py": "0486922311b281ed671bc9461fac32e47fdb38bbc419cd4a7722f7f061f3ec3b",
+    "course_assistant/student_source_client.py": "1028eef51a6375173c4d254ab7e33acf3c95f8607c8eccd80889c0d247dc0db4",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/personal_observations.py": "5f1d5d0e4aadcde35ca0633331f96619227f8fb75693a49766b0b93d554f6aa5",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/personal_acquisition.py": "7dde1be4ba94cfd8619516b3793c317556c475dddf48e08f8e3a69f72e98df77",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/chat.py": "f84529e7af1e9c4f1badf85bf84fa6af3e02235a788802d8f4c04c5bb84de5f4",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/course_catalog.py": "3b615467eacef315fe8dcb4823d7c5c9ec5113a55f26f01fae19d9125f8aa4ed",
+    "course_assistant/student_plan_acquisition.py": "445a31c57221a2b8adf13eee1aaec59313da9248d35f4ad3430fb2d7a8e1fb73",
+    "course_assistant/personal_dialogue.py": "bc14e906065d46cf83af56631b37b08abd7803ea9e2707ce0e737e7396af69f3",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "course_assistant/student_source_provider.py": "a1d0ca58dd9a60190d0ae8a98456882edc150279ae07d6720b898a8ba36f0156",
+    "course_assistant/personal_chat.py": "db5ff8a20be6b938668a3c7ee455a94d74f56a60cd4415520fbc0eb56724741c",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/school_http.py": "f81dd10cea69a61907aad92c12a8b063e8a477062b38d4a310d20d4079b87c33",
+    "course_assistant/personal_evidence.py": "ca81e77b56bb744fff1fa0bab8fe5ae99ac1b61dba9d1ae6d976340193c8f3e1"
+  },
+  "calls": [
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 42,
+      "reasoning_delta_chars": 158,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1438,
+      "usage": {
+        "prompt_tokens": 3307,
+        "completion_tokens": 114,
+        "total_tokens": 3421,
+        "prompt_cache_hit_tokens": 1024,
+        "prompt_cache_miss_tokens": 2283,
+        "prompt_tokens_details": {
+          "cached_tokens": 1024
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 42
+        }
+      },
+      "provider_reasoning_chars": 158
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 0,
+      "reasoning_delta_chars": 0,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 776,
+      "usage": {
+        "prompt_tokens": 4038,
+        "completion_tokens": 42,
+        "total_tokens": 4080,
+        "prompt_cache_hit_tokens": 3328,
+        "prompt_cache_miss_tokens": 710,
+        "prompt_tokens_details": {
+          "cached_tokens": 3328
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "provider_reasoning_chars": 0
+    }
+  ],
+  "status": "completed",
+  "code": null,
+  "reply": "选课课表准备（2023-2024学年秋冬学期）：检查已完成，真实推荐尚未就绪，方案生成、保存和导出均未开放。\n来源准备：本地课程名称与代码：可用；主修成绩来源：本轮尚未取得，可按明确范围查询；培养资料：本轮尚未取得，可按明确范围查询；已有本人课表：可用；已有本人考试安排：本轮尚未取得，可按明确范围查询。\n主修来源不代表完整修读历史。\n已有课表和考试仅用于核对已有安排，不代表可选班次清单。\n仍需核实：课程与修读身份、完成认定及重复修读政策；本人培养方案适用、审核后的规则与课程映射；限定开课候选、本人资格与最新余量；教学班身份、完整上课周次、考试时段与校历；正式中选映射、明确锁定及固定安排。\n真实方案的保存与导出契约仍待接通。\n接下来：可先查询该学期本人课表和考试作为已有安排；它们不是全量候选，还需核实候选班次及时间校历。 [1]",
+  "repair_attempts": 0,
+  "tools": [
+    "get_my_context",
+    "check_recommendation_inputs"
+  ],
+  "synthetic_source_requests": [
+    {
+      "operation": "timetable",
+      "target_term": "2023-2024-AW",
+      "page": 1
+    }
+  ],
+  "checks": {
+    "protocol_completed": true,
+    "readiness_check_executed": true,
+    "readiness_cited": true,
+    "can_generate_still_false": true,
+    "all_dependency_ids_not_exposed_in_reply": true
+  },
+  "actual_provider_generations": 2,
+  "passed": true,
+  "full_semantics": "not_accepted",
+  "real_recommendation": "not_accepted",
+  "user_acceptance": "not_assessed"
+}

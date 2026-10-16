@@ -1,0 +1,375 @@
+{
+  "kind": "real_model_synthetic_sources",
+  "tool_contract": "personal-question-tools-v7-source-tasks",
+  "real_school_network": false,
+  "real_personal_data": false,
+  "full_semantic_acceptance": "not_assessed",
+  "user_acceptance": "not_assessed",
+  "timestamp_utc": "2026-10-16T06:35:10.266918+00:00",
+  "calls": [
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 116,
+      "reasoning_delta_chars": 555,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1939,
+      "usage": {
+        "prompt_tokens": 3124,
+        "completion_tokens": 183,
+        "total_tokens": 3307,
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 2996,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 116
+        }
+      },
+      "provider_reasoning_chars": 555
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 39,
+      "reasoning_delta_chars": 159,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1332,
+      "usage": {
+        "prompt_tokens": 3423,
+        "completion_tokens": 134,
+        "total_tokens": 3557,
+        "prompt_cache_hit_tokens": 1664,
+        "prompt_cache_miss_tokens": 1759,
+        "prompt_tokens_details": {
+          "cached_tokens": 1664
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 39
+        }
+      },
+      "provider_reasoning_chars": 159
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 16,
+      "reasoning_delta_chars": 86,
+      "projected_record_count": 0,
+      "projected_summary_counts": [
+        {
+          "matched_records": 3,
+          "numeric_grade_count": 3,
+          "non_numeric_grade_count": 0,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 878,
+      "usage": {
+        "prompt_tokens": 4136,
+        "completion_tokens": 60,
+        "total_tokens": 4196,
+        "prompt_cache_hit_tokens": 3456,
+        "prompt_cache_miss_tokens": 680,
+        "prompt_tokens_details": {
+          "cached_tokens": 3456
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 16
+        }
+      },
+      "provider_reasoning_chars": 86
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 70,
+      "reasoning_delta_chars": 236,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1482,
+      "usage": {
+        "prompt_tokens": 3362,
+        "completion_tokens": 165,
+        "total_tokens": 3527,
+        "prompt_cache_hit_tokens": 1664,
+        "prompt_cache_miss_tokens": 1698,
+        "prompt_tokens_details": {
+          "cached_tokens": 1664
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 70
+        }
+      },
+      "provider_reasoning_chars": 236
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 144,
+      "reasoning_delta_chars": 567,
+      "projected_record_count": 0,
+      "projected_summary_counts": [
+        {
+          "matched_records": 4,
+          "numeric_grade_count": 4,
+          "non_numeric_grade_count": 0,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 1866,
+      "usage": {
+        "prompt_tokens": 4105,
+        "completion_tokens": 189,
+        "total_tokens": 4294,
+        "prompt_cache_hit_tokens": 3328,
+        "prompt_cache_miss_tokens": 777,
+        "prompt_tokens_details": {
+          "cached_tokens": 3328
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 144
+        }
+      },
+      "provider_reasoning_chars": 567
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 44,
+      "reasoning_delta_chars": 167,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 776,
+      "usage": {
+        "prompt_tokens": 3467,
+        "completion_tokens": 116,
+        "total_tokens": 3583,
+        "prompt_cache_hit_tokens": 1792,
+        "prompt_cache_miss_tokens": 1675,
+        "prompt_tokens_details": {
+          "cached_tokens": 1792
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 44
+        }
+      },
+      "provider_reasoning_chars": 167
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 40,
+      "reasoning_delta_chars": 180,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 2723,
+      "usage": {
+        "prompt_tokens": 4201,
+        "completion_tokens": 345,
+        "total_tokens": 4546,
+        "prompt_cache_hit_tokens": 3456,
+        "prompt_cache_miss_tokens": 745,
+        "prompt_tokens_details": {
+          "cached_tokens": 3456
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 40
+        }
+      },
+      "provider_reasoning_chars": 180
+    }
+  ],
+  "turns": [
+    {
+      "turn": 1,
+      "question": "帮我看看春夏学期的成绩概况，说明记录和未知成绩数量。",
+      "status": "completed",
+      "code": null,
+      "task_status": "awaiting_user",
+      "reply": "请明确要查询哪个学年的春夏学期（例如 2023-2024-SS 或 2024-2025-SS）？你说的是相对学期，我无法核实它对应哪一年，需要先确认 academic_year 才能读取该学期成绩概况。",
+      "decision": {
+        "kind": "clarify",
+        "request_basis": "current_message",
+        "evidence_ids": []
+      },
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        }
+      ],
+      "source_requests": [],
+      "model_generations": 1,
+      "checks": {
+        "protocol_completed": true,
+        "asks_for_scope": true,
+        "no_source_guess": true
+      }
+    },
+    {
+      "turn": 2,
+      "question": "2023-2024学年",
+      "status": "completed",
+      "code": null,
+      "task_status": "completed",
+      "reply": "2023-2024学年春夏学期成绩来源：本次匹配3条记录。其中纯数字成绩3条，文字或非标准数字成绩0条，成绩未知0条。已知纯数字成绩的简单不加权均值为85.00，最低75，最高95。这不是GPA或正式学分认定。来源完成状态字段已知0条、未知3条；这里只表示该字段是否已知，不据此推断通过、未通过或已获学分。 [1]",
+      "decision": {
+        "kind": "answer",
+        "evidence_ids": [
+          "S9c08158d-2"
+        ],
+        "source_tool_result_index": 1
+      },
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        },
+        {
+          "name": "query_my_records",
+          "arguments": {
+            "operation": "academic",
+            "mode": "summary",
+            "target_term": "2023-2024-SS",
+            "query": "",
+            "limit": 15
+          }
+        }
+      ],
+      "source_requests": [
+        {
+          "operation": "academic",
+          "target_term": "2023-2024-SS",
+          "page": 1
+        }
+      ],
+      "model_generations": 2,
+      "checks": {
+        "protocol_completed": true,
+        "correct_query_scope": true,
+        "current_read": true,
+        "source_label_correct": true,
+        "typed_summary_cited": true,
+        "pending_completed": true
+      }
+    },
+    {
+      "turn": 3,
+      "question": "那秋冬呢？",
+      "status": "completed",
+      "code": null,
+      "task_status": "completed",
+      "reply": "2023-2024学年秋冬学期成绩来源：本次匹配4条记录。其中纯数字成绩4条，文字或非标准数字成绩0条，成绩未知0条。已知纯数字成绩的简单不加权均值为75.00，最低60，最高90。这不是GPA或正式学分认定。来源完成状态字段已知0条、未知4条；这里只表示该字段是否已知，不据此推断通过、未通过或已获学分。 [1]",
+      "decision": {
+        "kind": "answer",
+        "evidence_ids": [
+          "S1a9035d3-2"
+        ],
+        "source_tool_result_index": 1
+      },
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        },
+        {
+          "name": "query_my_records",
+          "arguments": {
+            "operation": "academic",
+            "query": "",
+            "mode": "summary",
+            "target_term": "2023-2024-AW",
+            "limit": 15
+          }
+        }
+      ],
+      "source_requests": [
+        {
+          "operation": "academic",
+          "target_term": "2023-2024-AW",
+          "page": 1
+        }
+      ],
+      "model_generations": 2,
+      "checks": {
+        "protocol_completed": true,
+        "correct_query_scope": true,
+        "current_read": true,
+        "source_label_correct": true,
+        "typed_summary_cited": true,
+        "pending_completed": true
+      }
+    },
+    {
+      "turn": 4,
+      "question": "我想安排2023-2024秋冬的选课课表，先检查推荐需要哪些输入。",
+      "status": "completed",
+      "code": null,
+      "task_status": "completed",
+      "reply": "已按你指定的2023-2024秋冬学期执行选课课表推荐前的输入检查：检查本身已完成，但真实推荐尚未就绪，不能生成方案，也不能保存或导出。当前卡在若干必需依赖尚未核实：稳定的课程与修读身份及完成认定/重复修读政策、培养方案的本人适用性与已审核版本化规则和课程对应关系、该学期有界且带有本人可选性与最新容量的候选班次、稳定的教学班身份与完整上课时间/周次/考试间隔/校历映射、以及正式选课与固定安排的确认。 [1]\n\n就本条已备来源看：本地课程库可查，仅提供课程名称与代码参考；该学期本人已有课表可按2023-2024秋冬读取。培养方案检索结果显示为缺项（尚未取得本轮文件依据），主修来源的历史记录也未读取，2023-2024秋冬两季的本人考试记录同样尚未读取。 [1]\n\n可以继续的下一步是：先查询该学期你本人的课表和考试作为已有安排，但它们不是全量候选，仍不足以支撑推荐；之后还需要核实候选班次、本人可选性、容量以及时间与校历信息。 [1]",
+      "decision": {
+        "kind": "answer",
+        "evidence_ids": [
+          "Pe45a8328-2"
+        ],
+        "source_tool_result_index": 1
+      },
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        },
+        {
+          "name": "check_recommendation_inputs",
+          "arguments": {
+            "recommendation_kind": "timetable",
+            "target_term": "2023-2024-AW"
+          }
+        }
+      ],
+      "source_requests": [
+        {
+          "operation": "timetable",
+          "target_term": "2023-2024-AW",
+          "page": 1
+        }
+      ],
+      "model_generations": 2,
+      "checks": {
+        "protocol_completed": true,
+        "recommendation_check_executed": true,
+        "gate_retained": true,
+        "preparation_evidence_cited": true
+      }
+    }
+  ],
+  "actual_provider_generations": 7,
+  "elapsed_ms": 12373,
+  "passed": true,
+  "verification_boundary": "Actual model ran alongside final read-only integration work; no exact loaded-source hash binding was captured. Final engineering receipt binds the completed source separately. This is synthetic-source behavior evidence, not real-person acceptance."
+}
