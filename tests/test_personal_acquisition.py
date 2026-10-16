@@ -138,6 +138,14 @@ class PersonalAcquisitionTests(unittest.TestCase):
         self.assertEqual(self.school.calls, [])
         self.assertEqual(self.events, [])
 
+    def test_different_domain_clauses_fetch_only_their_requested_terms(self):
+        receipts = self.prepare("2023-2024秋冬成绩和2024-2025春夏课表")
+        self.assertEqual(self.school.calls, [
+            {"operation": "academic", "target_term": "2023-2024-AW", "force_refresh": True},
+            {"operation": "timetable", "target_term": "2024-2025-SS", "force_refresh": True}])
+        self.assertTrue(all(receipt["ready"] for receipt in receipts))
+        self.assertEqual(len(self.events), 4)
+
 
 class SourceRequestPlanningTests(unittest.TestCase):
     def test_generic_grades_and_specific_course_default_to_major_history(self):
@@ -157,6 +165,50 @@ class SourceRequestPlanningTests(unittest.TestCase):
             {"operation": "academic", "target_term": "2023-2024-AW"},
             {"operation": "academic", "target_term": "2024-2025-AW"}])
         self.assertEqual(len(source_requests("2022-2023、2023-2024、2024-2025学年成绩")), 6)
+
+    def test_different_domains_keep_clause_local_years_and_seasons(self):
+        expected = [
+            {"operation": "academic", "target_term": "2023-2024-AW"},
+            {"operation": "timetable", "target_term": "2024-2025-SS"}]
+        for question in ("2023-2024秋冬成绩和2024-2025春夏课表",
+                         "成绩查2023-2024秋冬，课表查2024-2025春夏",
+                         "2024-2025春夏课表，同时2023-2024秋冬成绩"):
+            with self.subTest(question=question):
+                self.assertEqual(source_requests(question), expected)
+        self.assertEqual(source_requests("2023-2024秋冬成绩和2024-2025春夏课表以及2025-2026冬学期考试"), [
+            *expected, {"operation": "exams", "target_term": "2025-2026-W"}])
+
+    def test_shared_qualifiers_continue_to_apply_to_coordinated_domains(self):
+        for question in ("2023-2024和2024-2025秋冬成绩与课表",
+                         "成绩和课表比较2023-2024秋冬和2024-2025秋冬",
+                         "2023-2024秋冬成绩与课表和2024-2025秋冬成绩与课表"):
+            with self.subTest(question=question):
+                self.assertEqual(source_requests(question), [
+                    {"operation": operation, "target_term": f"{year}-AW"}
+                    for operation in ("academic", "timetable")
+                    for year in ("2023-2024", "2024-2025")])
+
+    def test_unresolved_or_invalid_scope_in_one_domain_does_not_borrow_another(self):
+        timetable = {"operation": "timetable", "target_term": "2024-2025-SS"}
+        for question in ("上学期成绩和2024-2025春夏课表", "成绩看上学期，课表看2024-2025春夏"):
+            with self.subTest(question=question):
+                self.assertEqual(source_requests(question), [
+                    {"operation": "academic", "target_term": None, "clarification": "academic_year_required"}, timetable])
+        self.assertEqual(source_requests("2023-2025秋冬成绩和2024-2025春夏课表"), [
+            {"operation": "academic", "target_term": None, "clarification": "invalid_academic_year"}, timetable])
+        self.assertEqual(source_requests("2023-2024秋冬成绩和2024-2025培养方案"), [
+            {"operation": "academic", "target_term": "2023-2024-AW"},
+            {"operation": "curriculum", "target_term": None}])
+        self.assertEqual(source_requests("我的成绩以及2024-2025春夏课表"), [
+            {"operation": "major_academic", "target_term": "ALL-HISTORY"}, timetable])
+        self.assertEqual(source_requests("2023-2024秋冬成绩和春夏课表"), [
+            {"operation": "academic", "target_term": "2023-2024-AW"},
+            {"operation": "timetable", "target_term": None, "clarification": "academic_year_required"}])
+
+    def test_scope_limit_is_shared_by_all_clauses(self):
+        self.assertEqual(source_requests("2022-2023、2023-2024、2024-2025学年成绩和2025-2026秋冬课表"), [
+            {"operation": "academic", "target_term": None, "clarification": "source_scope_limit_exceeded"},
+            {"operation": "timetable", "target_term": None, "clarification": "source_scope_limit_exceeded"}])
 
     def test_more_than_six_scopes_are_blocked_instead_of_silently_truncated(self):
         result = source_requests("2021-2022、2022-2023、2023-2024、2024-2025学年成绩")

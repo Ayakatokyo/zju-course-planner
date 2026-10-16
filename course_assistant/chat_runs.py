@@ -22,7 +22,7 @@ import uuid
 from .auth import AuthContext
 
 
-KINDS = frozenset({"model.start", "model.end", "tool.start", "tool.end", "answer.validated",
+KINDS = frozenset({"model.start", "model.end", "tool.start", "tool.end", "tool.rejected", "answer.validated",
                    "answer.rejected", "answer.repair", "error"})
 FINAL_STATUSES = frozenset({"completed", "failed", "cancelled", "aborted"})
 COUNTS = frozenset({"step", "attempt", "count", "tool_count", "citation_count", "record_count",
@@ -38,6 +38,7 @@ EVENT_FIELDS = {
     "model.end": COMMON_FIELDS | {"provider", "model", "usage", "reasoning_content", "request_id", "completion_id", "http_status"},
     "tool.start": COMMON_FIELDS | TOOL_FIELDS,
     "tool.end": COMMON_FIELDS | TOOL_FIELDS,
+    "tool.rejected": COMMON_FIELDS | {"tool_name", "failure_detail"},
     "answer.validated": COMMON_FIELDS,
     "answer.rejected": COMMON_FIELDS | {"failure_detail"},
     "answer.repair": COMMON_FIELDS,
@@ -333,7 +334,7 @@ class ChatRunStore:
             elif key == "usage":
                 result[key] = _usage(value)
             elif key == "status":
-                if type(value) is not str or value not in {"started", "running", "completed", "failed", "cancelled", "accepted", "rejected", "ok", "unknown", "not_ready", "timeout", "skipped"}:
+                if type(value) is not str or value not in {"started", "running", "completed", "failed", "cancelled", "accepted", "rejected", "retrying", "ok", "unknown", "not_ready", "timeout", "skipped"}:
                     _fail("invalid_run_event")
                 result[key] = value
             elif key == "stage":

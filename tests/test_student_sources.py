@@ -10,8 +10,9 @@ from unittest.mock import patch
 
 from course_assistant.student_sources import (
     DOMAINS, PURPOSE, REALM, SCHEMA, SourceTaskStore, StudentSourceError,
-    match_plan, response_state, sanitize_payload,
+    business_field_diagnostics, match_plan, response_state, sanitize_payload,
 )
+from course_assistant.student_source_parsers import ACADEMIC_FIELDS
 
 
 class StudentSourcesTest(unittest.TestCase):
@@ -48,6 +49,56 @@ class StudentSourcesTest(unittest.TestCase):
         with self.assertRaises(StudentSourceError) as caught:
             function(*args)
         self.assertEqual(caught.exception.code, code)
+
+    def test_grade_diagnostics_distinguish_source_missing_empty_and_zero(self):
+        source = {"items": [{"kcmc": "合成课"}, {"cj": None}, {"cj": "  "},
+                            {"cj": 0}, {"cj": "SYNTHETIC-PRIVATE-GRADE"},
+                            {"jd": None}, {"jd": "SYNTHETIC-PRIVATE-POINTS"}]}
+        projection, _ = sanitize_payload("academic", source)
+        diagnostics = business_field_diagnostics("academic", source, projection)
+        self.assertEqual(diagnostics["source"]["row_count"], 7)
+        # Absent keys do not contribute to present; zero is present/nonempty.
+        self.assertEqual(diagnostics["source"]["fields"]["cj"],
+                         {"present": 4, "empty": 2, "types": {"null": 1, "string": 2, "number": 1}})
+        self.assertEqual(diagnostics["source"]["fields"]["jd"],
+                         {"present": 2, "empty": 1, "types": {"null": 1, "string": 1}})
+        self.assertEqual(diagnostics["source"], diagnostics["projection"])
+        self.assertNotIn("SYNTHETIC", json.dumps(diagnostics))
+
+    def test_grade_diagnostics_cover_registered_aliases_without_changing_projection(self):
+        aliases = set(ACADEMIC_FIELDS["grade_raw"]) | set(ACADEMIC_FIELDS["grade_points_raw"])
+        source = {"items": [{alias: "SYNTHETIC-PRIVATE" for alias in aliases}]}
+        projection, _ = sanitize_payload("academic", source)
+        self.assertEqual(projection, source)
+        diagnostics = business_field_diagnostics("academic", source, projection)
+        self.assertEqual(set(diagnostics["source"]["fields"]), aliases)
+        for item in diagnostics["source"]["fields"].values():
+            self.assertEqual(item, {"present": 1, "empty": 0, "types": {"string": 1}})
+
+    def test_grade_diagnostics_expose_projection_loss_without_raw_values(self):
+        source = {"items": [{"cj": "SYNTHETIC-PRIVATE-GRADE", "jd": 0}]}
+        # Simulate a projection omission; this is not evidence of a school bug.
+        projection = {"items": [{"jd": 0}]}
+        diagnostics = business_field_diagnostics("academic", source, projection)
+        self.assertIn("cj", diagnostics["source"]["fields"])
+        self.assertNotIn("cj", diagnostics["projection"]["fields"])
+        self.assertEqual(diagnostics["source"]["fields"]["jd"], diagnostics["projection"]["fields"]["jd"])
+        self.assertNotIn("SYNTHETIC", json.dumps(diagnostics))
+
+    def test_grade_diagnostics_do_not_leak_identity_unknown_keys_or_wrapped_values(self):
+        source = {"items": [{"cj": {"value": "SYNTHETIC-PRIVATE-GRADE", "state": "known",
+                                     "SYNTHETIC-UNKNOWN-NESTED": "SYNTHETIC-PRIVATE"},
+                             "grade_points_raw": ["SYNTHETIC-PRIVATE"],
+                             "xh": "SYNTHETIC-PRIVATE-IDENTITY", "cookie": "SYNTHETIC-PRIVATE-CREDENTIAL",
+                             "SYNTHETIC-UNKNOWN-KEY": "SYNTHETIC-PRIVATE"}]}
+        projection, _ = sanitize_payload("academic", source)
+        diagnostics = business_field_diagnostics("academic", source, projection)
+        self.assertEqual(set(diagnostics["source"]["fields"]), {"cj", "grade_points_raw"})
+        self.assertEqual(diagnostics["source"]["fields"]["cj"],
+                         {"present": 1, "empty": 0, "types": {"object": 1}})
+        self.assertEqual(diagnostics["source"]["fields"]["grade_points_raw"]["types"], {"array": 1})
+        self.assertNotIn("SYNTHETIC", json.dumps(diagnostics))
+        self.assertNotIn("value", json.dumps(diagnostics))
 
     def test_transport_classifier_does_not_treat_200_html_as_business(self):
         for metadata, expected in [

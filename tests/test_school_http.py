@@ -459,6 +459,25 @@ class SchoolHTTPTests(unittest.TestCase):
         self.assertEqual(diagnostics["projection"]["fields"]["cdmc"], {"present": 2, "empty": 2, "types": {"null": 1, "string": 1}})
         self.assertNotIn("SYNTHETIC", json.dumps(diagnostics))
 
+    def test_grade_field_diagnostics_capture_before_projection_on_existing_transcript_routes(self):
+        for operation, term in (("academic", "2026-2027-AW"), ("major_academic", "ALL-HISTORY")):
+            with self.subTest(operation=operation):
+                payload = {"items": [{"kcmc": "合成课", "cj": None, "jd": ""},
+                                     {"kcmc": "合成课", "cj": 0, "jd": "SYNTHETIC-PRIVATE-POINTS"},
+                                     {"kcmc": "合成课", "cookie": "SYNTHETIC-PRIVATE-CREDENTIAL"}],
+                           "total": 3, "pageNo": 1}
+                self.client([Response(payload)])
+                result = self.request(operation, term)
+                self.assertEqual(result["state"], "business")
+                diagnostics = result["source_field_diagnostics"]
+                self.assertEqual(diagnostics["source"]["fields"]["cj"],
+                                 {"present": 2, "empty": 1, "types": {"null": 1, "number": 1}})
+                self.assertEqual(diagnostics["source"]["fields"]["jd"],
+                                 {"present": 2, "empty": 1, "types": {"string": 2}})
+                self.assertEqual(diagnostics["source"], diagnostics["projection"])
+                self.assertNotIn("SYNTHETIC", json.dumps(diagnostics))
+                self.assertNotIn("cookie", result["payload"]["items"][2])
+
     def test_actual_jqgrid_legacy_zero_page_alias_is_removed_only_with_current_page(self):
         for operation, term in (("academic", "2026-2027-AW"), ("major_academic", "ALL-HISTORY"), ("exams", "2026-2027-A")):
             with self.subTest(operation=operation):

@@ -1,0 +1,340 @@
+{
+  "validation_kind": "actual_deepseek_with_exclusively_synthetic_sources_multiturn",
+  "timestamp_utc": "2026-10-16T04:40:05.180938+00:00",
+  "tool_contract": "personal-question-tools-v6-task-continuity",
+  "real_school_network": false,
+  "real_personal_data": false,
+  "actual_local_catalog_used": false,
+  "full_reasoning_saved": false,
+  "production_or_test_sources_modified": false,
+  "questions": [
+    "请概括2023-2024秋冬的成绩，给出记录数和数字成绩的简单均值，并引用本轮来源；不要把均值叫GPA。",
+    "那春夏呢？",
+    "现在只查本地课程目录：合成数据专题的名称和代码是什么？"
+  ],
+  "results": [
+    {
+      "turn": 1,
+      "question": "请概括2023-2024秋冬的成绩，给出记录数和数字成绩的简单均值，并引用本轮来源；不要把均值叫GPA。",
+      "status": "completed",
+      "code": null,
+      "failure": null,
+      "reply": "本轮按你指定的 2023-2024 秋冬学期读取主修教务记录，范围内共 4 条记录，本轮快照已完整覆盖该学期（无更多分页）。 [1] [2]\n\n这 4 条记录中，来源成绩均为已知的 0–100 纯数字成绩，数字成绩 4 条，最低 60、最高 90。 [2]\n\n数字成绩的简单不加权均值为 75.00（两位小数）。这是对当前快照全部匹配行取算术平均，不是 GPA、绩点、已获学分，也不构成修读或通过认定。 [2]\n\n完成状态方面，4 条记录的来源完成状态字段均为未知，因此无法据此判断通过或未通过；这不是“未审核”的意思。 [2]\n\n本结果只覆盖 2023-2024 秋冬这一个学期，不代表完整历史，也不代表正式选课或学分认定情况。 [2]",
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        },
+        {
+          "name": "query_my_records",
+          "arguments": {
+            "operation": "academic",
+            "target_term": "2023-2024-AW",
+            "mode": "summary",
+            "query": "",
+            "limit": 15
+          }
+        }
+      ],
+      "synthetic_school_requests": [
+        {
+          "operation": "academic",
+          "target_term": "2023-2024-AW",
+          "page": 1
+        }
+      ],
+      "actual_provider_generations": 2,
+      "reasoning_returned_generations": 2,
+      "argument_correction_events": 0,
+      "checks": {
+        "completed": true,
+        "expected_normalized_tool_scope": true,
+        "expected_current_school_scope": true,
+        "exact_summary_supported": true,
+        "summary_cited": true,
+        "answer_contains_supported_count_and_mean": true,
+        "new_source_read_for_requested_scope": true
+      },
+      "passed": true,
+      "observation_identity_verification": "not_captured_in_summary_projection"
+    },
+    {
+      "turn": 2,
+      "question": "那春夏呢？",
+      "status": "completed",
+      "code": null,
+      "failure": null,
+      "reply": "2023-2024学年春夏学期（2023-2024-SS）主修成绩记录共3条，已完整覆盖该学期范围；其中3门的来源成绩都是已知的纯数字百分制，无缺失数值。 [1] [2]\n\n这3门数字成绩的简单不加权均值为85.00（最高95，最低75）。这只是分数本身的算术平均，不是GPA、绩点、已获学分，也不代表正式修读或通过认定。 [1]\n\n该学期3条记录的完成状态在来源字段中均为未知，因此无法说明是否通过或已认定；来源学分与完整历史也未核实。 [1]",
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        },
+        {
+          "name": "query_my_records",
+          "arguments": {
+            "operation": "academic",
+            "mode": "summary",
+            "query": "",
+            "target_term": "2023-2024-SS",
+            "limit": 15
+          }
+        }
+      ],
+      "synthetic_school_requests": [
+        {
+          "operation": "academic",
+          "target_term": "2023-2024-SS",
+          "page": 1
+        }
+      ],
+      "actual_provider_generations": 2,
+      "reasoning_returned_generations": 2,
+      "argument_correction_events": 0,
+      "checks": {
+        "completed": true,
+        "expected_normalized_tool_scope": true,
+        "expected_current_school_scope": true,
+        "exact_summary_supported": true,
+        "summary_cited": true,
+        "answer_contains_supported_count_and_mean": true,
+        "new_source_read_for_requested_scope": true
+      },
+      "passed": true,
+      "observation_identity_verification": "not_captured_in_summary_projection"
+    },
+    {
+      "turn": 3,
+      "question": "现在只查本地课程目录：合成数据专题的名称和代码是什么？",
+      "status": "completed",
+      "code": null,
+      "failure": null,
+      "reply": "本地课程目录中命中1条：课程名称为「合成数据专题」，课程代码为 SYNTHETIC2001。 [1]\n\n该目录只是本机离线采集的课程名称与代码参考，不保证当前开课、余量、稳定课程身份或本人可选资格。 [1]",
+      "tools": [
+        {
+          "name": "get_my_context",
+          "arguments": {}
+        },
+        {
+          "name": "search_course_catalog",
+          "arguments": {
+            "query": "合成数据专题",
+            "limit": 5
+          }
+        }
+      ],
+      "synthetic_school_requests": [],
+      "actual_provider_generations": 2,
+      "reasoning_returned_generations": 1,
+      "argument_correction_events": 0,
+      "checks": {
+        "completed": true,
+        "catalog_tool_ran": true,
+        "no_school_read_on_catalog_switch": true,
+        "no_old_grade_tool_on_catalog_switch": true,
+        "synthetic_catalog_record_supported": true,
+        "catalog_cited": true,
+        "synthetic_catalog_answer_supported": true
+      },
+      "passed": true
+    }
+  ],
+  "calls": [
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 85,
+      "reasoning_delta_chars": 301,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1376,
+      "usage": {
+        "prompt_tokens": 2588,
+        "completion_tokens": 180,
+        "total_tokens": 2768,
+        "prompt_cache_hit_tokens": 1408,
+        "prompt_cache_miss_tokens": 1180,
+        "prompt_tokens_details": {
+          "cached_tokens": 1408
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 85
+        }
+      },
+      "provider_reasoning_chars": 301
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 29,
+      "reasoning_delta_chars": 88,
+      "projected_record_count": 0,
+      "projected_summary_counts": [
+        {
+          "matched_records": 4,
+          "numeric_grade_count": 4,
+          "non_numeric_grade_count": 0,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 2501,
+      "usage": {
+        "prompt_tokens": 3228,
+        "completion_tokens": 317,
+        "total_tokens": 3545,
+        "prompt_cache_hit_tokens": 2688,
+        "prompt_cache_miss_tokens": 540,
+        "prompt_tokens_details": {
+          "cached_tokens": 2688
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 29
+        }
+      },
+      "provider_reasoning_chars": 88
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 183,
+      "reasoning_delta_chars": 670,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1791,
+      "usage": {
+        "prompt_tokens": 2770,
+        "completion_tokens": 278,
+        "total_tokens": 3048,
+        "prompt_cache_hit_tokens": 1280,
+        "prompt_cache_miss_tokens": 1490,
+        "prompt_tokens_details": {
+          "cached_tokens": 1280
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 183
+        }
+      },
+      "provider_reasoning_chars": 670
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 118,
+      "reasoning_delta_chars": 510,
+      "projected_record_count": 0,
+      "projected_summary_counts": [
+        {
+          "matched_records": 3,
+          "numeric_grade_count": 3,
+          "non_numeric_grade_count": 0,
+          "unknown_grade_count": 0
+        }
+      ],
+      "status": "completed",
+      "elapsed_ms": 2632,
+      "usage": {
+        "prompt_tokens": 3508,
+        "completion_tokens": 311,
+        "total_tokens": 3819,
+        "prompt_cache_hit_tokens": 2944,
+        "prompt_cache_miss_tokens": 564,
+        "prompt_tokens_details": {
+          "cached_tokens": 2944
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 118
+        }
+      },
+      "provider_reasoning_chars": 510
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 2,
+      "streaming": true,
+      "reasoning_delta_count": 16,
+      "reasoning_delta_chars": 67,
+      "projected_record_count": 0,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 882,
+      "usage": {
+        "prompt_tokens": 2359,
+        "completion_tokens": 59,
+        "total_tokens": 2418,
+        "prompt_cache_hit_tokens": 1280,
+        "prompt_cache_miss_tokens": 1079,
+        "prompt_tokens_details": {
+          "cached_tokens": 1280
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 16
+        }
+      },
+      "provider_reasoning_chars": 67
+    },
+    {
+      "model": "deepseek-flash",
+      "thinking": true,
+      "message_count": 4,
+      "streaming": true,
+      "reasoning_delta_count": 0,
+      "reasoning_delta_chars": 0,
+      "projected_record_count": 1,
+      "projected_summary_counts": [],
+      "status": "completed",
+      "elapsed_ms": 1245,
+      "usage": {
+        "prompt_tokens": 2665,
+        "completion_tokens": 99,
+        "total_tokens": 2764,
+        "prompt_cache_hit_tokens": 2304,
+        "prompt_cache_miss_tokens": 361,
+        "prompt_tokens_details": {
+          "cached_tokens": 2304
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "provider_reasoning_chars": 0
+    }
+  ],
+  "checks": {
+    "three_turns_run": true,
+    "all_limited_support_checks_passed": true,
+    "no_model_directory_request": true
+  },
+  "full_semantic_acceptance": "not_assessed",
+  "real_personal_semantic_acceptance": "not_assessed",
+  "user_acceptance": "not_assessed",
+  "actual_provider_generations": 6,
+  "provider_directory_requests": 0,
+  "passed": true,
+  "elapsed_ms": 11562,
+  "validation_corrections": [
+    {
+      "original_check": "new_observation_for_this_turn",
+      "original_result": false,
+      "reason": "Validation looked for observation_id in summary projection, where production intentionally omits it. Original failed validation receipt retained privately; no new model or source calls were made.",
+      "replacement_check": "new_source_read_for_requested_scope verifies actual per-turn synthetic source requests plus the exact differing term-specific summary. It does not verify internal observation identity."
+    }
+  ],
+  "verification_limits": [
+    "Synthetic source only; no real school, real personal, browser or user acceptance.",
+    "Raw observation IDs were not captured; source freshness is checked through actual per-turn scoped requests and distinct supported summaries.",
+    "Full free-text semantics were not independently accepted.",
+    "No malformed tool arguments occurred; the bounded argument-correction branch was not exercised by these real calls."
+  ]
+}

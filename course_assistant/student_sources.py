@@ -18,7 +18,7 @@ import sqlite3
 import time
 from urllib.parse import urlsplit
 
-from .student_source_parsers import BUSINESS_FIELDS, PARSER_VERSION, MAPPING_VERSION, parse_payload
+from .student_source_parsers import ACADEMIC_FIELDS, BUSINESS_FIELDS, PARSER_VERSION, MAPPING_VERSION, parse_payload
 from .school_period_times import validate_period_metadata
 
 REALM = "restricted_personal_reference"
@@ -31,12 +31,14 @@ FAIL_STATES = STOP_STATES | {"source_unavailable", "schema_changed", "incomplete
 ALIAS = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
 CREDENTIAL_VALUE = re.compile(r"(?i)(?:bearer\s+|(?:^|[?&;\s])(?:ticket|token|password|passwd|jsessionid|sessionid|cookie)\s*=|(?:cookie|set-cookie|authorization)\s*:|-----BEGIN .*PRIVATE KEY)")
 SUBJECT_FIELDS = {"source_subject_id", "student_number", "xh", "xhm", "学号"}
-# These names are diagnostic candidates, not parsing aliases or verified school
-# semantics. Unknown response keys and all source values stay out of diagnostics.
+# Diagnostics cover registered grade aliases and fixed status candidates. Adding
+# a diagnostic candidate never adds a parsing alias or verifies school semantics.
+# Unknown response keys and all source values stay out of diagnostics.
 DIAGNOSTIC_FIELDS = {
     "academic": frozenset({"xnm", "xn", "xqm", "xq", "xnxq", "sftg", "sfzx", "row_status",
                            "completion_status", "completion_status_raw", "recognition_status",
-                           "recognition_status_raw", "major_status", "major_status_raw"}),
+                           "recognition_status_raw", "major_status", "major_status_raw"}
+                          | set(ACADEMIC_FIELDS["grade_raw"]) | set(ACADEMIC_FIELDS["grade_points_raw"])),
     "timetable": frozenset({"xnm", "xn", "xqm", "xq", "xxq", "sfqd", "sfxz", "sfzx",
                             "cdmc", "jsmc", "skdd", "place_raw", "地点", "上课地点",
                             "sksj", "time_raw", "kcb", "dsz", "xqj", "jcs", "djj", "skcd", "zcd"}),

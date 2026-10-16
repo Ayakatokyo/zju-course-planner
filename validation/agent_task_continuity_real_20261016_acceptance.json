@@ -1,0 +1,158 @@
+{
+  "recorded_at_utc": "2026-10-16T04:45:15.437679+00:00",
+  "audit": "private_read_only_source_and_task_support",
+  "new_school_calls_by_audit": 0,
+  "new_model_calls_by_audit": 0,
+  "production_modified_by_audit": false,
+  "expected_task_count": 4,
+  "observed_turn_count": 4,
+  "turns": [
+    {
+      "task": "term_summary_initial",
+      "turn_status": "completed",
+      "checks": {
+        "same_conversation_run": true,
+        "completed": true,
+        "no_arbitrary_script_tool": true,
+        "expected_task_scope": true,
+        "school_read_only_expected_scope": true,
+        "record_source_resolves_0": true,
+        "record_signature_and_hash_0": true,
+        "source_fetched_in_turn_0": true,
+        "source_projection_assertions_0": true,
+        "summary_independently_recomputed_0": true,
+        "claims_reference_returned_evidence": true,
+        "all_referenced_field_projections_supported": true
+      },
+      "model_generations": 2,
+      "logical_school_reads": 1,
+      "referenced_record_count": 0,
+      "argument_corrections": 0
+    },
+    {
+      "task": "term_summary_followup",
+      "turn_status": "completed",
+      "checks": {
+        "same_conversation_run": true,
+        "completed": true,
+        "no_arbitrary_script_tool": true,
+        "expected_task_scope": true,
+        "school_read_only_expected_scope": true,
+        "record_source_resolves_0": true,
+        "record_signature_and_hash_0": true,
+        "source_fetched_in_turn_0": true,
+        "source_projection_assertions_0": true,
+        "summary_independently_recomputed_0": true,
+        "claims_reference_returned_evidence": true,
+        "all_referenced_field_projections_supported": true
+      },
+      "model_generations": 2,
+      "logical_school_reads": 1,
+      "referenced_record_count": 0,
+      "argument_corrections": 0
+    },
+    {
+      "task": "local_catalog_topic_switch",
+      "turn_status": "completed",
+      "checks": {
+        "same_conversation_run": true,
+        "completed": true,
+        "no_arbitrary_script_tool": true,
+        "expected_task_scope": true,
+        "no_school_read_on_local_topic": true,
+        "claims_reference_returned_evidence": true,
+        "all_referenced_field_projections_supported": true
+      },
+      "model_generations": 2,
+      "logical_school_reads": 0,
+      "referenced_record_count": 0,
+      "argument_corrections": 0
+    },
+    {
+      "task": "major_grade_diagnostics",
+      "turn_status": "completed",
+      "checks": {
+        "same_conversation_run": true,
+        "completed": true,
+        "no_arbitrary_script_tool": true,
+        "expected_task_scope": true,
+        "school_read_only_expected_scope": true,
+        "record_source_resolves_0": true,
+        "record_signature_and_hash_0": true,
+        "source_fetched_in_turn_0": true,
+        "source_projection_assertions_0": true,
+        "summary_independently_recomputed_0": true,
+        "major_diagnostics_rows_match_source": true,
+        "major_registered_grade_fields_not_lost_in_projection": true,
+        "major_missing_registered_grade_alias_matches_parsed_unknown": true,
+        "claims_reference_returned_evidence": true,
+        "all_referenced_field_projections_supported": true
+      },
+      "model_generations": 2,
+      "logical_school_reads": 1,
+      "referenced_record_count": 0,
+      "argument_corrections": 0,
+      "grade_field_diagnostics": {
+        "rows": 104,
+        "parsed_unknown_grade_count": 63,
+        "source_rows_without_registered_grade_alias": 63,
+        "registered_grade_fields_source_projection_equal": true,
+        "upstream_raw_http_body_retained": false,
+        "unregistered_field_semantics_established": false
+      }
+    }
+  ],
+  "limited_source_field_support": "passed",
+  "planned_real_task_sequence": "completed",
+  "complete_free_text_semantics": "not_accepted",
+  "official_curriculum_applicability": "not_accepted",
+  "known_semantic_issues": [
+    {
+      "task": "term_summary_followup",
+      "issue": "term_scoped_academic_source_described_as_major_history",
+      "status": "observed_by_delivery_owner",
+      "field_scope_support_remains_separate": true
+    }
+  ],
+  "real_recommendation": "not_accepted",
+  "user_experience_acceptance": "pending_user",
+  "original_wire_payload_verified": false,
+  "privacy": "no_questions_answers_scores_ids_paths_or_tokens_in_public_receipt",
+  "runtime_counts": [
+    {
+      "duration_s": 6.09,
+      "model_generations": 2,
+      "reasoning_segments": 2,
+      "argument_rejections": 0
+    },
+    {
+      "duration_s": 5.29,
+      "model_generations": 2,
+      "reasoning_segments": 2,
+      "argument_rejections": 0
+    },
+    {
+      "duration_s": 2.52,
+      "model_generations": 2,
+      "reasoning_segments": 1,
+      "argument_rejections": 0
+    },
+    {
+      "duration_s": 15.77,
+      "model_generations": 2,
+      "reasoning_segments": 2,
+      "argument_rejections": 0
+    }
+  ],
+  "browser_checks": {
+    "history_restored_turn_count": 4,
+    "single_evidence_entry_each_turn": true,
+    "all_evidence_initially_collapsed": true,
+    "all_process_initially_collapsed": true,
+    "composer_visible": true,
+    "desktop_horizontal_overflow": false,
+    "real_inflight_source_and_supplier_reasoning_observed": true,
+    "narrow_or_physical_mobile_retested": false,
+    "history_failure_retention_browser_injection": false
+  }
+}

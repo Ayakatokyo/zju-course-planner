@@ -69,6 +69,20 @@ class ChatRunTests(unittest.TestCase):
         self.assertFalse(details["reasoning_is_execution_proof"])
         self.assertEqual(details["events"][1]["fields"]["http_status"], 200)
 
+    def test_tool_rejection_is_stored_as_validation_not_a_dispatched_tool(self):
+        run = self.begin()
+        fields = {"tool_name": "query_my_records",
+            "error_code": "invalid_tool_arguments", "failure_detail": "argument_schema_mismatch",
+            "attempt": 1, "count": 1, "status": "retrying"}
+        self.assert_code("invalid_run_event", self.logs.event, self.context, run, "tool.rejected",
+                         {**fields, "arguments": "NEVER-STORE"})
+        self.logs.event(self.context, run, "tool.rejected", fields)
+        self.logs.finish(self.context, run, "completed")
+        detail = self.logs.read(self.context, run, self.scope)
+        self.assertEqual(detail["events"][0]["kind"], "tool.rejected")
+        self.assertEqual(detail["events"][0]["fields"]["status"], "retrying")
+        self.assertNotIn("NEVER-STORE", str(detail))
+
     def test_begin_only_keeps_model_projection_and_is_idempotent(self):
         request = str(uuid.uuid4())
         model = {**self.model, "api_key": "SYNTHETIC-DO-NOT-PERSIST", "headers": {"Cookie": "SYNTHETIC"}}

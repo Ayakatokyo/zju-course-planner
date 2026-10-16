@@ -21,6 +21,8 @@ AUTH_FAILURES = frozenset({"permission_denied", "unauthenticated", "source_autho
     "source_session_expired", "source_generation_changed", "source_subject_changed", "school_connection_expired",
     "personal_scope_changed", "personal_input_changed", "personal_model_changed", "grant_revoked", "grant_expired"})
 MAX_REQUEST_SCOPES = 6
+SOURCE_DOMAINS = ((GRADE, "academic"), (TIMETABLE, "timetable"), (EXAMS, "exams"), (PLAN, "curriculum"))
+SCOPE_BOUNDARY = re.compile(r"以及|同时|另外|还有|并且|然后|[和与及、，,；;。！？\n]")
 
 
 def _seasons(text, operation):
@@ -39,6 +41,36 @@ def _seasons(text, operation):
     return result
 
 
+def _source_question_parts(question):
+    """Separate differently scoped domains without expanding coordinated dates.
+
+    Shared leading/trailing qualifiers remain together. A different domain with
+    its own time qualifier starts a separate clause; a clause without a year
+    must still clarify rather than borrowing a year from the other domain.
+    This is a bounded syntax aid, not a general natural-language scope parser.
+    """
+    def domains(text):
+        return {operation for pattern, operation in SOURCE_DOMAINS if pattern.search(text)}
+
+    def has_time(text):
+        return bool(YEAR.search(text) or RELATIVE_TERM.search(text) or _seasons(text, "academic"))
+
+    for boundary in SCOPE_BOUNDARY.finditer(question):
+        left, right = question[:boundary.start()], question[boundary.end():]
+        left_domains, right_domains = domains(left), domains(right)
+        right_head = SCOPE_BOUNDARY.split(right, maxsplit=1)[0]
+        if not left_domains or not right_domains or left_domains == right_domains or not has_time(right_head):
+            continue
+        first_domain = min(match.start() for pattern, _ in SOURCE_DOMAINS
+                           if (match := pattern.search(right)) is not None)
+        if not has_time(left) and not has_time(right[:first_domain]):
+            # “成绩和课表比较2023-2024秋冬和2024-2025春夏”
+            # has a common trailing scope, not a separate scope for each label.
+            continue
+        return _source_question_parts(left) + _source_question_parts(right)
+    return [question]
+
+
 def source_requests(question):
     """Return server-planned source scopes, with no I/O or clock assumptions.
 
@@ -51,39 +83,15 @@ def source_requests(question):
         raise ValueError("invalid_question")
     if PREVIOUS_RUN.search(question) and not re.search(r"重新|重查|刷新|最新|再查", question):
         return []
-    operations = [operation for pattern, operation in ((GRADE, "academic"), (TIMETABLE, "timetable"), (EXAMS, "exams"))
+    operations = [operation for pattern, operation in SOURCE_DOMAINS[:-1]
                   if pattern.search(question)]
-    years = list(YEAR.finditer(question))
-    invalid_year = any(int(match[2]) != int(match[1]) + 1 for match in years)
+    parts = _source_question_parts(question)
     requests = []
-    for operation in operations:
-        if invalid_year:
-            requests.append({"operation": operation, "target_term": None, "clarification": "invalid_academic_year"})
-            continue
-        if not years:
-            if operation == "academic" and not RELATIVE_TERM.search(question) and not _seasons(question, operation):
-                requests.append({"operation": "major_academic", "target_term": "ALL-HISTORY"})
-            else:
-                requests.append({"operation": operation, "target_term": None, "clarification": "academic_year_required"})
-            continue
-        for index, match in enumerate(years):
-            end = years[index + 1].start() if index + 1 < len(years) else len(question)
-            segment = question[match.end():end]
-            if index == 0:
-                segment = question[:match.start()] + segment
-            seasons = _seasons(segment, operation)
-            if not seasons and index + 1 < len(years) and re.fullmatch(r"[\s、,，和与及或对比比较学年年度]*", question[match.end():end]):
-                # A shared trailing season in “2023-2024和2024-2025秋冬”
-                # applies to the coordinated years, not to unrelated clauses.
-                seasons = _seasons(question[years[-1].end():], operation)
-            if not seasons:
-                if operation == "academic":
-                    seasons = ["AW", "SS"]
-                else:
-                    requests.append({"operation": operation, "target_term": None, "clarification": "season_required"})
-                    continue
-            for season in seasons:
-                item = {"operation": operation, "target_term": f"{match[1]}-{match[2]}-{season}"}
+    for pattern, operation in SOURCE_DOMAINS[:-1]:
+        for part in parts:
+            if not pattern.search(part):
+                continue
+            for item in _domain_source_requests(part, operation):
                 if item not in requests:
                     requests.append(item)
     if sum(item["target_term"] is not None for item in requests) > MAX_REQUEST_SCOPES:
@@ -91,6 +99,35 @@ def source_requests(question):
                     for operation in operations]
     if PLAN.search(question):
         requests.append({"operation": "curriculum", "target_term": None})
+    return requests
+
+
+def _domain_source_requests(question, operation):
+    years = list(YEAR.finditer(question))
+    if any(int(match[2]) != int(match[1]) + 1 for match in years):
+        return [{"operation": operation, "target_term": None, "clarification": "invalid_academic_year"}]
+    if not years:
+        if operation == "academic" and not RELATIVE_TERM.search(question) and not _seasons(question, operation):
+            return [{"operation": "major_academic", "target_term": "ALL-HISTORY"}]
+        return [{"operation": operation, "target_term": None, "clarification": "academic_year_required"}]
+    requests = []
+    for index, match in enumerate(years):
+        end = years[index + 1].start() if index + 1 < len(years) else len(question)
+        segment = question[match.end():end]
+        if index == 0:
+            segment = question[:match.start()] + segment
+        seasons = _seasons(segment, operation)
+        if not seasons and index + 1 < len(years) and re.fullmatch(r"[\s、,，和与及或对比比较学年年度]*", question[match.end():end]):
+            # A shared trailing season applies to coordinated years only.
+            seasons = _seasons(question[years[-1].end():], operation)
+        if not seasons:
+            if operation == "academic":
+                seasons = ["AW", "SS"]
+            else:
+                requests.append({"operation": operation, "target_term": None, "clarification": "season_required"})
+                continue
+        requests.extend({"operation": operation, "target_term": f"{match[1]}-{match[2]}-{season}"}
+                        for season in seasons)
     return requests
 
 
