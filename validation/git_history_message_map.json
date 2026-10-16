@@ -1,0 +1,302 @@
+{
+  "schema": "git-history-message-cleanup/1",
+  "user_approved": true,
+  "old_head": "50bad733ff9f7aa6614e37dee1db7eeed7ec5a71",
+  "new_history_head": "bd60ec8b0c8d45614958f4c4f76b48450aff25ce",
+  "commits_reworded": 29,
+  "worktree_files_preserved": 61,
+  "content_trees_order_authors_and_original_times_preserved": true,
+  "old_commit_ids_in_historical_validation_are_preserved_evidence": true,
+  "mapping": [
+    {
+      "old_sha": "af26dd95c635e2c3a47ef870ff84a7e68cd4a305",
+      "new_sha": "16856173ab4f3a7a8c942eb7f4477735ddc00234",
+      "old_title": "Preserve project draft and document authenticated student scope",
+      "new_title": "docs(项目): 明确选课助手范围与本人认证约束",
+      "new_body": "保留项目初始草稿，明确本人身份验证、数据归属和选课助手的能力边界。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "716c70d06f4ad0ece1460f06b3eaf480b6c692e7",
+      "new_sha": "25a737ed40cc3bc5797a775b07a2a97c9f66f860",
+      "old_title": "Record verified private GitHub repository and development handoff",
+      "new_title": "docs(协作): 建立私有仓库与开发交接流程",
+      "new_body": "记录私有仓库核验、工作区使用方式和开发接续入口，区分本机材料与可提交产物。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "8be3e834f5f1968a0134e079dd0b225be692f48f",
+      "new_sha": "6ff4d1af2af0a797936b8b42de5a8c1ef65d5829",
+      "old_title": "Implement scoped synthetic planning and hand off data/RAG design",
+      "new_title": "feat(规划): 实现按本人范围隔离的合成选课计算",
+      "new_body": "实现合成学业与排课计算、受控保存导出和权限隔离，并交接数据接入及检索设计。合成验证不替代真实学校验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "6bb1e800292c05f3b079c6782c08f6b9ae19d316",
+      "new_sha": "63bfb49455e9266bc23d7a492f8cf46bf4e4f127",
+      "old_title": "整理10月9日迭代：建立数据接入契约和只读参考检索",
+      "new_title": "feat(检索): 建立数据接入契约与带出处的参考查询",
+      "new_body": "定义数据源、授权、更新和引用契约，实现按方案范围过滤的只读参考检索。54块参考与23条待审核候选保持各自边界；历史146项回归及8题参考检查通过，学校认证和个人来源仍未接入。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "e8d24ee3405654272452ffc551cac154f5d76a0f",
+      "new_sha": "9f3b1d6287cbadba223f74607188f0f0c153a01d",
+      "old_title": "整理10月10日迭代：准备独立合成模型解释实验",
+      "new_title": "test(模型): 准备独立合成解释实验与最小输入",
+      "new_body": "复用确定性计算，为固定合成案例生成模型解释所需的最小输入。该阶段仅准备实验，不包含真实模型请求、应用状态写入或学校材料出站。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "de6c092d5cc7d992e3888cd8c7ed619e0ca41933",
+      "new_sha": "d552098a6060ede81ec7f16168321af3f4a68146",
+      "old_title": "整理10月13日检索分析：记录向量检索准备度与词法探针",
+      "new_title": "docs(检索): 评估向量检索准备度并保存词法基线",
+      "new_body": "保存54块参考语料的7个词法探针，规划同语料的词法、向量和混合检索对照。未安装或调用Embedding，既有参考题结果不外推为完整问答覆盖。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "2ef006e8a8b0ca869fabdccacb5023887ad804cf",
+      "new_sha": "ace5edc1a922b19e0c87867bd1b8ed597c75d2cf",
+      "old_title": "整理10月13日对话迭代：实现受限模型工具循环并验证多轮查询",
+      "new_title": "feat(agent): 接入 DeepSeek 受限工具循环与多轮查询",
+      "new_body": "接入服务端模型适配、本人会话、版本授权复核、白名单工具和引用校验。保留确定性计算与锁定条件；历史213项回归及真实模型配合合成场景已有证据，真实本人语义尚未验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "3e12cc576eecb4bf0210baa11186906e2780a466",
+      "new_sha": "befce70e292fe20281c1649b5f4fbef5071fc3a0",
+      "old_title": "整理10月13日采集迭代：记录学校来源核验与最终覆盖范围",
+      "new_title": "docs(数据源): 明确学校采集覆盖与排除范围",
+      "new_body": "记录学校页面核验、采集路线及12个入口和162份培养方案的覆盖边界。实际原件、个人页面状态和真实定位保留本机；覆盖盘点不等于应用接入或本人权限验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "1300cc2deb2d63756b815dff8830b841492c6085",
+      "new_sha": "05c3ba1d279c3b9e736cc3940561310beb9515ab",
+      "old_title": "整理10月13日数据迭代：完成离线去重与培养要求盘点并设计真实语料检索",
+      "new_title": "feat(数据): 实现课程离线去重与培养要求盘点",
+      "new_body": "实现离线来源适配、去重和核验，保留动态观察、冲突与未知；形成2177个课程代码组、4716个候选班次及11051条班行。盘点培养要求并设计真实语料检索，人审、运行索引与完整业务验收分别待完成。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "7a4ffb09f8e102e2cffec591755955be78ff1893",
+      "new_sha": "820b4d7565affb1af11f7243959e54890281d820",
+      "old_title": "同步项目当前进度并记录按迭代时间窗归档验证",
+      "new_title": "docs(项目): 统一实现矩阵与检索验收边界",
+      "new_body": "同步启动、模型配置、离线语料与后续检索方向，保存249项整合验证及源码绑定。共享文件保留最终整合状态，不把功能归属分组冒充历史源码快照。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "8f83d65dfc105c5bb9fc093f59bd07f8daf23a83",
+      "new_sha": "86a1ea6efd0605f5d8ffb14e0bf3243d9c46de13",
+      "old_title": "整理10月13日规划：交付推荐能力线产品设计与阶段方案",
+      "new_title": "docs(推荐): 定义多课表推荐产品与分阶段实施方案",
+      "new_body": "明确以自然语言获得多套课表、比较和连续调整的产品目标，列出数据、规则、确定性计算与验收依赖。保留设计审阅的历史语境及后续用户授权优先级。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "2e95b530c459378a102aefd3288db02abb1623ef",
+      "new_sha": "65930248ca08a913963fada1ba06fae3a591dd47",
+      "old_title": "整理10月13日至14日推荐对话：实现合成选课、连续调整与历史接口",
+      "new_title": "feat(推荐): 实现候选选课与课表连续调整",
+      "new_body": "实现候选课程和班次联合搜索、方案比较、显式调整、版本校验、原子保存与导出。包含固定合成夹具、多轮真实模型及页面证据；共享模块保存最终整合版本，真实本人推荐未验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "3603a508d4de7c05cbbf03ab4392cd5d52947cde",
+      "new_sha": "53d9a03a35fdbe558460bfa2a947da63591dac23",
+      "old_title": "整理10月14日界面：精简核心交互并保留持久历史侧栏",
+      "new_title": "feat(对话): 精简核心操作并加入持久历史侧栏",
+      "new_body": "保留对话、需求、推荐和保存导出，支持按本人范围切换历史与续聊；加载历史不重放写动作，窄屏默认折叠。桌面与窄屏合成页面证据独立于真实业务验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "2170dea3bf791b4361f6c2dee613da4d5f039c76",
+      "new_sha": "da6423ae405d94184322edc33221c18c2a046c3a",
+      "old_title": "整理10月14日R3：实现独立本机参考首片与条件性课表",
+      "new_title": "feat(本机参考): 接通模块检索与条件性课表生成",
+      "new_body": "实现独立用途授权、模块分块、受限检索、签名回查和课程观察连接。56块、47课程代码及条件性组合保留未知和搜索截断；385项回归与20项工程检查通过，人工检索及本人资格仍待审核。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "96269f4f671e68b5197be712912ff729fa3942ae",
+      "new_sha": "e890042636a62d33b5756d95ac5e39105b648b93",
+      "old_title": "同步跨期开发进度并记录时间窗归档验证",
+      "new_title": "docs(交付): 固化推荐与本机参考验证范围",
+      "new_body": "统一README、进度和分组说明，核对源码、合成夹具、输入清单与隐私范围。既有测试、模型和页面证据分别记录，不以源码归档替代新增业务验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "7b491f97042ee7d999e8aec129f0914888c28615",
+      "new_sha": "9a84365f4a9c4a73cacda02f683dcdc73b985300",
+      "old_title": "形成推荐闭环、界面精简与R3本机参考交接摘要",
+      "new_title": "docs(交接): 汇总推荐闭环与本机参考后续任务",
+      "new_body": "总结推荐、历史界面和本机参考的实施、验证及未知项，更新接手入口。真实材料、运行会话及密钥不纳入仓库，后续阶段不自动扩权。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "1a5788eed71f74b6526e3661f77b1fe6932af7bc",
+      "new_sha": "49df1d21b8bce3ffba71dd1b0e4a30968fb11bd2",
+      "old_title": "实现独立学生来源适配并记录官方浏览器重试验收",
+      "new_title": "feat(学生来源): 加入独立适配与浏览器接入检查",
+      "new_body": "建立学生来源适配与授权隔离，保留官方浏览器接入尝试的实际检查结果。浏览器重试证据不冒充稳定接口能力或真实推荐验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "a7102030616d0f7fb9aaee4b9f7994a8c88547c2",
+      "new_sha": "d36140d067970e3f77621bf41e8a85bbbd15ec9b",
+      "old_title": "归档10月14日上午：实现学生取数连接层与按需培养方案",
+      "new_title": "feat(数据接入): 实现分域取数与按需培养文件获取",
+      "new_body": "增加会话状态、隔离缓存、学生取数连接层与按需培养PDF能力。浏览器连接器保留为历史方案；604项工程验证不等于真实接口成功。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "f13479194f6fe14c804c9c46814367efb9d5a498",
+      "new_sha": "d7542cd5a08f2d1decc7a412c6a778208c12ce5e",
+      "old_title": "归档10月14日中午至下午：接入直接登录与本人教务查询",
+      "new_title": "feat(教务): 接通学校认证与本人数据查询",
+      "new_body": "实现本机直接学校登录、资料、成绩、课表、单季考试及本人入学年培养文件查询，处理实际认证和响应差异。720项回归及实际接口和下载已验证，规则与完整覆盖仍待审核。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "38c0d12dd2afec6656202ffecb48f49ea92d6adb",
+      "new_sha": "2fac53073db09f7c2ee74aa9d354eea10b4230e2",
+      "old_title": "整理学校直接接入交接：记录两账号验收与教务界面待办",
+      "new_title": "docs(教务): 交接直接接入验收与数据展示待办",
+      "new_body": "记录两账号登录和本人取数反馈，交接学年、课表、成绩分页、字段未知与查询维度待办。用户截图和个人定位仅本机保留，登录通过不等于培养适用或推荐通过。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "e67f819fcb30acb10fb58646abe00bf01688ca5e",
+      "new_sha": "3946ee7962101a637035bdf307f7f03c6c2349f4",
+      "old_title": "归档10月14日下午至晚间：完善本人教务界面与数据字段接入",
+      "new_title": "feat(教务界面): 完善查询维度与来源字段展示",
+      "new_body": "完善本人教务页面、学年查询、成绩分页筛选及来源字段接入；保留范围、覆盖和未知状态，不将缺字段补成确定事实。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "73a5c0b2dab940b6c1704a6b78ae20702da1b6a1",
+      "new_sha": "6bd7505708a677d2318d3f9250b55d5be632296a",
+      "old_title": "归档10月14日晚间：补充官方校历参考与课表节次起止时间",
+      "new_title": "feat(课表): 展示节次起止时间与校历参考",
+      "new_body": "补充官方公开校历参考和课表节次起止显示。公开参考用于展示，不提升为已经验证的可执行校历或排课资格。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "2bee0c6242f44fa2791257ee7a98ecd6628921cb",
+      "new_sha": "28764fae915bd656f66b8fb615583395130a971d",
+      "old_title": "归档10月14日夜间：居中课表信息卡并分隔占用底色块",
+      "new_title": "fix(课表): 居中课程信息并分隔占用时段",
+      "new_body": "调整课表信息卡居中与占用底色间隔，提高多时段课表阅读性；保留来源、未定位课程及重叠展示边界。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "d8cd26019a2c0a862ab61c11c660c3cf05d59d7f",
+      "new_sha": "f55ee2d859fa1b13fa611f8fb2fc2a69a7c46680",
+      "old_title": "收口10月15日教务数据接入：记录验收并交接前端美化与真实对话推荐",
+      "new_title": "docs(接入): 固化教务取数验收并交接前端与对话",
+      "new_body": "记录学校本人登录、数据获取和教务展示的用户验收结果，交接前端完善及真实对话推荐依赖。790项工程回归与真实推荐、培养审核分别报告。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "a0c3bf7b15326c5df9535c233fd7ee4ad19850aa",
+      "new_sha": "4ee7d387f163987bf9307540531ac4b7f89bee3a",
+      "old_title": "归档10月15日凌晨：优化整体前端并完成合成页面验证",
+      "new_title": "feat(界面): 统一应用外壳与教务交互样式",
+      "new_body": "统一登录、对话、历史和教务页面的布局与状态，保留课表时间、来源和成绩分页。790项回归及桌面、窄屏合成页面验证通过，真实Agent体验与推荐仍待验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "41aa7f7053f7907452e9a621182476a4806f4f96",
+      "new_sha": "150ccd045644548404c33de2b814f604dd64eda3",
+      "old_title": "归档10月15日上午至下午：建立本人记录与培养资料私有检索",
+      "new_title": "feat(本人检索): 建立记录快照与培养资料私有索引",
+      "new_body": "增加本人来源快照、范围筛选、全匹配成绩概况及私有培养PDF词法检索，保留未知、覆盖与授权代次。合成PDF与夹具只验证工程行为，不替代本人语义验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "622c6c0b018674bf782e529d86be40d03ff3190e",
+      "new_sha": "fc0d97ecd4f634b0be1cfb3bb09c5fd4ac86e6a8",
+      "old_title": "归档10月15日上午至下午：接通本人Agent、模型设置与运行链路",
+      "new_title": "feat(本人对话): 接通模型工具编排与私有运行链路",
+      "new_body": "实现本人对话协调、受限工具循环、按问题准备来源、模型设置、SSE与私有运行记录。真实模型使用合成资料的回执与本人实际语义验收分开。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "be79949f7c807c2c6f91cb68c017ae41780465a3",
+      "new_sha": "04d6cf75fe41433177c19dd11f01420439fa1c89",
+      "old_title": "归档10月15日中午至下午：精简对话界面并展示实时处理过程",
+      "new_title": "feat(对话界面): 展示实时过程并精简输入操作",
+      "new_body": "精简输入区，加入独立深度思考按钮、模型就近选择、局部翻页与实际过程展示。保留默认发送决定及合成页面证据，真实体验仍待用户验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    },
+    {
+      "old_sha": "50bad733ff9f7aa6614e37dee1db7eeed7ec5a71",
+      "new_sha": "bd60ec8b0c8d45614958f4c4f76b48450aff25ce",
+      "old_title": "归档10月15日下午至夜间：记录真实失败交接与整合验证",
+      "new_title": "docs(agent): 记录真实问答失败与体验优化入口",
+      "new_body": "同步真实失败交接、设计、项目约定和1013项整合工程检查。用户反馈一次询问仍不能正确完成、过程仍不可见，后续必须沿真实请求链定位，不能用历史测试数量替代体验验收。",
+      "tree_unchanged": true,
+      "author_unchanged": true,
+      "committer_and_time_unchanged": true
+    }
+  ]
+}
