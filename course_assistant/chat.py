@@ -74,7 +74,7 @@ TOOLS = [
            'format': {'type': 'string', 'enum': ['json', 'csv', 'ics']}}, ['action', 'option_id']),
 ]
 TOOL_NAMES = {item["function"]["name"] for item in TOOLS}
-SYSTEM = """你是浙江大学选课助手的本机 synthetic 演示 Agent。用中文对话并按需澄清。
+SYSTEM = """你是浙大教务助手的本机 synthetic 演示 Agent。用中文对话并按需澄清。
 你必须真实调用给定工具才可回答学业、课程安排、学分、可行性、依据等事实；先读取 get_my_context。
 模型只能提出工具请求，不决定权限、不补造课程、班次、学分、来源、考试、周次或有效规则。
 当前学校登录和个人源未接入。所有学业/排课为合成示例，原23条候选仍待审核。

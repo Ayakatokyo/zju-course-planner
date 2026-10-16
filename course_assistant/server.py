@@ -593,7 +593,7 @@ def make_handler(app):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='本机选课助手；可连接本人学校账号查询教务数据')
+    parser = argparse.ArgumentParser(description='浙大教务助手；可连接本人学校账号查询教务数据')
     parser.add_argument('--port', type=int, default=8765)
     parser.add_argument('--db', type=Path, help='本机运行数据库，不提交 Git')
     parser.add_argument('--enable-mock', action='store_true', help='显式启用本机 synthetic 身份，非学校登录')
@@ -607,7 +607,7 @@ def main():
                       recommendation_demo=args.recommendation_demo, recommendation_case=args.recommendation_case,
                       model=ModelClient(read_config(args.model_env_file)))
     server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(app))
-    print(f'选课助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校账号连接 {"开启" if args.enable_school else "关闭"}', flush=True)
+    print(f'浙大教务助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校账号连接 {"开启" if args.enable_school else "关闭"}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
