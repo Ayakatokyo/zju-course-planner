@@ -4,12 +4,13 @@ from copy import deepcopy
 import threading
 import time
 import unittest
+from unittest.mock import patch
 import json
 from pathlib import Path
 import tempfile
 from urllib.request import Request, urlopen
 
-from course_assistant.student_source_client import SourceClientError, StudentSourceClient, to_envelopes
+from course_assistant.student_source_client import MAX_SOURCE_PAGES, SourceClientError, StudentSourceClient, to_envelopes
 from course_assistant.student_sources import business_field_diagnostics
 from course_assistant.school_period_times import period_source
 
@@ -221,9 +222,57 @@ class StudentSourceClientTests(unittest.TestCase):
         self.assertEqual([spec["page"] for spec in self.transport.requests], [1, 2, 3])
         self.assertTrue(all(spec["page_size"] == 20 for spec in self.transport.requests))
         bounded = self.client([business([{ "kcmc": f"SYNTHETIC-COURSE-{page}"}], total=4, page=page)
-                               for page in range(1, 4)])
+                               for page in range(1, 4)], maxpages=3)
         limited = self.fetch(bounded)
         self.assertEqual((limited["status"], len(limited["pages"])), ("partial_acquisition", 3))
+        self.assertEqual(limited["failure"], "page_limit_exceeded")
+
+    def test_default_policy_completes_104_rows_through_sixth_page(self):
+        script = [business([{"kcmc": f"SYNTHETIC-COURSE-{index}"}
+                            for index in range((page - 1) * 20, min(page * 20, 104))],
+                           total=104, page=page) for page in range(1, 7)]
+        result = self.fetch(self.client(script))
+        self.assertEqual(result["status"], "complete_within_scope")
+        self.assertEqual(result["coverage"], {"captured_rows": 104, "reported_total": 104,
+                         "pages_captured": 6, "complete_within_scope": True, "has_more": False})
+        self.assertEqual([request["page"] for request in self.transport.requests], list(range(1, 7)))
+
+    def test_late_page_error_preserves_partial_but_session_change_discards_rows(self):
+        prefix = [business([{"kcmc": f"SYNTHETIC-PAGE-{page}"}], total=6, page=page)
+                  for page in range(1, 6)]
+        result = self.fetch(self.client(prefix + [OSError(), OSError()]))
+        self.assertEqual((result["status"], result["failure"], result["coverage"]["captured_rows"]),
+                         ("partial_acquisition", "transport_unavailable", 5))
+        self.assertTrue(result["coverage"]["has_more"])
+        def changed(transport, spec):
+            transport.session_epoch = 2
+            return business([{"kcmc": "SYNTHETIC-LAST"}], total=6, page=6, epoch=2)
+        client = self.client(prefix + [changed])
+        revoked = self.fetch(client)
+        self.assertEqual((revoked["status"], revoked["pages"], revoked["data_source"]),
+                         ("source_session_expired", [], "none"))
+        self.assertEqual(len(self.transport.requests), 6)
+        self.assertEqual(client._cache, {})
+
+    def test_total_request_budget_stops_pages_and_rejects_late_body(self):
+        elapsed = [0.0]
+        def response(transport, spec):
+            elapsed[0] += 0.6
+            return business([{"kcmc": f"SYNTHETIC-PAGE-{spec['page']}"}], total=3, page=spec["page"])
+        client = self.client([response, response, response], total_timeout=1)
+        with patch("course_assistant.student_source_client.time.monotonic", side_effect=lambda: elapsed[0]):
+            result = self.fetch(client)
+        self.assertEqual((result["status"], result["failure"], result["coverage"]["captured_rows"]),
+                         ("partial_acquisition", "request_budget_exceeded", 1))
+        self.assertEqual(len(self.transport.requests), 2)
+        self.assertEqual(client._cache, {})
+
+    def test_expanded_policy_has_explicit_page_and_time_limits(self):
+        for kwargs in ({"maxpages": MAX_SOURCE_PAGES + 1}, {"maxpages": True},
+                       {"total_timeout": 0}, {"total_timeout": 121}, {"total_timeout": True}):
+            with self.subTest(kwargs=kwargs), self.assertRaises(SourceClientError) as caught:
+                self.client([], **kwargs)
+            self.assertEqual(caught.exception.code, "invalid_client_policy")
 
     def test_repeated_page_or_changed_total_or_wrong_page_never_claims_complete(self):
         first = business(total=2, page=1)

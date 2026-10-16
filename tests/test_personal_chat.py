@@ -60,7 +60,8 @@ class FakeDialogue:
     def __init__(self, app, model, authorize, execute):
         self.app, self.model, self.authorize, self.execute = app, model, authorize, execute
 
-    def run(self, message, data_use="personal_retrieval", history=()):
+    def run(self, message, data_use="personal_retrieval", history=(), execution_context=None, emit=None):
+        self.app.received_execution_context = deepcopy(execution_context)
         if self.app.lock._is_owned():
             raise AssertionError("model execution must not hold the app lock")
         self.authorize()
@@ -108,6 +109,13 @@ class PersonalChatTests(unittest.TestCase):
         with self.assertRaises(AccessError) as caught:
             callback(*args, **kwargs)
         self.assertEqual(caught.exception.reason, reason)
+
+    def enable_private_runs(self):
+        from course_assistant.chat_runs import ChatRunStore
+        self.app.store.path = self.app.store.path.resolve()
+        self.app.store.path.chmod(0o600)
+        self.app.store.path.parent.chmod(0o700)
+        self.service.runs = ChatRunStore(self.app.store, authorize=self.service._run_authorize)
 
     def test_status_uses_actual_model_and_separate_personal_capabilities(self):
         status = self.service.status(self.context)
@@ -160,6 +168,58 @@ class PersonalChatTests(unittest.TestCase):
         listing = self.service.conversations(self.context, limit=1)
         self.assertEqual(listing["conversations"][0]["conversation_id"], result["conversation_id"])
         self.assertEqual(listing["conversations"][0]["title"], "查询这份培养资料")
+
+    def test_previous_run_is_bound_to_conversation_without_questions_or_reasoning(self):
+        self.enable_private_runs()
+        first = self.turn(message="SYNTHETIC-QUESTION-MUST-NOT-BE-IN-DIAGNOSTIC")
+        self.assertIsNotNone(first["run_id"])
+        self.assertIsNone(self.app.received_execution_context)
+        second = self.turn(previous=first, message="解释刚刚的运行记录")
+        value = self.app.received_execution_context
+        self.assertEqual(second["status"], "completed")
+        self.assertEqual(value["run_id"], first["run_id"])
+        self.assertEqual(value["status"], "completed")
+        for forbidden in ("SYNTHETIC-QUESTION", "reasoning_content", "usage", "request_id", "scope_key", "owner"):
+            self.assertNotIn(forbidden, str(value))
+        self.turn(message="新对话不能取到另一个对话运行")
+        self.assertIsNone(self.app.received_execution_context)
+
+    def test_failed_provider_history_stays_empty_but_actual_failure_is_available(self):
+        self.enable_private_runs()
+        def fail():
+            raise ModelError("模型服务不可用", "model_unavailable")
+        self.model.callback = fail
+        first = self.turn()
+        self.assertEqual(first["status"], "failed")
+        self.model.callback = None
+        second = self.turn(previous=first, message="为什么刚刚失败")
+        value = self.app.received_execution_context
+        self.assertEqual(second["status"], "completed")
+        self.assertEqual(value["status"], "failed")
+        self.assertEqual(value["error_code"], "model_unavailable")
+        self.assertTrue(any(event["fields"].get("error_code") == "model_unavailable" for event in value["events"]))
+        self.assertEqual(len(self.model.calls[-1]), 1)
+
+    def test_diagnostic_run_from_other_conversation_is_not_adopted(self):
+        self.enable_private_runs()
+        first, other = self.turn(), self.turn()
+        scope, _, _ = self.service._current(self.context)
+        state = {"turns": [{"run_id": first["run_id"]}]}
+        self.assertIsNone(self.service._execution_context(self.context, state, scope, other["conversation_id"]))
+        self.app.school.epoch += 1
+        new_scope, _, _ = self.service._current(self.context)
+        self.assertIsNone(self.service._execution_context(self.context, state, new_scope, first["conversation_id"]))
+
+    def test_corrupt_or_unavailable_diagnostics_do_not_break_the_next_task(self):
+        self.enable_private_runs()
+        first = self.turn()
+        for patch_kwargs in ({"side_effect": ValueError("SYNTHETIC-CORRUPT-LOG")}, {"return_value": {}},
+                             {"return_value": {"run": {"conversation_id": first["conversation_id"], "status": "completed"}}}):
+            with self.subTest(patch_kwargs=patch_kwargs), patch.object(self.service.runs, "read", **patch_kwargs):
+                result = self.turn(previous=first, message="继续正常提问")
+                self.assertEqual(result["status"], "completed")
+                self.assertIsNone(self.app.received_execution_context)
+                first = result
 
     def test_explicit_policy_and_consent_required_before_any_reservation(self):
         for changes in ({"consent_personal": False}, {"consent_personal": 1}, {"data_use_version": "old"},
@@ -214,7 +274,7 @@ class PersonalChatTests(unittest.TestCase):
         mock = AuthContext("demo-a", "SYNTHETIC-MOCK", "SYNTHETIC-A", "mock_development", "v1", "mock")
         self.assert_reason("school_connection_required", self.service.status, mock)
 
-    def test_versions_change_clears_model_history_and_preserves_stale_local_turns(self):
+    def test_versions_change_keeps_intent_without_old_facts_and_preserves_stale_local_turns(self):
         first = self.turn()
         second = self.turn(first, message="继续查询这门课")
         self.assertEqual(len(self.model.calls[1]), 3)
@@ -225,7 +285,8 @@ class PersonalChatTests(unittest.TestCase):
         self.assertTrue(all(turn["is_stale"] for turn in history["turns"]))
         third = self.turn(second, message="查询当前资料")
         self.assertTrue(third["history_reset"])
-        self.assertEqual(len(self.model.calls[2]), 1)
+        self.assertEqual(len(self.model.calls[2]), 3)
+        self.assertTrue(all(row["role"] == "user" for row in self.model.calls[2]))
         self.assertNotIn("SYNTHETIC-LOCAL-ONLY", str(self.model.calls))
 
     def test_stale_input_replay_is_denied_without_a_model_call(self):

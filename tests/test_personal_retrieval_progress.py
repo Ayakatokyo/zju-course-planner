@@ -74,6 +74,15 @@ class BlockingSyntheticSchool(helper_module.ObservedSyntheticSchool):
         return super().request(spec)
 
 
+class RecoveringSyntheticModel(SyntheticProgressModel):
+    def complete(self, messages, tools):
+        message = super().complete(messages, tools)
+        if message.get("content") and json.loads(message["content"]).get("kind") == "answer" and not self.shared.get("malformed_sent"):
+            self.shared["malformed_sent"] = True
+            return {"role": "assistant", "content": "```json\n" + message["content"] + "\n```"}
+        return message
+
+
 class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
     request = helper_module.PersonalHTTPTests.request
     login = helper_module.PersonalHTTPTests.login
@@ -143,7 +152,11 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
         self.assertEqual(tools[0]["initiated_by"], "service_preflight")
         query = next(tool for tool in tools if tool["name"] == "query_my_records")
         self.assertEqual(query["arguments"]["query"], "")
-        self.assertEqual(query["result"]["source_grade_summary"]["matched_records"], 60)
+        self.assertEqual(query["result"]["source_grade_summary"]["matched_records"], 75)
+        self.assertEqual(query["result"]["source_grade_summary"]["numeric_grade_count"], 60)
+        self.assertEqual(query["result"]["coverage"]["captured_rows"], 75)
+        self.assertFalse(query["result"]["coverage"]["has_more"])
+        self.assertEqual([item["page"] for item in sources], [1, 2, 3, 4])
         self.assertGreater(query["result"]["retrieval"]["returned_records"], 0)
         self.assertLessEqual(query["result"]["retrieval"]["returned_records"], 15)
         self.assertTrue(query["result"]["retrieval"]["has_more"])
@@ -153,11 +166,47 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
         read_starts = [item for item in completed["events"] if item["kind"] == "tool.start" and item.get("tool_name") == "read_my_major_academic"]
         self.assertEqual(len(read_starts), 1)
         before = len(sources)
-        code, repeated, _ = self.request("POST", "/api/chat/turn", self.body(previous=result))
+        repeated_body = self.body(previous=result)
+        code, repeated, _ = self.request("POST", "/api/chat/turn", repeated_body)
         self.assertEqual(code, 200, repeated)
         self.assertEqual(repeated["status"], "completed", repeated)
-        self.assertFalse(repeated["history_reset"])
-        self.assertEqual(len(sources), before)
+        self.assertTrue(repeated["history_reset"])
+        self.assertEqual(len(sources), before + 4)
+        self.assertEqual([item["page"] for item in sources[before:]], [1, 2, 3, 4])
+        latest_initial = self.model.shared["calls"][-2]
+        self.assertFalse(any(item["role"] == "tool" for item in latest_initial))
+        self.assertEqual([item["content"] for item in latest_initial if item["role"] == "user"], [repeated_body["message"]])
+        system = next(item["content"] for item in latest_initial if item["role"] == "system")
+        self.assertIn("已结束历史意图", system)
+        self.assertIn("不是待办", system)
+        self.assertIn(body["message"], system)
+
+    def test_one_http_turn_repairs_format_with_actual_persisted_events_without_reacquiring(self):
+        self.model = RecoveringSyntheticModel()
+        self.app.personal_chat.model = self.model
+        self.login()
+        body = self.body()
+        code, result, _ = self.request("POST", "/api/chat/turn", body)
+        self.assertEqual(code, 200, result)
+        self.assertEqual(result["status"], "completed", result)
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertFalse(result["diagnostics"]["incomplete"])
+        self.assertEqual(len(self.model.shared["calls"]), 3)
+        code, detail, _ = self.request("POST", "/api/chat/run", {"run_id": result["run_id"]})
+        self.assertEqual(code, 200, detail)
+        events = detail["events"]
+        self.assertEqual(len([event for event in events if event["kind"] == "tool.start" and event.get("tool_name") == "read_my_major_academic"]), 1)
+        self.assertEqual(len([event for event in events if event["kind"] == "tool.start" and event.get("tool_name") == "query_my_records"]), 1)
+        rejected = next(event for event in events if event["kind"] == "answer.rejected")
+        self.assertEqual(rejected["failure_detail"], "invalid_json")
+        self.assertEqual([event["status"] for event in events if event["kind"] == "answer.repair"], ["started", "completed"])
+        source = next(event for event in events if event["kind"] == "tool.end" and event.get("tool_name") == "read_my_major_academic")
+        self.assertEqual(source["initiated_by"], "service_acquisition")
+        self.assertEqual(source["captured_rows"], 75)
+        self.assertEqual(source["reported_total"], 75)
+        self.assertFalse(source["has_more"])
+        self.assertTrue(source["complete_within_scope"])
+        self.assertEqual([item["page"] for item in self.clients[0].calls], [1, 2, 3, 4])
 
     def test_identity_chat_calls_model_without_acquiring_school_sources(self):
         self.login()

@@ -108,8 +108,17 @@ class PersonalHTTPTests(unittest.TestCase):
 
     def test_registered_scope_is_partial_duplicates_and_unknown_credits_survive_query(self):
         self.login()
+        context = self.app.auth.authenticate(self.cookie.split("=", 1)[1])
+        # Deliberately exercise the partial-acquisition path. The normal
+        # default now reads all four pages of this 75-row source fixture.
+        self.app.school._connection(context).source.maxpages = 3
         source = self.sync()
         self.assertEqual(len(source["records"]), 60)
+        self.assertEqual(source["status"], "partial_acquisition")
+        self.assertEqual(source["coverage"]["reported_total"], 75)
+        self.assertEqual(source["coverage"]["pages_captured"], 3)
+        self.assertTrue(source["coverage"]["has_more"])
+        self.assertFalse(source["coverage"]["complete_within_scope"])
         code, result, _ = self.request("POST", "/api/personal/records",
             {"operation": "major_academic", "query": "SYNTHETIC-PE-REPEAT", "limit": 20})
         self.assertEqual(code, 200, result)
@@ -119,6 +128,37 @@ class PersonalHTTPTests(unittest.TestCase):
         self.assertEqual(result["coverage"], source["coverage"])
         self.assertNotEqual(result["status"], "verified_complete")
         self.assertEqual(result["data_kind"], "personal_source")
+
+    def test_default_acquisition_reads_complete_75_rows_and_summary_not_first_pages(self):
+        self.login()
+        source = self.sync()
+        self.assertEqual(len(source["records"]), 75)
+        self.assertEqual(source["status"], "complete_within_scope")
+        self.assertEqual(source["coverage"], {"captured_rows": 75, "reported_total": 75,
+            "pages_captured": 4, "complete_within_scope": True, "has_more": False})
+        self.assertEqual([call["page"] for call in self.clients[0].calls], [1, 2, 3, 4])
+        code, summary, _ = self.request("POST", "/api/personal/records",
+            {"operation": "major_academic", "observation_id": source["observation_id"], "mode": "summary"})
+        self.assertEqual(code, 200, summary)
+        self.assertEqual(summary["records"], [])
+        self.assertEqual(summary["source_grade_summary"]["matched_records"], 75)
+        self.assertEqual(summary["source_grade_summary"]["numeric_grade_count"], 60)
+        self.assertEqual(summary["source_grade_summary"]["non_numeric_grade_count"], 15)
+        self.assertEqual(summary["coverage"], source["coverage"])
+        body = {"operation": "major_academic", "observation_id": source["observation_id"], "limit": 20}
+        records, sizes = [], []
+        while True:
+            code, page, _ = self.request("POST", "/api/personal/records", body)
+            self.assertEqual(code, 200, page)
+            records.extend(page["records"])
+            sizes.append(len(page["records"]))
+            self.assertEqual(page["observation_id"], source["observation_id"])
+            if not page["next_cursor"]:
+                break
+            body["cursor"] = page["next_cursor"]
+        self.assertEqual(sizes, [20, 20, 20, 15])
+        self.assertEqual(len({row["attempt_candidate_id"] for row in records}), 75)
+        self.assertTrue(all(row["earned_credits"] is None for row in records))
 
     def test_pagination_is_pinned_to_observation_and_filter(self):
         self.login()
@@ -223,7 +263,9 @@ class PersonalHTTPTests(unittest.TestCase):
         self.login()
         with patch.object(PersonalObservationStore, "register", side_effect=PersonalObservationError("invalid_private_store")):
             result = self.sync()
-        self.assertEqual(len(result["records"]), 60)
+        self.assertEqual(len(result["records"]), 75)
+        self.assertEqual(result["coverage"]["captured_rows"], 75)
+        self.assertFalse(result["coverage"]["has_more"])
         self.assertNotIn("observation_id", result)
         self.assertEqual(result["observation_registration"], {"status": "failed", "code": "invalid_private_store"})
         self.assertTrue(self.clients[0].calls)
@@ -234,7 +276,9 @@ class PersonalHTTPTests(unittest.TestCase):
         for error in (OSError("synthetic private path must not leak"), PersonalEvidenceError("private_permissions_required")):
             with self.subTest(kind=type(error).__name__), patch.object(self.app.school, "_personal_services", side_effect=error):
                 result = self.sync()
-                self.assertEqual(len(result["records"]), 60)
+                self.assertEqual(len(result["records"]), 75)
+                self.assertEqual(result["coverage"]["pages_captured"], 4)
+                self.assertFalse(result["coverage"]["has_more"])
                 self.assertEqual(result["observation_registration"]["status"], "failed")
                 self.assertNotIn("synthetic private path", json.dumps(result))
 

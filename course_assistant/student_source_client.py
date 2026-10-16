@@ -20,6 +20,7 @@ from .student_sources import (CREDENTIAL_VALUE, SCHEMA, SUBJECT_FIELDS, StudentS
                              _observed_subjects, validate_business_field_diagnostics)
 
 OPERATIONS = frozenset({"academic", "major_academic", "timetable", "exams", "plan_catalogue", "plan_document"})
+MAX_SOURCE_PAGES = 50
 DOMAINS = {"academic": "academic", "major_academic": "academic", "timetable": "timetable", "exams": "exams"}
 HARD_STOPS = frozenset({"awaiting_user_login", "source_session_expired", "captcha_required",
                         "permission_denied", "source_subject_changed", "user_confirmation_required"})
@@ -109,14 +110,16 @@ class StudentSourceClient:
     """
 
     def __init__(self, transport, authorize, *, clock=time.time, timeout=30,
-                 retries=1, maxpages=3, cache_seconds=300):
+                 retries=1, maxpages=MAX_SOURCE_PAGES, cache_seconds=300, total_timeout=60):
         if (not callable(authorize) or not _finite(timeout) or not 0 < timeout <= 30 or
                 type(retries) is not int or not 0 <= retries <= 1 or
-                type(maxpages) is not int or not 1 <= maxpages <= 3 or
+                type(maxpages) is not int or not 1 <= maxpages <= MAX_SOURCE_PAGES or
+                not _finite(total_timeout) or not 0 < total_timeout <= 120 or
                 not _finite(cache_seconds) or not 0 <= cache_seconds <= 86400):
             raise SourceClientError("invalid_client_policy")
         self.transport, self.authorize, self.clock = transport, authorize, clock
         self.timeout, self.retries, self.maxpages, self.cache_seconds = timeout, retries, maxpages, cache_seconds
+        self.total_timeout = total_timeout
         self._lock = threading.RLock()
         self._cache, self._subjects = {}, {}
         self._last_epoch, self._pending = None, None
@@ -189,7 +192,7 @@ class StudentSourceClient:
             spec["plan_ref"] = plan_ref
         return spec
 
-    def _request(self, spec):
+    def _request(self, spec, *, timeout=None):
         if self._pending is not None and not self._pending.is_set():
             return None, "transport_still_running", False
         queue, done = Queue(maxsize=1), threading.Event()
@@ -205,7 +208,7 @@ class StudentSourceClient:
             queue.put(outcome)
         threading.Thread(target=work, daemon=True).start()
         try:
-            return queue.get(timeout=self.timeout)
+            return queue.get(timeout=self.timeout if timeout is None else timeout)
         except Empty:
             # A late challenge may be unavailable to the caller. Do not retain
             # a reusable cache while the connection's request is unresolved.
@@ -347,6 +350,7 @@ class StudentSourceClient:
                 result.update(data_source="historical_cache", checked_at=self._now(), cache_captured_at=cached["captured_at"], request_attempts=0)
                 return result
             pages, total, attempts, failure, state = [], None, 0, None, None
+            deadline = time.monotonic() + self.total_timeout
             fingerprints = set()
             limit = 1 if operation.startswith("plan_") or operation == "timetable" else self.maxpages
             for page_number in range(1, limit + 1):
@@ -355,10 +359,17 @@ class StudentSourceClient:
                     if not self._recheck(request, scope_key, epoch):
                         state, failure = "source_session_expired", "session_epoch_changed"
                         break
-                    response, error, retryable = self._request(request)
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        state, failure = "source_unavailable", "request_budget_exceeded"
+                        break
+                    response, error, retryable = self._request(request, timeout=min(self.timeout, remaining))
                     attempts += 1
                     if not self._recheck(request, scope_key, epoch):
                         state, failure = "source_session_expired", "session_epoch_changed"
+                        break
+                    if time.monotonic() >= deadline:
+                        state, failure = "source_unavailable", "request_budget_exceeded"
                         break
                     if error:
                         state, failure = "source_unavailable", error
@@ -393,6 +404,9 @@ class StudentSourceClient:
                     break
                 if (total is not None and rows == total) or page["rows"] == 0 or (total is None and page["rows"] < 20):
                     break
+            else:
+                if total is not None and total > sum(item["rows"] for item in pages):
+                    state, failure = "source_unavailable", "page_limit_exceeded"
             if not self._recheck(spec, scope_key, epoch):
                 state, failure = "source_session_expired", "session_epoch_changed"
             if state in HARD_STOPS:

@@ -18,13 +18,13 @@ from .importer import digest
 from .model_client import ModelError
 from .storage import chat_title
 from .chat_model_settings import ChatModelSettings
-from .chat_runs import ChatRunStore, ChatRunError
+from .chat_runs import ChatRunStore, ChatRunError, tool_event_fields
 from .chat_progress import ChatProgress
 
 
 DATA_USE_VERSION = "personal-retrieval-v1"
 SERVICE = "personal-retrieval-chat-v1"
-TOOLS_VERSION = "personal-question-tools-v2"
+TOOLS_VERSION = "personal-question-tools-v5-live-sources"
 DATA_USE_SUMMARY = "本轮问题及检索到的相关教务记录、培养资料片段会发送给当前模型；不发送账号凭据。"
 SENSITIVE = re.compile(r"(?i)(sk[-_][a-z0-9_-]{12,}|bearer\s+\S+|(?:password|passwd|cookie|token|api[_ -]?key|密码|口令)\s*(?:[:=：]|是|为|\bis\b)\s*\S+|(?:密码|口令)\s+\S+|(?<!\d)\d{10}(?!\d))")
 
@@ -46,6 +46,7 @@ class _ObservedModel:
     """One immutable selected client and safe per-request diagnostics."""
     def __init__(self, client, emit, authorize, reasoning=None):
         self.client, self.emit, self.authorize, self.reasoning = client, emit, authorize, reasoning
+        self.step = 0
 
     def status(self):
         return self.client.status()
@@ -53,10 +54,13 @@ class _ObservedModel:
     def complete(self, messages, tools):
         self.authorize()
         status, started = self.status(), time.monotonic()
-        self.emit("model.start", {"model": status.get("model"), "input_chars": len(json.dumps(messages, ensure_ascii=False))})
+        self.step += 1
+        self.emit("model.start", {"model": status.get("model"), "step": self.step,
+                                   "input_chars": len(json.dumps(messages, ensure_ascii=False))})
         def observed(metadata):
             values = {key: metadata[key] for key in ("model", "status", "elapsed_ms", "usage", "http_status", "request_id", "completion_id")
                       if metadata.get(key) is not None}
+            values["step"] = self.step
             if metadata.get("code"):
                 values["error_code"] = metadata["code"]
             if type(metadata.get("provider_reasoning")) is str:
@@ -195,6 +199,15 @@ class PersonalChatService:
             _deny("inaccessible_object", "资源不可访问", 404)
         return row["state"]
 
+    @staticmethod
+    def _intent_history(state):
+        """Carry user intent across fresh data versions, never old fact/tool payloads."""
+        rows = [{"role": "user", "content": turn["message"]} for turn in state.get("turns", [])[-8:]
+                if isinstance(turn, dict) and isinstance(turn.get("message"), str) and 0 < len(turn["message"]) <= 2000]
+        while rows and len(json.dumps(rows, ensure_ascii=False).encode()) > 12000:
+            rows.pop(0)
+        return rows
+
     def status(self, context):
         self.app.auth.require_context(context)
         if context.auth_mode != SCHOOL_MODE or context.security_realm != SCHOOL_REALM:
@@ -315,6 +328,48 @@ class PersonalChatService:
         from .personal_dialogue import PersonalDialogueService
         return PersonalDialogueService(getattr(self._active_model, "client", self.model), authorize, execute_tool)
 
+    def _execution_context(self, context, state, scope, identifier):
+        try:
+            return self._read_execution_context(context, state, scope, identifier)
+        except Exception:
+            # Run logs are optional diagnostics. Authentication/input versions
+            # are checked by the main turn before and after model execution.
+            return None
+
+    def _read_execution_context(self, context, state, scope, identifier):
+        """Only this authenticated conversation's previous recorded run.
+
+        Failed provider messages stay excluded from model history. This separate
+        projection lets the next turn explain what actually failed without
+        sending previous questions, source bodies or provider reasoning again.
+        """
+        if self.runs is None:
+            return None
+        previous = next((turn for turn in reversed(state.get("turns", [])) if turn.get("run_id")), None)
+        if previous is None:
+            return None
+        try:
+            detail = self.runs.read(context, previous["run_id"], scope, include_reasoning=False)
+        except ChatRunError:
+            return None
+        run = detail["run"]
+        if run.get("conversation_id") != identifier or run.get("status") not in {"completed", "failed", "cancelled", "aborted"}:
+            return None
+        allowed = {"step", "attempt", "count", "tool_count", "citation_count", "record_count", "match_count",
+                   "claim_count", "evidence_count", "unknown_count", "input_chars", "output_chars", "elapsed_ms",
+                   "error_code", "failure_detail", "stage", "tool_name", "status", "http_status", "operation",
+                   "target_term", "query_mode", "initiated_by", "captured_rows", "reported_total", "matched_records",
+                   "returned_records", "has_more", "complete_within_scope"}
+        value = {"run_id": run["run_id"], "status": run["status"], "error_code": run.get("error_code"),
+                "thinking": run["thinking"], "model": run.get("model"),
+                "events": [{"kind": event["kind"], "fields": {key: value for key, value in event["fields"].items() if key in allowed}}
+                           for event in detail["events"][-64:]]}
+        from .personal_dialogue import _execution_context, PersonalDialogueError
+        try:
+            return _execution_context(value)
+        except PersonalDialogueError:
+            return None  # An unavailable diagnostic must not break the next task.
+
     @staticmethod
     def _failure(error):
         if isinstance(error, AccessError):
@@ -358,7 +413,11 @@ class PersonalChatService:
                 identifier, turn_id, state = reservation["conversation_id"], reservation["turn_id"], reservation["state"]
                 reset = state.get("workspace_versions") != versions
                 state.update(personal_service=SERVICE, personal_scope=scope)
-                history = [] if reset else deepcopy(state.get("messages", []))
+                same_egress = (state.get("workspace_versions") or {}).get("egress_digest") == versions["egress_digest"]
+                history = self._intent_history(state) if reset and same_egress else [] if reset else deepcopy(state.get("messages", []))
+                if callable(getattr(self.app.school, "personal_chat_live_tool", None)):
+                    history = self._intent_history(state) if same_egress else []
+                    reset = reset or bool(state.get("messages"))
 
         if "replay" in reservation:
             self._current(context, expected_scope=scope, expected_versions=versions,
@@ -368,7 +427,10 @@ class PersonalChatService:
         def authorize():
             self._current(context, expected_scope=scope, expected_versions=versions,
                           expected_egress=versions["egress_digest"])
-            return {"scope_key": scope, "versions": deepcopy(versions)}
+            # Input changes made by this turn are adopted under the connection
+            # lock. Authority/model changes remain fatal; old input versions
+            # still fail _current unless explicitly adopted by our own read.
+            return {"scope_key": scope, "versions": {"egress_digest": versions["egress_digest"]}}
 
         run_id, log_errors = None, []
         if self.runs is not None:
@@ -389,19 +451,26 @@ class PersonalChatService:
         self.progress.begin(progress_key, run_id=run_id, model=model_status.get("model"),
                             thinking=model_status.get("thinking") is True)
 
+        source_receipts = []
+
         def execute_tool(name, args):
             authorize()
-            emit("tool.start", {"tool_name": name})
+            initiated_by = "service_preflight" if name == "get_my_context" else "model"
+            emit("tool.start", tool_event_fields(name, args, initiated_by=initiated_by))
             started = time.monotonic()
             try:
-                result = self.app.school.personal_chat_tool(context, name, args)
+                live_tool = getattr(self.app.school, "personal_chat_live_tool", None)
+                result = (live_tool(context, name, args, receipts=source_receipts, emit=emit,
+                                   authorize=generation_authorize, adopt=adopt, before=authorize)
+                          if callable(live_tool) else self.app.school.personal_chat_tool(context, name, args))
             except Exception as error:
                 emit("tool.end", {"tool_name": name, "status": "failed", "error_code": getattr(error, "code", getattr(error, "reason", "tool_unavailable")),
                                    "elapsed_ms": round((time.monotonic()-started)*1000)})
                 raise
             authorize()
-            emit("tool.end", {"tool_name": name, "status": "completed", "elapsed_ms": round((time.monotonic()-started)*1000),
-                              "record_count": len(result.get("records", [])), "match_count": len(result.get("matches", []))})
+            emit("tool.end", {**tool_event_fields(name, args, result, initiated_by=initiated_by),
+                              "status": "not_ready" if result.get("status") in {"not_ready", "unavailable"} else "completed",
+                              "elapsed_ms": round((time.monotonic()-started)*1000)})
             return result
 
         response, messages, fatal = None, [], None
@@ -417,17 +486,23 @@ class PersonalChatService:
                 _, current, _ = self._current(context, expected_scope=scope,
                     expected_egress=versions["egress_digest"])
                 if current != versions:
-                    versions, reset, history = current, True, []
+                    keep_intent = versions["egress_digest"] == current["egress_digest"]
+                    versions, reset = current, True
+                    history = self._intent_history(state) if keep_intent else []
 
             preparation = getattr(self.app.school, "prepare_personal_chat", None)
             if callable(preparation):
-                preparation(context, body["message"], before=authorize, authorize=generation_authorize,
-                            emit=emit, adopt=adopt)
+                prepared = preparation(context, body["message"], before=authorize, authorize=generation_authorize,
+                                       emit=emit, adopt=adopt)
+                if isinstance(prepared, list):
+                    source_receipts.extend(prepared)
             # Neither inference nor PDF extraction holds the global app lock.
             self._active_model.client = _ObservedModel(snapshot[0], emit, authorize,
                 lambda delta: self.progress.reasoning(progress_key, delta))
+            execution_context = self._execution_context(context, state, scope, identifier)
             response, messages = self._dialogue(authorize, execute_tool).run(
-                body["message"], data_use="personal_retrieval", history=history)
+                body["message"], data_use="personal_retrieval", history=history,
+                execution_context=execution_context, emit=emit)
             if (type(response) is not dict or response.get("status") not in {"completed", "failed"} or
                     type(response.get("reply")) is not str or type(response.get("tool_results")) is not list or
                     type(response.get("citations")) is not list or type(messages) is not list):

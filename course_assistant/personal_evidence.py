@@ -33,8 +33,9 @@ import unicodedata
 from .reference_retrieval import terms
 
 SCHEMA = "personal-evidence/1"
-CHUNKING = "page-paragraph-context-v2"
-EXTRACTION = "pdftotext-layout-utf8-v1"
+CHUNKING = "curriculum-semantic-source-spans-v3"
+EXTRACTION = "pdftotext-layout-utf8-source-spans-v2"
+CLEANING = "conservative-watermark-lines-v1"
 PURPOSE = "personal_curriculum_local_reference"
 MAX_PDF_BYTES = 10 * 1024 * 1024
 MAX_TEXT_BYTES = 4 * 1024 * 1024
@@ -42,6 +43,9 @@ MAX_STORE_BYTES = 16 * 1024 * 1024
 MAX_PAGES = 300
 MAX_PAGE_CHARS = 60000
 MAX_CHUNKS = 2000
+MAX_MODEL_FRAGMENT_CHARS = 1800
+MAX_MODEL_CONTEXT_CHARS = 2400
+MAX_MODEL_CONTEXT_ITEMS = 8
 ALIAS = re.compile(r"PLAN-[a-f0-9]{24}\Z")
 HASH = re.compile(r"[a-f0-9]{64}\Z")
 REFERENCE = re.compile(r"PERSONAL-REF-[A-Za-z0-9_-]{43}\Z")
@@ -209,43 +213,226 @@ def _pages(values):
     return result
 
 
+def _locator(page, start, end):
+    return {"physical_page": page["page"], "char_start": start, "char_end": end,
+        "char_unit": "unicode_codepoint", "page_text_sha256": page["page_text_sha256"]}
+
+
+def _watermark_piece(text, *, isolated=False):
+    """Remove only known watermark words/fragments in their own layout cell.
+
+    Inline letters, course codes and ordinary Chinese prose are never rewritten.
+    This is intentionally conservative: uncertain glyphs remain source data.
+    """
+    original = re.sub(r"\s+", "", text)
+    value = original.casefold()
+    if not value:
+        return False
+    if value in {"浙江大学", "zhejiang", "university", "zhejianguniversity"}:
+        return True
+    if len(value) >= 3 and (value in "zhejiang" or value in "university"):
+        return True
+    if not isolated:
+        return False
+    if len(value) == 1:
+        # Preserve standalone grade/track/roman-numeral cells such as A/I/V;
+        # only Z and U are uppercase letters of the known watermark words.
+        return not (original.isupper() and original not in {"Z", "U"}) and value in "浙江大学zhejianguniversity"
+    # Do not mistake useful acronyms (AI, IT) or words for arbitrary two-glyph
+    # watermark combinations merely because they share its alphabet.
+    return len(value) == 2 and original.islower() and (value in "zhejiang" or value in "university")
+
+
+def _clean_source(page, start, end):
+    """Return display/search text plus exact, retained source spans.
+
+    The original contiguous excerpt and its locator remain untouched. Cleaning
+    only removes standalone watermark cells, recording every kept character's
+    provenance; it never manufactures a course value or changes the PDF.
+    """
+    retained, lines, position = [], [], start
+    for raw in page["text"][start:end].splitlines(keepends=True):
+        content = raw.rstrip("\r\n")
+        stripped = content.strip()
+        if stripped and not _watermark_piece(stripped, isolated=True):
+            cells = []
+            for match in re.finditer(r"\S+(?:[ \t]\S+)*", content):
+                value = match[0]
+                if _watermark_piece(value, isolated=True):
+                    continue
+                left, right = position + match.start(), position + match.end()
+                retained.append({"text": value, "locator": _locator(page, left, right)})
+                cells.append(value)
+            if cells:
+                lines.append(" ".join(cells))
+        position += len(raw)
+    return "\n".join(lines), retained
+
+
+def _heading(text):
+    compact = re.sub(r"\s+", "", text)
+    if not compact or len(compact) > 200:
+        return None
+    if re.search(r"培养方案[：:]?$", compact) and not re.match(r"\d+[.、．]", compact):
+        return (0, compact, "source_title")
+    match = re.match(r"^(?:(\d+)[.、．]|[（(](\d+)[)）]|(\d+)[)）]|([一二三四五六七八九十]+)[、.])", compact)
+    numbered = bool(match)
+    label = compact[match.end():] if match else compact
+    # A numbered course choice is a condition, not a new curriculum module.
+    topic = re.match(r"(?:专业(?:模块|基础|必修|选修)?(?:课程|课)?|通识(?:选修)?(?:课程|类)?|"
+        r"(?:创新创业|自然科学通识|外语|计算机|军体|思政|美育|劳育)(?:课程|类)?|"
+        r"个性修读课程|实践教学环节|毕业论文(?:[（(]设计[)）])?|第二课堂|第三课堂|第四课堂|"
+        r"培养目标|毕业要求|课程设置与学分分布|(?:必修|选修)课程)", label)
+    if not topic or (not numbered and not ("学分" in label or label in {"培养目标", "毕业要求", "课程设置与学分分布"})):
+        return None
+    label = re.split(r"[，,:：；;]|(?:至少|不低于|不少于)?\d+(?:\.\d+)?(?:学分|门)", label, maxsplit=1)[0]
+    if not label:
+        return None
+    depth = (1 if match and (match[1] or match[4]) else 2 if match and match[2] else 3) if match else 2
+    return depth, label, "module_requirement"
+
+
+def _line_role(text):
+    if ("课程号" in text or "课程代码" in text) and ("学分" in text or "课程名称" in text):
+        return "table_header"
+    if "续表" in text and len(text) < 80:
+        return "table_header"
+    token = re.match(r"^([A-Za-z0-9]+(?:[-_][A-Za-z0-9]+)*)\s+", text)
+    if token and token[1].upper() in _codes(token[1]):
+        return "course_row"
+    if re.match(r"^(?:附注|注[：:]|备注|说明[：:]|例外|[*＊△※])", text):
+        return "module_note"
+    return "paragraph"
+
+
 def _chunks(pages):
-    chunks = []
+    """Conservative document structure with exact raw spans and bounded model text.
+
+    Headings and table headers survive page boundaries. Dependency links are
+    candidate reading context, never reviewed table interpretation or rules.
+    """
+    chunks, modules, stack, current_header = [], {}, [], None
+
+    def add(page, start, end, role, module_keys):
+        cursor, group = start, len(chunks)
+        indices = []
+        while cursor < end:
+            right = min(cursor + MAX_MODEL_FRAGMENT_CHARS, end)
+            if right < end:
+                segment = page["text"][cursor:right]
+                split = max(segment.rfind("\n"), segment.rfind("。") + 1, segment.rfind("；") + 1)
+                if split > MAX_MODEL_FRAGMENT_CHARS // 2:
+                    right = cursor + split
+            raw = page["text"][cursor:right]
+            model_text, source_spans = _clean_source(page, cursor, right)
+            if model_text.strip():
+                first = next(line for line in model_text.splitlines() if line.strip())
+                keys = list(module_keys)
+                labels = [modules[key]["title"] for key in keys]
+                row = {"page": page["page"], "title": first[:120], "text": raw,
+                    "model_text": model_text, "model_text_spans": source_spans,
+                    "text_sha256": sha256(raw.encode()).hexdigest(), "locator": _locator(page, cursor, right),
+                    "review_status": "unreviewed", "context_completeness": "unverified",
+                    "cleaning_version": CLEANING, "chunk_kind": "partial_fragment" if end - start > MAX_MODEL_FRAGMENT_CHARS else role,
+                    "semantic_role": role, "fragment_group": group, "module_keys": keys,
+                    "module_title": labels[-1] if labels else None, "module_path": labels,
+                    "course_codes": sorted(_codes(model_text)), "table_header_ordinal": current_header,
+                    "required_context_pages": list(range(max(1, page["page"] - 1), min(len(pages), page["page"] + 1) + 1))}
+                indices.append(len(chunks))
+                chunks.append(row)
+                if len(chunks) > MAX_CHUNKS:
+                    _fail("extraction_limit_exceeded")
+            if right == end:
+                break
+            # Long prose has a small exact overlap and remains explicitly partial.
+            cursor = max(cursor + 1, right - 100)
+        return indices
+
     for page in pages:
-        text, start, position = page["text"], None, 0
-        spans = []
-        for line in text.splitlines(keepends=True):
-            if line.strip():
-                if start is None:
-                    start = position
-            elif start is not None:
-                spans.append((start, position))
-                start = None
-            position += len(line)
-        if start is not None:
-            spans.append((start, len(text)))
-        for left, right in spans:
-            # Long fragments retain full page context and are never called complete clauses.
-            cursor = left
-            while cursor < right:
-                end = min(cursor + 4000, right)
-                excerpt = text[cursor:end]
-                if excerpt.strip():
-                    locator = {"physical_page": page["page"], "char_start": cursor, "char_end": end,
-                        "char_unit": "unicode_codepoint", "page_text_sha256": page["page_text_sha256"]}
-                    row = {"page": page["page"], "title": excerpt.strip().splitlines()[0][:120],
-                        "text": excerpt, "text_sha256": sha256(excerpt.encode()).hexdigest(),
-                        "locator": locator, "review_status": "unreviewed", "context_completeness": "unverified",
-                        "chunk_kind": "page_paragraph" if right - left <= 4000 else "partial_fragment",
-                        "course_codes": sorted(_codes(excerpt)),
-                        "required_context_pages": list(range(max(1, page["page"] - 1), min(len(pages), page["page"] + 1) + 1))}
-                    row["chunk_id"] = "PCH-" + _digest(row)
-                    chunks.append(row)
-                    if len(chunks) > MAX_CHUNKS:
-                        _fail("extraction_limit_exceeded")
-                if end == right:
-                    break
-                cursor = end - 160
+        position, buffer_start, buffer_end, buffer_role = 0, None, None, None
+
+        def flush():
+            nonlocal buffer_start, buffer_end, buffer_role
+            if buffer_start is not None:
+                indices = add(page, buffer_start, buffer_end, buffer_role, [key for _, key in stack])
+                if stack and buffer_role in {"paragraph", "module_note", "module_requirement"}:
+                    modules[stack[-1][1]]["context"].extend(indices)
+                buffer_start = buffer_end = buffer_role = None
+
+        for raw in page["text"].splitlines(keepends=True):
+            left, right = position, position + len(raw)
+            position = right
+            clean, _ = _clean_source(page, left, right)
+            if not clean:
+                if not raw.strip():
+                    flush()
+                continue
+            heading = _heading(clean)
+            if heading:
+                flush()
+                depth, label, role = heading
+                if role == "source_title":
+                    if re.match(r"(?:微?辅修|双学位)", label):
+                        # A second study path must not inherit the previous
+                        # main-path module or its table header.
+                        stack.clear()
+                        current_header = None
+                    add(page, left, right, role, [])
+                    continue
+                while stack and stack[-1][0] >= depth:
+                    stack.pop()
+                key = "module-" + str(len(modules))
+                modules[key] = {"title": label, "context": [], "heading": []}
+                stack.append((depth, key))
+                current_header = None
+                indices = add(page, left, right, role, [value for _, value in stack])
+                modules[key]["heading"].extend(indices)
+                modules[key]["context"].extend(indices)
+                continue
+            role = _line_role(clean)
+            if role in {"table_header", "course_row"}:
+                flush()
+                indices = add(page, left, right, role, [key for _, key in stack])
+                if role == "table_header" and indices:
+                    # A bare continuation marker does not replace the column header.
+                    if "课程号" in clean or "课程代码" in clean or current_header is None:
+                        current_header = indices[0]
+                continue
+            if buffer_start is not None and role != buffer_role:
+                flush()
+            if buffer_start is None:
+                buffer_start, buffer_role = left, role
+            buffer_end = right
+        flush()
+
+    # IDs do not recursively include dependency IDs; the entire rebuilt bundle
+    # and its signed index hash bind the links, source and processing versions.
+    for row in chunks:
+        row["chunk_id"] = "PCH-" + _digest(row)
+    for index, row in enumerate(chunks):
+        dependencies = []
+        def need(ordinal, context_role):
+            if ordinal != index and all(value[0] != ordinal for value in dependencies):
+                dependencies.append((ordinal, context_role))
+        for key in row["module_keys"]:
+            for ordinal in modules[key]["heading"]:
+                need(ordinal, "module_heading")
+        if row["table_header_ordinal"] is not None:
+            need(row["table_header_ordinal"], "table_header")
+        # Keep prose conditions and following notes with rows from the same
+        # module, including continuation pages. Scope remains unreviewed.
+        for note_first in (True, False):
+            for key in reversed(row["module_keys"]):
+                for ordinal in modules[key]["context"]:
+                    is_note = chunks[ordinal]["semantic_role"] == "module_note"
+                    if is_note == note_first:
+                        need(ordinal, "module_note" if is_note else "module_condition")
+        if row["chunk_kind"] == "partial_fragment":
+            for ordinal, other in enumerate(chunks):
+                if other["fragment_group"] == row["fragment_group"]:
+                    need(ordinal, "continuation")
+        row["semantic_context"] = [{"chunk_id": chunks[ordinal]["chunk_id"], "context_role": role} for ordinal, role in dependencies]
+        row["required_context_pages"] = sorted(set(row["required_context_pages"]) | {chunks[ordinal]["page"] for ordinal, _ in dependencies})
     return chunks
 
 
@@ -257,7 +444,7 @@ class PersonalEvidenceService:
             _fail("invalid_arguments")
         self._authorize_callback, self._read_callback = authorize, read_document
         self._describe_callback, self._extractor = describe_document, extractor or _extract_pdf
-        self._extraction_version = EXTRACTION if extractor is None else "injected-page-extractor-v1"
+        self._extraction_version = EXTRACTION if extractor is None else "injected-page-extractor-v2"
         self.root = Path(root).expanduser().absolute()
         if self.root.resolve() != self.root:
             _fail("invalid_private_path")
@@ -528,8 +715,22 @@ class PersonalEvidenceService:
         contexts = [{"page": row["page"], "text": row["text"], "page_text_sha256": row["page_text_sha256"],
             "review_status": "unreviewed", "context_role": "full_page_unverified" if row["page"] == chunk["page"] else "adjacent_page_unverified"}
             for row in bundle["pages"] if row["page"] in chunk["required_context_pages"]]
-        return {key_: deepcopy(chunk[key_]) for key_ in ("title", "text", "page", "locator", "text_sha256", "review_status", "context_completeness", "chunk_kind")} | {
+        by_id = {row["chunk_id"]: row for row in bundle["chunks"]}
+        model_context, used, omitted = [], 0, 0
+        for dependency in chunk["semantic_context"]:
+            other = by_id[dependency["chunk_id"]]
+            amount = len(other["model_text"])
+            if len(model_context) >= MAX_MODEL_CONTEXT_ITEMS or used + amount > MAX_MODEL_CONTEXT_CHARS:
+                omitted += 1
+                continue
+            model_context.append({key_: deepcopy(other[key_]) for key_ in
+                ("text", "model_text", "model_text_spans", "page", "locator", "review_status")} | {
+                "context_role": dependency["context_role"], "context_completeness": "unverified"})
+            used += amount
+        return {key_: deepcopy(chunk[key_]) for key_ in ("title", "text", "model_text", "model_text_spans", "page", "locator", "text_sha256", "review_status", "context_completeness", "chunk_kind", "semantic_role", "module_title", "module_path", "cleaning_version")} | {
             "reference": self._reference(key, state, chunk), "required_context": contexts,
+            "model_context": model_context, "model_context_chars": used,
+            "model_context_omitted": omitted, "model_context_complete": omitted == 0,
             "source_alias": state["document"]["source_alias"], "answer_support_verified": False,
             "course_identity_verified": False, "official_rule_enabled": False}
 
@@ -542,11 +743,30 @@ class PersonalEvidenceService:
             state, bundle = self._load(key, document)
         self._source(key, document)
         tokens, codes, ranked = terms(query), _query_codes(query), []
+        compact_query = re.sub(r"\s+", "", unicodedata.normalize("NFKC", query))
+        module_matches = {}
+        if not codes:
+            for chunk in bundle["chunks"]:
+                if chunk["semantic_role"] != "module_requirement" or not chunk["module_keys"]:
+                    continue
+                label = re.sub(r"(?:课程|类)$", "", chunk["module_title"] or "")
+                if len(label) >= 2 and label in compact_query:
+                    module_matches[chunk["module_keys"][-1]] = len(label)
+            # A named child module outranks its generic parent (专业 vs 专业选修).
+            if module_matches:
+                longest = max(module_matches.values())
+                module_matches = {key: size for key, size in module_matches.items() if size == longest}
         for ordinal, chunk in enumerate(bundle["chunks"]):
             exact = bool(codes & set(chunk["course_codes"]))
             if codes and not exact:
                 continue
-            score = len(tokens & terms(chunk["text"])) + (1000 if exact else 0)
+            if module_matches and not set(chunk["module_keys"]) & set(module_matches):
+                continue
+            score = len(tokens & terms(chunk["model_text"])) + (1000 if exact else 0)
+            if module_matches:
+                score += 50
+                if chunk["semantic_role"] == "module_requirement":
+                    score += 30
             if score:
                 ranked.append((-score, ordinal, chunk))
         ranked.sort(key=lambda row: row[:2])
@@ -554,7 +774,7 @@ class PersonalEvidenceService:
         self._current(key, document)
         return {**self._summary(key, document, state), "status": "pending_review" if matches else "no_supported_answer_in_scope",
             "matches": matches, "retrieval_mode": "exact_course_code_text" if codes else "lexical_han_bigram",
-            "search_candidate_count": len(ranked)}
+            "search_candidate_count": len(ranked), "named_module_filter_applied": bool(module_matches)}
 
     @_safe_storage
     def resolve(self, reference):

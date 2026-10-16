@@ -12,6 +12,7 @@ from urllib.error import HTTPError, URLError
 
 from course_assistant.school_http import SchoolHTTPClient, SSO, SCHOOL, PROFILE_ROUTE, SERVICE, MENU, PLAN_MAJOR_OPTIONS, _Page
 from course_assistant.school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT
+from course_assistant.student_source_client import MAX_SOURCE_PAGES
 
 
 class Response(io.BytesIO):
@@ -101,6 +102,20 @@ class SchoolHTTPTests(unittest.TestCase):
         self.assertEqual(self.opener.requests[-1]["body"], b"")
         self.assertEqual(self.opener.requests[-1]["headers"]["Origin"], SCHOOL)
         self.assertNotIn("SYNTHETIC-MENU-OPAQUE", str(self.http._result("authenticated", profile=self.http._profile)))
+
+    def test_sixth_page_uses_same_business_protocol_and_upper_limit_is_enforced(self):
+        payload = rows()
+        payload.update(pageNo=6, total=104)
+        self.client([Response(payload)])
+        result = self.request(page=6)
+        self.assertEqual(result["state"], "business")
+        form = parse_qs(self.opener.requests[-1]["body"].decode())
+        self.assertEqual(form["queryModel.currentPage"], ["6"])
+        self.assertEqual(form["queryModel.showCount"], ["20"])
+        request_count = len(self.opener.requests)
+        rejected = self.request(page=MAX_SOURCE_PAGES + 1)
+        self.assertEqual(rejected["state"], "route_not_confirmed")
+        self.assertEqual(len(self.opener.requests), request_count)
 
     def test_actual_same_menu_iframe_is_followed_once_without_invented_role(self):
         script = login_script()

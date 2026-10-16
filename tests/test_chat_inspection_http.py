@@ -177,7 +177,7 @@ class ChatInspectionHTTPTests(unittest.TestCase):
         first_call_count = len(calls)
         continued = self.turn(previous=result)
         first_next_turn = calls[first_call_count]["messages"]
-        self.assertEqual(len(self.clients[0].calls), before)
+        self.assertEqual(len(self.clients[0].calls), before + 8)
         code, listing, _ = self.request("GET", "/api/chat/runs?limit=20")
         self.assertEqual(code, 200, listing)
         self.assertEqual({run["run_id"] for run in listing["runs"]}, {result["run_id"], continued["run_id"]})
@@ -195,7 +195,7 @@ class ChatInspectionHTTPTests(unittest.TestCase):
         self.assertTrue(all(row["usage"]["total_tokens"] == 30 for row in model_ends))
         self.assertTrue(all(row["request_id"].startswith("synthetic-request-") for row in model_ends))
         self.assertTrue(all(row["reasoning_content"].startswith("Public synthetic") for row in model_ends))
-        self.assertEqual([row["tool_name"] for row in events if row["kind"] == "tool.end"], ["get_my_context", "query_my_records"])
+        self.assertEqual([row["tool_name"] for row in events if row["kind"] == "tool.end"], ["get_my_context", "read_my_major_academic", "query_my_records"])
         self.assertEqual(events[-1]["kind"], "answer.validated")
         self.assertEqual(events[-1]["citation_count"], len(result["citations"]))
         serialized = json.dumps(inspected, ensure_ascii=False)
@@ -204,8 +204,11 @@ class ChatInspectionHTTPTests(unittest.TestCase):
             self.assertNotIn(private, serialized)
         self.assertEqual(self.app.store.path.stat().st_mode & 0o777, 0o600)
         self.assertEqual(self.app.store.path.parent.stat().st_mode & 0o777, 0o700)
-        self.assertFalse(continued["history_reset"])
-        self.assertEqual(len([row for row in first_next_turn if row["role"] == "assistant" and "reasoning_content" in row]), first_call_count)
+        self.assertTrue(continued["history_reset"])
+        self.assertFalse(any(row["role"] in {"assistant", "tool"} for row in first_next_turn))
+        self.assertEqual(len([row for row in first_next_turn if row["role"] == "user"]), 1)
+        self.assertTrue(any("已结束历史意图" in row.get("content", "")
+                            for row in first_next_turn if row["role"] == "system"))
 
     def test_changing_selected_model_clears_model_context_but_preserves_ui_history(self):
         self.login()

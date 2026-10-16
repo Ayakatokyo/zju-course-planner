@@ -8,6 +8,7 @@ import stat
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 
 from course_assistant.auth import AccessError, AuthManager, SCHOOL_MODE, SCHOOL_REALM
 from course_assistant.school_accounts import SchoolAccountService
@@ -94,6 +95,17 @@ class SchoolAccountTests(unittest.TestCase):
 
     def fetch(self, context, **kwargs):
         return self.service.fetch(context, {"operation": "academic", "target_term": "2026-2027-AW", **kwargs})
+
+    def live(self, context, name, args, receipts, *, events=None, adopts=None):
+        events = events if events is not None else []
+        adopts = adopts if adopts is not None else []
+        connection = self.service._connection(context)
+        def adopt(changed):
+            self.assertTrue(connection.lock._is_owned())
+            adopts.append(changed)
+        return self.service.personal_chat_live_tool(context, name, args, receipts=receipts,
+            emit=lambda event, fields: events.append((event, deepcopy(fields))),
+            authorize=lambda: self.auth.require_context(context), adopt=adopt)
 
     def test_mock_disabled_can_authenticate_verified_personal_school_client(self):
         self.auth.mock_enabled = False
@@ -627,6 +639,164 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertNotIn("SYNTHETIC-SECRET-ERROR", str(failed))
         with self.assertRaises(AccessError):
             self.service.read_plan_document(context, acquired["source_alias"])
+
+    def test_live_context_does_not_advertise_old_snapshots_as_current(self):
+        _, context, client, _ = self.login()
+        old = self.fetch(context)
+        before = len(client.request_calls)
+        result = self.live(context, "get_my_context", {}, [])
+        self.assertEqual(result["operations"], [])
+        self.assertEqual(len(client.request_calls), before)
+        self.assertEqual({item["operation"] for item in result["api_operations"]},
+                         {"academic", "major_academic", "timetable", "exams"})
+        self.assertEqual(result["course_catalog"]["data_kind"], "local_course_reference")
+        self.assertNotIn(old["observation_id"], json.dumps(result))
+
+    def test_live_records_force_refresh_once_then_pin_receipt_despite_newer_snapshot(self):
+        _, context, client, _ = self.login()
+        old = self.fetch(context)
+        receipts, events, adopts = [], [], []
+        args = {"operation": "academic", "target_term": "2026-2027-AW", "limit": 1}
+        first = self.live(context, "query_my_records", args, receipts, events=events, adopts=adopts)
+        self.assertNotEqual(first["observation_id"], old["observation_id"])
+        self.assertEqual(first["observation_id"], receipts[0]["observation_id"])
+        self.assertEqual(first["data_source"], "live")
+        self.assertEqual(adopts, [True])
+        self.assertEqual([event for event, _ in events], ["tool.start", "tool.end"])
+        self.assertEqual(events[0][1]["tool_name"], "read_my_academic")
+        newer = self.fetch(context, force_refresh=True)
+        before = len(client.request_calls)
+        second = self.live(context, "query_my_records", args, receipts)
+        self.assertEqual(len(client.request_calls), before)
+        self.assertEqual(second["observation_id"], first["observation_id"])
+        self.assertNotEqual(second["observation_id"], newer["observation_id"])
+        current = self.live(context, "get_my_context", {}, receipts)
+        self.assertEqual(len(current["operations"]), 1)
+        self.assertEqual(current["operations"][0]["freshness"], "fetched_in_current_turn")
+
+    def test_live_failed_refresh_blocks_old_snapshot_and_same_turn_retry(self):
+        _, context, client, _ = self.login()
+        self.fetch(context)
+        client.requests.extend([OSError("SYNTHETIC-PRIVATE-ERROR")] * 2)
+        receipts = []
+        args = {"operation": "academic", "target_term": "2026-2027-AW"}
+        result = self.live(context, "query_my_records", args, receipts)
+        self.assertEqual(result["status"], "not_ready")
+        self.assertEqual(result["records"], [])
+        self.assertFalse(receipts[0]["ready"])
+        self.assertNotIn("SYNTHETIC-PRIVATE-ERROR", str(result) + str(receipts))
+        before = len(client.request_calls)
+        self.assertEqual(self.live(context, "query_my_records", args, receipts)["status"], "not_ready")
+        self.assertEqual(len(client.request_calls), before)
+
+    def test_live_success_without_new_observation_receipt_never_falls_back(self):
+        _, context, _, _ = self.login()
+        previous = self.fetch(context)
+        fake = {**previous, "observation_id": None, "data_source": "live"}
+        receipts = []
+        with patch.object(self.service, "fetch", return_value=fake), patch.object(self.service, "local_query") as local:
+            result = self.live(context, "query_my_records", {"operation": "academic", "target_term": "2026-2027-AW"}, receipts)
+        self.assertEqual(result["status"], "not_ready")
+        self.assertFalse(receipts[0]["ready"])
+        local.assert_not_called()
+
+    def test_live_scope_ambiguity_and_clarification_do_not_guess_or_use_history(self):
+        _, context, client, _ = self.login()
+        self.fetch(context)
+        before = len(client.request_calls)
+        for receipts, args in (([], {"operation": "timetable"}),
+                ([{"operation": "academic", "target_term": "2026-2027-AW"},
+                  {"operation": "academic", "target_term": "2026-2027-SS"}], {"operation": "academic"}),
+                ([{"operation": "academic", "target_term": None, "status": "needs_clarification", "ready": False}],
+                 {"operation": "academic", "target_term": "2026-2027-AW"})):
+            with self.subTest(args=args):
+                result = self.live(context, "query_my_records", args, receipts)
+                self.assertEqual(result["status"], "not_ready")
+                self.assertFalse(result["query_executed"])
+        self.assertEqual(len(client.request_calls), before)
+
+    def test_live_major_defaults_to_all_history_and_explicit_term_remains_validated(self):
+        _, context, client, _ = self.login()
+        receipts = []
+        result = self.live(context, "query_my_records", {"operation": "major_academic"}, receipts)
+        self.assertEqual(result["target_term"], "ALL-HISTORY")
+        self.assertEqual(client.request_calls[0]["operation"], "major_academic")
+        with self.assertRaises(AccessError):
+            self.live(context, "query_my_records", {"operation": "academic", "target_term": "ALL-HISTORY"}, [])
+
+    def test_live_cursor_and_summary_mode_keep_current_turn_observation(self):
+        payload = {"items": [{"kcmc": "合成课一", "kcdm": "SYN1", "cj": "80"},
+                             {"kcmc": "合成课二", "kcdm": "SYN2", "cj": "90"}], "total": 2}
+        response = {"state": "business", "http_status": 200, "content_type": "application/json", "payload": payload}
+        _, context, client, _ = self.login(FakeSchoolClient(requests=[response]))
+        receipts = []
+        args = {"operation": "academic", "target_term": "2026-2027-AW", "limit": 1}
+        first = self.live(context, "query_my_records", args, receipts)
+        self.assertIsNotNone(first["next_cursor"])
+        second = self.live(context, "query_my_records", {**args, "cursor": first["next_cursor"]}, receipts)
+        self.assertNotEqual(first["records"][0]["course_name_raw"], second["records"][0]["course_name_raw"])
+        self.assertEqual(first["observation_id"], second["observation_id"])
+        summary = self.live(context, "query_my_records", {**args, "mode": "summary"}, receipts)
+        self.assertEqual(summary["records"], [])
+        self.assertEqual(summary["source_grade_summary"]["matched_records"], 2)
+        self.assertEqual(len(client.request_calls), 1)
+
+    def test_live_curriculum_force_reads_once_and_reuses_only_this_turn_receipt(self):
+        _, context, client, _ = self.login()
+        self.service.personal_pdf_extractor = lambda body: ["合成培养方案\n专业选修至少修满9学分。"]
+        old = self.service.acquire_plan(context)
+        before = len(client.request_calls)
+        receipts, events = [], []
+        first = self.live(context, "search_my_curriculum", {"query": "专业选修", "limit": 3}, receipts, events=events)
+        self.assertTrue(first["matches"])
+        self.assertEqual(len(receipts), 1)
+        self.assertTrue(receipts[0]["ready"])
+        self.assertEqual(receipts[0]["source_alias"], old["source_alias"])
+        self.assertEqual(len(client.request_calls), before + 2)
+        self.assertEqual(events[0][1]["tool_name"], "read_my_curriculum")
+        second = self.live(context, "search_my_curriculum", {"query": "9学分"}, receipts)
+        self.assertTrue(second["matches"])
+        self.assertEqual(len(client.request_calls), before + 2)
+
+    def test_live_curriculum_failure_cannot_search_previously_acquired_pdf(self):
+        _, context, client, _ = self.login()
+        self.service.acquire_plan(context)
+        client.requests.extend([OSError("SYNTHETIC-PRIVATE-ERROR")] * 2)
+        receipts = []
+        with patch.object(self.service, "local_query") as local:
+            result = self.live(context, "search_my_curriculum", {"query": "专业选修"}, receipts)
+            self.assertEqual(result["status"], "not_ready")
+            before = len(client.request_calls)
+            again = self.live(context, "search_my_curriculum", {"query": "毕业学分"}, receipts)
+        self.assertEqual(again["status"], "not_ready")
+        self.assertEqual(len(client.request_calls), before)
+        local.assert_not_called()
+
+    def test_live_catalog_is_only_static_source_and_owner_arguments_are_rejected(self):
+        _, context, client, _ = self.login()
+        self.service.course_catalog = type("Catalog", (), {
+            "describe": lambda instance: {"status": "ready", "data_kind": "local_course_reference"},
+            "search": lambda instance, **args: {"status": "ok", "data_kind": "local_course_reference", "records": []}})()
+        result = self.live(context, "search_course_catalog", {"query": "合成目录"}, [])
+        self.assertEqual(result["data_kind"], "local_course_reference")
+        self.assertEqual(client.request_calls, [])
+        with self.assertRaises(AccessError):
+            self.live(context, "search_course_catalog", {"query": "合成目录", "path": "/private/arbitrary"}, [])
+        with self.assertRaises(AccessError):
+            self.live(context, "query_my_records", {"operation": "academic", "owner": "SYNTHETIC-B"}, [])
+
+    def test_academic_candidate_positions_are_unique_across_pages_not_stable_attempts(self):
+        def response(names):
+            return {"state": "business", "http_status": 200, "content_type": "application/json",
+                    "payload": {"items": [{"kcmc": name, "kcdm": "SYN-SHARED"} for name in names], "total": 21}}
+        _, context, _, _ = self.login(FakeSchoolClient(requests=[response(["合成课" + str(i) for i in range(20)]), response(["合成末课"])]))
+        result = self.fetch(context, force_refresh=True)
+        rows = result["records"]
+        self.assertEqual(len(rows), 21)
+        self.assertEqual(len({row["attempt_candidate_id"] for row in rows}), 21)
+        self.assertEqual([rows[0]["source_page"], rows[-1]["source_page"]], [1, 2])
+        self.assertEqual([row["source_global_row_index"] for row in rows], list(range(1, 22)))
+        self.assertTrue(all(row["attempt_resolution_status"] == "provisional" for row in rows))
 
     def test_mock_switch_and_expiration_cleanup_release_clients_without_school_requests(self):
         token, _, client, _ = self.login()

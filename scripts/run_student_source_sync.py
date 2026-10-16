@@ -64,6 +64,14 @@ def sync_operation(client, store, attempt, operation, term, *, source_origin="ht
 def plan_service(client, root, authorize):
     def capture(operation, **kwargs):
         result = client.fetch(operation, force_refresh=True, **kwargs)
+        coverage = result.get("coverage") if isinstance(result.get("coverage"), dict) else {}
+        total, captured = coverage.get("reported_total"), coverage.get("captured_rows")
+        if (operation == "plan_catalogue" and result.get("data_source") == "live"
+                and result.get("pages") and result.get("failure") == "page_limit_exceeded"
+                and type(total) is int and type(captured) is int and total > captured):
+            # A bounded directory read cannot establish a unique candidate
+            # while the source explicitly reports more scoped candidates.
+            raise StudentPlanAcquisitionError("invalid_plan_catalogue")
         if result.get("failure") and result.get("data_source") == "live":
             raise StudentPlanAcquisitionError("schema_changed")
         if result["data_source"] != "live" or not result.get("pages"):

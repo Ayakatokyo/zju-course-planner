@@ -1,0 +1,168 @@
+{
+  "validation_kind": "actual_deepseek_with_exclusively_synthetic_school_and_course_sources",
+  "retest_of": "live_data_pipeline_20261016_model_synthetic.json",
+  "timestamp_utc": "2026-10-16T03:43:21.719278+00:00",
+  "real_school_requests": 0,
+  "personal_material_sent": false,
+  "actual_local_2177_catalog_used": false,
+  "model_directory_requests": 0,
+  "mock_enabled": false,
+  "pdf_extraction": "injected_explicitly_synthetic_page_text_not_real_pdf_extraction_acceptance",
+  "fixture_text_sha256": "136cfcbcd7a879a0654bbeef52a0f8625043269b7ca6a717865f6676054259bf",
+  "real_model_api_calls": 6,
+  "cases": [
+    {
+      "case": 1,
+      "kind": "grade_overview",
+      "status": "completed",
+      "failure": null,
+      "model": "deepseek-flash",
+      "real_model_api_calls": 2,
+      "synthetic_school_requests": 4,
+      "synthetic_school_operations": [
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "major_academic"
+      ],
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_kinds": [
+        "summary"
+      ],
+      "repair_attempts": 0,
+      "reasoning_segments": 2,
+      "elapsed_ms": 5213,
+      "checks": {
+        "completed": true,
+        "thinking_enabled": true,
+        "provider_reasoning_returned": true,
+        "summary_mode_selected": true,
+        "all_75_source_rows_summarized": true,
+        "source_complete": true,
+        "summary_cited": true
+      },
+      "passed": true
+    },
+    {
+      "case": 2,
+      "kind": "grade_and_curriculum",
+      "status": "completed",
+      "failure": null,
+      "model": "deepseek-flash",
+      "real_model_api_calls": 2,
+      "synthetic_school_requests": 6,
+      "synthetic_school_operations": [
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "plan_catalogue",
+        "plan_document"
+      ],
+      "tools": [
+        "get_my_context",
+        "query_my_records",
+        "search_my_curriculum"
+      ],
+      "citation_kinds": [
+        "summary",
+        "curriculum"
+      ],
+      "repair_attempts": 0,
+      "reasoning_segments": 2,
+      "elapsed_ms": 6697,
+      "checks": {
+        "completed": true,
+        "thinking_enabled": true,
+        "provider_reasoning_returned": true,
+        "summary_mode_selected": true,
+        "all_75_source_rows_summarized": true,
+        "source_complete": true,
+        "summary_cited": true,
+        "curriculum_tool_ran": true,
+        "curriculum_evidence_projected": true,
+        "curriculum_cited": true,
+        "both_current_sources_read": true
+      },
+      "passed": true
+    },
+    {
+      "case": 3,
+      "kind": "synthetic_course_catalog",
+      "status": "completed",
+      "failure": null,
+      "model": "deepseek-flash",
+      "real_model_api_calls": 2,
+      "synthetic_school_requests": 0,
+      "synthetic_school_operations": [],
+      "tools": [
+        "get_my_context",
+        "search_course_catalog"
+      ],
+      "citation_kinds": [
+        "course_reference"
+      ],
+      "repair_attempts": 0,
+      "reasoning_segments": 1,
+      "elapsed_ms": 3470,
+      "checks": {
+        "completed": true,
+        "thinking_enabled": true,
+        "provider_reasoning_returned": true,
+        "catalog_tool_ran": true,
+        "catalog_cited": true,
+        "no_school_read_for_catalog": true,
+        "only_synthetic_catalog": true
+      },
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "elapsed_ms": 15410,
+  "user_acceptance": "not_assessed",
+  "real_personal_semantic_acceptance": "not_assessed",
+  "semantic_review": {
+    "review_kind": "independent_bounded_fact_review_against_synthetic_inputs",
+    "synthetic_numeric_summary": {
+      "matching_rows": 75,
+      "numeric_count": 60,
+      "non_numeric_count": 15,
+      "mean_unweighted": "77.85",
+      "min": "45",
+      "max": "98"
+    },
+    "case_1_numeric_values_and_scope_supported": true,
+    "case_2_numeric_values_and_9_credit_quote_supported": true,
+    "case_2_no_exhaustive_only_remaining_uncertainty_claim": true,
+    "case_3_catalog_name_code_and_unknown_eligibility_supported": true,
+    "case_3_no_prior_answers_repeated": true,
+    "case_3_declared_tools": [
+      "get_my_context",
+      "search_course_catalog",
+      "get_my_run_diagnostics"
+    ],
+    "case_3_unrelated_personal_tools_not_declared": true,
+    "remaining_semantic_limitations": [
+      "The replies abbreviate source-field knownness as whether a field has a value; this is not a verified academic completion status.",
+      "A three-question synthetic smoke is not exhaustive semantic or real-person acceptance."
+    ],
+    "full_answer_semantics_accepted": false,
+    "real_personal_semantics_assessed": false
+  },
+  "synthetic_school_request_count": 10,
+  "comparison_to_initial": {
+    "initial_failed_receipt_preserved_byte_for_byte": true,
+    "same_three_questions": true,
+    "real_model_api_calls_before": 6,
+    "real_model_api_calls_after": 6,
+    "synthetic_school_requests_before": 16,
+    "synthetic_school_requests_after": 10,
+    "catalog_followup_school_reads_before": 6,
+    "catalog_followup_school_reads_after": 0,
+    "catalog_followup_scope_pass_before": false,
+    "catalog_followup_scope_pass_after": true
+  }
+}

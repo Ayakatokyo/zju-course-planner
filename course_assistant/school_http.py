@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .student_source_parsers import PROFILE_FIELDS
+from .student_source_client import MAX_SOURCE_PAGES
 from .school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT, parse_period_table, period_source
 from .student_sources import CREDENTIAL_VALUE, StudentSourceError, sanitize_payload, business_field_diagnostics
 
@@ -834,7 +835,7 @@ class SchoolHTTPClient:
         if operation not in set(DATA_ROUTES) | {"plan_catalogue", "plan_document"}:
             _fail("route_not_confirmed")
         page, size = spec.get("page", 1), spec.get("page_size", 20)
-        if type(page) is not int or not 1 <= page <= 3 or type(size) is not int or not 1 <= size <= 100:
+        if type(page) is not int or not 1 <= page <= MAX_SOURCE_PAGES or type(size) is not int or not 1 <= size <= 100:
             _fail("route_not_confirmed")
         scope = spec.get("scope", {})
         if not isinstance(scope, dict) or set(scope) - PLAN_SCOPE:

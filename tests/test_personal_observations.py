@@ -221,6 +221,33 @@ class PersonalObservationTests(unittest.TestCase):
         self.assertEqual(empty["matched_records"], 0)
         self.assertIsNone(empty["numeric_mean_unweighted"])
 
+    def test_completion_field_counts_cover_all_matching_rows_beyond_first_page(self):
+        source=self.result(count=22)
+        for index,row in enumerate(source["records"]):
+            row["grade_raw"]="90"
+            row["field_states"]["grade_raw"]="known"
+            row["completion_status_raw"]="来源标记" if index>=15 else None
+            row["field_states"]["completion_status_raw"]="known" if index>=15 else "unknown"
+        self.register(source)
+        first=self.store.query({"operation":"major_academic", "limit":15})
+        self.assertTrue(all(row["field_states"]["completion_status_raw"]=="unknown" for row in first["records"]))
+        self.assertEqual(first["source_grade_summary"]["completion_status_counts"],{"known":7,"unknown":15})
+        following=self.store.query({"operation":"major_academic", "cursor":first["next_cursor"]})
+        self.assertEqual(following["source_grade_summary"]["completion_status_counts"],{"known":7,"unknown":15})
+
+    def test_completion_knownness_counts_do_not_infer_passing_from_grades(self):
+        statuses=[("通过","known"),("未通过","known"),("在修","known"),("unknown","known"),(None,"known"),
+            ("通过","unknown"),("通过","conflicting"),("","known"),(" UNKNOWN ","known")]
+        source=self.result(count=len(statuses))
+        for row,(value,state) in zip(source["records"],statuses):
+            row.update(grade_raw="90",completion_status_raw=value)
+            row["field_states"].update(grade_raw="known",completion_status_raw=state)
+        self.register(source)
+        summary=self.store.query({"operation":"major_academic"})["source_grade_summary"]
+        self.assertEqual(summary["numeric_grade_count"],9)
+        self.assertEqual(summary["completion_status_counts"],{"known":3,"unknown":6})
+        self.assertFalse(summary["academic_recognition_verified"])
+
     def test_summary_respects_name_year_filters_and_is_not_emitted_for_timetable(self):
         source = self.result(count=3)
         for index, row in enumerate(source["records"]):
@@ -244,6 +271,47 @@ class PersonalObservationTests(unittest.TestCase):
         self.assertEqual(view["matched_records"], 1)
         self.assertEqual(self.store.query({"operation": "major_academic", "academic_year": "2024"})["matched_records"], 1)
         self.assertEqual(self.store.query({"operation": "major_academic", "academic_year": "2024-2025"})["matched_records"], 0)
+
+    def test_term_scoped_year_filter_uses_scope_without_rewriting_unknown_rows(self):
+        source = self.result(operation="academic", target_term="2023-2024-AW", count=4)
+        for index in (0, 1):
+            source["records"][index]["academic_year_raw"] = None
+            source["records"][index]["field_states"]["academic_year_raw"] = "unknown"
+        source["records"][2]["academic_year_raw"] = "2024-2025"
+        source["records"][3]["field_states"]["academic_year_raw"] = "conflicting"
+        registered = self.register(source)
+        original_bytes = (self.store.directory / (registered["observation_id"] + ".json")).read_bytes()
+        view = self.store.query({"operation": "academic", "academic_year": "2023-2024"})
+        self.assertEqual(view["matched_records"], 2)
+        self.assertTrue(all(row["academic_year_raw"] is None for row in view["records"]))
+        self.assertTrue(all(row["field_states"]["academic_year_raw"] == "unknown" for row in view["records"]))
+        self.assertEqual(self.store.query({"operation": "academic", "academic_year": "2023"})["matched_records"], 2)
+        self.assertEqual(self.store.query({"operation": "academic", "academic_year": "2024-2025"})["matched_records"], 0)
+        self.assertEqual((self.store.directory / (registered["observation_id"] + ".json")).read_bytes(), original_bytes)
+
+    def test_summary_mode_aggregates_all_matching_rows_without_returning_a_record_page(self):
+        source = self.result(count=32)
+        for row in source["records"]:
+            row["field_states"]["grade_raw"] = "known"
+            row["grade_raw"] = "80"
+        self.register(source)
+        result = self.store.query({"operation": "major_academic", "mode": "summary", "query": "体育", "limit": 1})
+        self.assertEqual(result["mode"], "summary")
+        self.assertEqual((result["records"], result["returned_records"], result["matched_records"]), ([], 0, 32))
+        self.assertIsNone(result["next_cursor"])
+        self.assertEqual(result["source_grade_summary"]["numeric_grade_count"], 32)
+        self.assertEqual(result["source_grade_summary"]["numeric_mean_unweighted"], "80.00")
+        empty = self.store.query({"operation": "major_academic", "mode": "summary", "query": "不存在"})
+        self.assertEqual(empty["source_grade_summary"]["matched_records"], 0)
+        self.assertEqual(empty["records"], [])
+        normal = self.store.query({"operation": "major_academic", "mode": "records", "limit": 20})
+        following = self.store.query({"operation": "major_academic", "cursor": normal["next_cursor"]})
+        self.assertEqual(following["returned_records"], 12)
+        self.assert_code("invalid_observation_cursor", self.store.query,
+                         {"operation": "major_academic", "mode": "summary", "cursor": normal["next_cursor"]})
+        for mode in (None, [], "all"):
+            self.assert_code("invalid_observation_request", self.store.query,
+                             {"operation": "major_academic", "mode": mode})
 
     def test_local_pagination_keeps_original_snapshot_after_new_read(self):
         first = self.register(self.result(count=23))

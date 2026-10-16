@@ -1,0 +1,159 @@
+{
+  "validation_kind": "actual_deepseek_with_exclusively_synthetic_school_and_course_sources",
+  "timestamp_utc": "2026-10-16T03:40:44.466217+00:00",
+  "real_school_requests": 0,
+  "personal_material_sent": false,
+  "actual_local_2177_catalog_used": false,
+  "model_directory_requests": 0,
+  "mock_enabled": false,
+  "pdf_extraction": "injected_explicitly_synthetic_page_text_not_real_pdf_extraction_acceptance",
+  "fixture_text_sha256": "136cfcbcd7a879a0654bbeef52a0f8625043269b7ca6a717865f6676054259bf",
+  "real_model_api_calls": 6,
+  "cases": [
+    {
+      "case": 1,
+      "kind": "grade_overview",
+      "status": "completed",
+      "failure": null,
+      "model": "deepseek-flash",
+      "real_model_api_calls": 2,
+      "synthetic_school_requests": 4,
+      "synthetic_school_operations": [
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "major_academic"
+      ],
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_kinds": [
+        "context",
+        "summary"
+      ],
+      "repair_attempts": 0,
+      "reasoning_segments": 2,
+      "elapsed_ms": 5483,
+      "checks": {
+        "completed": true,
+        "thinking_enabled": true,
+        "provider_reasoning_returned": true,
+        "summary_mode_selected": true,
+        "all_75_source_rows_summarized": true,
+        "source_complete": true,
+        "summary_cited": true
+      },
+      "passed": true
+    },
+    {
+      "case": 2,
+      "kind": "grade_and_curriculum",
+      "status": "completed",
+      "failure": null,
+      "model": "deepseek-flash",
+      "real_model_api_calls": 2,
+      "synthetic_school_requests": 6,
+      "synthetic_school_operations": [
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "plan_catalogue",
+        "plan_document"
+      ],
+      "tools": [
+        "get_my_context",
+        "query_my_records",
+        "search_my_curriculum"
+      ],
+      "citation_kinds": [
+        "summary",
+        "curriculum"
+      ],
+      "repair_attempts": 0,
+      "reasoning_segments": 2,
+      "elapsed_ms": 7787,
+      "checks": {
+        "completed": true,
+        "thinking_enabled": true,
+        "provider_reasoning_returned": true,
+        "summary_mode_selected": true,
+        "all_75_source_rows_summarized": true,
+        "source_complete": true,
+        "summary_cited": true,
+        "curriculum_tool_ran": true,
+        "curriculum_evidence_projected": true,
+        "curriculum_cited": true,
+        "both_current_sources_read": true
+      },
+      "passed": true
+    },
+    {
+      "case": 3,
+      "kind": "synthetic_course_catalog",
+      "status": "completed",
+      "failure": null,
+      "model": "deepseek-flash",
+      "real_model_api_calls": 2,
+      "synthetic_school_requests": 6,
+      "synthetic_school_operations": [
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "major_academic",
+        "plan_catalogue",
+        "plan_document"
+      ],
+      "tools": [
+        "get_my_context",
+        "query_my_records",
+        "search_my_curriculum",
+        "search_course_catalog"
+      ],
+      "citation_kinds": [
+        "summary",
+        "context",
+        "curriculum",
+        "course_reference"
+      ],
+      "repair_attempts": 0,
+      "reasoning_segments": 2,
+      "elapsed_ms": 10118,
+      "checks": {
+        "completed": true,
+        "thinking_enabled": true,
+        "provider_reasoning_returned": true,
+        "catalog_tool_ran": true,
+        "catalog_cited": true,
+        "no_school_read_for_catalog": false,
+        "only_synthetic_catalog": true
+      },
+      "passed": false
+    }
+  ],
+  "passed": false,
+  "elapsed_ms": 23416,
+  "user_acceptance": "not_assessed",
+  "real_personal_semantic_acceptance": "not_assessed",
+  "semantic_review": {
+    "review_kind": "independent_review_of_actual_model_replies_against_synthetic_inputs",
+    "synthetic_numeric_summary": {
+      "matching_rows": 75,
+      "numeric_count": 60,
+      "non_numeric_count": 15,
+      "mean_unweighted": "77.85",
+      "min": "45",
+      "max": "98"
+    },
+    "case_1_numeric_values_supported": true,
+    "case_2_numeric_values_and_9_credit_quote_supported": true,
+    "case_2_language_limitation": "The reply says only one matter remains unverified; the sources do not support an exhaustive only claim.",
+    "case_3_catalog_fact_supported": true,
+    "case_3_latest_scope_followed": false,
+    "case_3_failure": "Unrequested prior grade and curriculum tasks were repeated and reacquired during a local-catalog-only follow-up.",
+    "full_answer_semantics_accepted": false,
+    "real_personal_semantics_assessed": false
+  },
+  "synthetic_school_request_count": 16
+}

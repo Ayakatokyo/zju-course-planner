@@ -117,17 +117,29 @@ class StudentSourceSyncTests(unittest.TestCase):
 
     def test_known_omitted_catalogue_candidate_blocks_document_download(self):
         request = self.transport.request
+        fetch = self.client.fetch
+        captures = []
+        def observed_fetch(*args, **kwargs):
+            result = fetch(*args, **kwargs)
+            captures.append(result)
+            return result
         def incomplete(spec):
             result = request(spec)
             if spec['operation'] == 'plan_catalogue':
                 result['payload']['total'] = 2
             return result
         self.transport.request = incomplete
+        self.client.fetch = observed_fetch
         service = plan_service(self.client, self.batch / 'plans', self.authorize)
         result = service.acquire({'cohort': 2023, 'college_name': '合成学院', 'major_name': '合成专业'})
         self.assertEqual(result['status'], 'invalid_plan_catalogue')
         self.assertEqual(result['version_count'], 0)
         self.assertEqual(result['source_aliases'], [])
+        self.assertEqual(captures[0]['failure'], 'page_limit_exceeded')
+        self.assertEqual(captures[0]['coverage']['captured_rows'], 1)
+        self.assertEqual(captures[0]['coverage']['reported_total'], 2)
+        self.assertTrue(captures[0]['coverage']['has_more'])
+        self.assertFalse(captures[0]['coverage']['complete_within_scope'])
         self.assertFalse(any(call['operation'] == 'plan_document' for call in self.transport.calls))
 
     def test_unknown_dom_catalogue_total_keeps_pending_review(self):

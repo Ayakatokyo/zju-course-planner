@@ -123,7 +123,7 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertNotIn("NEVER-SEND", serialized)
         self.assertNotIn(self.scope, serialized)
         self.assertNotIn("source_alias", serialized)
-        self.assertEqual({row["function"]["name"] for row in model.calls[0][1]}, {"get_my_context", "query_my_records", "search_my_curriculum"})
+        self.assertEqual({row["function"]["name"] for row in model.calls[0][1]}, {"get_my_context", "query_my_records", "search_my_curriculum", "search_course_catalog"})
 
     def test_evidence_sends_related_paragraph_not_private_references_or_whole_pages(self):
         result, messages, _ = self.run_service([call("search_my_curriculum", {"query": "专业模块", "limit": 5}), answer_from_last_tool])
@@ -198,7 +198,8 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(model.calls, [])
 
     def test_no_current_tool_evidence_rejects_free_factual_answer(self):
-        result, _, _ = self.run_service([final({"kind": "answer", "claims": [{"text": "合成课程成绩为100。", "evidence_ids": ["R-old"]}]})])
+        invalid = final({"kind": "answer", "claims": [{"text": "合成课程成绩为100。", "evidence_ids": ["R-old"]}]})
+        result, _, _ = self.run_service([invalid, invalid])
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["code"], "unverified_personal_answer")
         self.assertNotIn("100", result["reply"])
@@ -216,8 +217,8 @@ class PersonalDialogueTests(unittest.TestCase):
         service, model = self.service([call("query_my_records", {"operation": "academic"}), answer_from_last_tool])
         first, history = service.run("查询算法", data_use="personal_retrieval")
         old = first["citations"][0]["evidence_id"]
-        model.responses = [call("query_my_records", {"operation": "academic"}),
-            final({"kind": "answer", "claims": [{"text": "历史来源成绩为88。", "evidence_ids": [old]}]})]
+        invalid = final({"kind": "answer", "claims": [{"text": "历史来源成绩为88。", "evidence_ids": [old]}]})
+        model.responses = [call("query_my_records", {"operation": "academic"}), invalid, invalid]
         second, next_history = service.run("再核对一次", data_use="personal_retrieval", history=history)
         self.assertEqual(second["status"], "failed")
         self.assertEqual(second["code"], "unverified_personal_answer")
@@ -355,7 +356,7 @@ class PersonalDialogueTests(unittest.TestCase):
         for value in ({"kind": "general_chat", "intent": "identity", "text": "你的成绩100。"},
                       {"kind": "general_chat", "intent": "your_grade_is_100"},
                       {"kind": "general_chat", "intent": "greeting", "claims": []}):
-            result, _, _ = self.run_service([final(value)])
+            result, _, _ = self.run_service([final(value), final(value)])
             self.assertEqual(result["code"], "invalid_final_answer")
             self.assertNotIn("100", result["reply"])
 
@@ -369,6 +370,7 @@ class PersonalDialogueTests(unittest.TestCase):
 
     def test_record_paging_and_projection_omissions_are_explicit_without_private_cursor(self):
         self.records["records"] = [{"course_name_raw": "合成课程" * 100, "grade_raw": str(index),
+                                     "academic_year_raw": "来源年份长文本" * 80, "term_raw": "来源学期长文本" * 80,
                                      "field_states": {"course_name_raw": "known", "grade_raw": "known"}}
                                     for index in range(15)]
         self.records.update(matched_records=30, returned_records=15, next_cursor="NEVER-SEND-PRIVATE-CURSOR")
@@ -393,6 +395,7 @@ class PersonalDialogueTests(unittest.TestCase):
             summary = remote["source_grade_summary"]
             self.assertEqual(summary["matched_records"], 22)
             self.assertEqual(summary["numeric_mean_unweighted"], "64.55")
+            self.assertEqual(summary["completion_status_counts"], {"known":0,"unknown":22})
             self.assertFalse(summary["coverage"]["complete_within_scope"])
             self.assertFalse(remote["retrieval"]["complete_within_loaded_snapshot"])
             return final({"kind": "answer", "claims": [{"text": "当前部分来源范围内共匹配22条纯数字成绩，简单不加权均值64.55；这不是绩点，也不能证明已获学分。",
@@ -403,6 +406,7 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(citation["kind"], "summary")
         self.assertEqual(citation["title"], "来源成绩概况")
         self.assertEqual(citation["source_grade_summary"]["matched_records"], 22)
+        self.assertEqual(citation["source_grade_summary"]["completion_status_counts"], {"known":0,"unknown":22})
         self.assertIn("[1]", result["reply"])
         self.assertNotIn("NEVER-SEND", json.dumps(messages))
 
@@ -415,6 +419,18 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertTrue(result["tool_results"][-1]["error"])
         self.assertNotIn("NEVER-SEND", json.dumps(messages))
         self.assertFalse(any(item["kind"] == "summary" for item in result["citations"]))
+
+    def test_completion_status_summary_must_have_exact_known_unknown_counts(self):
+        for counts in ({"known":True,"unknown":0},{"known":-1,"unknown":2},{"known":0,"unknown":0},
+                {"known":1},{"known":1,"unknown":0,"raw_prompt":"NEVER-SEND"},None):
+            with self.subTest(counts=counts):
+                self.records["source_grade_summary"]=source_grade_summary(self.records["records"],self.records["coverage"])
+                self.records["source_grade_summary"]["completion_status_counts"]=counts
+                result,messages,_=self.run_service([call("query_my_records",{"operation":"academic"}),
+                    final({"kind":"not_ready","reason":"insufficient_evidence"})])
+                self.assertTrue(result["tool_results"][-1]["error"])
+                self.assertNotIn("NEVER-SEND",json.dumps(messages))
+                self.assertFalse(any(c["kind"]=="summary" for c in result["citations"]))
 
     def test_generation_change_after_model_or_tool_clears_all_personal_results(self):
         def changed(messages, tools):
@@ -495,7 +511,8 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(result["code"], "invalid_tool_arguments")
         result, _, _ = self.run_service([call("get_my_context"), call("get_my_context")])
         self.assertEqual(result["code"], "model_protocol_error")
-        result, _, _ = self.run_service([final({"kind": "answer", "reply": "unverified"})])
+        invalid = final({"kind": "answer", "reply": "unverified"})
+        result, _, _ = self.run_service([invalid, invalid])
         self.assertEqual(result["code"], "invalid_final_answer")
 
     def test_tool_and_turn_budgets_are_bounded(self):

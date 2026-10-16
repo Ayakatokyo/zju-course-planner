@@ -51,9 +51,13 @@ def source_grade_summary(records, coverage):
     Means use ROUND_HALF_UP to two decimal places. Known text, annotations and
     numbers outside 0..100 are excluded, not converted into pass/fail or points.
     """
-    numbers, non_numeric, unknown = [], 0, 0
+    numbers, non_numeric, unknown, completion_known = [], 0, 0, 0
     for record in records:
         states = record.get("field_states", {})
+        completion = record.get("completion_status_raw")
+        completion_missing = completion is None or isinstance(completion, str) and completion.strip().casefold() in {"", "unknown"}
+        if isinstance(states, dict) and states.get("completion_status_raw") == "known" and not completion_missing:
+            completion_known += 1
         value = record.get("grade_raw")
         if not isinstance(states, dict) or states.get("grade_raw") != "known" or value is None:
             unknown += 1
@@ -77,18 +81,19 @@ def source_grade_summary(records, coverage):
         mean = (sum(numbers, Decimal(0)) / Decimal(len(numbers))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if numbers else None
     return {"matched_records": len(records), "numeric_grade_count": len(numbers),
         "non_numeric_grade_count": non_numeric, "unknown_grade_count": unknown,
+        "completion_status_counts": {"known": completion_known, "unknown": len(records) - completion_known},
         "numeric_min": canonical(min(numbers)) if numbers else None,
         "numeric_max": canonical(max(numbers)) if numbers else None,
         "numeric_mean_unweighted": format(mean, ".2f") if mean is not None else None,
         "mean_decimal_places": 2, "basis": "known_pure_numeric_0_100_source_grades",
         "scope": "all_matching_rows_in_selected_snapshot", "coverage": deepcopy(coverage),
         "is_gpa": False, "earned_credits_verified": False, "academic_recognition_verified": False,
-        "note": "仅对当前快照全部匹配行中的已知纯数字0至100来源成绩作简单不加权概况；非标准数字或文字成绩不猜。不是GPA、绩点、已获学分或修读认定。"}
+        "note": "仅对当前快照全部匹配行中的已知纯数字0至100来源成绩作简单不加权概况；非标准数字或文字成绩不猜。完成状态计数仅指来源字段已知性，不推断通过。不是GPA、绩点、已获学分或修读认定。"}
 RESULT_FIELDS = frozenset({"status", "data_kind", "security_realm", "operation", "target_term",
     "data_source", "records", "issues", "row_failures", "coverage", "captured_at", "checked_at",
     "cache_captured_at", "failure", "source_alias", "source_field_diagnostics", "period_times",
     "period_times_source"})
-QUERY_FIELDS = frozenset({"operation", "observation_id", "query", "academic_year", "limit", "cursor"})
+QUERY_FIELDS = frozenset({"operation", "observation_id", "query", "academic_year", "limit", "cursor", "mode"})
 HARD_STOPS = frozenset({"source_session_expired", "source_subject_changed", "permission_denied",
     "awaiting_user_login", "captcha_required", "user_confirmation_required"})
 OBSERVATION_ID = re.compile(r"OBS-[a-f0-9]{32}\Z")
@@ -467,14 +472,16 @@ class PersonalObservationStore:
     @staticmethod
     def _query_values(body):
         operation, query, year, limit = body.get("operation"), body.get("query", ""), body.get("academic_year"), body.get("limit", 20)
+        mode = body.get("mode", "records")
         if (type(operation) is not str or operation not in OPERATIONS or type(query) is not str or len(query) > 200 or "\x00" in query or
                 year is not None and (type(year) is not str or not re.fullmatch(r"(?:19|20|21)[0-9]{2}(?:-(?:19|20|21)[0-9]{2})?", year)) or
-                type(limit) is not int or not 1 <= limit <= 20):
+                type(limit) is not int or not 1 <= limit <= 20 or
+                type(mode) is not str or mode not in {"records", "summary"}):
             _fail("invalid_observation_request")
-        return operation, normalize_record_query(query, operation), year, limit
+        return operation, normalize_record_query(query, operation), year, limit, mode
 
     @staticmethod
-    def _matches(record, query, year):
+    def _matches(record, query, year, target_term=None):
         if query:
             states = record.get("field_states", {})
             normalize = lambda value: re.sub(r"\s+", "", unicodedata.normalize("NFKC", str(value))).casefold()
@@ -488,7 +495,17 @@ class PersonalObservationStore:
         if year is not None:
             states = record.get("field_states", {})
             value = record.get("academic_year_raw")
-            if not isinstance(states, dict) or states.get("academic_year_raw") != "known" or type(value) not in (str, int) or str(value) != year:
+            state = states.get("academic_year_raw", "unknown") if isinstance(states, dict) else "unknown"
+            # A term-scoped observation can establish the query's year without
+            # manufacturing a value in the source row. Conflicting/known row
+            # values remain authoritative; all-history observations never fill
+            # missing row years from the question.
+            scoped_year = target_term.rsplit("-", 1)[0] if isinstance(target_term, str) and re.fullmatch(
+                r"(?:19|20|21)[0-9]{2}-(?:19|20|21)[0-9]{2}-(?:AW|SS|A|W|S|SU)", target_term) else None
+            if scoped_year is not None and year not in {scoped_year, scoped_year[:4]}:
+                return False
+            scope_matches = state == "unknown" and scoped_year is not None and year in {scoped_year, scoped_year[:4]}
+            if not scope_matches and (state != "known" or type(value) not in (str, int) or str(value) != year):
                 return False
         return True
 
@@ -498,6 +515,8 @@ class PersonalObservationStore:
         with self._locked():
             values = dict(body)
             cursor = self._decode_cursor(values["cursor"]) if "cursor" in values else None
+            if cursor and values.get("mode", "records") != "records":
+                _fail("invalid_observation_cursor")
             if cursor:
                 for key in ("operation", "observation_id", "query", "academic_year", "limit"):
                     supplied = values.get(key)
@@ -506,7 +525,7 @@ class PersonalObservationStore:
                     if key in values and supplied != cursor[key]:
                         _fail("invalid_observation_cursor")
                     values[key] = cursor[key]
-            operation, query, year, limit = self._query_values(values)
+            operation, query, year, limit, mode = self._query_values(values)
             if "observation_id" in values:
                 snapshot = self._load(values["observation_id"])
             else:
@@ -519,17 +538,17 @@ class PersonalObservationStore:
             if cursor and cursor["snapshot_sha256"] != snapshot_hash:
                 _fail("invalid_observation_cursor")
             records = snapshot["result"]["records"]
-            filtered = [record for record in records if self._matches(record, query, year)]
+            filtered = [record for record in records if self._matches(record, query, year, snapshot["result"]["target_term"])]
             offset = cursor["offset"] if cursor else 0
             if offset > len(filtered):
                 _fail("invalid_observation_cursor")
-            selected = deepcopy(filtered[offset:offset + limit])
+            selected = deepcopy(filtered[offset:offset + limit]) if mode == "records" else []
             next_cursor = self._cursor({"scope": self._scope_digest, "observation_id": snapshot["observation_id"],
                 "snapshot_sha256": snapshot_hash, "operation": operation, "query": query,
-                "academic_year": year, "limit": limit, "offset": offset + limit}) if offset + limit < len(filtered) else None
+                "academic_year": year, "limit": limit, "offset": offset + limit}) if mode == "records" and offset + limit < len(filtered) else None
             result = {**self._summary(snapshot), "records": selected, "total_records": len(records),
                 "matched_records": len(filtered), "returned_records": len(selected), "next_cursor": next_cursor,
-                "query": query, "academic_year": year, "offset": offset,
+                "query": query, "academic_year": year, "offset": offset, "mode": mode,
                 "issues": deepcopy(snapshot["result"].get("issues")),
                 "row_failures": deepcopy(snapshot["result"].get("row_failures")), "failure": snapshot["result"].get("failure")}
             if operation in {"academic", "major_academic"}:

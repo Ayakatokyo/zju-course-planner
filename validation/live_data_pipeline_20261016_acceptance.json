@@ -1,0 +1,83 @@
+{
+  "recorded_at_utc": "2026-10-16T03:56:54.763931+00:00",
+  "scope": "Data-source pipeline implementation with real local-browser personal calls; no full semantic or user acceptance asserted. No personal rows, questions, source paths or exact run identifiers in this report.",
+  "git_base": "50bad733ff9f7aa6614e37dee1db7eeed7ec5a71",
+  "engineering": {
+    "test_record": "live_data_pipeline_accepted_engineering_20261016_validation.json",
+    "tests": 1117,
+    "passed": 1117,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "source_files_bound": 104,
+    "current_sources_match_record": true,
+    "web_and_connector_syntax": "pass",
+    "inputs_unchanged": true
+  },
+  "actual_personal_calls": {
+    "completed_turns": 6,
+    "real_model_completions": 12,
+    "repair_attempts": 0,
+    "provider_visible_reasoning_segments": 11,
+    "logical_school_source_reads": 5,
+    "http_request_count": null,
+    "http_request_count_limitation": "Per-request HTTP bodies were not separately persisted; logical source-read actions are not HTTP request counts.",
+    "case_types": [
+      "grade_overview",
+      "explicit_term_records",
+      "curriculum_document_fact",
+      "local_course_catalog",
+      "grade_and_curriculum",
+      "previous_run_diagnostics"
+    ],
+    "source_refresh_is_per_turn": true,
+    "catalog_and_diagnostic_no_school_source_reads": true
+  },
+  "bounded_semantic_checks": {
+    "fresh_signed_sources_and_record_digests_verified": true,
+    "record_aggregates_independently_recomputed": true,
+    "explicit_term_record_fields_and_citations_verified": true,
+    "both_curriculum_document_facts_supported": true,
+    "raw_and_cleaned_source_spans_verified": true,
+    "cited_pdf_pages_freshly_rendered_and_checked": true,
+    "target_module_hit_scope_checked": true,
+    "catalog_name_code_reference_checked": true,
+    "combined_source_starvation_not_observed": true,
+    "previous_run_diagnostics_bound_and_events_verified": true,
+    "no_arbitrary_scripts_claimed": true,
+    "full_free_text_semantics": "not_accepted",
+    "official_rule_and_personal_applicability": "not_reviewed",
+    "unknown_grade_fields_not_lost_between_stored_projection_and_parser": true,
+    "raw_http_grade_field_completeness": "not_established"
+  },
+  "browser": {
+    "running_source_progress_and_actual_reasoning_captured": true,
+    "single_collapsed_evidence_entry_per_answer": true,
+    "all_six_processes_collapsed_after_history_restore": true,
+    "desktop_horizontal_overflow": false,
+    "delivered_assets_match_test_record": true,
+    "new_narrow_or_physical_mobile_test": false
+  },
+  "evidence_limits": [
+    "Original HTTP request and response bodies were not archived; retained local projections and source checks must not be represented as raw wire verification.",
+    "Unknown grade fields can be located from the stored business projection onward; completeness before sanitization was not established.",
+    "Main-major source completeness does not prove complete personal study history or academic recognition.",
+    "One diagnostic sentence ambiguously uses current-turn wording when explaining the previous turn.",
+    "Long complete-detail listings remain bounded by model steps, evidence and time budgets.",
+    "Real timetable, exam, multi-page model continuation and ambiguous-relative-term questions were not newly browser-tested in this round."
+  ],
+  "user_acceptance": "pending",
+  "real_recommendation_acceptance": "not_ready",
+  "delivery": {
+    "implemented": true,
+    "activated_on_loopback": true,
+    "new_changes_committed": false,
+    "new_changes_pushed": false,
+    "pull_request_created": false,
+    "external_deployment": false
+  },
+  "synthetic_model_records": [
+    "live_data_pipeline_20261016_model_synthetic.json",
+    "live_data_pipeline_20261016_model_synthetic_retest.json"
+  ]
+}

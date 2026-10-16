@@ -408,12 +408,122 @@ class PersonalEvidenceTests(unittest.TestCase):
         self.assertFalse(list((self.root / "scopes").glob("*.json")))
 
     def test_long_fragments_are_explicitly_partial_with_original_page_context(self):
-        self.pages = ["合成完整前提。" * 900 + "\nSYN1001M 合成尾部课程\n"]
+        self.pages = ["专业模块课程，至少6学分。\n\n" + "合成完整前提。" * 900 + "\nSYN1001M 合成尾部课程\n"]
         self.prepare()
         result = self.service.search("SYN1001M")["matches"][0]
-        self.assertEqual(result["chunk_kind"], "partial_fragment")
+        self.assertEqual(result["chunk_kind"], "course_row")
+        self.assertLessEqual(len(result["text"]), 1800)
+        self.assertFalse(result["model_context_complete"])
+        self.assertGreater(result["model_context_omitted"], 0)
         self.assertEqual(result["required_context"][0]["text"], self.pages[0])
         self.assertEqual(result["review_status"], "unreviewed")
+
+    def assert_source_span(self, text, locator):
+        page = self.pages[locator["physical_page"] - 1]
+        self.assertEqual(page[locator["char_start"]:locator["char_end"]], text)
+        self.assertEqual(locator["page_text_sha256"], sha256(page.encode()).hexdigest())
+
+    def assert_model_provenance(self, result):
+        self.assert_source_span(result["text"], result["locator"])
+        self.assertLessEqual(len(result["text"]), evidence.MAX_MODEL_FRAGMENT_CHARS)
+        self.assertLessEqual(len(result["model_text"]), evidence.MAX_MODEL_FRAGMENT_CHARS)
+        for span in result["model_text_spans"]:
+            self.assert_source_span(span["text"], span["locator"])
+        for item in result["model_context"]:
+            self.assert_source_span(item["text"], item["locator"])
+            self.assertLessEqual(len(item["text"]), evidence.MAX_MODEL_FRAGMENT_CHARS)
+            self.assertLessEqual(len(item["model_text"]), evidence.MAX_MODEL_FRAGMENT_CHARS)
+            for span in item["model_text_spans"]:
+                self.assert_source_span(span["text"], span["locator"])
+        self.assertLessEqual(sum(len(item["model_text"]) for item in result["model_context"]), evidence.MAX_MODEL_CONTEXT_CHARS)
+        self.assertLessEqual(len(result["model_context"]), evidence.MAX_MODEL_CONTEXT_ITEMS)
+
+    def test_watermark_cleaning_never_rewrites_raw_source_or_becomes_title_or_terms(self):
+        self.pages = ["Zhejiang University\n\nU    (2) 专业选修课程       8学分    iversity\n"
+                      "在以下课程中选修，至少一门为实验课程。\n\n课程号  课程名称  学分\n"
+                      "SYN2001M  合成大学研究I  2\nSYN2003M  AI  I  2\n\n浙江大学\n"]
+        original = deepcopy(self.pages)
+        self.prepare()
+        result = self.service.search("专业选修学分要求")["matches"][0]
+        self.assertEqual(result["semantic_role"], "module_requirement")
+        self.assertTrue(result["title"].startswith("(2) 专业选修课程"))
+        self.assertNotIn("iversity", result["model_text"])
+        self.assertNotIn("U ", result["model_text"])
+        self.assertIn("U    ", result["text"])
+        self.assert_model_provenance(result)
+        self.assertEqual(self.pages, original)
+        self.assertEqual(self.service.search("Zhejiang University")["matches"], [])
+        course = self.service.search("SYN2001M")["matches"][0]
+        self.assertIn("合成大学研究I", course["model_text"])
+        acronym = self.service.search("SYN2003M")["matches"][0]
+        self.assertIn("AI I 2", acronym["model_text"])
+
+    def test_named_module_retrieval_does_not_fill_with_other_module_credits(self):
+        self.pages = ["1. 通识课程 12学分\n\n(1) 创新创业类 2学分\n要求在以下课程中选修。\n\n"
+                      "2. 专业课程 40学分\n\n(1) 专业必修课程 30学分\n以下课程必修。\n\n"
+                      "(2) 专业选修课程 10学分\n在以下课程中选修。\n\n课程号 课程名称 学分\n"
+                      "SYN2002M 合成管理课程 3\n"]
+        self.prepare()
+        result = self.service.search("我的培养方案专业选修有哪些学分要求", limit=5)
+        self.assertTrue(result["named_module_filter_applied"])
+        self.assertTrue(result["matches"])
+        self.assertEqual(result["matches"][0]["semantic_role"], "module_requirement")
+        self.assertIn("10学分", result["matches"][0]["model_text"])
+        self.assertTrue(all(row["module_title"] == "专业选修课程" for row in result["matches"]))
+        self.assertNotIn("创新创业", "".join(row["model_text"] for row in result["matches"]))
+
+    def test_cross_page_table_rows_keep_module_header_and_following_note(self):
+        self.pages = ["2099级合成培养方案\n\n3. 专业课程 27学分\n(2) 专业选修课程 11学分\n"
+                      "在以下课程中选择，带*课程有额外条件。\n\n课程号 课程名称 学分\nSYN3001M 合成甲* 3\n",
+                      "Zhejiang\n\n续表\nSYN3002M 合成乙* 2\n\n附注：*仅辅修路径适用，不可据此认定本人适用。\n",
+                      "4. 个性修读课程 7学分\n课程号 课程名称 学分\nSYN3003M 合成丙 2\n"]
+        self.prepare()
+        result = self.service.search("SYN3002M")["matches"][0]
+        self.assertEqual(result["page"], 2)
+        self.assertEqual(result["module_title"], "专业选修课程")
+        context = "\n".join(row["model_text"] for row in result["model_context"])
+        self.assertIn("专业选修课程 11学分", context)
+        self.assertIn("课程号 课程名称 学分", context)
+        self.assertIn("带*课程有额外条件", context)
+        self.assertIn("*仅辅修路径适用", context)
+        self.assertNotIn("个性修读课程", context)
+        self.assertTrue(result["model_context_complete"])
+        self.assert_model_provenance(result)
+        other = self.service.search("SYN3003M")["matches"][0]
+        self.assertEqual(other["module_title"], "个性修读课程")
+        self.assertNotIn("辅修路径", "".join(row["model_text"] for row in other["model_context"]))
+
+    def test_long_rules_are_bounded_without_silently_losing_continuation_status(self):
+        self.pages = ["(2) 专业选修课程 14学分\n\n" +
+                      "本段为合成条件，只有满足审批条件后才适用；" * 190 +
+                      "\n\n附注：本段仍需人工审核。\n"]
+        self.prepare()
+        rows = self.service.search("合成条件审批", limit=10)["matches"]
+        self.assertTrue(any(row["chunk_kind"] == "partial_fragment" for row in rows))
+        self.assertTrue(any(not row["model_context_complete"] for row in rows))
+        for row in rows:
+            self.assert_model_provenance(row)
+            self.assertEqual(row["context_completeness"], "unverified")
+        self.assertTrue(any("人工审核" in item["model_text"] for row in rows for item in row["model_context"]))
+
+    def test_minor_path_heading_stops_main_module_inheritance(self):
+        self.pages = ["3. 专业课程 40学分\n(2) 专业选修课程 8学分\n课程号 课程名称 学分\n"
+                      "SYN4001M 合成主修 2\n\n辅修培养方案：\n课程号 课程名称 学分\nSYN4002M 合成辅修 2\n"]
+        self.prepare()
+        result = self.service.search("SYN4002M")["matches"][0]
+        self.assertIsNone(result["module_title"])
+        self.assertNotIn("专业选修", "".join(item["model_text"] for item in result["model_context"]))
+
+    def test_previous_processing_cache_rebuilds_without_reactivating_old_reference(self):
+        with patch("course_assistant.personal_evidence.CHUNKING", "page-paragraph-context-v2"):
+            self.prepare()
+            old = self.service.search("061B0010")["matches"][0]["reference"]
+        self.assertEqual(self.service.describe()["status"], "stale_input")
+        self.assert_code("stale_input", lambda: self.service.resolve(old))
+        fresh = self.prepare()
+        self.assertFalse(fresh["reused"])
+        self.assertEqual(fresh["versions"]["index_version"], evidence.CHUNKING)
+        self.assert_code("inaccessible_evidence", lambda: self.service.resolve(old))
 
     @unittest.skipUnless(shutil.which("pdftotext"), "Poppler is optional; unavailability has a separate contract")
     def test_real_poppler_extracts_synthetic_pdf_physical_pages_over_fixed_pipes(self):

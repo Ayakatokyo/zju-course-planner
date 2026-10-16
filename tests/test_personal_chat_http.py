@@ -51,7 +51,7 @@ class PersonalChatHTTPTests(unittest.TestCase):
         return {"message": question, "request_id": str(uuid.uuid4()), "expected_turn": 0,
                 "consent_personal": True, "data_use_version": "personal-retrieval-v1"}
 
-    def test_direct_chat_selects_tools_and_history_without_school_requests(self):
+    def test_direct_chat_selects_live_tools_and_history_with_one_source_read(self):
         self.login()
         self.sync("academic", "2026-2027-AW")
         before = len(self.clients[0].calls)
@@ -61,7 +61,7 @@ class PersonalChatHTTPTests(unittest.TestCase):
         self.assertEqual(reply["status"], "completed", reply)
         self.assertEqual([tool["name"] for tool in reply["tool_results"]], ["get_my_context", "query_my_records"])
         self.assertEqual(len(reply["tool_results"][-1]["result"]["records"]), 3)
-        self.assertEqual(len(self.clients[0].calls), before)
+        self.assertEqual(len(self.clients[0].calls), before + 4)
         code, history, _ = self.request("POST", "/api/chat/history", {"conversation_id": reply["conversation_id"]})
         self.assertEqual(code, 200, history)
         self.assertEqual(history["turns"][0]["reply"], reply["reply"])
@@ -92,7 +92,7 @@ class PersonalChatHTTPTests(unittest.TestCase):
         self.assertEqual(result["status"], "completed", result)
         self.assertEqual(result["tool_results"][-1]["name"], "search_my_curriculum")
         self.assertTrue(result["citations"])
-        self.assertEqual(len(self.clients[0].calls), before)
+        self.assertEqual(len(self.clients[0].calls), before + 2)
 
     def test_reauthentication_hides_old_titles_history_and_request_replay(self):
         self.login()

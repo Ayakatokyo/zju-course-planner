@@ -1,0 +1,173 @@
+{
+  "recorded_at_utc": "2026-10-16T03:05:49.884252+00:00",
+  "scope": "read-only current source, stored real snapshots/indexes, existing real dialogue evidence, and local deterministic probes; no new live model or school call",
+  "production_code_modified": false,
+  "original_data_modified": false,
+  "new_school_calls": 0,
+  "new_model_calls": 0,
+  "uncommitted_work_preserved": true,
+  "data_domains": {
+    "personal_tools": [
+      "get_my_context",
+      "query_my_records",
+      "search_my_curriculum",
+      "optional_get_my_run_diagnostics"
+    ],
+    "personal_does_not_search": [
+      "legacy_reference_json",
+      "synthetic_demo",
+      "r3_reference_slice",
+      "offline_course_catalog",
+      "all_curriculum_pdfs"
+    ],
+    "legacy_reference_chunks": 54,
+    "offline_course_groups": 2177,
+    "offline_candidate_sections": 4716,
+    "offline_curriculum_pdfs": 162,
+    "offline_curriculum_pages": 2161,
+    "r3_active_reference_chunks": 56,
+    "r3_course_codes": 47,
+    "offline_artifact_hash_checks": "passed; integrity only, not semantic acceptance"
+  },
+  "findings": [
+    {
+      "id": "D01",
+      "priority": "P1",
+      "topic": "acquisition_and_refresh",
+      "finding": "bounded three-page acquisition can retain incomplete coverage; matching operation/term observation suppresses further preparation without completeness or freshness check",
+      "code": [
+        "course_assistant/student_source_client.py:351",
+        "course_assistant/personal_acquisition.py:35"
+      ],
+      "evidence": "source review, existing real snapshot coverage, local preparation probes"
+    },
+    {
+      "id": "D02",
+      "priority": "P1",
+      "topic": "record_query_contract",
+      "finding": "local record API supports cursor but model tool omits it; limit 15 and shared evidence budget prevent exhaustive queries",
+      "code": [
+        "course_assistant/personal_observations.py:500",
+        "course_assistant/personal_dialogue.py:102"
+      ],
+      "evidence": "source review"
+    },
+    {
+      "id": "D03",
+      "priority": "P1",
+      "topic": "scope_and_filter_mismatch",
+      "finding": "same academic-year filter can exclude scoped records whose row academic year is unknown; local actual-row probe returns false empty result",
+      "code": [
+        "course_assistant/personal_observations.py:493",
+        "course_assistant/school_accounts.py:638"
+      ],
+      "evidence": "local deterministic actual-row probe, not new school/model request"
+    },
+    {
+      "id": "D04",
+      "priority": "P1",
+      "topic": "source_routing",
+      "finding": "preparation recognizes one explicit year and season; relative terms or multi-term comparisons are not represented",
+      "code": [
+        "course_assistant/personal_acquisition.py:16"
+      ],
+      "evidence": "local function probes"
+    },
+    {
+      "id": "D05",
+      "priority": "P1",
+      "topic": "context_budget",
+      "finding": "shared 6000-character evidence budget consumes results in tool order; a hypothetical combined re-projection of existing actual results can omit all later curriculum matches",
+      "code": [
+        "course_assistant/personal_dialogue.py:454",
+        "course_assistant/personal_dialogue.py:533",
+        "course_assistant/personal_dialogue.py:566"
+      ],
+      "evidence": "local re-projection only; not an observed live combined-question failure"
+    },
+    {
+      "id": "D06",
+      "priority": "P1",
+      "topic": "curriculum_chunk_and_search",
+      "finding": "automatic blank-line paragraph chunks and simple overlap ranking do not preserve verified semantic module/table/cross-page structure; surrounding pages remain local and model receives limited fragments",
+      "code": [
+        "course_assistant/personal_evidence.py:212",
+        "course_assistant/personal_evidence.py:537",
+        "course_assistant/personal_dialogue.py:569"
+      ],
+      "evidence": "current private index structural statistics, existing real curriculum turn top5 locally reproduced, existing physical-page spot review; not a full human relevance benchmark"
+    },
+    {
+      "id": "D07",
+      "priority": "P2",
+      "topic": "normalized_business_facts",
+      "finding": "source observations lack reconciled course/attempt/requirement identities and official applicability; some available source fields are dropped from model projection; per-page attempt candidate IDs can collide",
+      "code": [
+        "course_assistant/student_source_parsers.py:333",
+        "course_assistant/school_accounts.py:427",
+        "course_assistant/personal_dialogue.py:116"
+      ],
+      "evidence": "existing real source field/identity audit; current citations use snapshot+global record_index and were not shown to collide"
+    },
+    {
+      "id": "D08",
+      "priority": "P2",
+      "topic": "history_and_versions",
+      "finding": "any full input digest change discards protocol history; over 32000 bytes also resets whole history instead of preserving user intent with revalidated facts",
+      "code": [
+        "course_assistant/personal_chat.py:405",
+        "course_assistant/personal_chat.py:460",
+        "course_assistant/personal_dialogue.py:400"
+      ],
+      "evidence": "source review and existing actual history flags"
+    },
+    {
+      "id": "D09",
+      "priority": "P2",
+      "topic": "parallel_domains_and_docs",
+      "finding": "multiple independent pipelines have no unified capability/data-availability entry; school startup still depends on legacy and synthetic inputs; old status wording can mislead maintainers",
+      "code": [
+        "course_assistant/server.py:28",
+        "course_assistant/server.py:58",
+        "course_assistant/chat.py:231"
+      ],
+      "evidence": "code trace and local inventory"
+    }
+  ],
+  "positive_controls": [
+    "owner/realm/connection-generation isolation",
+    "immutable signed observations and source references",
+    "original raw inputs preserved",
+    "unknown and repeated attempts retained",
+    "separate source coverage and model projection coverage",
+    "no observed personal/synthetic mixed retrieval"
+  ],
+  "acceptance": {
+    "user_experience": "not_accepted",
+    "semantic_accuracy_rate": "not_established",
+    "new_full_regression": "not_run_read_only_audit",
+    "prior_regression_not_audit_acceptance": true
+  },
+  "next_priorities": [
+    "complete/fresh source selection and scope-safe query contract",
+    "normalized factual and requirement layers without rewriting raw observations",
+    "semantic curriculum chunks with needed bounded context",
+    "task-oriented deterministic queries and task-based evidence allocation",
+    "real-question retrieval/support evaluation"
+  ],
+  "committed": false,
+  "pushed": false,
+  "deployment": false,
+  "personal_pdf_spot_audit": {
+    "pages": 6,
+    "chunks": 102,
+    "chunks_above_model_fragment_limit": 1,
+    "candidate_watermark_titles": 19,
+    "watermark_counts_are_heuristics_not_gold": true,
+    "actual_prior_top5_reproduced": true,
+    "actual_prior_top5_other_module_hits": 4,
+    "actual_prior_top5_requested_module_supports_after_spot_review": 1,
+    "actual_prior_top5_hits_above_model_fragment_limit": 0,
+    "whole_corpus_precision_not_established": true
+  }
+}
