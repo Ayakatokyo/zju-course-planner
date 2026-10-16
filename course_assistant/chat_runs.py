@@ -22,20 +22,26 @@ import uuid
 from .auth import AuthContext
 
 
-KINDS = frozenset({"model.start", "model.end", "tool.start", "tool.end", "answer.validated", "error"})
+KINDS = frozenset({"model.start", "model.end", "tool.start", "tool.end", "answer.validated",
+                   "answer.rejected", "answer.repair", "error"})
 FINAL_STATUSES = frozenset({"completed", "failed", "cancelled", "aborted"})
 COUNTS = frozenset({"step", "attempt", "count", "tool_count", "citation_count", "record_count",
-                    "match_count", "claim_count", "evidence_count", "unknown_count", "input_chars", "output_chars"})
+                    "match_count", "claim_count", "evidence_count", "unknown_count", "input_chars", "output_chars",
+                    "captured_rows", "reported_total", "matched_records", "returned_records"})
 USAGE = frozenset({"prompt_tokens", "completion_tokens", "total_tokens", "cached_tokens", "reasoning_tokens",
                    "prompt_cache_hit_tokens", "prompt_cache_miss_tokens", "input_tokens", "output_tokens"})
 COMMON_FIELDS = COUNTS | {"elapsed_ms", "status", "error_code"}
+TOOL_FIELDS = {"tool_name", "operation", "target_term", "query_mode", "initiated_by",
+               "has_more", "complete_within_scope"}
 EVENT_FIELDS = {
     "model.start": COMMON_FIELDS | {"provider", "model"},
     "model.end": COMMON_FIELDS | {"provider", "model", "usage", "reasoning_content", "request_id", "completion_id", "http_status"},
-    "tool.start": COMMON_FIELDS | {"tool_name"},
-    "tool.end": COMMON_FIELDS | {"tool_name"},
+    "tool.start": COMMON_FIELDS | TOOL_FIELDS,
+    "tool.end": COMMON_FIELDS | TOOL_FIELDS,
     "answer.validated": COMMON_FIELDS,
-    "error": COMMON_FIELDS | {"stage"},
+    "answer.rejected": COMMON_FIELDS | {"failure_detail"},
+    "answer.repair": COMMON_FIELDS,
+    "error": COMMON_FIELDS | {"stage", "failure_detail"},
 }
 MAX_EVENTS = 256
 MAX_REASONING_EVENT = 4096
@@ -81,6 +87,37 @@ def _code(value):
     if type(value) is not str or not CODE.fullmatch(value):
         _fail("invalid_run_event")
     return value
+
+
+def tool_event_fields(name, arguments=None, result=None, *, initiated_by="model"):
+    """Describe an actual tool call without retaining its query or source rows."""
+    arguments = arguments if type(arguments) is dict else {}
+    result = result if type(result) is dict else {}
+    fields = {"tool_name": name, "initiated_by": initiated_by}
+    operation = arguments.get("operation", result.get("operation"))
+    if operation in ("academic", "major_academic", "timetable", "exams", "curriculum"):
+        fields["operation"] = operation
+    term = arguments.get("target_term", result.get("target_term"))
+    match = re.fullmatch(r"((?:19|20|21)\d{2})-((?:19|20|21)\d{2})-(?:AW|SS|A|W|S|SU)", term) if type(term) is str else None
+    if term == "ALL-HISTORY" or match and int(match[2]) == int(match[1]) + 1:
+        fields["target_term"] = term
+    fields["query_mode"] = ("curriculum_keyword" if name == "search_my_curriculum" else
+                            "course_keyword" if arguments.get("query") else
+                            "overview" if name == "query_my_records" else "none")
+    if result:
+        coverage = result.get("coverage") if type(result.get("coverage")) is dict else {}
+        for key in ("captured_rows", "reported_total", "matched_records", "returned_records"):
+            value = result.get(key, coverage.get(key))
+            if type(value) is int and 0 <= value <= 100000000:
+                fields[key] = value
+        for key in ("has_more", "complete_within_scope"):
+            value = coverage.get(key)
+            if type(value) is bool:
+                fields[key] = value
+        for key, source in (("record_count", "records"), ("match_count", "matches")):
+            if type(result.get(source)) is list:
+                fields[key] = len(result[source])
+    return fields
 
 
 def _usage(value):
@@ -261,8 +298,29 @@ class ChatRunStore:
                 result[key] = value
             elif key in {"provider", "model", "tool_name"}:
                 result[key] = _name(value)
-            elif key == "error_code":
+            elif key in {"error_code", "failure_detail"}:
                 result[key] = _code(value)
+            elif key == "operation":
+                if type(value) is not str or value not in {"academic", "major_academic", "timetable", "exams", "curriculum"}:
+                    _fail("invalid_run_event")
+                result[key] = value
+            elif key == "target_term":
+                match = re.fullmatch(r"((?:19|20|21)\d{2})-((?:19|20|21)\d{2})-(?:AW|SS|A|W|S|SU)", value) if type(value) is str else None
+                if value != "ALL-HISTORY" and not (match and int(match[2]) == int(match[1]) + 1):
+                    _fail("invalid_run_event")
+                result[key] = value
+            elif key == "query_mode":
+                if type(value) is not str or value not in {"overview", "course_keyword", "curriculum_keyword", "none"}:
+                    _fail("invalid_run_event")
+                result[key] = value
+            elif key == "initiated_by":
+                if type(value) is not str or value not in {"model", "service_preflight", "service_acquisition"}:
+                    _fail("invalid_run_event")
+                result[key] = value
+            elif key in {"has_more", "complete_within_scope"}:
+                if type(value) is not bool:
+                    _fail("invalid_run_event")
+                result[key] = value
             elif key in {"request_id", "completion_id"}:
                 if (type(value) is not str or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value) or
                         re.match(r"(?i)sk[-_][A-Za-z0-9_-]{8,}", value)):

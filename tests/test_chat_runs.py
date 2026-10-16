@@ -7,7 +7,7 @@ import uuid
 
 from course_assistant.auth import AuthContext
 from course_assistant.chat_runs import (ChatRunError, ChatRunStore, MAX_EVENTS,
-                                       MAX_REASONING_EVENT, MAX_REASONING_RUN)
+                                       MAX_REASONING_EVENT, MAX_REASONING_RUN, tool_event_fields)
 from course_assistant.storage import Store
 
 
@@ -121,6 +121,32 @@ class ChatRunTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.assert_code("invalid_run_event", self.logs.event, self.context, run, "model.end", {field: "SYNTHETIC"})
         self.assertEqual(self.logs.read(self.context, run, self.scope)["events"], [])
+
+    def test_actual_tool_summary_keeps_scope_and_coverage_without_query_text(self):
+        run = self.begin()
+        fields = tool_event_fields("query_my_records", {"operation": "major_academic", "target_term": "ALL-HISTORY",
+            "query": "NEVER-SEND-COURSE-NAME"}, {"records": [{}] * 15, "matched_records": 60, "returned_records": 15,
+            "coverage": {"captured_rows": 60, "reported_total": 104, "has_more": True, "complete_within_scope": False}})
+        self.logs.event(self.context, run, "tool.end", fields)
+        self.logs.event(self.context, run, "answer.rejected", {"error_code": "invalid_final_answer",
+            "failure_detail": "answer_shape_invalid", "attempt": 0, "evidence_count": 14})
+        self.logs.event(self.context, run, "answer.repair", {"status": "started", "attempt": 1})
+        detail = self.logs.read(self.context, run, self.scope)
+        self.assertNotIn("NEVER-SEND", str(detail))
+        self.assertEqual(detail["events"][0]["fields"]["reported_total"], 104)
+        self.assertEqual(detail["events"][0]["fields"]["query_mode"], "course_keyword")
+        self.assertFalse(detail["events"][0]["fields"]["complete_within_scope"])
+        self.assertEqual(detail["events"][1]["fields"]["failure_detail"], "answer_shape_invalid")
+
+    def test_scope_diagnostic_fields_reject_free_text_and_wrong_types(self):
+        run = self.begin()
+        for fields in ({"operation": []}, {"operation": "owner_student_id"}, {"target_term": "/private/source"},
+                       {"target_term": "2099-2101-AW"}, {"query_mode": {"query": "raw"}}, {"query_mode": "raw"},
+                       {"initiated_by": []}, {"initiated_by": "user-script"}, {"has_more": 1},
+                       {"complete_within_scope": None}, {"reported_total": -1}):
+            self.assert_code("invalid_run_event", self.logs.event, self.context, run, "tool.end", fields)
+        self.assert_code("invalid_run_event", self.logs.event, self.context, run, "answer.rejected",
+                         {"failure_detail": "raw answer text with spaces"})
 
     def test_reasoning_redacts_credentials_paths_and_structured_request_bodies(self):
         run = self.begin()

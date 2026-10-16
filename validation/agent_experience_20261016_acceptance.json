@@ -1,0 +1,122 @@
+{
+  "recorded_at_utc": "2026-10-15T16:26:49.093431+00:00",
+  "scope": "current engineering and actual pre-fix personal failure reproduction; new personal acceptance pending login",
+  "historical_archive": {
+    "head": "50bad733ff9f7aa6614e37dee1db7eeed7ec5a71",
+    "pushed": true,
+    "new_repairs_included": false
+  },
+  "engineering": {
+    "ran": 1036,
+    "passed": 1036,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "by_module": {
+      "test_application": 7,
+      "test_audit": 44,
+      "test_auth": 20,
+      "test_chat": 36,
+      "test_chat_history": 13,
+      "test_chat_http": 2,
+      "test_chat_inspection_http": 8,
+      "test_chat_progress": 8,
+      "test_chat_runs": 16,
+      "test_course_dedup": 15,
+      "test_course_source_adapters": 9,
+      "test_exporter": 6,
+      "test_importer": 13,
+      "test_live_chat_acceptance": 13,
+      "test_local_reference": 22,
+      "test_local_reference_observations": 22,
+      "test_model_client": 30,
+      "test_personal_acquisition": 9,
+      "test_personal_chat": 23,
+      "test_personal_chat_http": 5,
+      "test_personal_dialogue": 32,
+      "test_personal_dialogue_recovery": 11,
+      "test_personal_evidence": 33,
+      "test_personal_http": 15,
+      "test_personal_observations": 30,
+      "test_personal_progress_web": 12,
+      "test_personal_retrieval_progress": 7,
+      "test_plan_requirements_audit": 12,
+      "test_planner": 32,
+      "test_recommendation": 24,
+      "test_recommendation_dialogue": 17,
+      "test_recommendation_storage": 22,
+      "test_reference_retrieval": 13,
+      "test_school_accounts": 41,
+      "test_school_http": 60,
+      "test_school_http_app": 10,
+      "test_school_period_times": 9,
+      "test_school_timetable_web": 25,
+      "test_student_browser_bridge": 17,
+      "test_student_connector": 30,
+      "test_student_plan_acquisition": 32,
+      "test_student_source_cli": 21,
+      "test_student_source_client": 38,
+      "test_student_source_parsers": 33,
+      "test_student_source_provider": 11,
+      "test_student_source_sync": 11,
+      "test_student_sources": 36,
+      "test_web_contract": 81
+    }
+  },
+  "source_hashes_match": true,
+  "real_model_synthetic_only": {
+    "status": "passed",
+    "calls": 3,
+    "elapsed_ms": 7399,
+    "grade_reasoning_seen_while_running": true,
+    "real_school_network": false,
+    "real_personal_data": false,
+    "real_repair_triggered": false
+  },
+  "actual_personal_before_new_backend": {
+    "same_question_normal_completed": true,
+    "same_question_thinking_failed_final_validation": true,
+    "actual_provider_reasoning_visible": true,
+    "old_rejection_detail_available": false,
+    "semantic_acceptance": false
+  },
+  "frontend_actual_history": {
+    "full_events_and_provider_reasoning_loaded": true,
+    "desktop_css_viewport": [
+      1680,
+      856
+    ],
+    "narrow_css_viewport": [
+      416,
+      902
+    ],
+    "no_document_overflow_observed": true,
+    "input_visible": true,
+    "viewport_restored": true,
+    "screenshots_private_only": true,
+    "completed_answer_scroll_actual_new_turn": "not_run_pending_login"
+  },
+  "runtime": {
+    "port": 18875,
+    "school_enabled": true,
+    "mock_enabled": false,
+    "school_memory_session_reset": true,
+    "assets_sha256": {
+      "web/app.js": "837d2db812981fb1341620e55c03320e40676d505880f3670b550da649233f4a",
+      "web/styles.css": "3a2a41b95a8435f49448ccb50b675fcabee3bf5ba3ceed97bc31564302a4ada3",
+      "web/index.html": "e0a72211be0b6e1c4be5c433a1c4ad0c01aeeb19e53bc1f69a567cfa2263b7a5"
+    }
+  },
+  "new_personal_call": "not_run_pending_login",
+  "answer_semantics": "not_accepted",
+  "user_acceptance": "not_accepted",
+  "new_changes_committed": false,
+  "new_changes_pushed": false,
+  "external_deployment": false,
+  "remaining": [
+    "new personal conversation after login",
+    "one-submit grade/course/term/curriculum and failure-follow-up semantics",
+    "actual provider reasoning before final answer on updated personal chain",
+    "complete source coverage and reviewed applicability remain separate"
+  ]
+}
