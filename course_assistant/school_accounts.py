@@ -26,6 +26,7 @@ from .student_sources import CREDENTIAL_VALUE, _observed_subjects, digest, sanit
 from .school_period_times import period_source
 from .student_plan_acquisition import OnDemandPlanService, StudentPlanAcquisitionError
 from .course_catalog import CourseCatalogService
+from .recommendation_readiness import project_source_diagnostics, source_receipt_diagnostics
 
 
 LOGIN_FAILURE_STATES = frozenset({"source_session_expired", "interactive_verification_required", "route_not_confirmed",
@@ -90,6 +91,9 @@ class _Connection:
     plan: object = None
     personal: object = None
     personal_epoch: object = None
+    course_plans: object = None
+    course_plan_epoch: object = None
+    course_plan_config: object = None
     pending: dict | None = None
     captcha_id: str | None = None
     captcha_expires: float = 0
@@ -125,12 +129,17 @@ class _BoundTransport:
 
 
 class SchoolAccountService:
-    def __init__(self, auth, client_factory, *, root=None, clock=time.time, personal_pdf_extractor=None):
+    def __init__(self, auth, client_factory, *, root=None, clock=time.time, personal_pdf_extractor=None,
+                 course_data_test_delivery_index=None, course_data_test_term=None):
         if not callable(client_factory):
             _error("invalid_school_request")
         self.auth, self.client_factory, self.clock = auth, client_factory, clock
         self.personal_pdf_extractor = personal_pdf_extractor
         self.course_catalog = CourseCatalogService()
+        self.course_data_test_delivery_index = (course_data_test_delivery_index if course_data_test_delivery_index is not None
+                                               else os.environ.get("COURSE_DATA_TEST_DELIVERY_INDEX"))
+        self.course_data_test_term = (course_data_test_term if course_data_test_term is not None
+                                     else os.environ.get("COURSE_DATA_TEST_TERM"))
         self.root = _private_directory(root or auth.store.path.parent / "private" / "school_accounts")
         if auth.store.path.is_symlink():
             _error("invalid_private_store", 503)
@@ -643,7 +652,106 @@ class SchoolAccountService:
                 and isinstance(receipt.get("observation_id"), str)
                 and re.fullmatch(r"OBS-[a-f0-9]{32}", receipt["observation_id"]) is not None)
 
-    def personal_chat_live_tool(self, context, name, args, *, receipts, emit, authorize, adopt, before=None):
+    def _course_plan_service(self, context, connection):
+        from .personal_course_plans import CURRENT_TERM, PersonalCoursePlanService
+        if not self.course_data_test_delivery_index or self.course_data_test_term != CURRENT_TERM:
+            connection.course_plans, connection.course_plan_epoch, connection.course_plan_config = None, None, None
+            return None
+        epoch = connection.client.session_epoch
+        self._authorize_local(context, connection, epoch)
+        configured = digest({"delivery_index": str(self.course_data_test_delivery_index), "term": self.course_data_test_term})
+        if connection.course_plans is None or connection.course_plan_epoch != epoch or connection.course_plan_config != configured:
+            connection.course_plans = PersonalCoursePlanService(self.course_data_test_delivery_index, CURRENT_TERM,
+                lambda: self._authorize_local(context, connection, epoch))
+            connection.course_plan_epoch = epoch
+            connection.course_plan_config = configured
+        return connection.course_plans
+
+    def _course_plan_sources(self, context, connection, receipts, kind):
+        """Read only exact observations already acquired in this server turn."""
+        sources = {"major_academic": {"status": "missing", "verified": False},
+                   "curriculum": {"status": "missing", "verified": False},
+                   "timetable": {"status": "not_required" if kind != "timetable" else "missing", "verified": False},
+                   "exams": {"status": "not_requested", "verified": False}}
+        def selected(operation, term):
+            matching = [r for r in receipts if r.get("operation") == operation and r.get("target_term") == term]
+            if not matching:
+                return None
+            # A failed/conflicting current receipt is not rescued by an older
+            # positive receipt. No school request or historical fallback here.
+            if any(not self._live_receipt_ready(r) for r in matching):
+                sources[operation]["status"] = "failed"
+                return None
+            return matching[-1]
+        def query(operation, term, *, all_records=False):
+            receipt = selected(operation, term)
+            if receipt is None:
+                return
+            records, cursor, count = [], None, 0
+            while True:
+                body = {"operation": operation, "observation_id": receipt["observation_id"], "limit": 20,
+                        "mode": "records" if all_records else "summary"}
+                if cursor:
+                    body["cursor"] = cursor
+                try:
+                    result = self.local_query(context, "/api/personal/records", body)
+                except AccessError as error:
+                    from .personal_acquisition import AUTH_FAILURES
+                    if error.status in {401, 403} or getattr(error, "reason", None) in AUTH_FAILURES:
+                        raise
+                    sources[operation]["status"] = "failed"
+                    return
+                if (result.get("observation_id") != receipt["observation_id"] or result.get("operation") != operation
+                        or result.get("target_term") != term or result.get("data_source") != "live"
+                        or result.get("historical_only") is not False or result.get("observation_status") != "observed_live"):
+                    sources[operation]["status"] = "failed"
+                    return
+                if all_records:
+                    if (result.get("status") != "complete_within_scope"
+                            or result.get("coverage", {}).get("complete_within_scope") is not True
+                            or result.get("row_failures")
+                            or type(result.get("records")) is not list):
+                        sources[operation]["status"] = "partial"
+                        return
+                    records.extend(result["records"])
+                    count += 1
+                    cursor = result.get("next_cursor")
+                    if len(records) > 200 or count > 10:
+                        sources[operation]["status"] = "partial"
+                        return
+                    if cursor:
+                        continue
+                    if result.get("matched_records") != len(records) or result.get("total_records") != len(records):
+                        sources[operation]["status"] = "partial"
+                        return
+                sources[operation] = {"status": "partial" if result.get("status") == "partial_acquisition" else "available",
+                    "verified": True, "observation_id": receipt["observation_id"], "records": records}
+                return
+        query("major_academic", "ALL-HISTORY")
+        curriculum = selected("curriculum", None)
+        if curriculum:
+            local = self.local_chat_status(context)["local"]
+            plan = local["plan"]
+            if (plan.get("status") == "acquired_pending_review" and plan.get("source_alias") == curriculum["source_alias"]
+                    and plan.get("sha256") == curriculum["sha256"] and local["evidence"].get("ready") is True):
+                sources["curriculum"] = {"status": "available", "verified": True}
+            else:
+                sources["curriculum"]["status"] = "failed"
+        if kind == "timetable":
+            query("timetable", "2026-2027-AW", all_records=True)
+        # This is only acquisition status from this turn's server receipts.
+        # The bounded plan validator still checks weekday/period observations;
+        # it neither fetches exams here nor claims full exam conflict coverage.
+        exam_receipts = [r for r in receipts if r.get("operation") == "exams" and r.get("target_term") == "2026-2027-AW"]
+        if exam_receipts:
+            if any(not self._live_receipt_ready(r) for r in exam_receipts):
+                sources["exams"]["status"] = "failed"
+            else:
+                sources["exams"]["status"] = "partial" if any(r.get("status") == "partial_acquisition" for r in exam_receipts) else "available"
+        self._authorize_local(context, connection, connection.client.session_epoch)
+        return sources
+
+    def personal_chat_live_tool(self, context, name, args, *, receipts, emit, authorize, adopt, before=None, policy_context=None):
         """Use a fresh receipt from this turn, never a latest historical row.
 
         ``receipts`` belongs to the server's current turn and is not accepted
@@ -704,6 +812,8 @@ class SchoolAccountService:
             if operation != "curriculum" and (result.get("operation") != operation or result.get("target_term") != term):
                 receipt["ready"] = False
             receipt["ready"] = self._live_receipt_ready(receipt)
+            if receipt["ready"] and (diagnostics := source_receipt_diagnostics(operation, result)) is not None:
+                receipt["diagnostics"] = diagnostics
             receipts.append(receipt)
             # Source additions change the input digest. The caller adopts that
             # version while this same connection lock still serializes reads.
@@ -718,6 +828,17 @@ class SchoolAccountService:
                 "status": "completed" if receipt["ready"] else "not_ready",
                 "elapsed_ms": round((time.monotonic() - started) * 1000)})
             return receipt
+
+        def public_receipt(receipt):
+            item = {**{key: deepcopy(receipt[key]) for key in
+                    ("operation", "target_term", "status", "data_source", "clarification", "failure") if key in receipt},
+                    "ready": self._live_receipt_ready(receipt)}
+            if item["ready"] and "diagnostics" in receipt:
+                try:
+                    item["diagnostics"] = project_source_diagnostics(receipt["diagnostics"], receipt.get("operation"))
+                except ValueError:
+                    pass
+            return item
 
         if name == "search_course_catalog":
             if set(args) - {"query", "limit"} or "query" not in args:
@@ -743,6 +864,9 @@ class SchoolAccountService:
                             operations.append(item)
                 curriculum = any(receipt.get("operation") == "curriculum" and self._live_receipt_ready(receipt) for receipt in receipts)
                 catalog = self.course_catalog.describe()
+                plans = self._course_plan_service(context, connection)
+                course_data_test = (plans.describe() if plans else {"status": "not_configured", "target_term": None,
+                    "reference_mode": "historical_course_observations"})
                 result = {"status": "available", "data_kind": "personal_source", "cohort": profile.get("cohort"),
                     "major_name": profile.get("major_name"), "operations": operations,
                     "api_operations": [{"operation": operation, "target_term_required": operation != "major_academic"}
@@ -751,13 +875,36 @@ class SchoolAccountService:
                         "curriculum_local_search": True, "read_only_acquisition": True,
                         "course_catalog_search": catalog.get("status") == "ready",
                         "recommendation_input_check": True,
+                        "course_data_test": course_data_test["status"] == "ready",
                         "real_recommendation": False},
                     "course_catalog": catalog,
-                    "source_receipts": [{**{key: deepcopy(receipt[key]) for key in
-                        ("operation", "target_term", "status", "data_source", "clarification", "failure") if key in receipt},
-                        "ready": self._live_receipt_ready(receipt)}
-                        for receipt in receipts],
+                    "course_data_test": course_data_test,
+                    "current_course_plan": plans.current_plan_hint(policy_context.get("active_plan_ref") if isinstance(policy_context, dict) else None,
+                        current_dialogue=True) if plans else None,
+                    "source_receipts": [public_receipt(receipt) for receipt in receipts],
                     "note": "教务事实须由本轮实际接口读取回执支持；旧本机观察不作为本轮最新资料。课程目录仅为本地静态参考。"}
+            elif name in {"search_current_term_courses", "generate_current_term_plan", "update_current_term_plan", "get_current_term_plan"}:
+                from .personal_course_plans import validate_course_plan_args, _base
+                try:
+                    validate_course_plan_args(name, args)
+                except (ValueError, TypeError):
+                    _error("invalid_school_request")
+                plans = self._course_plan_service(context, connection)
+                if plans is None:
+                    action = "search" if name == "search_current_term_courses" else "inspect" if name == "get_current_term_plan" else args.get("action", "generate")
+                    result = {"status": "not_ready", "data_kind": "course_data_test",
+                              "result": {**_base(action), "reason": "course_data_test_not_configured", "actions": ["search"]}}
+                else:
+                    kind = plans.required_sources(name, args,
+                        active_plan_ref=policy_context.get("active_plan_ref") if isinstance(policy_context, dict) else None)
+                    sources = self._course_plan_sources(context, connection, receipts, kind) if kind else {}
+                    try:
+                        result = plans.execute(name, args, sources=sources, turn_identity=receipts,
+                            policy_context=policy_context, enforce_policy=True)
+                    except AccessError:
+                        raise
+                    except (ValueError, TypeError):
+                        _error("invalid_school_request")
             elif name == "check_recommendation_inputs":
                 if (set(args) - {"recommendation_kind", "target_term"} or "recommendation_kind" not in args
                         or "target_term" in args and not isinstance(args["target_term"], str)):
@@ -769,7 +916,7 @@ class SchoolAccountService:
                 except ValueError:
                     _error("invalid_school_request")
                 current = self.personal_chat_live_tool(context, "get_my_context", {},
-                    receipts=receipts, emit=emit, authorize=authorize, adopt=adopt, before=before)
+                    receipts=receipts, emit=emit, authorize=authorize, adopt=adopt, before=before, policy_context=policy_context)
                 result = {"status": "available", "data_kind": "personal_source", "check_executed": True,
                     "readiness": assess_recommendation_readiness(current, **args)}
             elif name == "query_my_records":

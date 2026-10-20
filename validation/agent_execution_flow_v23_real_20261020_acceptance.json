@@ -1,0 +1,210 @@
+{
+  "schema_version": "agent-execution-flow-v23-real-v1",
+  "date": "2026-10-20",
+  "model_restriction": "deepseek-flash",
+  "initial_failure_preserved": [
+    {
+      "round": 1,
+      "run_status": "failed",
+      "task_status": "failed",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "error_code": "unverified_personal_answer",
+      "model_generations": 3,
+      "model_http_statuses": [
+        200,
+        200,
+        200
+      ],
+      "repair_attempts": 1,
+      "validation_details": [
+        "readiness_requires_structured_claim",
+        "readiness_requires_structured_claim"
+      ],
+      "completed_tools": [
+        "get_my_context",
+        "read_my_major_academic",
+        "query_my_records",
+        "read_my_curriculum",
+        "search_my_curriculum",
+        "read_my_timetable",
+        "query_my_records",
+        "prepare_recommendation_inputs"
+      ],
+      "source_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 1,
+        "exams": 0
+      },
+      "candidate_searches": 0,
+      "solver_calls": 0,
+      "source_diagnostics": {
+        "academic_records": {
+          "record_count": 104,
+          "reported_total": 104,
+          "coverage": "complete_within_scope",
+          "row_failure_count": 0
+        },
+        "existing_timetable": {
+          "record_count": 3,
+          "reported_total": "unknown",
+          "coverage": "unknown",
+          "row_failure_count": 0,
+          "time_text_missing_count": 2,
+          "structured_time_present_count": 0,
+          "time_evidence_missing_count": 2
+        }
+      },
+      "prepared_sources": [
+        {
+          "name": "query_my_records",
+          "status": "complete_within_scope",
+          "record_count": 0,
+          "match_count": 0,
+          "summary_match_count": 104
+        },
+        {
+          "name": "search_my_curriculum",
+          "status": "pending_review",
+          "record_count": 0,
+          "match_count": 3,
+          "summary_match_count": null
+        },
+        {
+          "name": "query_my_records",
+          "status": "partial_acquisition",
+          "record_count": 3,
+          "match_count": 0,
+          "summary_match_count": null
+        }
+      ],
+      "historical_scope_stated": false
+    }
+  ],
+  "final_bounded_journey": [
+    {
+      "round": 1,
+      "run_status": "completed",
+      "task_status": "blocked",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "error_code": null,
+      "model_generations": 3,
+      "model_http_statuses": [
+        200,
+        200,
+        200
+      ],
+      "repair_attempts": 1,
+      "validation_details": [
+        "summary_requires_structured_claim"
+      ],
+      "completed_tools": [
+        "get_my_context",
+        "read_my_major_academic",
+        "query_my_records",
+        "read_my_curriculum",
+        "search_my_curriculum",
+        "read_my_timetable",
+        "query_my_records",
+        "prepare_recommendation_inputs"
+      ],
+      "source_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 1,
+        "exams": 0
+      },
+      "candidate_searches": 0,
+      "solver_calls": 0,
+      "source_diagnostics": {
+        "academic_records": {
+          "record_count": 104,
+          "reported_total": 104,
+          "coverage": "complete_within_scope",
+          "row_failure_count": 0
+        },
+        "existing_timetable": {
+          "record_count": 3,
+          "reported_total": "unknown",
+          "coverage": "unknown",
+          "row_failure_count": 0,
+          "time_text_missing_count": 2,
+          "structured_time_present_count": 0,
+          "time_evidence_missing_count": 2
+        }
+      },
+      "prepared_sources": [
+        {
+          "name": "query_my_records",
+          "status": "complete_within_scope",
+          "record_count": 0,
+          "match_count": 0,
+          "summary_match_count": 104
+        },
+        {
+          "name": "search_my_curriculum",
+          "status": "pending_review",
+          "record_count": 0,
+          "match_count": 3,
+          "summary_match_count": null
+        },
+        {
+          "name": "query_my_records",
+          "status": "partial_acquisition",
+          "record_count": 3,
+          "match_count": 0,
+          "summary_match_count": null
+        }
+      ],
+      "historical_scope_stated": false
+    },
+    {
+      "round": 2,
+      "run_status": "completed",
+      "task_status": "completed",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "error_code": null,
+      "model_generations": 2,
+      "model_http_statuses": [
+        200,
+        200
+      ],
+      "repair_attempts": 0,
+      "validation_details": [],
+      "completed_tools": [
+        "get_my_context",
+        "get_my_run_diagnostics"
+      ],
+      "source_reads": {
+        "major_academic": 0,
+        "curriculum": 0,
+        "timetable": 0,
+        "exams": 0
+      },
+      "candidate_searches": 0,
+      "solver_calls": 0,
+      "historical_preparation_returned": true,
+      "historical_scope_stated": true
+    }
+  ],
+  "acceptance": {
+    "engineering": "targeted_passed",
+    "limited_source_and_claim_review": "bounded_support_only",
+    "complete_semantics": "unaccepted",
+    "curriculum_applicability": "unaccepted",
+    "formal_recommendation": "unaccepted",
+    "user_experience": "unaccepted"
+  },
+  "limitations": [
+    "Final first question needed one structured-summary repair; not a repair-free journey.",
+    "The timetable remained partial; no reliable schedule was generated.",
+    "Reply still repeats some formal-dependency boilerplate.",
+    "Timetable structured time values are not added to record egress; safe diagnostics expose counts only.",
+    "Exam and practice-course/converted-grade/seat field gaps from section 77 remain open."
+  ],
+  "sensitive_data_excluded": true,
+  "screenshots_private_only": true
+}

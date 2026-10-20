@@ -1,0 +1,118 @@
+{
+  "schema": "school-field-audit/1",
+  "date": "2026-10-20",
+  "scope": "authorized-own-account; official current-term pages and existing transcript queries",
+  "raw_source_values_or_credentials_in_receipt": false,
+  "official_observations": {
+    "academic": {
+      "sample_rows": 15,
+      "reported_total": 61,
+      "cj_nonempty": 15,
+      "xf_nonempty": 15,
+      "jd_nonempty": 15,
+      "sample_only": true
+    },
+    "major_academic": {
+      "sample_rows": 15,
+      "reported_total": 104,
+      "cj_nonempty": 15,
+      "xf_nonempty": 15,
+      "jd_nonempty": 15,
+      "zscj_nonempty": 15,
+      "sample_only": true
+    },
+    "timetable": {
+      "target_term": "2026-2027-A",
+      "kbList_rows": 2,
+      "sjkList_rows": 1,
+      "structured_fields_present": [
+        "kcb",
+        "xqj",
+        "djj",
+        "skcd",
+        "dsz",
+        "xxq",
+        "sfqd"
+      ],
+      "source_total_unknown": true
+    },
+    "exams": {
+      "promise_accepted_after_explicit_user_confirmation": true,
+      "scoped_queries": [
+        {
+          "target_term": "2026-2027-W",
+          "returned_rows": 2,
+          "reported_total": 2
+        },
+        {
+          "target_term": "2026-2027-A",
+          "returned_rows": 2,
+          "reported_total": 2
+        }
+      ],
+      "autumn_missing_source_fields": [
+        "kssj",
+        "jsmc",
+        "zwxh",
+        "qzkssj",
+        "qzjsmc",
+        "qzzwxh",
+        "bz"
+      ],
+      "initial_page_response_was_unscoped_history_not_current_term_evidence": true
+    },
+    "profile": {
+      "official_academic_labels_verified": [
+        "当前所在级",
+        "入学日期"
+      ],
+      "unrelated_personal_fields_not_added": true
+    },
+    "curriculum": {
+      "acquired_in_current_local_session": true,
+      "status": "acquired_pending_review",
+      "applicability_or_full_semantics_accepted": false
+    }
+  },
+  "confirmed_gaps": {
+    "fixed_ui": [
+      "grade_points_raw in school grade table",
+      "grade_points_raw in personal record table",
+      "existing registered profile fields in school profile view"
+    ],
+    "not_implemented": [
+      "major_academic zscj mapping",
+      "exam final/midterm seat number mapping",
+      "timetable sjkList practice entries"
+    ],
+    "semantic_work_separate": [
+      "structured timetable time interpretation and full coverage",
+      "complete curriculum applicability",
+      "formal recommendation"
+    ]
+  },
+  "validation": {
+    "grade_existing_frontend_tests_passed": 6,
+    "profile_existing_frontend_tests_passed": 2,
+    "new_tests_added": 0,
+    "node_syntax": "passed",
+    "git_diff_check": "passed",
+    "full_suite_rerun": false,
+    "actual_local_major_rows": 104,
+    "actual_ui_grade_point_column_visible": true,
+    "actual_ui_admission_date_and_grade_visible": true,
+    "new_model_calls": 0,
+    "service_restarted": false,
+    "pid_at_check": 92158,
+    "other_browser_identity_data_query_stopped": true
+  },
+  "source_sha256": {
+    "web/app.js": "651556a15bada003c15af371f0436ec2e7fd56ede6e980f923d31e237ba2f53f"
+  },
+  "git": {
+    "branch": "main",
+    "base": "f1eb7f88bba547ea77a71185db5938881941db01",
+    "new_work_staged_committed_or_pushed": false,
+    "inputs_unchanged": true
+  }
+}

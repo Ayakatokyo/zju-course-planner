@@ -3,7 +3,9 @@ from copy import deepcopy
 import json
 import unittest
 
-from course_assistant.recommendation_readiness import assess_recommendation_readiness, project_readiness_result, render_recommendation_readiness
+from course_assistant.recommendation_readiness import (assess_recommendation_readiness, project_readiness_result,
+    render_recommendation_readiness, source_receipt_diagnostics, project_source_diagnostics)
+from course_assistant.student_source_parsers import parse_payload
 
 
 def receipt(operation="academic", term="2023-2024-AW", **changes):
@@ -21,6 +23,66 @@ def context(*receipts):
 
 def sources(value):
     return {source["id"]: source for source in value["sources"]}
+
+
+def timetable_read():
+    """Real school field shapes, with invented courses and no student identity."""
+    payload = {"kbList": [{"kcmc": "合成课程一", "sksj": "周一第1-2节", "xqj": "1", "djj": "1", "skcd": "2"},
+                          {"kcmc": "合成课程二", "xqj": "3", "djj": "3", "skcd": "2"},
+                          {"kcmc": "合成课程三", "xqj": "5", "djj": "5", "skcd": "2"}]}
+    parsed = parse_payload("timetable", payload, {"target_term": "2023-2024-AW"})
+    return {"operation": "timetable", "status": "partial_acquisition", "data_source": "live",
+            "records": parsed["records"], "row_failures": parsed["row_failures"],
+            "coverage": {"captured_rows": 3, "reported_total": None, "complete_within_scope": False}}
+
+
+class SourceReadDiagnosticTests(unittest.TestCase):
+    def test_text_time_absence_does_not_erase_observed_structured_time(self):
+        read = timetable_read()
+        before = deepcopy(read)
+        diagnostics = source_receipt_diagnostics("timetable", read)
+        self.assertEqual(diagnostics, {"record_count": 3, "reported_total": "unknown", "coverage": "unknown",
+            "row_failure_count": 0, "time_text_missing_count": 2, "structured_time_present_count": 3,
+            "time_evidence_missing_count": 0})
+        self.assertEqual(read, before)
+        value = assess_recommendation_readiness(context(receipt("timetable", "2023-2024-AW",
+            status="partial_acquisition", diagnostics=diagnostics)), recommendation_kind="timetable", target_term="2023-2024-AW")
+        rendered = render_recommendation_readiness(value, ["sources", "next_step"])
+        self.assertIn("取得3条记录，接口未声明总数，覆盖无法确认", rendered)
+        self.assertIn("2条未提供可用上课时间文本，3条保留结构化时间字段", rendered)
+        self.assertIn("文本缺失不等于没有课时", rendered)
+        self.assertNotIn("缺少2条课时", rendered)
+        self.assertFalse(value["can_generate"])
+        self.assertTrue(all(row["status"] == "required_dependency_unverified" for row in value["dependencies"]))
+
+    def test_missing_time_evidence_is_independent_of_unknown_collection_total(self):
+        read = timetable_read()
+        read["records"][2]["meetings"] = None
+        read["records"][2]["field_states"]["meetings"] = "unknown"
+        diagnostics = source_receipt_diagnostics("timetable", read)
+        self.assertEqual(diagnostics["time_evidence_missing_count"], 1)
+        self.assertEqual(diagnostics["structured_time_present_count"], 2)
+        self.assertEqual(diagnostics["reported_total"], "unknown")
+        self.assertNotIn("missing_record_count", diagnostics)
+
+    def test_diagnostics_are_text_free_and_old_or_failed_reads_do_not_pass(self):
+        read = timetable_read()
+        read.update(password="SYNTHETIC-PRIVATE-PASSWORD", source_alias="/Users/SYNTHETIC-PRIVATE-PATH")
+        read["records"][0].update(owner="SYNTHETIC-PRIVATE-OWNER", raw_row={"cookie": "SYNTHETIC-PRIVATE-COOKIE"})
+        self.assertNotIn("SYNTHETIC-PRIVATE", json.dumps(source_receipt_diagnostics("timetable", read)))
+        for key, value in (("data_source", "historical_cache"), ("status", "failed"),
+                           ("operation", "exams"), ("records", None)):
+            with self.subTest(key=key):
+                self.assertIsNone(source_receipt_diagnostics("timetable", {**read, key: value}))
+
+    def test_private_text_invalid_counts_and_impossible_completeness_are_rejected(self):
+        diagnostics = source_receipt_diagnostics("timetable", timetable_read())
+        for patch in ({"private": "SYNTHETIC-PRIVATE"}, {"record_count": True}, {"record_count": -1},
+                      {"record_count": 10001}, {"reported_total": None}, {"reported_total": []},
+                      {"coverage": "complete_within_scope"}, {"time_text_missing_count": 4},
+                      {"row_failure_count": 4}):
+            with self.subTest(patch=patch), self.assertRaisesRegex(ValueError, "invalid_source_diagnostics"):
+                project_source_diagnostics({**diagnostics, **patch}, "timetable")
 
 
 class RecommendationReadinessTests(unittest.TestCase):
@@ -170,6 +232,21 @@ class ReadinessProjectionTests(unittest.TestCase):
         projected["sources"][0]["status"] = "missing"
         self.assertEqual(self.wrapper, before)
 
+    def test_optional_current_read_diagnostics_pass_but_private_or_wrong_source_fields_do_not(self):
+        diagnostics = source_receipt_diagnostics("timetable", timetable_read())
+        value = deepcopy(self.wrapper)
+        selected = sources(value["readiness"])["existing_timetable"]
+        selected.update(status="partial", diagnostics=deepcopy(diagnostics))
+        self.assertEqual(sources(project_readiness_result(value, self.args))["existing_timetable"]["diagnostics"], diagnostics)
+        selected["diagnostics"]["explanation"] = "SYNTHETIC-PRIVATE-TEXT"
+        self.assert_invalid(value)
+        selected["diagnostics"] = diagnostics
+        selected["status"] = "failed"
+        self.assert_invalid(value)
+        selected.pop("diagnostics")
+        value["readiness"]["sources"][0]["diagnostics"] = diagnostics
+        self.assert_invalid(value)
+
     def test_only_source_availability_and_query_support_can_differ_from_template(self):
         value = deepcopy(self.wrapper)
         for source in value["readiness"]["sources"]:
@@ -248,8 +325,8 @@ class ReadinessRenderingTests(unittest.TestCase):
         before = deepcopy(self.value)
         rendered = render_recommendation_readiness(self.value, ["next_step"])
         self.assertIn("2023-2024学年秋冬学期", rendered)
-        self.assertIn("真实推荐尚未就绪", rendered)
-        self.assertIn("方案生成、保存和导出均未开放", rendered)
+        self.assertIn("正式推荐尚未就绪", rendered)
+        self.assertIn("正式方案生成、保存和导出尚未开放", rendered)
         self.assertIn("接下来：", rendered)
         self.assertNotIn("来源准备：", rendered)
         self.assertNotIn("仍需核实：", rendered)
@@ -263,6 +340,39 @@ class ReadinessRenderingTests(unittest.TestCase):
         self.assertIn("主修来源不代表完整修读历史", rendered)
         self.assertIn("不代表可选班次清单", rendered)
         self.assertNotIn("接下来：", rendered)
+
+    def test_partial_timetable_does_not_repeat_read_advice_or_invent_missing_rows(self):
+        value = assess_recommendation_readiness(context(receipt("timetable", "2023-2024-AW",
+            status="partial_acquisition")), recommendation_kind="timetable", target_term="2023-2024-AW")
+        self.assertIn("部分取得或读取失败时说明受阻", value["next_step"])
+        self.assertIn("考试仅在明确要求核对时读取", value["next_step"])
+        rendered = render_recommendation_readiness(value, ["next_step"])
+        self.assertIn("本轮已读取本人课表", rendered)
+        self.assertIn("来源覆盖和时间字段还需分别核对", rendered)
+        self.assertIn("不表示课表为空", rendered)
+        self.assertNotIn("可先查询", rendered)
+        self.assertNotIn("缺行", rendered)
+        self.assertNotIn("重新读取", rendered)
+
+    def test_failed_timetable_is_not_empty_or_old_fallback(self):
+        value = assess_recommendation_readiness(context(receipt("timetable", "2023-2024-AW",
+            status="failed", ready=False)), recommendation_kind="timetable", target_term="2023-2024-AW")
+        rendered = render_recommendation_readiness(value, ["next_step"])
+        self.assertIn("读取未完成", rendered)
+        self.assertIn("待来源恢复后重新读取", rendered)
+        self.assertIn("不以旧课表或空闲代替", rendered)
+        self.assertNotIn("本轮已读取本人课表", rendered)
+
+    def test_other_source_partial_cannot_mask_current_timetable_state(self):
+        for timetable_receipt, expected in (([], "可先读取目标学期本人课表"),
+                ([receipt("timetable", "2023-2024-AW")], "本轮已取得本人课表")):
+            value = assess_recommendation_readiness(context(
+                receipt("major_academic", "ALL-HISTORY", status="partial_acquisition"), *timetable_receipt),
+                recommendation_kind="timetable", target_term="2023-2024-AW")
+            rendered = render_recommendation_readiness(value, ["next_step"])
+            self.assertIn(expected, rendered)
+            self.assertIn("考试仅在明确要求核对时读取", rendered)
+            self.assertNotIn("取得状态为部分", rendered)
 
     def test_dependencies_keep_course_and_timetable_requirements_distinct(self):
         course = assess_recommendation_readiness({}, recommendation_kind="courses")

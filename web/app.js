@@ -7,6 +7,7 @@ const rows = value => Array.isArray(value) ? value : (value?.records || []);
 const showValue = value => value === null || value === undefined ? '待确认' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
 const state = {auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false,  agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
 Object.assign(state,{agentProgressPoll:null,agentProcessOpen:{},agentEvidenceOpen:{},agentReasoningScroll:{},agentTraceScroll:{}});
+state.agentDraftSync=newAgentDraftSync();
 Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{},agentScroll:{initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''}});
 Object.assign(state,{schoolEpoch:0,schoolBusy:false,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});
 const statusNames = {pass:['满足','success'],fail:['不满足','danger'],satisfied:['满足','success'],unsatisfied:['不满足','danger'],pending:['待确认','warning'],unknown:['待确认','warning'],valid:['可行','success'],invalid:['不满足','danger'],passed:['满足','success'],failed:['不满足','danger'],needs_confirmation:['待确认','warning'],not_applicable:['不适用',''],candidate_pending_human_review:['待审核','warning']};
@@ -16,12 +17,12 @@ function message(text, error = false) {const element = $('#global-status'); elem
 function clearMessage() {$('#global-status').hidden=true;}
 function identityKey(identity){return identity?JSON.stringify([identity.student_id,identity.security_realm,identity.auth_mode]):null;}
 function isSchoolIdentity(){return state.auth?.authenticated===true&&state.auth.identity?.auth_mode==='school_client'&&state.auth.identity?.security_realm==='personal_school_client';}
-function clearPersonalLocal(){if(isSchoolIdentity()){clearAgentConversation();state.agentHistory=[];state.agentHistoryError='';state.agentHistoryHasMore=false;state.agentStatus=null;renderAgentHistory();renderAssistant();}}
-function clearSchoolWorkspace(){state.schoolEpoch+=1;clearAgentDiagnostics();clearPersonalLocal();if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);Object.assign(state,{schoolBusy:false,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});}
+function clearPersonalLocal(){if(isSchoolIdentity()){resetAgentDraftSync();clearAgentConversation();state.agentHistory=[];state.agentHistoryError='';state.agentHistoryHasMore=false;state.agentStatus=null;renderAgentHistory();renderAssistant();}}
+function clearSchoolWorkspace(){resetAgentDraftSync();state.schoolEpoch+=1;clearAgentDiagnostics();clearPersonalLocal();if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);Object.assign(state,{schoolBusy:false,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});}
 function clearAgentDiagnostics(){Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{}});}
 function clearAgentConversation(){stopAgentProgress();state.agentProcessOpen={};state.agentEvidenceOpen={};state.agentReasoningScroll={};state.agentTraceScroll={};state.agentEpoch+=1;if(state.agentModelsBusy)state.agentModelsStatus='idle';state.agentModelsBusy=false;state.agentSettingsBusy=false;state.agentScroll={initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''};Object.assign(state,{agentRuns:[],agentRunsOpen:false,agentRunsBusy:false,agentRunsError:'',agentRunDetails:{},agentRunOpen:{},agentRunBusy:{},agentRunErrors:{}});Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
-  clearAgentConversation();clearSchoolWorkspace();state.agentStatus=null;
+  resetAgentDraftSync();clearAgentConversation();clearSchoolWorkspace();state.agentStatus=null;
   Object.assign(state,{mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],agentHistory:[],agentHistoryError:'',agentHistoryHasMore:false,selected:0,dirty:false,busy:false});
   $$('.tab-panel').forEach(panel=>{panel.innerHTML='';panel.hidden=true;});
   $('#mode-badge').textContent='合成演示';$('#mode-badge').className='badge synthetic';$('#session-control').hidden=true;
@@ -38,8 +39,9 @@ function renderAuth() {
   $('#auth-panel').innerHTML=`<div class="auth-card"><h1>${auth.school_client_enabled?'登录教务账号':auth.mock_enabled?'进入合成演示':'学校登录未接入'}</h1>${auth.school_client_enabled?`${notice('通过学校统一认证登录，仅在本机读取本人教务资料。密码不会保存。','neutral')}${schoolCredentialForm(false)}`:''}${auth.mock_enabled?`<div class="auth-profile-list">${(auth.mock_profiles||[]).map(profile=>`<button class="button primary" data-action="mock-login" data-profile-id="${esc(profile.profile_id)}" ${state.busy?'disabled':''}>${esc(profile.name)}</button>`).join('')}</div>`:!auth.school_client_enabled?notice('学校认证和个人学业数据源尚未接入。'):''}</div>`;
   bindSchoolCredentialForm(false);
 }
-async function request(path, body, expectedEpoch) {
+async function request(path, body, expectedEpoch, keepalive=false) {
   const options={cache:'no-store',credentials:'same-origin'};
+  if(keepalive)options.keepalive=true;
   if(body!==undefined){options.method='POST';options.headers={'Content-Type':'application/json'};if(state.csrfToken)options.headers['X-CSRF-Token']=state.csrfToken;options.body=JSON.stringify(body);}
   let response;
   try{response=await fetch(path,options);}
@@ -50,7 +52,72 @@ async function request(path, body, expectedEpoch) {
   }
   return response;
 }
-async function api(path,body,expectedEpoch){return (await request(path,body,expectedEpoch)).json();}
+async function api(path,body,expectedEpoch,keepalive=false){return (await request(path,body,expectedEpoch,keepalive)).json();}
+
+function newAgentDraftSync(){return {enabled:false,loading:false,busy:false,pending:null,revision:null,edit:0,dirty:false,savedText:'',timer:null,error:''};}
+function resetAgentDraftSync(){if(state.agentDraftSync?.timer!=null)clearTimeout(state.agentDraftSync.timer);state.agentDraftSync=newAgentDraftSync();}
+function agentDraftSupported(){return isSchoolIdentity()&&state.boot?.drafts?.available===true&&state.boot.drafts.storage==='server_session_memory';}
+function draftRequestCapture(){return {sync:state.agentDraftSync,owner:identityKey(state.auth?.identity),schoolEpoch:state.schoolEpoch,epoch:state.agentEpoch};}
+function sameDraftRequest(c){return c.sync===state.agentDraftSync&&isSchoolIdentity()&&c.owner===identityKey(state.auth?.identity)&&c.schoolEpoch===state.schoolEpoch;}
+function validAgentDraftEnvelope(value){
+  const d=value?.draft;
+  return value?.data_kind==='personal_source'&&Object.keys(value).length===2&&d&&Object.keys(d).length===4&&typeof d.text==='string'&&d.text.length<=2000&&Number.isSafeInteger(d.revision)&&d.revision>=0&&(d.conversation_id===null||typeof d.conversation_id==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(d.conversation_id))&&(d.expires_at===null||typeof d.expires_at==='string'&&Number.isFinite(Date.parse(d.expires_at)))&&(!d.text?(d.conversation_id===null&&d.expires_at===null):d.expires_at!==null);
+}
+function updateAgentDraftStatus(){
+  const element=$('#agent-draft-status'),s=state.agentDraftSync;if(!element)return;
+  element.textContent=!agentDraftSupported()?'':s.error||(s.loading?'正在恢复草稿…':s.busy||s.dirty?'草稿暂存中…':s.savedText?'草稿已在本机暂存':'');element.hidden=!element.textContent;
+}
+function queueAgentDraftSave(immediate=false){
+  if(!agentDraftSupported())return;
+  const s=state.agentDraftSync;s.edit+=1;s.dirty=true;s.error='';
+  if(s.timer!=null)clearTimeout(s.timer);s.timer=null;
+  if(s.enabled&&!s.loading&&!s.busy){if(immediate)void saveAgentDraft();else s.timer=setTimeout(()=>{s.timer=null;void saveAgentDraft();},350);}
+  updateAgentDraftStatus();
+}
+function saveAgentDraft(){
+  const s=state.agentDraftSync;if(s.pending)return s.pending;
+  if(!agentDraftSupported()||!s.enabled||s.loading||s.busy||!s.dirty||s.error)return Promise.resolve();
+  s.pending=performAgentDraftSave().finally(()=>{s.pending=null;if(s===state.agentDraftSync&&s.dirty&&!s.error)void saveAgentDraft();});return s.pending;
+}
+async function performAgentDraftSave(){
+  const c=draftRequestCapture(),s=c.sync;
+  if(state.agentDraft.length>2000){s.error='草稿超过暂存长度，当前文字仍保留。';updateAgentDraftStatus();return;}
+  s.busy=true;s.error='';updateAgentDraftStatus();
+  try{
+    if(s.revision===null){const read=await api('/api/chat/draft',undefined,c.epoch);if(!sameDraftRequest(c))return;if(!validAgentDraftEnvelope(read))throw Error('invalid_draft_response');s.revision=read.draft.revision;}
+    const edit=s.edit,snapshot={text:state.agentDraft,conversation_id:state.agentDraft?state.agentConversationId:null,expected_revision:s.revision};
+    const value=await api('/api/chat/draft',snapshot,c.epoch,true);
+    if(!sameDraftRequest(c))return;if(!validAgentDraftEnvelope(value))throw Error('invalid_draft_response');
+    s.revision=Math.max(s.revision,value.draft.revision);
+    if(edit===s.edit){s.dirty=false;s.savedText=snapshot.text;}
+  }catch(error){
+    if(!sameDraftRequest(c))return;
+    s.error=error.code==='personal_draft_revision_conflict'?'其他页面已更新草稿，当前输入保留，尚未暂存。':'草稿暂未保存，当前输入仍保留。';
+    if(error.code==='personal_draft_revision_conflict'){try{const latest=await api('/api/chat/draft',undefined,c.epoch);if(sameDraftRequest(c)&&validAgentDraftEnvelope(latest))s.revision=Math.max(s.revision,latest.draft.revision);}catch{}}
+  }finally{if(sameDraftRequest(c)){s.busy=false;updateAgentDraftStatus();}}
+}
+async function restoreAgentDraft(){
+  if(!agentDraftSupported())return;
+  const c=draftRequestCapture(),s=c.sync;if(s.loading||s.enabled)return;
+  const edit=s.edit;s.loading=true;updateAgentDraftStatus();
+  try{
+    const value=await api('/api/chat/draft',undefined,c.epoch);
+    if(!sameDraftRequest(c))return;if(!validAgentDraftEnvelope(value))throw Error('invalid_draft_response');
+    s.revision=value.draft.revision;s.enabled=true;
+    if(edit===s.edit&&value.draft.text){
+      if(value.draft.conversation_id){await loadAgentConversation(value.draft.conversation_id,{fromDraft:true});if(!sameDraftRequest(c)||edit!==s.edit)return;if(state.agentConversationId!==value.draft.conversation_id)throw Error('draft_conversation_unavailable');}
+      state.agentDraft=value.draft.text;s.savedText=value.draft.text;renderAssistant();
+    }
+  }catch{if(sameDraftRequest(c)){s.enabled=true;s.error='草稿暂未恢复，当前输入仍保留。';}}
+  finally{if(sameDraftRequest(c)){s.loading=false;updateAgentDraftStatus();updateAgentSend();if(s.dirty)void saveAgentDraft();}}
+}
+async function flushAgentDraftBeforeSend(){const s=state.agentDraftSync;if(!agentDraftSupported()||!s.enabled)return;if(s.timer!=null)clearTimeout(s.timer);s.timer=null;if(s.pending)await s.pending;if(s===state.agentDraftSync&&s.dirty&&!s.error)await saveAgentDraft();if(s===state.agentDraftSync&&s.pending)await s.pending;}
+function suspendAgentDraftForSend(){const s=state.agentDraftSync;if(s.timer!=null)clearTimeout(s.timer);s.timer=null;s.edit+=1;s.dirty=false;s.savedText='';s.error='';}
+async function refreshAgentDraftRevision(){
+  if(!agentDraftSupported()||!state.agentDraftSync.enabled)return;
+  const c=draftRequestCapture();try{const value=await api('/api/chat/draft',undefined,c.epoch);if(sameDraftRequest(c)&&validAgentDraftEnvelope(value))c.sync.revision=Math.max(c.sync.revision??0,value.draft.revision);}catch{}
+}
+if(typeof window!=='undefined'&&window.addEventListener)window.addEventListener('pagehide',()=>{const s=state.agentDraftSync;if(s.timer!=null)clearTimeout(s.timer);s.timer=null;if(s.dirty&&!s.busy&&!s.error)void saveAgentDraft();});
 function demo(){return state.boot?.demo || {};}
 function planDataset(){return state.loadedSaved?.frozen_dataset || demo();}
 function planCredits(plan){
@@ -98,7 +165,7 @@ const agentExamples=[
 function personalChatReady(){return isSchoolIdentity()&&state.agentStatus?.data_kind==='personal_source'&&typeof state.agentStatus?.personal_data_use?.version==='string'&&state.agentStatus.personal_data_use.version.length>0;}
 function agentDataKind(){return isSchoolIdentity()?'personal_source':'synthetic';}
 function agentPolicyKey(status){return JSON.stringify([status?.provider,status?.model,status?.thinking,status?.settings_revision,status?.remote,status?.personal_data_use?.version]);}
-function agentCanSend(){return state.auth?.authenticated===true&&state.agentStatus?.configured===true&&(!isSchoolIdentity()||personalChatReady()&&state.agentStatus.available===true&&!state.schoolReauth)&&!state.agentBusy&&!state.agentSettingsBusy&&!state.agentActionBusy&&!state.busy&&!state.agentHistoryLoadBusy&&!state.agentHistoryPending&&(!state.agentStatus.remote||(isSchoolIdentity()||state.agentConsent))&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
+function agentCanSend(){return state.auth?.authenticated===true&&state.agentStatus?.configured===true&&(!isSchoolIdentity()||personalChatReady()&&state.agentStatus.available===true&&!state.schoolReauth)&&!state.agentBusy&&!state.agentSettingsBusy&&!state.agentActionBusy&&!state.busy&&!state.agentHistoryLoadBusy&&!state.agentHistoryPending&&(!agentDraftSupported()||state.agentDraftSync.enabled&&!state.agentDraftSync.loading)&&(!state.agentStatus.remote||(isSchoolIdentity()||state.agentConsent))&&state.agentDraft.trim().length>0&&state.agentDraft.trim().length<=2000;}
 const recommendationTools=['recommend_my_courses','revise_my_recommendation'];
 function agentPlans(result){return [...(result.plans||[]),...(result.pending_plans||[])];}
 function agentRunId(result){return result.run_id||agentPlans(result).find(plan=>plan.run_id)?.run_id;}
@@ -251,11 +318,12 @@ function agentCitation(citation,options={}){
   const item=citation.chunk||citation;
   if(isSchoolIdentity()){
     const number=personalCitationNumber(item);
-    if(item.kind==='summary')return `<li class="agent-citation"><strong>${number}来源成绩概况</strong>${personalGradeSummary(item.source_grade_summary,item)}</li>`;
+    if(item.kind==='summary')return `<li class="agent-citation"><strong>${number}成绩概况</strong>${personalGradeSummary(item.source_grade_summary,item)}</li>`;
     if(item.kind==='record')return `<li class="agent-citation"><strong>${number}本人来源记录</strong>${item.record&&typeof item.record==='object'?personalRecordTable({operation:item.operation,records:[item.record]}):'<p class="field-help">本条记录尚无可展示字段，请重新提问以核对来源。</p>'}</li>`;
     if(item.kind==='context')return `<li class="agent-citation"><strong>${number}本轮已知范围</strong>${personalCitationContext(item.context)}</li>`;
     if(item.kind==='diagnostic')return `<li class="agent-citation"><strong>${number}上一轮实际运行记录</strong>${agentDiagnosticMarkup(item.diagnostic)}</li>`;
     if(item.kind==='recommendation_readiness')return `<li class="agent-citation"><strong>${number}推荐准备检查</strong>${personalRecommendationReadiness(item.readiness,true)}</li>`;
+    if(item.kind==='course_data_plan')return `<li class="agent-citation"><strong>${number}课程数据测试依据</strong>${personalCoursePlanEvidence(item.course_data_plan)}</li>`;
     if(item.kind==='course_reference')return `<li class="agent-citation"><strong>${number}${esc(item.course?.course_name||item.title||'本地课程参考')}</strong><p>${esc(item.course?.course_code||'')}</p><p class="field-help">${esc(item.text||'本地课程名称与代码参考；当前开课与本人可选资格待核实。')}</p></li>`;
     if(item.kind==='curriculum'||!item.kind&&Number.isSafeInteger(item.page))return `<li class="agent-citation">${personalChatEvidence(item,options)}</li>`;
     return '<li class="agent-citation"><p class="field-help">来源类型待确认，暂不展示原文。</p></li>';
@@ -274,7 +342,7 @@ function agentVisibleTools(turn){
   return tools.filter(tool=>tool===selected||tool.error||tool.name==='validate_my_plan'&&tool.result?.result!=='pass'||tool.result?.unknown?.length);
 }
 function agentDisplayReply(turn){
-  if(!['completed','ok'].includes(turn.status))return turn.reply||'';
+  if(!['completed','ok'].includes(turn.status))return turn.code==='model_http_402'?'模型服务尚未完成本轮回复。':turn.reply||'';
   if(turn.reply_origin==='verified_explicit_action'&&(turn.saved_action||turn.download))return '';
   if(turn.reply_origin==='verified_tool_presentation'){
     const index=turn.model_decision?.source_tool_result_index;
@@ -293,7 +361,7 @@ function renderPersonalEvidence(turn,key){
       if(result.status==='not_ready'||result.query_executed===false||result.reason==='no_observation_in_scope'){sections.push(notice(['academic','major_academic'].includes(result.operation)?'尚未取得成绩来源，当前无法查询或评价成绩。':'尚未取得本次查询所需的本人来源，不能把未知当作零条记录。','neutral'));continue;}
       const records=(Array.isArray(result.records)?result.records:[]).filter(item=>!seen(item)),summary=result.source_grade_summary&&!seen(result.source_grade_summary)?result.source_grade_summary:null;
       if(!summary&&!records.length&&result.records?.length)continue;
-      const summaryMarkup=summary?`<h4>${personalCitationNumber({citation_number:number(summary)})}来源成绩概况</h4>${personalGradeSummary(summary,result)}`:'';
+      const summaryMarkup=summary?`<h4>${personalCitationNumber({citation_number:number(summary)})}成绩概况</h4>${personalGradeSummary(summary,result)}`:'';
       if(summary)marked(summary);
       const recordNumbers=records.map(number);records.forEach(marked);
       const emptyKnown=result.matched_records===0||result.coverage?.captured_rows===0&&result.coverage?.complete_within_scope===true;
@@ -312,9 +380,13 @@ function renderPersonalEvidence(turn,key){
       if(seen(result))continue;marked(result);
       sections.push(`<section class="agent-evidence-section"><h4>${personalCitationNumber({citation_number:number(result)})}上一轮实际运行记录</h4>${result.status==='not_ready'?'<p class="field-help">当前对话还没有可核对的上一轮运行记录。</p>':agentDiagnosticMarkup(result.diagnostic)}</section>`);
     }
-    if(tool.name==='check_recommendation_inputs'){
+    if(['check_recommendation_inputs','prepare_recommendation_inputs'].includes(tool.name)){
       if(seen(result))continue;marked(result);
       sections.push(`<section class="agent-evidence-section"><h4>${personalCitationNumber({citation_number:number(result)})}推荐准备检查</h4>${personalRecommendationReadiness(result.readiness,result.check_executed===true)}</section>`);
+    }
+    if(['search_current_term_courses','generate_current_term_plan','update_current_term_plan','get_current_term_plan'].includes(tool.name)){
+      if(seen(result))continue;marked(result);
+      sections.push(`<section class="agent-evidence-section"><h4>${personalCitationNumber({citation_number:number(result)})}课程数据测试依据</h4>${personalCoursePlanEvidence(result.result)}</section>`);
     }
   }
   const remaining=citations.filter(item=>!seen(item));
@@ -326,13 +398,14 @@ function renderAgentTurns(){
   if(!state.agentTurns.length)return isSchoolIdentity()?'<div class="agent-welcome"><h1>有什么想了解的？</h1><p>查询成绩、课表、考试和培养要求，或提出选课与排课需求。</p></div>':'<div class="agent-welcome"><span class="welcome-symbol" aria-hidden="true">课</span><h1>想怎么安排这学期的课？</h1><p>从修读目标和时间偏好开始，逐步比较、调整你的课表。</p><p class="agent-empty">当前为合成演示，推荐结果用于验证。</p></div>';
   return state.agentTurns.map((turn,index)=>{
     const completed=['completed','ok'].includes(turn.status);
-    const label=completed&&turn.reply_origin==='personal_model_clarification'?'待补充信息':turn.reply_origin==='verified_clarification_prompt'?'待澄清':completed?'浙大教务助手':'本轮未完成';
+    const label=completed&&turn.reply_origin==='personal_model_clarification'?'待补充信息':turn.reply_origin==='verified_clarification_prompt'?'待澄清':turn.task_status==='partial'?'已有部分结果':turn.task_status==='blocked'?'任务受阻':completed?'浙大教务助手':'本轮未完成';
     const reply=turn.error||agentDisplayReply(turn);
     const key=turn.request_id||turn.run_id||`turn-${turn.turn_id??index}`;
     const failedEvents=[...(agentTurnProgress(turn)?.events||[])].map(agentEventData).reverse();
-    const failure=!completed&&isSchoolIdentity()?agentFailureText(failedEvents.find(event=>event.kind==='answer.rejected')||failedEvents.find(event=>event.kind==='error')||{}):'';
+    const failure=!completed&&isSchoolIdentity()?agentFailureText(failedEvents.find(event=>event.kind==='answer.rejected')||failedEvents.find(event=>event.kind==='error')||{code:turn.code}):'';
     const evidence=isSchoolIdentity()?renderPersonalEvidence(turn,key):`${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}`;
-    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${turn.partial_tools_completed?'<p>已完成的查询结果如下。</p>':''}${evidence}</div>`;
+    const plans=isSchoolIdentity()?renderPersonalCoursePlans(turn.recommendation_result,turn.is_stale===true):'';
+    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${turn.partial_tools_completed?'<p>本轮已完成的工具结果如下。</p>':''}${plans}${evidence}</div>`;
     return `<article class="agent-turn" data-turn-key="${esc(key)}"><div class="agent-message user" data-scroll-anchor="${esc(key)}:question"><p>${esc(turn.message)}</p></div><div class="agent-message ${completed&&!turn.error||turn.pending?'assistant':'system'}">${renderAgentProcess(turn)}${turn.pending&&!isSchoolIdentity()?'<p class="agent-pending" role="status">正在回复…</p>':answer}</div></article>`;
   }).join('');
 }
@@ -343,7 +416,7 @@ function personalReviewLabel(value){return ({unreviewed:'原文待审核',assist
 function personalCitationNumber(item){return Number.isSafeInteger(item?.citation_number)&&item.citation_number>0?`[${item.citation_number}] `:'';}
 function personalRecommendationReadiness(value,checked=false){
   const readiness=value&&typeof value==='object'?value:{};
-  if(!checked||readiness.status!=='not_ready'||readiness.can_generate!==false||readiness.can_save_or_export!==false)return '<p class="field-help">推荐准备检查状态待确认，当前不能生成方案。</p>';
+  if(!checked||readiness.status!=='not_ready'||readiness.can_generate!==false||readiness.can_save_or_export!==false)return '<p class="field-help">推荐准备检查状态待确认，当前不能据此确认正式推荐就绪。</p>';
   const sourceNames={course_reference:'课程名称与代码参考',academic_records:'成绩记录',curriculum:'培养资料',existing_timetable:'已有课表',exams:'已有考试'};
   const sourceStates={available:'可用',missing:'尚未具备',partial:'部分取得',failed:'读取未完成',needs_clarification:'需补充查询范围'};
   const dependencyNames={identity_and_study_facts:'课程与修读身份',curriculum_applicability_and_rules:'培养适用与规则',current_candidate_pool:'当期候选课程',section_time_and_calendar:'班次、时段与校历',protected_arrangements:'需保留的安排'};
@@ -357,14 +430,94 @@ function personalRecommendationReadiness(value,checked=false){
     const missing=[...new Set((Array.isArray(row.missing)?row.missing:[]).slice(0,8).map(key=>lookup(missingNames,key,'其他项目待确认')))];
     return `<li>${esc(name)}：${esc(row.status==='required_dependency_unverified'&&missing.length?missing.join('、'):'具体项目待确认')}</li>`;
   });
-  return `<p>检查已完成，真实推荐尚未就绪；当前不能生成或保存导出方案。</p><p class="field-help">${esc(scope)}</p>${sources.length?`<p class="field-help">来源准备：${esc(sources.join('；'))}。</p>`:''}${dependencies.length?`<p class="field-help">尚待核实：</p><ul class="results-list">${dependencies.join('')}</ul>`:''}<p class="field-help">已有来源不表示业务依赖已核实；课程参考仅含本地名称与代码。</p>${readiness.delivery_dependency==='real_draft_freeze_and_export_contract_not_connected'?'<p class="field-help">本人方案保存与导出契约仍待接通。</p>':''}`;
+  return `<p>检查已完成，正式推荐尚未就绪；本人适用与正式可选仍待核实。</p><p class="field-help">${esc(scope)}</p>${sources.length?`<p class="field-help">来源准备：${esc(sources.join('；'))}。</p>`:''}${dependencies.length?`<p class="field-help">尚待核实：</p><ul class="results-list">${dependencies.join('')}</ul>`:''}<p class="field-help">已有来源不表示业务依赖已核实；课程参考仅含本地名称与代码。</p>${readiness.delivery_dependency==='real_draft_freeze_and_export_contract_not_connected'?'<p class="field-help">本人方案保存与导出契约仍待接通。</p>':''}`;
+}
+function personalCoursePlanValue(value){return value&&typeof value==='object'&&value.schema_version==='personal-course-data-test/1'&&value.mode==='current_term_course_data_test'&&value.reference_mode==='historical_course_observations'&&value.validation_scope==='observed_weekday_periods_conservative_overlap_policy'?value:null;}
+function personalCoursePlanReason(reason){const names={course_data_test_not_configured:'本学期课程数据测试尚未配置。',source_preparation_required:'本轮所需本人来源尚未齐备。',timetable_not_complete:'本轮课表来源尚不完整，暂不能完成排课检查。',timetable_unparseable:'本轮课表缺少可核对的星期或节次。',personal_timetable_changed_requires_regeneration:'本人课表已变化，需要按本轮资料重新生成。',course_data_unavailable:'获准课程观察暂不可用。',course_search_required:'本轮课程候选尚未检索，需要先按指定范围检索。',course_data_version_changed:'课程观察版本已变化，需要重新检索。',hard_preferences_unresolved:'仍有硬条件待明确，请补充后再计算。',change_evidence_required:'请明确本轮要修改哪项条件，再按新条件调整。',policy_context_required:'当前任务条件尚未建立，请先说明选课目标和必须保留的要求。',locked_scope_requires_revision:'范围调整涉及已锁定课程，需要明确如何保留或调整锁定。',no_observed_option_within_scope:'在本轮已检查范围内尚未找到符合条件的测试方案。',stale_plan_reference:'上一轮方案已不可用，需要重新生成。',stale_plan_revision:'方案版本已变化，请按当前方案继续调整。'};return Object.hasOwn(names,reason)?names[reason]:'本轮尚无可展示的测试方案。';}
+function personalCoursePlanPolicy(value){
+  if(!value||typeof value!=='object'||!['ready','needs_clarification'].includes(value.status))return '';
+  const reasons={multiple_time_scopes_require_review:'涉及多个时间范围，请分别说明星期和节次。',clock_period_mapping_unverified:'需要核对钟点与学校节次的对应关系。',invalid_period_scope:'请补充有效的星期和节次范围。',unsupported_hard_condition:'这项硬条件暂不能可靠计算，需要进一步明确。',unsupported_positive_schedule_requirement:'当前尚不能可靠落实该上课时段要求。',hard_condition_evidence_required:'缺少支持这项硬条件的来源或具体范围。',conflicting_credit_bounds:'学分目标和上限有冲突，请明确保留哪一项。',hard_condition_budget_exceeded:'硬条件数量超出本轮处理范围，请先保留关键条件。',current_user_change_evidence_required:'还需说明本轮允许修改哪些条件。',non_asserted_hard_condition:'这句话未明确提出必须满足的条件，请说明实际要求。'};
+  const unresolved=(Array.isArray(value.unresolved)?value.unresolved:[]).slice(0,6).map(item=>`<li><span><strong>${esc(personalText(item?.text,'待补充的硬条件'))}</strong>：${esc(Object.hasOwn(reasons,item?.code)?reasons[item.code]:'还需补充具体条件后核对。')}</span></li>`);
+  const records=(Array.isArray(value.enforced_hard_preferences)?value.enforced_hard_preferences:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,6);
+  const soft=(Array.isArray(value.unhandled_soft_preferences)?value.unhandled_soft_preferences:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,6);
+  return `${value.status==='needs_clarification'?'<p>硬条件尚未完整解析，补充后再计算方案。</p>':''}${unresolved.length?`<ul class="results-list">${unresolved.join('')}</ul>`:''}${records.length?`<details class="personal-plan-request-records"><summary>需求记录</summary><ul class="results-list">${records.map(text=>`<li><span>${esc(text)}</span></li>`).join('')}</ul></details>`:''}${soft.length?`<p class="field-help">以下软偏好尚未参与排序：${esc(soft.join('；'))}。</p>`:''}`;
+}
+function personalCoursePlanSources(value){
+  const names={major_academic:'主修成绩',curriculum:'培养资料',timetable:'本人课表',exams:'本人考试'},states={available:'本轮可用',partial:'部分取得',missing:'尚未取得',failed:'读取未完成',not_required:'本次不需要',not_requested:'本轮未请求',unparseable:'字段待核对',changed:'来源已变化'},sources=value.source_preparation||{};
+  return Object.entries(names).map(([key,name])=>`${name}：${Object.hasOwn(states,sources[key])?states[sources[key]]:'待确认'}`).join('；');
+}
+function personalSoftScopeLabel(scope){
+  if(!scope||typeof scope!=='object'||!Number.isInteger(scope.weekday)||scope.weekday<1||scope.weekday>7)return null;
+  const day='周'+'一二三四五六日'[scope.weekday-1];
+  if(scope.periods===null)return day+'全天';
+  const periods=scope.periods;if(!Array.isArray(periods)||!periods.length||periods.length>60||periods.some((n,i)=>!Number.isInteger(n)||n<1||n>60||(i>0&&n<=periods[i-1])))return null;
+  return day+'第'+periods.join('、')+'节';
+}
+function personalSoftPreferenceView(result,option){
+  const scopes=result?.constraints?.soft_free_slots;
+  if(!Array.isArray(scopes)||!scopes.length||scopes.length>7||scopes.some((s,i)=>!personalSoftScopeLabel(s)||(i>0&&s.weekday<=scopes[i-1].weekday)))return null;
+  const evaluation=option?.soft_preference_evaluation,rows=evaluation?.scopes;
+  if(evaluation?.status!=='evaluated'||evaluation.method!=='observed_meeting_overlap_count'||!Number.isSafeInteger(evaluation.violation_count)||evaluation.violation_count<0||evaluation.violation_count>100000||!Array.isArray(rows)||rows.length!==scopes.length)return null;
+  if(rows.some((s,i)=>!personalSoftScopeLabel(s)||s.weekday!==scopes[i].weekday||JSON.stringify(s.periods)!==JSON.stringify(scopes[i].periods)||!Number.isSafeInteger(s.meeting_count)||s.meeting_count<0||s.meeting_count>100000)||rows.reduce((sum,s)=>sum+s.meeting_count,0)!==evaluation.violation_count)return null;
+  return {total:evaluation.violation_count,labels:scopes.map(personalSoftScopeLabel),details:rows.map(s=>`${personalSoftScopeLabel(s)} ${s.meeting_count} 段`)};
+}
+function personalObservedCodeLink(course){
+  const links=course?.observed_code_links;
+  if(!Array.isArray(links)||links.length!==1)return '';
+  const link=links[0],code=link?.code;
+  if(!link||Object.keys(link).length!==4||link.relation_kind!=='same_source_header'||link.verification_status!=='observed'||link.source_field!=='display_code'||typeof code!=='string'||!(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,59}$/).test(code)||(/\d{11,}|password|cookie|token|authorization|session/i).test(code)||(/^\d+$/).test(code)&&!(code.length>=6&&code.length<=10)||code.toLowerCase()===course?.course_code?.toLowerCase())return '';
+  return `<br><span class="field-help">同一来源标题另列代码 ${esc(code)}；课程等价与本人适用未核实。</span>`;
+}
+function personalCoursePlanEvidence(value){
+  const result=personalCoursePlanValue(value);if(!result)return '<p class="field-help">本次课程数据测试结果结构待确认。</p>';
+  if(result.action==='inspect')return `<p>已定位上一轮方案的选择信息；这次回查不证明旧课程事实仍有效，比较或调整仍需本轮资料核查。</p>${personalCoursePlanPolicy(result.policy_status)}`;
+  const options=Array.isArray(result.options)?result.options.slice(0,3):[],courses=Array.isArray(result.courses)?result.courses.slice(0,10):[];
+  const computed=options.length>0||result.reason==='no_observed_option_within_scope';
+  const actions={search:result.reason?'课程观察检索尚未完成':'已检索获准课程观察',generate:computed?'已执行条件测试计算':'条件测试尚未计算',revise:computed?'已按调整条件重新计算':'本次调整尚未执行',compare:computed?'已按本轮资料比较方案':'本次比较尚未执行'},action=Object.hasOwn(actions,result.action)?actions[result.action]:'本次处理状态待确认';
+  const summary=result.reason?personalCoursePlanReason(result.reason):result.action==='search'?`返回 ${courses.length} 门课程观察候选，尚未生成方案。`:`返回 ${options.length} 套条件测试方案。`;
+  const candidates=result.action==='search'&&courses.length?`<ul class="results-list">${courses.map(course=>`<li><span>${esc(personalText(course?.course_name,'课程名称待确认'))} · ${esc(personalText(course?.course_code,'课程代码待确认'))} · ${esc(personalText(course?.credits))} 学分${personalObservedCodeLink(course)}</span></li>`).join('')}</ul>${result.search?.truncated===true?'<p class="field-help">本次仅展示部分候选，可继续缩小课程范围。</p>':''}`:'';
+  const scope=result.action==='search'?'':`<p class="field-help">来源准备：${esc(personalCoursePlanSources(result))}。</p>`;
+  const search=result.search_status?.limit_reached===true?'<p class="field-help">搜索已达本轮上限，结果仅限已检查范围。</p>':'';
+  return `<p>${esc(action)} · ${esc(personalTermLabel(result.target_term))}</p><p>${esc(summary)}</p>${candidates}${scope}${personalCoursePlanPolicy(result.policy_status)}${search}<p class="field-help">历史课程观察不证明当前开课、可选或有余量；正式适用、完整周次、校历和考试仍待核验。</p>`;
+}
+function renderPersonalCoursePlans(value,stale=false){
+  const result=personalCoursePlanValue(value);if(!result||!['generate','revise','compare'].includes(result.action))return '';
+  const options=(Array.isArray(result.options)?result.options:[]).slice(0,3),count=value=>Number.isSafeInteger(value)&&value>=0?String(value):'待确认';
+  const coursesOnly=result.recommendation_kind==='courses',kindTitle=coursesOnly?'课程组合条件测试':result.recommendation_kind==='timetable'?'课表条件测试':null;
+  const title=kindTitle?kindTitle+(options.length?result.action==='compare'?'比较':'':'状态'):options.length?result.action==='compare'?'条件测试方案比较':'条件测试方案':'条件测试状态';
+  const locked=Array.isArray(result.locked_class_refs)?new Set(result.locked_class_refs.filter(item=>typeof item==='string')).size:null;
+  const constraints=result.constraints&&typeof result.constraints==='object'?result.constraints:{},preferences=[];
+  if(constraints.target_credits!=null)preferences.push(`至少 ${personalText(constraints.target_credits)} 学分`);
+  if(constraints.max_credits!=null)preferences.push(`上限 ${personalText(constraints.max_credits)} 学分`);
+  if(constraints.friday_free==='soft')preferences.push('周五尽量空闲');else if(constraints.friday_free==='hard')preferences.push('周五必须空闲');
+  const required=(Array.isArray(constraints.required_course_codes)?constraints.required_course_codes:[]).filter(code=>typeof code==='string').slice(0,12);if(required.length)preferences.push('必含课程 '+required.join('、'));
+  const cards=options.map(option=>{
+    const label=['A','B','C'].includes(option?.label)?option.label:'待确认',slot={pass:'观察节次检查通过',unknown:'观察节次待确认',fail:'观察节次存在冲突'},check=Object.hasOwn(slot,option?.observed_slot_result)?slot[option.observed_slot_result]:'观察检查状态待确认';
+    const classes=(Array.isArray(option?.classes)?option.classes:[]).slice(0,12).map(row=>{
+      const periods=(Array.isArray(row?.weekday_period_text)?row.weekday_period_text:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,60);
+      return `<li><div><div class="personal-plan-course-heading"><strong>${esc(personalText(row?.course_name,'课程待确认'))}</strong>${row?.locked===true?'<span class="badge neutral">已锁定</span>':''}</div><span class="field-help">${esc(personalText(row?.course_code,'课程代码待确认'))} · ${esc(personalText(row?.credits))} 学分</span></div><p>${periods.length?periods.map(text=>esc(text)).join('；'):'观察节次待确认'}</p></li>`;
+    }).join('');
+    const soft=personalSoftPreferenceView(result,option),softText=soft?`<p class="field-help">偏好时段占用合计 ${soft.total} 段：${esc(soft.details.join('；'))}。</p>`:'';
+    return `<article class="personal-plan-option"><div class="agent-card-heading"><h4>方案 ${esc(label)}</h4><span class="badge ${option?.observed_slot_result==='pass'?'success':'warning'}">${esc(check)}</span><span class="badge warning">正式适用未核</span></div><p>学分合计 ${esc(personalText(option?.total_credits))} · 周五观察时段 ${count(option?.friday_meeting_count)} 段</p>${softText}<ul class="personal-plan-classes">${classes||'<li>本轮未取得可展示的班次。</li>'}</ul></article>`;
+  }).join('');
+  const search=result.search_status?.limit_reached===true?'<p class="field-help">搜索已达本轮上限，可能还有其他组合。</p>':result.search_status?.complete_within_observed_scope===false?'<p class="field-help">结果仅限本轮已检查范围，可能还有其他组合。</p>':'';
+  const labels=options.map(option=>option?.label).filter(label=>['A','B','C'].includes(label));
+  const next=labels.length>1?`可继续说“比较 ${labels[0]} 和 ${labels[1]}”，或说明要锁定、替换的课程与时间偏好。`:options.length?'可继续说明要锁定、替换的课程与时间偏好。':'可继续调整课程范围、学分目标或时间偏好。';
+  const computed=options.length>0||result.reason==='no_observed_option_within_scope',countsChecked=computed&&result.constraints!=null&&result.search_status!=null;
+  // Older blocked turns also used an empty array as a placeholder. Do not
+  // promote that default to a verified zero when restoring their history.
+  const knownSelection=typeof result.plan_ref==='string'&&Number.isSafeInteger(result.revision)&&result.revision>=0&&locked>0;
+  const blockedAction=result.action==='revise'?'本次调整尚未执行。':result.action==='compare'?'本次比较尚未执行。':'本次条件测试尚未计算。';
+  const protection=countsChecked?`<p>保留锁定 ${count(locked)} 项${coursesOnly?'':' · 本人课表固定 '+count(result.fixed_arrangement_count)+' 项'}${Number.isSafeInteger(result.user_busy_arrangement_count)&&result.user_busy_arrangement_count>=0&&result.user_busy_arrangement_count<=20?' · 用户禁排时间 '+count(result.user_busy_arrangement_count)+' 项':''}</p>`:`<p>${computed?'本次测试已计算，未找到方案；原方案未更新。':blockedAction}${knownSelection?`原锁定 ${count(locked)} 项保留。`:'锁定状态待确认。'}</p><p class="field-help">${computed?'本次计算未提供固定项与用户禁排时间计数。':'本人课表固定项与用户禁排时间尚未完成本轮核对。'}</p>`;
+  const ranked=options.length&&options.every(option=>personalSoftPreferenceView(result,option)),softSummary=ranked?`<p class="field-help">软空闲偏好：${esc(personalSoftPreferenceView(result,options[0]).labels.join('；'))}。${result.action==='compare'?'按已知占用段数比较。':'先减少偏好时段占用，再接近目标学分。'}计数包括课程及已保留的固定、禁排时段。</p>`:'';
+  return `<section class="personal-course-plans" aria-label="课程数据条件测试方案"><h3>${title}</h3><p class="field-help">测试数据 · ${esc(personalTermLabel(result.target_term))} · 历史课程观察</p>${coursesOnly?'<p class="field-help">课程组合参考，未执行与本人课表的时段核对。</p>':''}${stale?'<p class="field-help">历史测试结果，来源版本已变化；继续比较或调整需按新一轮资料复核。</p>':''}${preferences.length?`<p>${esc(preferences.join(' · '))}</p>`:''}${protection}${softSummary}${personalCoursePlanPolicy(result.policy_status)}${cards||`<p>${esc(personalCoursePlanReason(result.reason))}</p>`}${search}<p class="field-help">仅核对已观察的星期与节次；当前开课、可选资格、余量、完整周次、校历、考试及培养适用仍未验证。</p><p class="personal-plan-next">${esc(next)}</p></section>`;
 }
 function personalCitationContext(value){
   const context=value&&typeof value==='object'?value:{},states=context.field_states||{},profile=[];
-  if((!states.cohort||states.cohort==='known')&&Number.isSafeInteger(context.cohort)&&context.cohort>=1900&&context.cohort<=2100)profile.push(['入学年',context.cohort]);
-  if((!states.major_name||states.major_name==='known')&&typeof context.major_name==='string'&&personalText(context.major_name,'')!=='')profile.push(['专业',context.major_name]);
+  if((!states.cohort||states.cohort==='known')&&Number.isSafeInteger(context.cohort)&&context.cohort>=1900&&context.cohort<=2100)profile.push(['入学年份',context.cohort]);
+  if((!states.major_name||states.major_name==='known')&&typeof context.major_name==='string'&&personalText(context.major_name,'')!=='')profile.push(['专业名称',context.major_name]);
   const names={academic:'学期成绩',major_academic:'主修成绩',timetable:'课表',exams:'考试'},operations=Array.isArray(context.operations)?context.operations.filter(item=>item&&Object.hasOwn(names,item.operation)):[];
-  return `${profile.length?`<dl class="personal-citation-context">${profile.map(([label,text])=>`<div><dt>${label}</dt><dd>${esc(text)}</dd></div>`).join('')}</dl>`:'<p class="field-help">入学年、专业尚无可展示的已知值。</p>'}${operations.length?`<p class="field-help">当前已读范围：</p><ul class="results-list">${operations.map(item=>`<li>${names[item.operation]} · ${esc(personalTermLabel(item.target_term))} · ${esc(schoolCoverageText(item))}</li>`).join('')}</ul>`:'<p class="field-help">当前尚无可展示的已读范围，不据此推断没有学校记录。</p>'}`;
+  return `${profile.length?`<dl class="personal-citation-context">${profile.map(([label,text])=>`<div><dt>${label}</dt><dd>${esc(text)}</dd></div>`).join('')}</dl>`:'<p class="field-help">入学年份、专业名称尚无可展示的已知值。</p>'}${operations.length?`<p class="field-help">当前已读范围：</p><ul class="results-list">${operations.map(item=>`<li>${names[item.operation]} · ${esc(personalTermLabel(item.target_term))} · ${esc(schoolCoverageText(item))}</li>`).join('')}</ul>`:'<p class="field-help">当前尚无可展示的已读范围，不据此推断没有学校记录。</p>'}`;
 }
 function personalPageLabel(item){const locator=item?.locator&&typeof item.locator==='object'?item.locator:{};const value=item?.page??item?.physical_page??locator.page??locator.pdf_page??locator.physical_page;const pages=Array.isArray(value)?value:[value];const valid=pages.filter(page=>Number.isSafeInteger(page)&&page>0);return valid.length?`PDF 第 ${valid.join('、')} 页`:'页码待确认';}
 function personalContextMarkup(items){return Array.isArray(items)&&items.length?items.map(item=>{const value=typeof item==='string'?{text:item}:item||{};return `<div class="personal-context"><strong>${esc(personalText(value.title,'必要上下文'))}</strong><p>${esc(personalText(value.text??value.excerpt,'上下文原文未提供'))}</p>${typeof item==='object'?`<span class="field-help">${esc(personalPageLabel(value))}</span>`:''}</div>`;}).join(''):'<p class="field-help">必要上下文未提供，不能据此补推完整要求。</p>';}
@@ -384,9 +537,9 @@ function personalRecordTable(result){
   const operation=result.operation;
   const records=Array.isArray(result.records)?result.records:[];if(!records.length)return '<p class="inline-empty">本次已读范围中没有匹配记录。可修改查询词，或前往“我的教务”正常读取所需范围。</p>';
   const academic=['academic','major_academic'].includes(operation);
-  const fields=academic?[['grade_raw','来源成绩'],['nominal_credits','来源学分'],['academic_year_raw','记录学年'],['term_raw','来源学期'],['completion_status_raw','来源修读状态']]:operation==='exams'?[['final_exam_time_raw','期末时间'],['final_exam_place_raw','期末地点'],['midterm_exam_time_raw','期中时间'],['midterm_exam_place_raw','期中地点'],['exam_time_raw','考试时间'],['exam_date','考试日期'],['start_time','开始时间'],['end_time','结束时间'],['place_raw','考试地点']]:[['time_raw','上课时间'],['place_raw','上课地点'],['academic_year_raw','记录学年'],['term_raw','来源学期']];
+  const fields=academic?[['grade_raw','成绩'],['grade_points_raw','绩点'],['nominal_credits','学分'],['academic_year_raw','学年'],['term_raw','学期'],['completion_status_raw','修读状态']]:operation==='exams'?[['final_exam_time_raw','期末考试时间'],['final_exam_place_raw','期末考试地点'],['midterm_exam_time_raw','期中考试时间'],['midterm_exam_place_raw','期中考试地点'],['exam_time_raw','考试时间'],['exam_date','考试日期'],['start_time','开始时间'],['end_time','结束时间'],['place_raw','考试地点']]:[['time_raw','上课时间'],['place_raw','上课地点'],['academic_year_raw','学年'],['term_raw','学期']];
   const available=fields.filter(([key])=>records.some(record=>record&&schoolKnownField(record,key)&&personalText(record[key],'')!==''));
-  return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map((record,index)=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${personalCitationNumber({citation_number:result.citation_numbers?.[index]})}${esc(name)}${code?`<small>${esc(code)}</small>`:''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程名称</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map((record,index)=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${personalCitationNumber({citation_number:result.citation_numbers?.[index]})}${esc(name)}${code?`<small>${esc(code)}</small>`:''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
 }
 function stopAgentProgress(session=state.agentProgressPoll){
   if(!session)return;session.stopped=true;if(session.timer!==undefined&&typeof clearTimeout==='function')clearTimeout(session.timer);if(state.agentProgressPoll===session)state.agentProgressPoll=null;
@@ -418,13 +571,16 @@ function agentTurnProgress(turn){
   return {request_id:detail.run?.request_id||turn.request_id||turn.progress?.request_id,run_id:turn.run_id,status:terminal||detail.run?.status||turn.status,model:detail.run?.model??turn.model,thinking:detail.run?.thinking??turn.thinking,duration_ms:detail.run?.duration_ms,error_code:detail.run?.error_code,events:detail.events||[],active_reasoning:null,reasoning_notice:detail.reasoning_notice,available:true,confirmed:true,next_sequence:turn.progress?.next_sequence||0};
 }
 function agentProcessStage(progress,taskStatus){
-  if(['completed','ok','success'].includes(progress.status))return ['awaiting_user','needs_clarification'].includes(taskStatus)?'本轮已结束，待补充信息':'本轮处理完成';
+  if(['completed','ok','success'].includes(progress.status))return ['awaiting_user','needs_clarification'].includes(taskStatus)?'本轮已结束，待补充信息':taskStatus==='partial'?'本轮已结束，已有部分结果':taskStatus==='blocked'?'本轮已结束，任务受阻':'本轮处理完成';
   if(['failed','error','revoked','cancelled'].includes(progress.status))return '本轮处理未完成';
   if(progress.status==='not_started'||progress.confirmed===false)return '请求已发送，等待运行状态';
   const event=agentEventData((progress.events||[]).at(-1)),kind=event.kind||event.type;
   const sourceNames={read_my_major_academic:'主修成绩',read_my_academic:'学期成绩',read_my_curriculum:'培养资料'};
   if(kind==='tool.start'&&sourceNames[event.tool_name])return '正在读取'+sourceNames[event.tool_name];
   if(kind==='tool.end'&&sourceNames[event.tool_name])return sourceNames[event.tool_name]+(event.status==='not_ready'?'资料尚未就绪':['failed','error','timeout'].includes(event.status)?'读取未完成':'读取已返回');
+  const courseStages={prepare_recommendation_inputs:'正在准备推荐所需本人来源',search_current_term_courses:'正在检索本学期课程观察',generate_current_term_plan:'正在计算课程数据测试方案',update_current_term_plan:'正在复核或调整测试方案',get_current_term_plan:'正在定位上一轮方案选择'};
+  if(kind==='tool.start'&&Object.hasOwn(courseStages,event.tool_name))return courseStages[event.tool_name];
+  if(kind==='tool.end'&&Object.hasOwn(courseStages,event.tool_name))return event.status==='not_ready'?(agentCourseTestTool(event.tool_name)?'课程条件测试受阻，待核对':'课程数据测试所需资料尚未齐备'):['failed','error','timeout'].includes(event.status)?'课程数据测试调用未完成':event.tool_name==='get_current_term_plan'?'方案选择信息已返回，继续核查':event.tool_name==='search_current_term_courses'?'课程观察已返回，继续处理':'本次工具已返回，继续检查答复';
   if(kind==='tool.start')return '正在检索当前本人资料';
   if(kind==='tool.rejected')return event.status==='retrying'?'工具参数检查未通过，正在修正':'工具参数检查未通过，未执行本次调用';
   if(kind==='tool.end')return event.status==='not_ready'?'查询资料尚未就绪':['failed','error','timeout'].includes(event.status)?'资料查询未完成':'资料检索已返回，继续处理';
@@ -438,6 +594,7 @@ function agentDuration(value){return Number.isFinite(value)&&value>=0?(value<100
 function agentFailureText(event){
   const code=event.error_code||event.code||event.error?.code,detail=event.failure_detail;
   if((event.kind||event.type)==='tool.rejected')return '参数未通过检查，未执行；'+(event.status==='retrying'?'正在修正':'本轮未完成');
+  if(code==='model_http_402')return '模型服务返回 HTTP 402，请核对模型账户计费状态后再试（model_http_402）';
   const reasons={invalid_final_answer:'模型答复格式未通过检查',unverified_personal_answer:'答复引用未通过本轮证据检查',unsupported_personal_claim:'答复包含当前证据不能确认的结论',model_timeout:'模型服务返回超时',model_service_unavailable:'模型服务暂不可用',model_step_limit:'本轮达到模型调用上限',personal_model_changed:'模型设置已变化',personal_scope_changed:'本人授权范围已变化',source_session_expired:'学校会话已失效',source_unavailable:'学校来源暂不可用',invalid_tool_arguments:'工具参数未通过检查',tool_unavailable:'资料工具暂不可用'};
   const details={invalid_json:'未返回有效 JSON',answer_not_object:'答复结构不是对象',clarification_text_invalid:'澄清文本格式无效',answer_shape_invalid:'答复结构不符合约定',claims_not_array:'结论列表格式无效',claim_count_out_of_bounds:'结论条数超出允许范围',claim_shape_invalid:'结论字段格式无效',claim_text_invalid:'结论文字格式无效',evidence_list_invalid:'引用列表格式无效',evidence_not_current:'引用不属于本轮有效证据',repair_evidence_omitted:'修正后遗漏了原有有效依据'};
   const safeCode=/^[a-z][a-z0-9_]{0,79}$/.test(code||'');
@@ -448,8 +605,9 @@ function agentProcessDescription(progress){
   const source=events.filter(event=>(event.kind||event.type)==='tool.end'&&String(event.tool_name||'').startsWith('read_my_')).at(-1);
   if(source)parts.push(`${agentToolName(source.tool_name)}${['completed','ok'].includes(source.status)?'已返回':'未完成'}${agentEventScope(source)?'，'+agentEventScope(source):''}`);
   const queries=events.filter(event=>(event.kind||event.type)==='tool.end'&&!String(event.tool_name||'').startsWith('read_my_')),models=events.filter(event=>(event.kind||event.type)==='model.end');
-  const queryIssues=[['not_ready','次资料未就绪'],['failed','次未完成'],['error','次出错'],['timeout','次超时']].map(([status,label])=>{const count=queries.filter(event=>event.status===status).length;return count?`${count} ${label}`:'';}).filter(Boolean);
-  if(queries.length)parts.push(`收到 ${queries.length} 次本机查询返回${queryIssues.length?'（'+queryIssues.join('，')+'）':''}`);
+  const queryIssues=[['not_ready','次资料未就绪'],['failed','次未完成'],['error','次出错'],['timeout','次超时']].map(([status,label])=>{const count=queries.filter(event=>event.status===status&&(status!=='not_ready'||!agentCourseTestTool(event.tool_name))).length;return count?`${count} ${label}`:'';}).filter(Boolean);
+  const courseBlocked=queries.filter(event=>event.status==='not_ready'&&agentCourseTestTool(event.tool_name)).length;if(courseBlocked)queryIssues.push(`${courseBlocked} 次课程条件测试受阻`);
+  if(queries.length)parts.push(`收到 ${queries.length} 次本机工具返回${queryIssues.length?'（'+queryIssues.join('，')+'）':''}`);
   const modelFailures=models.filter(event=>['failed','error','timeout','cancelled','aborted'].includes(event.status)).length;
   if(models.length)parts.push(`模型调用已结束 ${models.length} 次${modelFailures?'（'+modelFailures+' 次未完成）':''}`);
   const reversed=[...events].reverse(),failure=reversed.find(event=>(event.kind||event.type)==='answer.rejected')||reversed.find(event=>(event.kind||event.type)==='error');
@@ -461,8 +619,8 @@ function renderAgentProcess(turn){
   if(!isSchoolIdentity()||!turn.pending&&!turn.run_id&&!turn.progress)return '';
   const progress=agentTurnProgress(turn)||(turn.pending?{status:'not_started',confirmed:false,events:[]}:null),key=turn.request_id||turn.run_id||'',lazy=!progress;
   const running=turn.pending===true||['running','processing','started','not_started'].includes(progress?.status),open=Object.hasOwn(state.agentProcessOpen,key)?state.agentProcessOpen[key]===true:running;
-  const awaiting=!running&&['completed','ok'].includes(turn.status)&&['awaiting_user','needs_clarification'].includes(turn.task_status);
-  const summary=lazy?`<summary data-action="agent-process-load" data-run-id="${esc(turn.run_id)}">处理过程 · ${awaiting?'本轮已结束，待补充信息':'点击载入'}</summary>`:`<summary>处理过程 · ${esc(agentProcessStage(progress,turn.task_status))}</summary>`;
+  const terminalTask=!running&&['completed','ok'].includes(turn.status)&&['awaiting_user','needs_clarification','partial','blocked'].includes(turn.task_status);
+  const summary=lazy?`<summary data-action="agent-process-load" data-run-id="${esc(turn.run_id)}">处理过程 · ${terminalTask?esc(agentProcessStage({status:turn.status},turn.task_status)):'点击载入'}</summary>`:`<summary>处理过程 · ${esc(agentProcessStage(progress,turn.task_status))}</summary>`;
   if(lazy)return `<details class="agent-process" data-process-key="${esc(key)}" ${open?'open':''}>${summary}<p class="field-help">按当前本人权限读取这轮的本机运行记录。</p></details>`;
   const events=(progress.events||[]).map(agentEventData),completed=events.filter(event=>typeof event.reasoning_content==='string'&&event.reasoning_content.trim()),active=progress.active_reasoning&&typeof progress.active_reasoning.text==='string'?progress.active_reasoning:null;
   const trace=events.filter(event=>['tool.start','tool.end','tool.rejected','model.start','model.end','answer.validated','answer.rejected','answer.repair','error'].includes(event.kind||event.type));
@@ -506,10 +664,11 @@ async function saveAgentSettings(options={}){
   catch(error){if(sameAgentDiagnostics(capture))state.agentModelsError=error.status===404||error.status===405?'当前服务暂不支持模型切换，原配置继续有效。':'模型设置未更新，请稍后重试。';}
   finally{if(sameAgentDiagnostics(capture)){state.agentSettingsBusy=false;renderAssistant();renderAgentHistory();}}
 }
-function agentRunStatus(value){return ({running:'处理中',processing:'处理中',started:'处理中',retrying:'正在修正',completed:'已完成',ok:'已完成',success:'已完成',accepted:'已通过',rejected:'未通过',failed:'未完成',error:'出错',not_ready:'资料未就绪',timeout:'超时',skipped:'未执行',cancelled:'已取消',aborted:'已中止',revoked:'已撤销'})[value]||'状态待确认';}
+function agentCourseTestTool(name){return ['search_current_term_courses','generate_current_term_plan','update_current_term_plan','get_current_term_plan'].includes(name);}
+function agentRunStatus(value,toolName){if(value==='not_ready'&&agentCourseTestTool(toolName))return '课程条件测试受阻，待核对';return ({running:'处理中',processing:'处理中',started:'处理中',retrying:'正在修正',completed:'已完成',ok:'已完成',success:'已完成',available:'已返回',partial:'部分结果',blocked:'受阻',accepted:'已通过',rejected:'未通过',failed:'未完成',error:'出错',not_ready:'资料未就绪',timeout:'超时',skipped:'未执行',cancelled:'已取消',aborted:'已中止',revoked:'已撤销'})[value]||'状态待确认';}
 function agentUsageText(value){if(!value||typeof value!=='object')return '';const fields=[['prompt_tokens','输入'],['completion_tokens','输出'],['total_tokens','合计']].filter(([key])=>Number.isSafeInteger(value[key])&&value[key]>=0);return fields.map(([key,label])=>`${label} ${value[key]} tokens`).join(' · ');}
 function agentEventData(event){return event&&typeof event==='object'?{...(event.fields&&typeof event.fields==='object'?event.fields:{}),...(event.data&&typeof event.data==='object'?event.data:{}),...(event.payload&&typeof event.payload==='object'?event.payload:{}),...event}:{};}
-function agentToolName(name){return ({get_my_context:'本人已知范围',query_my_records:'本人教务记录',search_course_catalog:'本地课程参考',read_my_timetable:'读取本人课表',read_my_exams:'读取本人考试',search_my_curriculum:'培养资料检索',resolve_my_evidence:'来源回查',get_my_run_diagnostics:'上一轮运行诊断',check_recommendation_inputs:'推荐输入检查',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'})[name]||'受限资料工具';}
+function agentToolName(name){return ({get_my_context:'本人已知范围',query_my_records:'本人教务记录',search_course_catalog:'本地课程参考',read_my_timetable:'读取本人课表',read_my_exams:'读取本人考试',search_my_curriculum:'培养资料检索',resolve_my_evidence:'来源回查',get_my_run_diagnostics:'上一轮运行诊断',check_recommendation_inputs:'推荐输入检查',prepare_recommendation_inputs:'准备推荐所需来源',search_current_term_courses:'本学期课程观察检索',generate_current_term_plan:'课程数据测试计算',update_current_term_plan:'测试方案复核与调整',get_current_term_plan:'定位当前方案选择',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'})[name]||'受限资料工具';}
 function agentEventScope(event){
   const values=[],operations={academic:'学期成绩',major_academic:'主修成绩',curriculum:'培养资料',timetable:'课表',exams:'考试'},operation=operations[event.operation];
   if(operation)values.push(operation);
@@ -530,7 +689,7 @@ function agentRunEventMarkup(raw,compact=false){
   const at=event.at??event.created_at,clock=at===undefined?'':schoolCaptureTime(at),step=Number.isSafeInteger(event.step)&&event.step>0?`第 ${event.step} 次模型调用`:Number.isSafeInteger(event.call)&&event.call>0?`第 ${event.call} 次模型调用`:'';
   const initiators={source_preparation:'来源准备',service_acquisition:'服务读取来源',service_preflight:'服务范围预检',model:'模型选择',model_selected:'模型选择',service:'服务准备',service_preparation:'来源准备',answer_repair:'答复修复'},actor=initiators[event.initiated_by]||(String(tool||'').startsWith('read_my_')?'来源准备':'');
   const countText=[['claim_count','条结论'],['evidence_count','条证据'],['citation_count','条引用']].filter(([key])=>Number.isSafeInteger(event[key])&&event[key]>=0).map(([key,label])=>`${event[key]} ${label}`).join(' · ');
-  const meta=[actor,step,event.model||'',event.status?agentRunStatus(event.status):'',elapsed,compact?'':clock].filter(Boolean).join(' · '),title=tool?`${agentToolName(tool)} · ${names[kind]||'调用记录'}`:names[kind]||'运行事件';
+  const meta=[actor,step,event.model||'',event.status?agentRunStatus(event.status,tool):'',elapsed,compact?'':clock].filter(Boolean).join(' · '),title=tool?`${agentToolName(tool)} · ${names[kind]||'调用记录'}`:names[kind]||'运行事件';
   return `<li class="agent-run-event${compact?' compact':''}"><div><strong>${esc(title)}</strong>${event.sequence?`<span class="field-help">#${esc(event.sequence)}</span>`:''}</div>${meta?`<p class="field-help">${esc(meta)}</p>`:''}${tool&&/^[a-z][a-z0-9_]{0,79}$/.test(tool)?`<code>${esc(tool)}</code>`:''}${scope?`<p>${esc(scope)}</p>`:''}${countText?`<p class="field-help">${esc(countText)}</p>`:''}${!compact&&usage?`<p class="field-help">${esc(usage)}</p>`:''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}</li>`;
 }
 function agentDiagnosticMarkup(value){
@@ -613,16 +772,16 @@ function renderAssistant() {
   const personal=school&&personalChatReady();
   const consent=configured&&status.remote&&!school?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${busy?'disabled':''}><span>允许向 ${esc(status.provider||'远程模型')} 发送合成测试需求${status.allow_reference_text?'和参考片段':''}</span></label>`:configured?'':`<span class="badge warning">${school&&!personalChatReady()?'本人资料对话待接入':school&&status?.configured?'本人资料暂不可用':'模型未配置'}</span>`;
   const modelError=personal&&state.agentModelsError?`<p class="agent-settings-error" role="status">${esc(state.agentModelsError)}</p>`:'';
-  panel.innerHTML=`<div class="assistant-workspace">${personal?renderAgentRunList():''}<section id="agent-dialogue-scroll" class="agent-dialogue" tabindex="0" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section>${renderAgentScrollControls()}<section class="dialogue-composer"><form id="agent-draft-form" autocomplete="off"><label for="agent-draft" class="sr-only">${school?'向浙大教务助手提问':'选课需求'}</label><textarea id="agent-draft" rows="2" maxlength="2000" placeholder="${school?'询问教务信息，或提出选课与排课需求…':'告诉我你的修读目标和时间偏好…'}" ${busy?'disabled':''}></textarea>${modelError}<div class="agent-compose-footer"><div class="agent-compose-context">${personal?renderAgentThinking():''}${consent}</div><div class="agent-compose-actions">${personal?renderAgentModelControls():''}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></div></form></section></div>`;
+  panel.innerHTML=`<div class="assistant-workspace">${personal?renderAgentRunList():''}<section id="agent-dialogue-scroll" class="agent-dialogue" tabindex="0" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section>${renderAgentScrollControls()}<section class="dialogue-composer"><form id="agent-draft-form" autocomplete="off"><label for="agent-draft" class="sr-only">${school?'向浙大教务助手提问':'选课需求'}</label><textarea id="agent-draft" rows="2" maxlength="2000" placeholder="${school?'询问教务信息，或提出选课与排课需求…':'告诉我你的修读目标和时间偏好…'}" ${busy?'disabled':''}></textarea>${agentDraftSupported()?'<p id="agent-draft-status" class="field-help" role="status" aria-live="polite"></p>':''}${modelError}<div class="agent-compose-footer"><div class="agent-compose-context">${personal?renderAgentThinking():''}${consent}</div><div class="agent-compose-actions">${personal?renderAgentModelControls():''}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></div></form></section></div>`;
   $('#agent-draft').value=state.agentDraft;
-  $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;updateAgentSend();});
+  $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;queueAgentDraftSave();updateAgentSend();});
   $('#agent-remote-consent')?.addEventListener('change',event=>{state.agentConsent=event.target.checked;updateAgentSend();});
   $('#agent-draft-form').addEventListener('submit',event=>{event.preventDefault();sendAgentTurn();});
   $('#agent-model')?.addEventListener('change',event=>{if(event.target.value==='@refresh')refreshAgentModels(true);else saveAgentSettings();});
   $('#agent-thinking')?.addEventListener('click',()=>saveAgentSettings({thinking:state.agentStatus?.thinking!==true}));
   $$('.agent-process').forEach(element=>bindAgentDisclosureChoice(element,state.agentProcessOpen,element.dataset.processKey));
   $$('.agent-evidence').forEach(element=>bindAgentDisclosureChoice(element,state.agentEvidenceOpen,element.dataset.evidenceKey));
-  restoreAgentScroll();restoreAgentReasoningScroll();
+  updateAgentDraftStatus();restoreAgentScroll();restoreAgentReasoningScroll();
 }
 function renderAgentHistory(){
   const disabled=state.agentBusy||state.agentSettingsBusy||state.agentActionBusy||state.agentHistoryLoadBusy;
@@ -641,7 +800,7 @@ async function refreshAgentHistory(){
   }catch(error){if(epoch===state.agentEpoch)state.agentHistoryError=error.message;}
   finally{if(epoch===state.agentEpoch){state.agentHistoryLoading=false;renderAgentHistory();}}
 }
-async function loadAgentConversation(identifier){
+async function loadAgentConversation(identifier,{fromDraft=false}={}){
   if(isSchoolIdentity()&&!personalChatReady())return;
   if(state.agentBusy||state.agentSettingsBusy||state.agentActionBusy||state.agentHistoryLoadBusy)return;
   let epoch=state.agentEpoch;state.agentHistoryLoadBusy=true;renderAssistant();renderAgentHistory();clearMessage();
@@ -656,6 +815,7 @@ async function loadAgentConversation(identifier){
     state.agentHistoryPending=result.in_progress===true||result.action_pending===true;state.agentOptionReceipts=result.option_receipts||{};
     for(const turn of result.turns){if(turn.status==='completed'&&turn.reply_origin==='verified_explicit_action'&&turn.saved_action?.option_id)state.agentOptionReceipts[turn.saved_action.option_id]=turn.saved_action;}
     // Loading history displays receipts. It never repeats a save or download.
+    if(!fromDraft)queueAgentDraftSave(true);
     switchTab('assistant');
   }catch(error){if(epoch===state.agentEpoch)message(error.message,true);}
   finally{if(epoch===state.agentEpoch){state.agentHistoryLoadBusy=false;renderAssistant();renderAgentHistory();}}
@@ -675,7 +835,8 @@ async function sendAgentTurn(){
   const epoch=state.agentEpoch;const turn={message:state.agentDraft.trim(),pending:true};
   const use=isSchoolIdentity()?{consent_personal:true,data_use_version:state.agentStatus.personal_data_use.version}:{consent_remote:state.agentConsent};
   const payload=state.agentRetry?.message===turn.message&&state.agentRetry.expected_turn===state.agentTurnId&&(!isSchoolIdentity()||state.agentRetry.data_use_version===use.data_use_version)?{...state.agentRetry,...use}:{conversation_id:state.agentConversationId,message:turn.message,request_id:crypto.randomUUID(),expected_turn:state.agentTurnId,...use};
-  turn.request_id=payload.request_id;state.agentBusy=true;state.agentScroll.forceLatest=true;state.agentDraft='';state.agentTurns.push(turn);renderAssistant();renderAgentHistory();
+  if(agentDraftSupported()&&state.agentDraftSync.enabled){state.agentBusy=true;renderAssistant();await flushAgentDraftBeforeSend();if(epoch!==state.agentEpoch||!state.auth?.authenticated)return;}
+  suspendAgentDraftForSend();turn.request_id=payload.request_id;state.agentBusy=true;state.agentScroll.forceLatest=true;state.agentDraft='';state.agentTurns.push(turn);renderAssistant();renderAgentHistory();
   let progressSession;const capture=agentDiagnosticsCapture();
   try{
     const response=api('/api/chat/turn',payload,epoch);if(isSchoolIdentity())progressSession=startAgentProgress(turn,payload.request_id);
@@ -687,7 +848,7 @@ async function sendAgentTurn(){
     if(isSchoolIdentity())await hydrateAgentProcess(turn,capture);
     await applyAgentTurnActions(turn,epoch);
   }catch(error){if(epoch!==state.agentEpoch)return;if(progressSession)stopAgentProgress(progressSession);Object.assign(turn,{pending:false,error:error.message});if(turn.progress)turn.progress={...turn.progress,status:'failed',active_reasoning:null};state.agentDraft=turn.message;state.agentRetry=payload;if(isSchoolIdentity())await hydrateAgentProcess(turn,capture);}
-  finally{if(progressSession)stopAgentProgress(progressSession);if(epoch===state.agentEpoch){state.agentBusy=false;renderAssistant();await refreshAgentHistory();if(epoch===state.agentEpoch&&isSchoolIdentity()&&state.agentRunsOpen)await refreshAgentRuns();}}
+  finally{if(progressSession)stopAgentProgress(progressSession);if(epoch===state.agentEpoch){await refreshAgentDraftRevision();if(epoch!==state.agentEpoch)return;state.agentBusy=false;renderAssistant();await refreshAgentHistory();if(epoch===state.agentEpoch&&isSchoolIdentity()&&state.agentRunsOpen)await refreshAgentRuns();}}
 }
 async function applyAgentTurnActions(turn,epoch){
   if(isSchoolIdentity())return;
@@ -762,8 +923,8 @@ async function exportAgentOption(optionId,format){
   }catch(error){if(epoch===state.agentEpoch)rejectAgentOption(error,reference);}
   finally{if(epoch===state.agentEpoch){state.agentActionBusy=false;renderAssistant();renderAgentHistory();}}
 }
-function chooseAgentExample(index){const example=agentExamples[index];if(!example)return;state.agentDraft=example.draft;$('#agent-draft').value=state.agentDraft;$('#agent-draft').focus();updateAgentSend();}
-function clearAgentDraft(){state.agentDraft='';$('#agent-draft').value='';$('#agent-draft').focus();updateAgentSend();}
+function chooseAgentExample(index){const example=agentExamples[index];if(!example)return;state.agentDraft=example.draft;queueAgentDraftSave();$('#agent-draft').value=state.agentDraft;$('#agent-draft').focus();updateAgentSend();}
+function clearAgentDraft(){state.agentDraft='';queueAgentDraftSave(true);$('#agent-draft').value='';$('#agent-draft').focus();updateAgentSend();}
 async function previewCurrentConditions() {
   if(state.busy||state.agentBusy||state.agentActionBusy||state.previewBusy||!state.boot||state.mode!=='demo')return;
   state.previewBusy=true;renderAssistant();
@@ -1009,7 +1170,7 @@ function schoolSelectionKey(record){
   return typeof record.source_selection_id_raw==='string'&&record.field_states?.source_selection_id_raw==='known'&&schoolHasDisplayField(record,'source_selection_id_raw')?record.source_selection_id_raw:null;
 }
 function schoolExamFields(record){
-  const fields=[['final_exam_time_raw','期末时间'],['final_exam_place_raw','期末地点'],['midterm_exam_time_raw','期中时间'],['midterm_exam_place_raw','期中地点']].filter(([key])=>schoolHasDisplayField(record,key));
+  const fields=[['final_exam_time_raw','期末考试时间'],['final_exam_place_raw','期末考试地点'],['midterm_exam_time_raw','期中考试时间'],['midterm_exam_place_raw','期中考试地点']].filter(([key])=>schoolHasDisplayField(record,key));
   for(const [key,label,aliases] of [['exam_time_raw','考试时间',['final_exam_time_raw','midterm_exam_time_raw']],['place_raw','考试地点',['final_exam_place_raw','midterm_exam_place_raw']],['exam_date','考试日期',[]],['start_time','开始时间',[]],['end_time','结束时间',[]]]){
     if(schoolHasDisplayField(record,key)&&!aliases.some(alias=>schoolHasDisplayField(record,alias)&&record[alias]===record[key]))fields.push([key,label]);
   }
@@ -1209,17 +1370,17 @@ function schoolTimetableRawMeetings(record){
   if(!Array.isArray(record.meetings)||!record.meetings.length)return '';
   const rows=record.meetings.map((value,index)=>{
     const meeting=typeof value==='string'?{time_raw:value}:value&&typeof value==='object'?value:{};
-    const fields=[['time_raw','时间原文'],['place_raw','地点原文'],['week_annotation_raw','周次原文']].filter(([key])=>schoolHasDisplayField(meeting,key)).map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolTextMarkup(meeting[key])}</dd></div>`).join('');
+    const fields=[['time_raw','上课时间'],['place_raw','上课地点'],['week_annotation_raw','周次']].filter(([key])=>schoolHasDisplayField(meeting,key)).map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolTextMarkup(meeting[key])}</dd></div>`).join('');
     const seasons=schoolChineseSeasons(meeting),parity=schoolChineseParity(meeting);
-    return fields||seasons||parity?`<li><span>时段${index+1}</span><dl>${fields}${seasons?`<div><dt>分学期原文</dt><dd>${esc(seasons)}</dd></div>`:''}${parity?`<div><dt>单双周原文</dt><dd>${esc(parity)}</dd></div>`:''}</dl></li>`:'';
+    return fields||seasons||parity?`<li><span>时段${index+1}</span><dl>${fields}${seasons?`<div><dt>分学期</dt><dd>${esc(seasons)}</dd></div>`:''}${parity?`<div><dt>单双周</dt><dd>${esc(parity)}</dd></div>`:''}</dl></li>`:'';
   }).join('');
   return rows?`<ul class="school-timetable-source-meetings">${rows}</ul>`:'';
 }
 function schoolTimetableSourceMarkup(records){
   return `<details class="school-timetable-source"><summary>查看课表原文（${records.length}条）</summary><ol class="school-timetable-records">${records.map(record=>{
     const enrollment=schoolFormalEnrollmentText(record),seasons=schoolChineseSeasons(record),parity=schoolChineseParity(record);
-    const fields=[['course_code_raw','课程代码'],['instructor_raw','教师'],['time_raw','上课时间'],['place_raw','上课地点'],['term_raw','来源学期'],['selection_status_raw','页面状态']].filter(([key])=>schoolHasDisplayField(record,key)).map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolTextMarkup(record[key])}</dd></div>`).join('');
-    return `<li><strong>${schoolTextMarkup(record.course_name_raw||record.course_code_raw,'未命名课程')}</strong>${fields||seasons||parity||enrollment?`<dl>${fields}${seasons?`<div><dt>分学期原文</dt><dd>${esc(seasons)}</dd></div>`:''}${parity?`<div><dt>单双周原文</dt><dd>${esc(parity)}</dd></div>`:''}${enrollment?`<div><dt>正式中选</dt><dd>${esc(enrollment)}</dd></div>`:''}</dl>`:''}${schoolTimetableRawMeetings(record)}</li>`;
+    const fields=[['course_code_raw','课程代码'],['instructor_raw','教师'],['time_raw','上课时间'],['place_raw','上课地点'],['term_raw','学期'],['selection_status_raw','页面状态']].filter(([key])=>schoolHasDisplayField(record,key)).map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolTextMarkup(record[key])}</dd></div>`).join('');
+    return `<li><strong>${schoolTextMarkup(record.course_name_raw||record.course_code_raw,'未命名课程')}</strong>${fields||seasons||parity||enrollment?`<dl>${fields}${seasons?`<div><dt>分学期</dt><dd>${esc(seasons)}</dd></div>`:''}${parity?`<div><dt>单双周</dt><dd>${esc(parity)}</dd></div>`:''}${enrollment?`<div><dt>正式中选</dt><dd>${esc(enrollment)}</dd></div>`:''}</dl>`:''}${schoolTimetableRawMeetings(record)}</li>`;
   }).join('')}</ol></details>`;
 }
 function schoolTimetableMarkup(result){
@@ -1336,8 +1497,8 @@ function schoolGradeTable(result){
   const pages=Math.max(1,Math.ceil(filtered.length/size));state.schoolGradePage=Math.min(Math.max(1,state.schoolGradePage),pages);
   const start=(state.schoolGradePage-1)*size,end=Math.min(start+size,filtered.length);
   const years=[...new Set(records.filter(record=>schoolHasDisplayField(record,'academic_year_raw')).map(record=>record.academic_year_raw).filter(value=>typeof value==='string'&&value))].sort().reverse();
-  const controls=`<form id="school-grade-filter" class="school-grade-filter"><div class="field"><label for="school-grade-search">查找已读取课程</label><input id="school-grade-search" type="search" maxlength="100" value="${esc(state.schoolGradeSearch)}" placeholder="课程名称或代码"></div>${result.operation==='major_academic'&&years.length?`<div class="field"><label for="school-grade-year">记录学年</label><select id="school-grade-year"><option value="">全部已读取学年</option>${years.map(year=>`<option value="${esc(year)}" ${year===state.schoolGradeYear?'selected':''}>${esc(year)}</option>`).join('')}</select></div>`:''}<button class="button" type="submit">筛选课程</button>${state.schoolGradeSearch||state.schoolGradeYear?'<button class="button" type="button" data-action="school-grade-reset">清除筛选</button>':''}</form>`;
-  const columns=[['course_name_raw','课程'],... [['grade_raw','成绩'],['nominal_credits','来源学分'],['academic_year_raw','记录学年'],['term_raw','来源学期'],['completion_status_raw','来源修读状态']].filter(([key])=>records.some(record=>schoolHasDisplayField(record,key)))];
+  const controls=`<form id="school-grade-filter" class="school-grade-filter"><div class="field"><label for="school-grade-search">查找已读取课程</label><input id="school-grade-search" type="search" maxlength="100" value="${esc(state.schoolGradeSearch)}" placeholder="课程名称或代码"></div>${result.operation==='major_academic'&&years.length?`<div class="field"><label for="school-grade-year">学年</label><select id="school-grade-year"><option value="">全部已读取学年</option>${years.map(year=>`<option value="${esc(year)}" ${year===state.schoolGradeYear?'selected':''}>${esc(year)}</option>`).join('')}</select></div>`:''}<button class="button" type="submit">筛选课程</button>${state.schoolGradeSearch||state.schoolGradeYear?'<button class="button" type="button" data-action="school-grade-reset">清除筛选</button>':''}</form>`;
+  const columns=[['course_name_raw','课程名称'],... [['grade_raw','成绩'],['grade_points_raw','绩点'],['nominal_credits','学分'],['academic_year_raw','学年'],['term_raw','学期'],['completion_status_raw','修读状态']].filter(([key])=>records.some(record=>schoolHasDisplayField(record,key)))];
   const table=filtered.length?`<div class="table-wrap"><table class="data-table school-data-table"><caption class="sr-only">${esc(schoolOperationNames[result.operation])}，仅在已读取的 ${records.length} 条记录中展示</caption><thead><tr>${columns.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${filtered.slice(start,end).map(record=>`<tr>${columns.map(([key],index)=>`<td>${index===0?schoolCourseMarkup(record):schoolFieldMarkup(record,key)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="inline-empty">已读取记录中没有匹配项。可清除筛选查看本次结果。</p>';
   return `${controls}${table}<div class="school-pagination" role="group" aria-label="已读取成绩的展示分页"><p>${filtered.length?`显示 ${start+1}–${end} 条`:'显示 0 条'} / ${filtered.length} 条${filtered.length!==records.length?`（已读取 ${records.length} 条）`:''}</p><div class="button-group"><button class="button small" data-action="school-grade-page" data-page="${state.schoolGradePage-1}" ${state.schoolGradePage<=1?'disabled':''}>上一页</button><span aria-live="polite">${state.schoolGradePage} / ${pages} 页</span><button class="button small" data-action="school-grade-page" data-page="${state.schoolGradePage+1}" ${state.schoolGradePage>=pages?'disabled':''}>下一页</button></div></div>`;
 }
@@ -1347,10 +1508,10 @@ function schoolRecordTable(result){
   if(['academic','major_academic'].includes(operation))return schoolGradeTable({...result,operation});
   const records=Array.isArray(result.records)?result.records:result.profile?[result.profile]:operation==='profile'&&result.name?[result]:[];
   if(operation==='profile'){
-    const profile=records[0],fields=profile?[['name','姓名'],['source_subject_id','学号'],['cohort','入学年份'],['college_name','学院'],['major_name','专业'],['major_or_category_raw','类（专业）'],['program','培养项目'],['study_path_raw','修读路径']].filter(([key])=>schoolHasDisplayField(profile,key)):[];
+    const profile=records[0],fields=profile?[['name','姓名'],['source_subject_id','学号'],['university','学校'],['cohort','入学年份'],['admission_date_raw','入学日期'],['current_grade_raw','当前所在级'],['college_name','学院'],['major_name','专业名称'],['major_code','专业代码'],['major_or_category_raw','类（专业）'],['program','培养项目'],['study_path_raw','修读路径'],['study_scope','修读范围'],['training_type','培养类型'],['specialization_raw','专业方向']].filter(([key])=>schoolHasDisplayField(profile,key)):[];
     return fields.length?`<dl class="school-profile">${fields.map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolFieldMarkup(profile,key)}</dd></div>`).join('')}</dl>`:'<p class="inline-empty">本次未返回可展示资料，请重新查询。</p>';
   }
-  const columns=[['course_name_raw','课程'],... [['final_exam_time_raw','期末时间'],['final_exam_place_raw','期末地点'],['midterm_exam_time_raw','期中时间'],['midterm_exam_place_raw','期中地点']].filter(([key])=>records.some(record=>schoolHasDisplayField(record,key)))];
+  const columns=[['course_name_raw','课程名称'],... [['final_exam_time_raw','期末考试时间'],['final_exam_place_raw','期末考试地点'],['midterm_exam_time_raw','期中考试时间'],['midterm_exam_place_raw','期中考试地点']].filter(([key])=>records.some(record=>schoolHasDisplayField(record,key)))];
   return records.length?`<div class="table-wrap"><table class="data-table school-data-table"><caption class="sr-only">考试安排 · ${records.length} 条</caption><thead><tr>${columns.map(([,label])=>`<th scope="col">${esc(label)}</th>`).join('')}</tr></thead><tbody>${records.map(record=>`<tr>${columns.map(([key],index)=>`<td>${index===0?schoolCourseMarkup(record):schoolFieldMarkup(record,key)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="inline-empty">本次未返回可展示记录；这不表示没有考试。</p>';
 }
 function schoolPlanMarkup(busy){
@@ -1452,7 +1613,7 @@ async function mockLogin(profileId) {
   try{const result=await api('/api/auth/mock-login',{profile_id:profileId});clearWorkspace();state.auth={...state.auth,authenticated:true,identity:result.identity};state.csrfToken=result.csrf_token;await bootstrap();clearMessage();}catch(error){message(error.message,true);}finally{state.busy=false;renderAuth();}
 }
 async function logout() {
-  clearAgentConversation();clearSchoolWorkspace();state.busy=true;renderAssistant();if(isSchoolIdentity())renderSchool();
+  resetAgentDraftSync();clearAgentConversation();clearSchoolWorkspace();state.busy=true;renderAssistant();if(isSchoolIdentity())renderSchool();
   try{await api('/api/auth/logout',{});clearWorkspace();state.auth={...(state.auth||{}),authenticated:false};renderAuth();clearMessage();message('已退出，服务端会话已撤销。');}catch(error){message(error.message,true);}finally{state.busy=false;renderAssistant();}
 }
 async function bootstrap() {
@@ -1462,7 +1623,7 @@ async function bootstrap() {
     if(state.auth?.identity && identityKey(state.auth.identity)!==identityKey(session.identity))clearWorkspace();
     state.auth=session;
     if(!state.auth.authenticated){clearWorkspace();renderAuth();$('#loading').hidden=true;return;}
-    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();if(!isSchoolIdentity())await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();if(!isSchoolIdentity()){renderAudit();renderSources();}renderSaved();renderSchool();switchTab(state.tab);if(!isSchoolIdentity()||personalChatReady())await refreshAgentHistory();if(isSchoolIdentity()&&personalChatReady())await refreshAgentModels(false);$('#loading').hidden=true;
+    state.csrfToken=state.auth.csrf_token;await refreshWorkspace();if(!isSchoolIdentity())await refreshAgentStatus();renderAuth();renderAssistant();renderPlanning();if(!isSchoolIdentity()){renderAudit();renderSources();}renderSaved();renderSchool();switchTab(state.tab);if(!isSchoolIdentity()||personalChatReady())await refreshAgentHistory();if(isSchoolIdentity()&&personalChatReady())await refreshAgentModels(false);await restoreAgentDraft();$('#loading').hidden=true;
   }catch(error){$('#loading').hidden=true;$('#boot-error').hidden=false;$('#boot-error-text').textContent=`${error.message}。请确认本地 Python 服务已启动，然后重试。`;}
 }
 $('.nav-tabs').addEventListener('click',event=>{const button=event.target.closest('[data-tab]');if(button){clearMessage();switchTab(button.dataset.tab);}});
@@ -1494,7 +1655,7 @@ $('.app-shell').addEventListener('click',async event=>{
     case'agent-scroll-up':scrollAgentDialogue(-1);break;
     case'agent-scroll-down':scrollAgentDialogue(1);break;
     case'agent-scroll-latest':scrollAgentDialogue('latest');break;
-    case'new-agent-conversation':if(state.agentBusy||state.agentActionBusy)break;clearAgentConversation();clearMessage();switchTab('assistant');renderAgentHistory();break;
+    case'new-agent-conversation':if(state.agentBusy||state.agentActionBusy)break;clearAgentConversation();queueAgentDraftSave(true);clearMessage();switchTab('assistant');renderAgentHistory();break;
     case'load-agent-conversation':await loadAgentConversation(button.dataset.conversationId);break;
     case'refresh-agent-history':await refreshAgentHistory();break;
     case'agent-example':chooseAgentExample(Number(button.dataset.example));break;

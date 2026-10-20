@@ -1,6 +1,7 @@
 """Personal chat persistence coordination with synthetic local tools/models."""
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
@@ -13,6 +14,8 @@ from course_assistant.auth import AccessError, AuthContext, SCHOOL_MODE, SCHOOL_
 from course_assistant.model_client import ModelError
 from course_assistant.personal_chat import DATA_USE_VERSION, PersonalChatService
 from course_assistant.storage import Store
+from course_assistant.personal_tasks import PREPARE_RECOMMENDATION_TOOL
+from course_assistant.recommendation_readiness import assess_recommendation_readiness
 
 
 class FakeModel:
@@ -27,7 +30,7 @@ class FakeModel:
         self.calls.append(deepcopy(messages))
         if self.callback:
             self.callback()
-        return {"reply": "已查询当前本人范围的资料。"}
+        return {"reply": getattr(self, "response_reply", "已查询当前本人范围的资料。")}
 
 
 class FakeAuth:
@@ -69,16 +72,64 @@ class FakeDialogue:
             raise AssertionError("model execution must not hold the app lock")
         self.authorize()
         result = self.execute("get_my_context", {})
+        tool_results = [{"name": "get_my_context", "arguments": {}, "result": result}]
+        for name, args in getattr(self.app, "dialogue_tool_calls", []):
+            tool_results.append({"name": name, "arguments": deepcopy(args), "result": self.execute(name, args)})
         messages = deepcopy(list(history)) + [{"role": "user", "content": message}]
         reply = self.model.complete(messages, [])
         self.authorize()
         messages.append({"role": "assistant", "content": reply["reply"]})
-        return {"status": "completed", "reply": reply["reply"],
-                "tool_results": deepcopy(getattr(self.app, "dialogue_tool_results", [
-                    {"name": "get_my_context", "arguments": {}, "result": result}])),
+        response = {"status": "completed", "reply": reply["reply"],
+                "tool_results": deepcopy(getattr(self.app, "dialogue_tool_results", tool_results)),
                 "citations": [], "reply_origin": getattr(self.app, "reply_origin", "personal_model_evidence"),
                 "model_decision": deepcopy(getattr(self.app, "model_decision", {"kind": "answer", "evidence_ids": []})),
-                "partial_tools_completed": False}, messages
+                "partial_tools_completed": False}
+        if hasattr(self.app, "dialogue_task_progress"):
+            response["task_progress"] = deepcopy(self.app.dialogue_task_progress)
+        return response, messages
+
+
+class LiveSyntheticSchool(FakeSchool):
+    """Exercise service orchestration, with invented receipts and no network."""
+    def __init__(self):
+        super().__init__()
+        self.reads = []
+        self.fail_operation = None
+        self.lexical_preparations = []
+        self.policy_calls = []
+
+    def prepare_personal_chat(self, context, question, **kwargs):
+        self.lexical_preparations.append(question)
+        raise AssertionError("live task selection must precede source acquisition")
+
+    def personal_chat_live_tool(self, context, name, args, *, receipts, emit, authorize, adopt, before, policy_context=None):
+        before()
+        self.policy_calls.append((name, deepcopy(policy_context)))
+        self.calls.append((context.student_id, name, deepcopy(args)))
+        current = {"status": "available", "data_kind": "personal_source", "source_receipts": deepcopy(receipts),
+            "api_operations": ["academic", "major_academic", "timetable", "exams"],
+            "capabilities": {"live_record_query": True, "curriculum_local_search": True,
+                "read_only_acquisition": True, "course_catalog_search": True, "recommendation_input_check": True},
+            "course_catalog": {"status": "ready"}}
+        if name == "get_my_context":
+            return current
+        if name == "check_recommendation_inputs":
+            return {"status": "available", "data_kind": "personal_source", "check_executed": True,
+                    "readiness": assess_recommendation_readiness(current, **args)}
+        operation = "curriculum" if name == "search_my_curriculum" else args["operation"]
+        term = args.get("target_term")
+        if not any(row.get("operation") == operation and row.get("target_term") == term for row in receipts):
+            self.reads.append((operation, term))
+            failed = self.fail_operation == operation
+            receipts.append({"operation": operation, "target_term": term,
+                "status": "failed" if failed else "acquired_pending_review" if operation == "curriculum" else "complete_within_scope",
+                "ready": not failed, "data_source": "none" if failed else "live"})
+            self.version = "SYNTHETIC-V" + str(len(self.reads) + 1)
+            adopt(True)
+        authorize()
+        return {"status": "not_ready" if self.fail_operation == operation else "pending_review" if operation == "curriculum" else "complete_within_scope",
+            "operation": operation, "target_term": term, "mode": args.get("mode", "records"),
+            "records": [] if self.fail_operation == operation else [{"course_name_raw": "本轮合成课程"}]}
 
 
 class PersonalChatTests(unittest.TestCase):
@@ -215,6 +266,80 @@ class PersonalChatTests(unittest.TestCase):
         new_scope, _, _ = self.service._current(self.context)
         self.assertIsNone(self.service._execution_context(self.context, state, new_scope, first["conversation_id"]))
 
+    def test_latest_preparation_without_run_id_is_not_attached_to_an_older_run(self):
+        from tests.test_personal_tasks import recommendation_row
+        self.enable_private_runs()
+        first = self.turn()
+        scope, _, _ = self.service._current(self.context)
+        state = self.app.store.chat_one(self.context, first["conversation_id"])["state"]
+        state["turns"].append({"status": "completed", "task_status": "blocked",
+            "tool_results": [recommendation_row()]})
+        diagnostic = self.service._execution_context(self.context, state, scope, first["conversation_id"])
+        self.assertEqual(diagnostic["run_id"], first["run_id"])
+        self.assertNotIn("previous_preparation", diagnostic)
+
+    def test_previous_blocked_preparation_explains_counts_without_new_source_reads(self):
+        from tests.test_personal_dialogue import ScriptedModel, call, final
+        from course_assistant.recommendation_readiness import source_receipt_diagnostics
+
+        class PartialTimetableSchool(LiveSyntheticSchool):
+            def personal_chat_live_tool(self, context, name, args, *, receipts, emit, authorize, adopt, before, policy_context=None):
+                result = super().personal_chat_live_tool(context, name, args, receipts=receipts, emit=emit,
+                    authorize=authorize, adopt=adopt, before=before, policy_context=policy_context)
+                if name == "query_my_records" and args.get("operation") == "timetable":
+                    receipt = next(row for row in reversed(receipts) if row["operation"] == "timetable")
+                    result.update(status="partial_acquisition", data_source="live",
+                        coverage={"captured_rows": 3, "reported_total": None, "complete_within_scope": False},
+                        records=[{"course_name_raw": "合成课程甲", "time_raw": "周一第1节",
+                            "field_states": {"course_name_raw": "known", "time_raw": "known"}},
+                            {"course_name_raw": "合成课程乙", "field_states": {"course_name_raw": "known", "time_raw": "unknown"}},
+                            {"course_name_raw": "合成课程丙", "field_states": {"course_name_raw": "known", "time_raw": "unknown"}}])
+                    receipt.update(status="partial_acquisition",
+                        diagnostics=source_receipt_diagnostics("timetable", result))
+                return result
+
+        self.app.school = PartialTimetableSchool()
+        def preparation_answer(messages, tools):
+            value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
+                "evidence_id": value["evidence_id"], "sections": ["next_step"]}]})
+
+        def request_previous(messages, tools):
+            return call("get_my_run_diagnostics", {})
+
+        def historical_answer(messages, tools):
+            value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            previous = value["previous_preparation"]
+            self.assertTrue(previous["historical_only"])
+            self.assertTrue(previous["fresh_sources_required"])
+            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
+                "evidence_id": previous["evidence_id"], "sections": ["next_step"]}]})
+
+        self.factory.stop()
+        model = ScriptedModel([
+            call(PREPARE_RECOMMENDATION_TOOL, self.recommendation_task()), preparation_answer,
+            request_previous, historical_answer])
+        model.status = lambda: {"configured": True, "remote": True,
+            "provider": "SyntheticProvider", "model": "scripted-only"}
+        self.service = PersonalChatService(self.app, model)
+        self.enable_private_runs()
+        first = self.turn(message="按限定范围准备课表组合")
+        self.assertEqual(first["status"], "completed", first)
+        self.assertEqual(first["task_status"], "blocked")
+        self.assertEqual(self.app.school.reads, [("major_academic", "ALL-HISTORY"),
+            ("curriculum", None), ("timetable", "2026-2027-AW")])
+        reads = deepcopy(self.app.school.reads)
+        second = self.turn(first, message="解释上一轮具体为什么不能继续")
+        self.assertEqual(second["status"], "completed", second)
+        self.assertEqual(self.app.school.reads, reads)
+        self.assertEqual([row["name"] for row in second["tool_results"]], ["get_my_context", "get_my_run_diagnostics"])
+        self.assertEqual(second["tool_results"][0]["result"]["source_receipts"], [])
+        self.assertIn("上一轮准备检查的记录，本轮未重新读取教务资料", second["reply"])
+        self.assertIn("取得3条记录", second["reply"])
+        self.assertIn("接口未声明总数，覆盖无法确认", second["reply"])
+        self.assertIn("2条仍有课时缺少文本或结构化时间证据", second["reply"])
+        self.assertTrue(any(row.get("historical_only") is True for row in second["citations"]))
+
     def test_corrupt_or_unavailable_diagnostics_do_not_break_the_next_task(self):
         self.enable_private_runs()
         first = self.turn()
@@ -325,6 +450,269 @@ class PersonalChatTests(unittest.TestCase):
         self.model.model = "synthetic-model-2"
         self.turn(second, message="再查询")
         self.assertIsNone(self.app.received_task_context)
+
+    @staticmethod
+    def recommendation_task(**changes):
+        return {"recommendation_kind": "timetable", "target_term": "2026-2027-AW",
+            "course_scope": {"kind": "topic", "queries": ["数据分析"]},
+            "hard_preferences": ["周五不排课"], "soft_preferences": [], "check_exam_conflicts": False,
+            "request_basis": "current_message", **changes}
+
+    def test_recommendation_prepare_executes_minimum_sources_once_and_rechecks_current_receipts(self):
+        self.app.school = LiveSyntheticSchool()
+        task = self.recommendation_task()
+        self.app.dialogue_tool_calls = [(PREPARE_RECOMMENDATION_TOOL, task)] * 2
+        result = self.turn(message="帮我准备限定范围的推荐")
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(self.app.school.reads,
+            [("major_academic", "ALL-HISTORY"), ("curriculum", None), ("timetable", "2026-2027-AW")])
+        readiness = result["tool_results"][-1]["result"]["readiness"]
+        self.assertEqual({source["id"]: source["status"] for source in readiness["sources"]},
+            {"course_reference": "available", "academic_records": "available", "curriculum": "available",
+             "existing_timetable": "available", "exams": "missing"})
+        self.assertFalse(readiness["can_generate"])
+        prepared = result["tool_results"][1]["result"]["prepared_sources"]
+        self.assertEqual([row["name"] for row in prepared], ["query_my_records", "search_my_curriculum", "query_my_records"])
+        self.assertEqual([row["result"]["operation"] for row in prepared], ["major_academic", "curriculum", "timetable"])
+        self.assertEqual(prepared[-1]["arguments"]["limit"], 15)
+        self.assertEqual(prepared[-1]["result"]["records"], [{"course_name_raw": "本轮合成课程"}])
+        self.assertEqual(result["tool_results"][-1]["result"]["prepared_sources"], [])
+        self.app.dialogue_tool_calls = []
+        following = self.turn(result, message="那春夏呢")
+        hints = self.app.received_task_context["tasks"]
+        self.assertEqual(hints, [{"tool": PREPARE_RECOMMENDATION_TOOL, **task}])
+        self.assertFalse(self.app.received_task_context["facts_reusable"])
+        self.model.model = "synthetic-model-changed"
+        self.turn(following, message="继续")
+        self.assertIsNone(self.app.received_task_context)
+
+    def test_check_only_does_not_prepare_or_upgrade_to_recommendation(self):
+        self.app.school = LiveSyntheticSchool()
+        args = {"recommendation_kind": "courses", "target_term": "2026-2027-AW"}
+        self.app.dialogue_tool_calls = [("check_recommendation_inputs", args)]
+        first = self.turn(message="只检查2026-2027秋冬课表推荐输入，不读取成绩或培养资料")
+        self.assertEqual(first["task_status"], "completed")
+        self.assertNotIn("task_progress", first)
+        self.assertEqual(self.app.school.reads, [])
+        self.assertEqual(self.app.school.lexical_preparations, [])
+        self.app.dialogue_tool_calls = []
+        self.turn(first, message="换成春夏呢")
+        self.assertEqual(self.app.received_task_context["tasks"], [{"tool": "check_recommendation_inputs", **args}])
+        self.assertEqual(self.app.school.reads, [])
+
+    def test_trusted_recommendation_progress_is_partial_or_blocked_and_saved_in_history(self):
+        for progress, expected in (({"kind": "recommendation", "status": "prepared", "scope": "formal", "reason": "source_prepared"}, "partial"),
+                ({"kind": "recommendation", "status": "limited_result", "scope": "course_data_test", "reason": "test_result"}, "partial"),
+                ({"kind": "recommendation", "status": "blocked", "scope": "formal", "reason": "formal_dependencies_unverified"}, "blocked"),
+                ({"kind": "recommendation", "status": "blocked", "scope": "course_data_test", "reason": "source_unavailable"}, "blocked")):
+            with self.subTest(progress=progress):
+                self.app.dialogue_task_progress = progress
+                result = self.turn(message="限定课程任务")
+                self.assertEqual(result["task_status"], expected)
+                self.assertEqual(result["task_progress"], progress)
+                stored = self.app.store.chat_one(self.context, result["conversation_id"])["state"]["turns"][-1]
+                self.assertEqual(stored["task_status"], expected)
+                self.assertEqual(stored["task_progress"], progress)
+                history = self.service.history({"conversation_id": result["conversation_id"]}, self.context)
+                self.assertEqual(history["turns"][-1]["task_progress"], progress)
+                intent = self.service._intent_history({"turns": [stored]})
+                self.assertEqual(intent, [{"role": "user", "content": "限定课程任务"}])
+
+    def test_invalid_or_formal_completed_progress_is_rejected_without_persisted_result(self):
+        for progress in ({"kind": "recommendation", "status": "completed", "scope": "formal", "reason": "test_result"},
+                {"kind": "recommendation", "status": "limited_result", "scope": "formal", "reason": "test_result"},
+                {"kind": "recommendation", "status": "limited_result", "scope": "course_data_test", "reason": "Cookie: PRIVATE"}):
+            with self.subTest(progress=progress):
+                self.app.dialogue_task_progress = progress
+                result = self.turn(message="限定课程任务")
+                self.assertEqual(result["status"], "failed")
+                self.assertEqual(result["task_status"], "failed")
+                self.assertNotIn("task_progress", result)
+                self.assertEqual(result["tool_results"], [])
+
+    def test_client_cannot_submit_task_progress_as_a_service_result(self):
+        with self.assertRaises(AccessError):
+            self.service.turn(self.body(task_progress={"kind": "recommendation", "status": "completed",
+                "scope": "formal", "reason": "test_result"}), self.context)
+        self.assertEqual(self.model.calls, [])
+
+    def test_clarification_cannot_also_claim_a_recommendation_result(self):
+        self.app.reply_origin = "personal_model_clarification"
+        self.app.model_decision = {"kind": "clarify", "request_basis": "current_message"}
+        self.app.dialogue_task_progress = {"kind": "recommendation", "status": "limited_result",
+            "scope": "course_data_test", "reason": "test_result"}
+        result = self.turn(message="推荐")
+        self.assertEqual(result["task_status"], "failed")
+        self.assertNotIn("task_progress", result)
+
+    def test_live_clarification_has_no_lexical_read_and_regular_query_still_reads_fresh_scope(self):
+        self.app.school = LiveSyntheticSchool()
+        self.app.reply_origin = "personal_model_clarification"
+        self.app.model_decision = {"kind": "clarify", "request_basis": "current_message"}
+        first = self.turn(message="帮我根据课表和成绩推荐一下")
+        self.assertEqual(first["task_status"], "awaiting_user")
+        self.assertEqual(self.app.school.reads, [])
+        self.assertEqual(self.app.school.lexical_preparations, [])
+        self.app.reply_origin = "personal_model_evidence"
+        self.app.model_decision = {"kind": "answer", "evidence_ids": []}
+        self.app.dialogue_tool_calls = [("query_my_records", {"operation": "academic",
+            "target_term": "2026-2027-AW", "query": "", "mode": "summary"})]
+        self.turn(first, message="换题，概括2026-2027秋冬成绩")
+        self.assertEqual(self.app.school.reads, [("academic", "2026-2027-AW")])
+
+    def test_recommendation_failed_source_is_not_retried_or_replaced_by_old_facts(self):
+        self.app.school = LiveSyntheticSchool()
+        self.app.school.fail_operation = "major_academic"
+        task = self.recommendation_task(recommendation_kind="courses")
+        self.app.dialogue_tool_calls = [(PREPARE_RECOMMENDATION_TOOL, task)] * 2
+        result = self.turn(message="准备限定兴趣的课程参考")
+        self.assertEqual(self.app.school.reads, [("major_academic", "ALL-HISTORY"), ("curriculum", None)])
+        readiness = result["tool_results"][-1]["result"]["readiness"]
+        self.assertEqual(next(source for source in readiness["sources"] if source["id"] == "academic_records")["status"], "failed")
+        self.assertFalse(readiness["can_generate"])
+        prepared = result["tool_results"][1]["result"]["prepared_sources"]
+        failed = next(row["result"] for row in prepared if row["result"]["operation"] == "major_academic")
+        self.assertEqual(failed["status"], "not_ready")
+        self.assertEqual(failed["records"], [])
+        self.assertEqual(result["tool_results"][-1]["result"]["prepared_sources"], [])
+
+    def test_invalid_recommendation_scope_stops_before_any_read(self):
+        self.app.school = LiveSyntheticSchool()
+        self.app.dialogue_tool_calls = [(PREPARE_RECOMMENDATION_TOOL,
+            self.recommendation_task(course_scope={"kind": "topic", "queries": []}))]
+        result = self.turn(message="推荐")
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(self.app.school.reads, [])
+        self.assertEqual(result["tool_results"], [])
+
+    def test_pending_prepare_without_server_clarification_is_rejected_before_reading(self):
+        self.app.school = LiveSyntheticSchool()
+        self.app.dialogue_tool_calls = [(PREPARE_RECOMMENDATION_TOOL,
+            self.recommendation_task(request_basis="pending_task"))]
+        with self.assertRaisesRegex(AccessError, "当前没有可继续的待补请求") as rejected:
+            self.turn(message="就是第6到8节")
+        self.assertEqual(rejected.exception.reason, "clarification_context_missing")
+        self.assertEqual(self.app.school.reads, [])
+        self.assertTrue(all(not policy["pending_messages"] for _, policy in self.app.school.policy_calls))
+
+    def test_real_dialogue_can_recover_missing_pending_basis_before_actual_source_preparation(self):
+        from tests.test_personal_dialogue import ScriptedModel, call, final
+
+        self.app.school = LiveSyntheticSchool()
+        task = self.recommendation_task(recommendation_kind="courses", hard_preferences=[])
+        def correct_basis(messages, tools):
+            diagnostic = json.loads(messages[-1]["content"])
+            self.assertEqual(diagnostic["code"], "clarification_context_missing")
+            self.assertFalse(diagnostic["query_executed"])
+            self.assertEqual(diagnostic["allowed_request_basis"], ["current_message"])
+            self.assertEqual(self.app.school.reads, [])
+            return call(PREPARE_RECOMMENDATION_TOOL, task, "current-basis")
+
+        def typed_preparation(messages, tools):
+            evidence = json.loads(messages[-1]["content"])["evidence_id"]
+            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
+                "evidence_id": evidence, "sections": ["sources"]}]})
+
+        model = ScriptedModel([call(PREPARE_RECOMMENDATION_TOOL, {**task, "request_basis": "pending_task"}),
+            correct_basis, typed_preparation])
+        self.factory.stop()
+        self.service = PersonalChatService(self.app, model)
+        result = self.turn(message="按当前限定范围准备合成课程推荐资料")
+        self.assertEqual(result["status"], "completed", result)
+        self.assertEqual(result["task_status"], "partial")
+        self.assertEqual(self.app.school.reads, [("major_academic", "ALL-HISTORY"), ("curriculum", None)])
+        rejected = result["tool_results"][1]
+        self.assertTrue(rejected["error"])
+        self.assertEqual(rejected["result"]["code"], "clarification_context_missing")
+        check_policy = next(policy for name, policy in self.app.school.policy_calls
+            if name == "check_recommendation_inputs")
+        self.assertEqual(check_policy["pending_messages"], [])
+
+    def test_message_protocol_detail_reaches_one_controlled_error_event(self):
+        from tests.test_personal_dialogue import ScriptedModel, call
+        model = ScriptedModel([{"role": "assistant", "content": None, "tool_calls": [
+            call("get_my_context", identifier=f"call-{i}")["tool_calls"][0] for i in range(4)]}])
+        model.status = lambda: {"configured": True, "remote": True, "provider": "SyntheticProvider", "model": "scripted-only"}
+        self.factory.stop()
+        self.app.store.path = self.app.store.path.resolve()
+        self.app.store.path.chmod(0o600)
+        self.service = PersonalChatService(self.app, model)
+        with patch.object(self.service.runs, "event", wraps=self.service.runs.event) as recorded:
+            result = self.turn(message="合成协议诊断")
+        self.assertEqual(result["code"], "model_protocol_error")
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "tool_batch_count_exceeded")
+        errors = [entry.args[-1] for entry in recorded.call_args_list if entry.args[2] == "error"]
+        self.assertEqual(errors, [{"error_code": "model_protocol_error", "stage": "answer",
+            "failure_detail": "tool_batch_count_exceeded"}])
+        self.assertEqual(len(model.calls), 1)
+        self.assertEqual([name for _, name, _ in self.app.school.calls], ["get_my_context"])
+
+    def test_arbitrary_protocol_exception_text_cannot_become_error_detail(self):
+        from tests.test_personal_dialogue import ScriptedModel
+        from course_assistant.personal_dialogue import PersonalDialogueError
+        error = PersonalDialogueError("model_protocol_error")
+        error.validation_diagnostic = {"error_code": "model_protocol_error", "failure_detail": "UNTRUSTED-RAW-DETAIL"}
+        self.factory.stop()
+        self.app.store.path = self.app.store.path.resolve()
+        self.app.store.path.chmod(0o600)
+        model = ScriptedModel([error])
+        model.status = lambda: {"configured": True, "remote": True, "provider": "SyntheticProvider", "model": "scripted-only"}
+        self.service = PersonalChatService(self.app, model)
+        with patch.object(self.service.runs, "event", wraps=self.service.runs.event) as recorded:
+            result = self.turn(message="合成协议诊断")
+        errors = [entry.args[-1] for entry in recorded.call_args_list if entry.args[2] == "error"]
+        self.assertEqual(errors, [{"error_code": "model_protocol_error", "stage": "answer"}])
+        self.assertEqual(result["validation_diagnostics"], [])
+        self.assertNotIn("UNTRUSTED", json.dumps(errors))
+
+    def test_pending_prepare_passes_only_server_user_intent_in_internal_policy(self):
+        self.app.school = LiveSyntheticSchool()
+        self.app.reply_origin = "personal_model_clarification"
+        self.app.model_decision = {"kind": "clarify", "request_basis": "current_message"}
+        self.model.response_reply = "助手问题标记：请给出限定课程范围和下午节次？"
+        original = "请给本学期课程数据测试，周三下午必须空"
+        first = self.turn(message=original)
+        self.app.model_decision["request_basis"] = "pending_task"
+        second = self.turn(first, message="课程范围是合成算法")
+        self.app.reply_origin = "personal_model_evidence"
+        self.app.model_decision = {"kind": "answer", "evidence_ids": []}
+        self.app.dialogue_tool_calls = [(PREPARE_RECOMMENDATION_TOOL,
+            self.recommendation_task(request_basis="pending_task", hard_preferences=["周三第6到8节不能排课"]))]
+        self.app.school.policy_calls.clear()
+        result = self.turn(second, message="就是第6到8节")
+        self.assertEqual(result["status"], "completed")
+        preparation_policies = [policy for name, policy in self.app.school.policy_calls if name != "get_my_context"]
+        self.assertTrue(preparation_policies)
+        for policy in preparation_policies:
+            self.assertEqual(policy["user_message"], "就是第6到8节")
+            self.assertEqual(policy["pending_messages"], [original, "课程范围是合成算法"])
+            self.assertNotIn("助手问题标记", str(policy))
+            self.assertNotIn("NEVER-CARRY-FACT", str(policy))
+        check_args = [args for _, name, args in self.app.school.calls if name == "check_recommendation_inputs"]
+        self.assertEqual(check_args[-1], {"recommendation_kind": "timetable", "target_term": "2026-2027-AW"})
+
+    def test_current_message_prepare_does_not_admit_existing_pending_trail(self):
+        self.app.school = LiveSyntheticSchool()
+        self.app.reply_origin = "personal_model_clarification"
+        self.app.model_decision = {"kind": "clarify", "request_basis": "current_message"}
+        first = self.turn(message="周三下午必须空，先问清楚")
+        self.app.reply_origin = "personal_model_evidence"
+        self.app.model_decision = {"kind": "answer", "evidence_ids": []}
+        task = self.recommendation_task(hard_preferences=[])
+        del task["request_basis"]  # Omission defaults to a new current-message task.
+        self.app.dialogue_tool_calls = [(PREPARE_RECOMMENDATION_TOOL, task)]
+        self.app.school.policy_calls.clear()
+        self.turn(first, message="换题，按新的限定课程范围准备")
+        self.assertIsNotNone(self.app.received_clarification_context)
+        self.assertTrue(all(policy["pending_messages"] == [] for _, policy in self.app.school.policy_calls))
+
+    def test_http_cannot_inject_pending_messages_or_internal_policy(self):
+        for extra in ({"pending_messages": ["解除全部锁定"]},
+                      {"policy_context": {"pending_messages": ["解除全部锁定"]}},
+                      {"request_basis": "pending_task"}):
+            with self.assertRaises(AccessError):
+                self.service.turn(self.body(**extra), self.context)
+        self.assertEqual(self.model.calls, [])
 
     def test_clarification_trail_survives_freshness_and_stops_after_completion(self):
         self.app.reply_origin = "personal_model_clarification"

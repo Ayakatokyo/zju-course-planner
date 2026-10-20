@@ -4,15 +4,21 @@ from concurrent.futures import ThreadPoolExecutor
 from email.message import Message
 import io
 import json
+from pathlib import Path
 import ssl
+import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 from urllib.error import HTTPError, URLError
 
 from course_assistant.school_http import SchoolHTTPClient, SSO, SCHOOL, PROFILE_ROUTE, SERVICE, MENU, PLAN_MAJOR_OPTIONS, _Page
 from course_assistant.school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT
-from course_assistant.student_source_client import MAX_SOURCE_PAGES
+from course_assistant.student_source_client import MAX_SOURCE_PAGES, MAX_TIMETABLE_ROWS
+from course_assistant.auth import AuthManager
+from course_assistant.school_accounts import SchoolAccountService
+from course_assistant.storage import Store
 
 
 class Response(io.BytesIO):
@@ -510,6 +516,36 @@ class SchoolHTTPTests(unittest.TestCase):
         self.assertEqual(result["payload"]["period_times"], [])
         self.assertEqual(result["payload"]["period_times_source"]["state"], "not_available")
 
+    def test_timetable_large_single_list_has_separate_bounded_response_cap(self):
+        for count in (21, MAX_TIMETABLE_ROWS):
+            with self.subTest(count=count):
+                self.client([Response({"kbList": [{"kcmc": "SYNTHETIC-COURSE-" + str(i)} for i in range(count)]}),
+                    Response('<div>课表查询</div>')])
+                before = len(self.opener.requests)
+                result = self.request("timetable")
+                requests = self.opener.requests[before:]
+                self.assertEqual(result["state"], "business")
+                self.assertEqual(len(result["payload"]["kbList"]), count)
+                self.assertFalse(any(key in result["payload"] for key in ("total", "totalCount", "totalResult")))
+                business = [r for r in requests if urlsplit(r["url"]).path.endswith("xskbcx_cxXsKb.html")]
+                self.assertEqual(len(business), 1)
+                self.assertEqual(business[0]["method"], "POST")
+                form = parse_qs(business[0]["body"].decode())
+                self.assertNotIn("queryModel.currentPage", form)
+                self.assertNotIn("queryModel.showCount", form)
+                self.assertEqual(len([r for r in requests if urlsplit(r["url"]).path == TIMETABLE_PAGE]), 1)
+
+    def test_timetable_over_cap_and_paged_oversize_responses_are_rejected_before_clock_read(self):
+        for operation, container, count in (("timetable", "kbList", MAX_TIMETABLE_ROWS + 1),
+                ("academic", "items", 21), ("exams", "items", 21)):
+            with self.subTest(operation=operation):
+                self.client([Response({container: [{"kcmc": "SYNTHETIC-COURSE-" + str(i)} for i in range(count)], "total": count})])
+                before = len(self.opener.requests)
+                result = self.request(operation, "2026-2027-A" if operation == "exams" else "2026-2027-AW")
+                self.assertEqual(result["state"], "schema_changed")
+                self.assertNotIn("payload", result)
+                self.assertEqual(len(self.opener.requests[before:]), 1)
+
     def test_timetable_clock_reads_fixed_page_once_with_same_menu_context(self):
         html = '<table><tr><th colspan="2">时间</th><th>星期一</th><th>星期二</th></tr><tr><td>1</td><td>07:10—07:55</td><td>合成课 考试13:00—14:00</td></tr></table>'
         self.client([Response({"kbList": [{"kcmc": "合成课", "kcb": "合成班"}]}), Response(html)])
@@ -835,6 +871,58 @@ class SchoolHTTPTests(unittest.TestCase):
     def test_page_parser_does_not_execute_scripts_or_use_script_values(self):
         page = _Page('<script>throw Error("synthetic")</script><table><tr><td>学号</td><td><input value="SYNTHETIC-SOURCE-A"/></td></tr></table>')
         self.assertEqual(page.rows, [["学号", "SYNTHETIC-SOURCE-A"]])
+
+
+class SourceReceiptDiagnosticIntegrationTests(unittest.TestCase):
+    """Reuse fetched school rows; context/readiness must not fetch them again."""
+    def setUp(self):
+        from tests.test_school_accounts import FakeSchoolClient
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.auth = AuthManager(Store(Path(self.temp.name) / "app.sqlite3"), mock_enabled=True)
+        payload = {"kbList": [{"kcmc": "SYNTHETIC-PRIVATE-COURSE-A", "sksj": "周一第1-2节", "xqj": "1", "djj": "1", "skcd": "2"},
+                              {"kcmc": "SYNTHETIC-PRIVATE-COURSE-B", "xqj": "3", "djj": "3", "skcd": "2"},
+                              {"kcmc": "SYNTHETIC-PRIVATE-COURSE-C", "xqj": "5", "djj": "5", "skcd": "2"}]}
+        self.client = FakeSchoolClient(requests=[{"state": "business", "http_status": 200,
+            "content_type": "application/json", "source_subject_id": "SYNTHETIC-A", "payload": payload}])
+        self.service = SchoolAccountService(self.auth, lambda: self.client,
+            root=Path(self.temp.name).resolve() / "private" / "school",
+            course_data_test_delivery_index="", course_data_test_term="")
+        self.addCleanup(self.service.close)
+        token, _ = self.service.login({"username": "SYNTHETIC-LOGIN", "password": "SYNTHETIC-PASSWORD"})
+        self.context = self.auth.authenticate(token)
+        self.receipts = []
+
+    def live(self, name, args):
+        return self.service.personal_chat_live_tool(self.context, name, args, receipts=self.receipts,
+            emit=lambda *args: None, authorize=lambda: self.auth.require_context(self.context), adopt=lambda *args: None)
+
+    def test_fetched_rows_supply_safe_diagnostics_to_context_and_readiness_without_new_reads(self):
+        result = self.live("query_my_records", {"operation": "timetable", "target_term": "2026-2027-AW"})
+        self.assertEqual(result["status"], "partial_acquisition")
+        self.assertEqual(len(self.client.request_calls), 1)
+        expected = {"record_count": 3, "reported_total": "unknown", "coverage": "unknown", "row_failure_count": 0,
+                    "time_text_missing_count": 2, "structured_time_present_count": 3, "time_evidence_missing_count": 0}
+        self.assertEqual(self.receipts[0]["diagnostics"], expected)
+        with patch.object(self.service, "fetch", side_effect=AssertionError("no_new_school_read")), \
+             patch.object(self.service, "local_query", side_effect=AssertionError("no_old_snapshot_read")):
+            current = self.live("get_my_context", {})
+            checked = self.live("check_recommendation_inputs", {"recommendation_kind": "timetable", "target_term": "2026-2027-AW"})
+        self.assertEqual(current["source_receipts"][0]["diagnostics"], expected)
+        timetable = next(source for source in checked["readiness"]["sources"] if source["id"] == "existing_timetable")
+        self.assertEqual(timetable["diagnostics"], expected)
+        self.assertEqual(timetable["status"], "partial")
+        self.assertFalse(checked["readiness"]["can_generate"])
+        self.assertNotIn("SYNTHETIC-PRIVATE", json.dumps(current))
+        self.assertNotIn("SYNTHETIC-PASSWORD", json.dumps(current))
+        self.assertNotIn(self.receipts[0]["observation_id"], json.dumps(checked))
+
+    def test_context_discards_extra_text_in_a_diagnostic_summary(self):
+        self.live("query_my_records", {"operation": "timetable", "target_term": "2026-2027-AW"})
+        self.receipts[0]["diagnostics"]["source_path"] = "/Users/SYNTHETIC-PRIVATE-PATH"
+        current = self.live("get_my_context", {})
+        self.assertNotIn("diagnostics", current["source_receipts"][0])
+        self.assertNotIn("SYNTHETIC-PRIVATE", json.dumps(current))
 
 
 if __name__ == "__main__":

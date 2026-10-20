@@ -134,7 +134,7 @@ const item=plain(`schoolTimetableMeetings(${seasonFixture})`)[0];assert.equal(it
 const inherited=plain(`schoolTimetableMeetings({records:[{time_raw:'周二第1节',xxq_raw:'秋、冬',field_states:{xxq_raw:'pending_verification'}}]})`)[0];assert.equal(inherited.scope,'秋、冬');
 for(const raw of ['1','秋冬1','秋冬课','<img src=x onerror=bad()>秋','unknown']){
  const items=plain(`schoolTimetableMeetings({records:[{time_raw:'周二第1节',xxq_raw:${JSON.stringify(raw)}}]})`);assert.equal(items[0].scope,'');
- const markup=evaluate(`schoolTimetableMarkup({records:[{course_name_raw:'合成无代码推断',time_raw:'周二第1节',xxq_raw:${JSON.stringify(raw)}}]})`);assert.doesNotMatch(markup,/分学期原文|school-meeting-scope|待核验|待确认|<img/);
+ const markup=evaluate(`schoolTimetableMarkup({records:[{course_name_raw:'合成无代码推断',time_raw:'周二第1节',xxq_raw:${JSON.stringify(raw)}}]})`);assert.doesNotMatch(markup,/<dt>分学期<\/dt>|school-meeting-scope|待核验|待确认|<img/);
 }
 const conflict=plain(`schoolTimetableMeetings({records:[{time_raw:'周二第1节',xxq_raw:'秋',meetings:[{weekday:2,periods:[1],xxq_raw:'冬',field_states:{xxq_raw:'conflicting'}}]}]})`)[0];assert.equal(conflict.scope,'');
 """)
@@ -156,7 +156,7 @@ context.timetable={operation:'timetable',target_term:'2025-2026-AW',records:[{co
 const exam={source_selection_id_raw:'SYNTHETIC-X',course_code_raw:'SYNTHETIC-C',final_exam_time_raw:'合成期末时间',final_exam_place_raw:'合成期末地点',midterm_exam_time_raw:'合成期中时间',midterm_exam_place_raw:null,exam_time_raw:'合成期末时间',field_states:{source_selection_id_raw:'known'}};
 context.examSources=[{operation:'exams',target_term:'2025-2026-A',status:'complete_within_scope',records:[exam,{...exam}]},{operation:'exams',target_term:'2025-2026-W',status:'partial_acquisition',records:[{...exam,final_exam_time_raw:'合成冬期末时间',exam_time_raw:'合成冬期末时间',midterm_exam_time_raw:null}]}];
 const linked=plain('schoolAttachRelatedExams(timetable,examSources)');assert.equal(linked.records.length,1);assert.equal(linked.records[0].related_exams.length,2);assert.deepEqual(linked.records[0].related_exams.map(exam=>exam.source_season),['A','W']);assert.equal(linked.records[0].time_raw,'周一第1节');assert.equal(linked.records[0].place_raw,'合成上课地点');assert.equal(linked.records[0].course_code_raw,'SYNTHETIC-C');assert.equal(context.timetable.records[0].related_exams,undefined);
-context.linked=linked;const markup=evaluate('schoolTimetableMarkup(linked)');assert.match(markup,/考试（秋）/);assert.match(markup,/考试（冬）/);assert.match(markup,/期末时间：合成期末时间/);assert.match(markup,/期中时间：合成期中时间/);assert.match(markup,/期末地点：合成期末地点/);assert.doesNotMatch(markup,/期中地点：|<br>考试时间：合成期末时间|待确认|无考试/);
+context.linked=linked;const markup=evaluate('schoolTimetableMarkup(linked)');assert.match(markup,/考试（秋）/);assert.match(markup,/考试（冬）/);assert.match(markup,/期末考试时间：合成期末时间/);assert.match(markup,/期中考试时间：合成期中时间/);assert.match(markup,/期末考试地点：合成期末地点/);assert.doesNotMatch(markup,/期中考试地点：|<br>考试时间：合成期末时间|待确认|无考试/);
 """)
 
     def test_related_exams_never_use_course_names_or_ambiguous_selection_ids(self):

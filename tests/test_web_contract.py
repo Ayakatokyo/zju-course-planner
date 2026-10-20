@@ -228,7 +228,7 @@ const markup=element('#panel-assistant').innerHTML;assert.match(markup,/本轮�
         self.run_js("""
 evaluate("state.boot={demo:{courses:[]}};state.agentTurns=[{message:'查询',status:'completed',reply_origin:'verified_tool_presentation',reply:'状态待确认',tool_results:[],citations:[]},{message:'继续',status:'completed',reply_origin:'verified_clarification_prompt',reply:'请选择课程范围',tool_results:[],citations:[]},{message:'计算',status:'failed',partial_tools_completed:true,reply:'模型后续调用失败',tool_results:[{name:'get_my_context',arguments:{},result:{data_kind:'synthetic'}}],citations:[]}];renderAssistant()");
 const markup=element('#panel-assistant').innerHTML;
-assert.ok(markup.includes('<strong>浙大教务助手</strong>'));assert.ok(markup.includes('<strong>待澄清</strong>'));assert.ok(markup.includes('<strong>本轮未完成</strong>'));assert.match(markup,/已完成的查询结果如下/);assert.match(markup,/模型后续调用失败/);
+assert.ok(markup.includes('<strong>浙大教务助手</strong>'));assert.ok(markup.includes('<strong>待澄清</strong>'));assert.ok(markup.includes('<strong>本轮未完成</strong>'));assert.match(markup,/本轮已完成的工具结果如下/);assert.match(markup,/模型后续调用失败/);
 """)
 
     def test_chat_transport_retry_reuses_request_id_and_malformed_result_is_rejected(self):
@@ -491,7 +491,7 @@ element('#school-login-password').value='fresh-password';element('#school-login-
 evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolOperation='academic'");
 element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';
 let sent;context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');assert.equal(options.headers['X-CSRF-Token'],'memory-only');sent=JSON.parse(options.body);return {ok:true,json:async()=>({operation:'academic',status:'partial',data_source:'live',coverage:'bounded',records:[{course_name_raw:'<unsafe>',grade_raw:'免修',nominal_credits:'2.5',earned_credits:null,completion_status:'unknown'}],issues:[{code:'unknown'}]})};};
-await evaluate('schoolSync()');assert.deepEqual(sent,{operation:'academic',target_term:'2026-2027-AW',force_refresh:true});const markup=element('#panel-school').innerHTML;assert.match(markup,/&lt;unsafe&gt;/);assert.match(markup,/免修/);assert.match(markup,/来源学分/);assert.match(markup,/部分读取/);assert.doesNotMatch(markup,/<unsafe>/);
+await evaluate('schoolSync()');assert.deepEqual(sent,{operation:'academic',target_term:'2026-2027-AW',force_refresh:true});const markup=element('#panel-school').innerHTML;assert.match(markup,/&lt;unsafe&gt;/);assert.match(markup,/免修/);assert.ok(markup.includes('<th scope="col">学分</th>'));assert.match(markup,/部分读取/);assert.doesNotMatch(markup,/<unsafe>/);
 element('#school-operation').value='exams';element('#school-year').value='2026-2027';element('#school-season').value='AW';sent=null;await evaluate('schoolSync()');assert.equal(sent,null);assert.match(element('#global-status').textContent,/请选择单独分学期/);
 """)
 
@@ -612,7 +612,7 @@ const markup=evaluate('schoolRecordTable(result)');assert.match(markup,/&lt;scri
         self.run_js(r"""
 context.result={operation:'major_academic',records:Array.from({length:16},(_,index)=>({course_name_raw:`SYNTHETIC-${index}`,course_code_raw:'REPEATED-COURSE',grade_raw:index===15?'90':null,nominal_credits:index===15?0:null,academic_year_raw:null,term_raw:'',completion_status_raw:'unknown'}))};
 let markup=evaluate('schoolRecordTable(result)');const header=markup.match(/<thead>([\s\S]*?)<\/thead>/)[1];
-assert.match(header,/课程/);assert.match(header,/成绩/);assert.match(header,/来源学分/);assert.doesNotMatch(header,/记录学年|来源学期|来源修读状态/);assert.doesNotMatch(markup,/school-grade-year|待确认|来源未提供/);
+assert.match(header,/课程/);assert.match(header,/成绩/);assert.match(header,/>学分<\/th>/);assert.doesNotMatch(header,/>学年<|>学期<|>修读状态<|来源|记录学年/);assert.doesNotMatch(markup,/school-grade-year|待确认|来源未提供/);
 assert.equal((markup.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g)||[]).length,15);assert.match(markup,/SYNTHETIC-0/);assert.match(markup,/SYNTHETIC-1/);
 evaluate("state.schoolGradeSearch='SYNTHETIC-0'");markup=evaluate('schoolRecordTable(result)');assert.match(markup.match(/<thead>([\s\S]*?)<\/thead>/)[1],/成绩/);assert.match(markup,/muted">—/);
 evaluate("state.schoolGradeSearch='';state.schoolGradePage=2");markup=evaluate('schoolRecordTable(result)');assert.match(markup,/SYNTHETIC-15/);assert.match(markup,/<td>0<\/td>/);assert.match(markup,/<td>90<\/td>/);
@@ -630,15 +630,15 @@ assert.equal((markup.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g)||[]).le
     def test_school_exam_columns_only_show_available_independent_fields(self):
         self.run_js(r"""
 context.result={operation:'exams',records:[{course_name_raw:'合成考试甲',final_exam_time_raw:'合成期末时间',final_exam_place_raw:null,midterm_exam_time_raw:'',midterm_exam_place_raw:null},{course_name_raw:'<img src=x onerror=bad()>',final_exam_time_raw:null,final_exam_place_raw:'合成期末地点',midterm_exam_time_raw:null,midterm_exam_place_raw:null}]};
-const markup=evaluate('schoolRecordTable(result)'),header=markup.match(/<thead>([\s\S]*?)<\/thead>/)[1];assert.match(header,/期末时间/);assert.match(header,/期末地点/);assert.doesNotMatch(header,/期中/);assert.match(markup,/合成期末时间/);assert.match(markup,/合成期末地点/);assert.match(markup,/muted">—/);
+const markup=evaluate('schoolRecordTable(result)'),header=markup.match(/<thead>([\s\S]*?)<\/thead>/)[1];assert.match(header,/期末考试时间/);assert.match(header,/期末考试地点/);assert.doesNotMatch(header,/期中/);assert.match(markup,/合成期末时间/);assert.match(markup,/合成期末地点/);assert.match(markup,/muted">—/);
 assert.doesNotMatch(markup,/待确认|没有考试|无考试|<img/);assert.match(markup,/&lt;img/);
-context.result={operation:'exams',records:[{course_name_raw:'合成未知考试',final_exam_time_raw:null,final_exam_place_raw:'',midterm_exam_time_raw:null,midterm_exam_place_raw:null}]};const empty=evaluate('schoolRecordTable(result)');assert.equal((empty.match(/<thead>[\s\S]*?<\/thead>/)[0].match(/<th /g)||[]).length,1);assert.match(empty,/合成未知考试/);assert.doesNotMatch(empty,/期末时间|期末地点|期中时间|期中地点|无考试|待确认/);
+context.result={operation:'exams',records:[{course_name_raw:'合成未知考试',final_exam_time_raw:null,final_exam_place_raw:'',midterm_exam_time_raw:null,midterm_exam_place_raw:null}]};const empty=evaluate('schoolRecordTable(result)');assert.equal((empty.match(/<thead>[\s\S]*?<\/thead>/)[0].match(/<th /g)||[]).length,1);assert.match(empty,/合成未知考试/);assert.doesNotMatch(empty,/期末考试时间|期末考试地点|期中考试时间|期中考试地点|无考试|待确认/);
 """)
 
     def test_school_profile_omits_empty_conflicting_and_unverified_fields(self):
         self.run_js(r"""
 context.result={operation:'profile',profile:{name:'合成姓名',cohort:2023,college_name:'合成学院',major_name:'不展示冲突专业',program:null,study_path_raw:'',major_or_category_raw:'不展示未核验分类',field_states:{major_name:'conflicting',major_or_category_raw:'pending_verification'}}};
-const markup=evaluate('schoolRecordTable(result)');assert.match(markup,/合成姓名|2023|合成学院/);assert.doesNotMatch(markup,/<dt>专业<\/dt>|培养项目|修读路径|类（专业）|待确认|不展示冲突专业|不展示未核验分类|<dt>学号<\/dt>/);
+const markup=evaluate('schoolRecordTable(result)');assert.match(markup,/合成姓名|2023|合成学院/);assert.doesNotMatch(markup,/<dt>专业名称<\/dt>|培养项目|修读路径|类（专业）|待确认|不展示冲突专业|不展示未核验分类|<dt>学号<\/dt>/);
 context.result={operation:'profile',profile:{name:null,cohort:null,program:null}};assert.match(evaluate('schoolRecordTable(result)'),/本次未返回可展示资料/);
 """)
 

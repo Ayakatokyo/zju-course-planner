@@ -18,6 +18,8 @@ MAX_TOOL_RESULTS = 64
 MAX_CONTEXT_BYTES = 10000
 MAX_CLARIFICATION_BYTES = 12000
 MAX_SUPPLEMENTS = 3
+MAX_RECOMMENDATION_BYTES = 4000
+PREPARE_RECOMMENDATION_TOOL = "prepare_recommendation_inputs"
 OPERATIONS = frozenset({"academic", "major_academic", "timetable", "exams"})
 RECORD_SUCCESS = frozenset({"complete_within_scope", "partial_acquisition"})
 SEARCH_SUCCESS = {
@@ -59,6 +61,171 @@ def _term(operation, value):
                 match[3] in ({"A", "W", "S", "SU"} if operation == "exams" else {"AW", "SS"}))
 
 
+def validate_recommendation_task(value):
+    """Admit bounded recommendation intent, never source facts or authority.
+
+    The model supplies the complete current task after resolving a follow-up
+    from the latest intent hint. Missing term or course scope requires a user
+    clarification; this helper does not infer a current year or fetch a whole
+    domain to compensate for an unresolved scope.
+    """
+    def invalid():
+        raise ValueError("invalid_recommendation_task")
+
+    required = {"recommendation_kind", "target_term", "course_scope", "hard_preferences"}
+    if (type(value) is not dict or not required <= set(value) or set(value) - required - {"check_exam_conflicts", "soft_preferences", "request_basis"}
+            or type(value["recommendation_kind"]) is not str
+            or value["recommendation_kind"] not in {"courses", "timetable"}
+            or type(value["target_term"]) is not str or not _term("academic", value["target_term"])
+            or type(value["course_scope"]) is not dict
+            or set(value["course_scope"]) != {"kind", "queries"}
+            or type(value["course_scope"]["kind"]) is not str
+            or value["course_scope"]["kind"] not in {"courses", "curriculum_module", "topic"}
+            or type(value["course_scope"]["queries"]) is not list
+            or not 1 <= len(value["course_scope"]["queries"]) <= MAX_TASKS
+            or any(_query(query, 100) is None for query in value["course_scope"]["queries"])
+            or len(set(value["course_scope"]["queries"])) != len(value["course_scope"]["queries"])
+            or type(value["hard_preferences"]) is not list or len(value["hard_preferences"]) > MAX_TASKS
+            or any(_query(preference, 200) is None for preference in value["hard_preferences"])
+            or len(set(value["hard_preferences"])) != len(value["hard_preferences"])
+            or type(value.get("soft_preferences", [])) is not list or len(value.get("soft_preferences", [])) > MAX_TASKS
+            or any(_query(preference, 200) is None for preference in value.get("soft_preferences", []))
+            or len(set(value.get("soft_preferences", []))) != len(value.get("soft_preferences", []))
+            or set(value["hard_preferences"]) & set(value.get("soft_preferences", []))
+            or type(value.get("request_basis", "current_message")) is not str
+            or value.get("request_basis", "current_message") not in {"current_message", "pending_task"}
+            or type(value.get("check_exam_conflicts", False)) is not bool
+            or value.get("check_exam_conflicts", False) and value["recommendation_kind"] != "timetable"):
+        invalid()
+    normalized = {**deepcopy(value), "check_exam_conflicts": value.get("check_exam_conflicts", False),
+                  "soft_preferences": deepcopy(value.get("soft_preferences", [])),
+                  "request_basis": value.get("request_basis", "current_message")}
+    if len(json.dumps(normalized, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > MAX_RECOMMENDATION_BYTES:
+        invalid()
+    return normalized
+
+
+def validate_task_progress(value):
+    """Validate service-computed progress; it never grants a capability.
+
+    Only the dialogue's selected typed evidence may produce this field. The
+    HTTP request and model final-answer schemas do not accept it. Formal
+    completion remains unavailable even when a course-data test produced a
+    useful limited result.
+    """
+    if value is None:
+        return None
+    allowed = {
+        ("prepared", "formal", "source_prepared"),
+        ("limited_result", "course_data_test", "test_result"),
+        ("blocked", "formal", "formal_dependencies_unverified"),
+        ("blocked", "formal", "source_unavailable"),
+        ("blocked", "course_data_test", "source_unavailable"),
+        ("blocked", "course_data_test", "test_result"),
+    }
+    if (type(value) is not dict or set(value) != {"kind", "status", "scope", "reason"}
+            or value["kind"] != "recommendation" or any(type(item) is not str for item in value.values())
+            or (value["status"], value["scope"], value["reason"]) not in allowed):
+        raise ValueError("invalid_task_progress")
+    return deepcopy(value)
+
+
+def _recommendation_task(name, arguments, result):
+    if (result.get("status") != "available" or result.get("check_executed") is not True
+            or type(result.get("readiness")) is not dict):
+        return None
+    if name == PREPARE_RECOMMENDATION_TOOL:
+        try:
+            task = validate_recommendation_task(arguments)
+        except ValueError:
+            return None
+    else:
+        if (set(arguments) - {"recommendation_kind", "target_term"}
+                or type(arguments.get("recommendation_kind")) is not str
+                or arguments["recommendation_kind"] not in {"courses", "timetable"}
+                or "target_term" in arguments and (type(arguments["target_term"]) is not str
+                    or not _term("academic", arguments["target_term"]))):
+            return None
+        task = {"recommendation_kind": arguments["recommendation_kind"], "target_term": arguments.get("target_term")}
+    from .recommendation_readiness import project_readiness_result
+    check_args = {"recommendation_kind": task["recommendation_kind"]}
+    if task["target_term"] is not None:
+        check_args["target_term"] = task["target_term"]
+    try:
+        project_readiness_result({"status": result["status"], "data_kind": result.get("data_kind"),
+            "check_executed": True, "readiness": result["readiness"]}, check_args)
+    except ValueError:
+        return None
+    return {"tool": name, **task}
+
+
+def validate_previous_preparation_context(value):
+    """Admit a historical preparation check, never a current source receipt."""
+    def invalid():
+        raise ValueError("invalid_previous_preparation_context")
+
+    if (type(value) is not dict or set(value) != {
+            "source", "historical_only", "fresh_sources_required", "readiness"}
+            or value["source"] != "previous_turn_preparation"
+            or value["historical_only"] is not True or value["fresh_sources_required"] is not True
+            or type(value["readiness"]) is not dict):
+        invalid()
+    readiness = value["readiness"]
+    arguments = {"recommendation_kind": readiness.get("recommendation_kind")}
+    if readiness.get("target_term") is not None:
+        arguments["target_term"] = readiness["target_term"]
+    from .recommendation_readiness import project_readiness_result
+    try:
+        checked = project_readiness_result({"status": "available", "data_kind": "personal_source",
+            "check_executed": True, "readiness": readiness}, arguments)
+        if len(json.dumps(checked, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > MAX_CONTEXT_BYTES:
+            invalid()
+    except (ValueError, TypeError, UnicodeError):
+        invalid()
+    return {"source": "previous_turn_preparation", "historical_only": True,
+        "fresh_sources_required": True, "readiness": checked}
+
+
+def previous_preparation_context(state):
+    """Keep only the latest blocked turn's last valid preparation check.
+
+    The caller owns authentication and conversation binding. Source bodies,
+    question text, scope queries and identities are excluded; this historical
+    check can explain a previous stop but cannot satisfy this turn's sources.
+    """
+    turns = state.get("turns") if type(state) is dict else None
+    if type(turns) is not list or not turns or type(turns[-1]) is not dict:
+        return None
+    turn = turns[-1]
+    if type(turn.get("status")) is not str or turn["status"] not in {"completed", "failed"}:
+        return None
+    blocked = turn.get("task_status") == "blocked"
+    if not blocked:
+        try:
+            progress = validate_task_progress(turn.get("task_progress"))
+        except ValueError:
+            return None
+        blocked = progress is not None and progress["status"] == "blocked"
+    rows = turn.get("tool_results")
+    if not blocked or type(rows) is not list:
+        return None
+    for row in reversed(rows[-MAX_TOOL_RESULTS:]):
+        if type(row) is not dict or row.get("error"):
+            continue
+        name, arguments, result = row.get("name"), row.get("arguments"), row.get("result")
+        if (type(name) is not str or name not in {"check_recommendation_inputs", PREPARE_RECOMMENDATION_TOOL}
+                or type(arguments) is not dict or type(result) is not dict
+                or result.get("query_executed") is False
+                or _recommendation_task(name, arguments, result) is None):
+            continue
+        try:
+            return validate_previous_preparation_context({"source": "previous_turn_preparation",
+                "historical_only": True, "fresh_sources_required": True, "readiness": result["readiness"]})
+        except ValueError:
+            continue
+    return None
+
+
 def _task(row):
     if not isinstance(row, dict) or row.get("error"):
         return None
@@ -66,6 +233,8 @@ def _task(row):
     if (not isinstance(name, str) or not isinstance(arguments, dict) or not isinstance(result, dict)
             or result.get("query_executed") is False):
         return None
+    if name in {"check_recommendation_inputs", PREPARE_RECOMMENDATION_TOOL}:
+        return _recommendation_task(name, arguments, result)
     if name == "query_my_records":
         if not isinstance(result.get("status"), str) or result["status"] not in RECORD_SUCCESS:
             return None
@@ -120,6 +289,20 @@ def validate_task_context(value):
                     or type(task["mode"]) is not str or task["mode"] not in {"summary", "records"}
                     or type(task["query"]) is not str or _query(task["query"], 100, empty=True) is None):
                 invalid()
+        elif tool == PREPARE_RECOMMENDATION_TOOL:
+            try:
+                intent = {key: item for key, item in task.items() if key != "tool"}
+                if validate_recommendation_task(intent) != intent:
+                    invalid()
+            except ValueError:
+                invalid()
+        elif tool == "check_recommendation_inputs":
+            if (set(task) != {"tool", "recommendation_kind", "target_term"}
+                    or type(task["recommendation_kind"]) is not str
+                    or task["recommendation_kind"] not in {"courses", "timetable"}
+                    or task["target_term"] is not None and (type(task["target_term"]) is not str
+                        or not _term("academic", task["target_term"]))):
+                invalid()
         elif tool in SEARCH_SUCCESS:
             maximum = 400 if tool == "search_my_curriculum" else 200
             if (set(task) != {"tool", "query"} or type(task["query"]) is not str
@@ -155,10 +338,17 @@ def previous_task_context(state):
         return None
     tasks, seen = [], set()
     truncated = len(rows) > MAX_TOOL_RESULTS
-    for row in reversed(rows[-MAX_TOOL_RESULTS:]):
-        task = _task(row)
-        if task is None:
-            continue
+    projected = [task for row in rows[-MAX_TOOL_RESULTS:] if (task := _task(row)) is not None]
+    prepared = {(task["recommendation_kind"], task["target_term"]) for task in projected
+                if task["tool"] == PREPARE_RECOMMENDATION_TOOL}
+    projected = [task for task in projected if task["tool"] != "check_recommendation_inputs"
+                 or (task["recommendation_kind"], task["target_term"]) not in prepared]
+    # A later source query/check refines a recommendation task; it must not
+    # erase that task's bounded scope or explicit preferences at the hint cap.
+    recommendation = next((task for task in reversed(projected)
+                           if task["tool"] in {PREPARE_RECOMMENDATION_TOOL, "check_recommendation_inputs"}), None)
+    candidates = ([recommendation] if recommendation is not None else []) + list(reversed(projected))
+    for task in candidates:
         key = json.dumps(task, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
         if key in seen:
             continue

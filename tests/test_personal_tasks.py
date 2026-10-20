@@ -5,7 +5,10 @@ import unittest
 
 from course_assistant.personal_tasks import (MAX_CONTEXT_BYTES, MAX_TASKS, MAX_SUPPLEMENTS,
     previous_task_context, validate_task_context, next_clarification_context,
-    previous_clarification_context, validate_clarification_context)
+    previous_clarification_context, validate_clarification_context, validate_recommendation_task,
+    PREPARE_RECOMMENDATION_TOOL, validate_task_progress, previous_preparation_context,
+    validate_previous_preparation_context)
+from course_assistant.recommendation_readiness import assess_recommendation_readiness
 
 
 def record(*, operation="academic", term="2023-2024-AW", query="", mode="summary", **patches):
@@ -19,6 +22,90 @@ def record(*, operation="academic", term="2023-2024-AW", query="", mode="summary
 
 def state(*rows, status="completed"):
     return {"turns": [{"status": status, "tool_results": list(rows)}]}
+
+
+def recommendation_task(**changes):
+    return {"recommendation_kind": "timetable", "target_term": "2026-2027-AW",
+            "course_scope": {"kind": "topic", "queries": ["数据分析"]},
+            "hard_preferences": ["周五不排课"], "soft_preferences": [], "check_exam_conflicts": False,
+            "request_basis": "current_message", **changes}
+
+
+def recommendation_row(name=PREPARE_RECOMMENDATION_TOOL, arguments=None):
+    arguments = recommendation_task() if arguments is None else arguments
+    check = {key: arguments[key] for key in ("recommendation_kind", "target_term") if key in arguments}
+    return {"name": name, "arguments": deepcopy(arguments), "result": {"status": "available",
+        "data_kind": "personal_source", "check_executed": True,
+        "readiness": assess_recommendation_readiness({}, **check)}}
+
+
+class PreviousPreparationContextTests(unittest.TestCase):
+    @staticmethod
+    def blocked(*rows, **changes):
+        return {"turns": [{"status": "completed", "task_status": "blocked", "tool_results": list(rows), **changes}]}
+
+    def test_previous_blocker_keeps_only_strict_historical_check_and_not_source_bodies(self):
+        row = recommendation_row()
+        row["result"].update(evidence_id="PRIVATE-EVIDENCE", prepared_sources=[{"result": {"records": ["PRIVATE-RECORD"]}}])
+        row["result"]["readiness"]["sources"][3].update(status="partial", diagnostics={
+            "record_count": 3, "reported_total": "unknown", "coverage": "unknown", "row_failure_count": 0,
+            "time_text_missing_count": 2, "structured_time_present_count": 0, "time_evidence_missing_count": 2})
+        source = self.blocked(row, user_message="PRIVATE-QUESTION", owner_student_id="PRIVATE-OWNER")
+        value = previous_preparation_context(source)
+        self.assertEqual(set(value), {"source", "historical_only", "fresh_sources_required", "readiness"})
+        self.assertTrue(value["historical_only"])
+        self.assertTrue(value["fresh_sources_required"])
+        self.assertEqual(value["readiness"]["sources"][3]["diagnostics"]["time_evidence_missing_count"], 2)
+        self.assertNotIn("PRIVATE-", json.dumps(value))
+        value["readiness"]["sources"][3]["diagnostics"]["record_count"] = 0
+        self.assertEqual(row["result"]["readiness"]["sources"][3]["diagnostics"]["record_count"], 3)
+
+    def test_latest_turn_only_and_latest_valid_check_are_used(self):
+        older = recommendation_row()
+        check = recommendation_row("check_recommendation_inputs", {"recommendation_kind": "courses"})
+        bad = deepcopy(older)
+        bad["result"]["readiness"]["can_generate"] = True
+        value = previous_preparation_context(self.blocked(older, check, bad))
+        self.assertEqual(value["readiness"]["recommendation_kind"], "courses")
+        self.assertIsNone(value["readiness"]["target_term"])
+        latest = self.blocked()["turns"][0]
+        self.assertIsNone(previous_preparation_context({"turns": [self.blocked(older)["turns"][0], latest]}))
+
+    def test_only_terminal_blocked_turns_provide_history_including_legacy_readiness(self):
+        row = recommendation_row()
+        for status in ("completed", "failed"):
+            value = previous_preparation_context(self.blocked(row, status=status))
+            self.assertEqual(value["readiness"], row["result"]["readiness"])
+        progress = {"kind": "recommendation", "status": "blocked", "scope": "formal", "reason": "source_unavailable"}
+        self.assertIsNotNone(previous_preparation_context(self.blocked(row, task_status="failed", task_progress=progress)))
+        for changes in ({"status": "running"}, {"status": "cancelled"}, {"task_status": "partial"},
+                        {"task_status": "completed", "task_progress": {"status": "blocked"}}):
+            self.assertIsNone(previous_preparation_context(self.blocked(row, **changes)))
+
+    def test_failed_or_inconsistent_tools_cannot_supply_previous_readiness(self):
+        for changes in ({"error": True}, {"arguments": {"recommendation_kind": "courses"}},
+                        {"name": "query_my_records"}):
+            row = recommendation_row()
+            row.update(changes)
+            self.assertIsNone(previous_preparation_context(self.blocked(row)))
+        row = recommendation_row()
+        row["result"]["query_executed"] = False
+        self.assertIsNone(previous_preparation_context(self.blocked(row)))
+        self.assertIsNone(previous_preparation_context({"turns": "PRIVATE-CORRUPT"}))
+
+    def test_validator_rejects_raw_fields_current_source_claims_and_changed_gates(self):
+        value = previous_preparation_context(self.blocked(recommendation_row()))
+        invalid = [None, {}, {**value, "historical_only": False}, {**value, "fresh_sources_required": False},
+            {**value, "source": "current_turn"}, {**value, "records": ["PRIVATE-RECORD"]}]
+        for field, replacement in (("can_generate", True), ("next_step", "PRIVATE-TEXT"),
+                                   ("owner_student_id", "PRIVATE-OWNER")):
+            altered = deepcopy(value)
+            altered["readiness"][field] = replacement
+            invalid.append(altered)
+        for altered in invalid:
+            with self.assertRaisesRegex(ValueError, "^invalid_previous_preparation_context$"):
+                validate_previous_preparation_context(altered)
+        self.assertEqual(validate_previous_preparation_context(value), value)
 
 
 class PersonalTaskTests(unittest.TestCase):
@@ -97,6 +184,127 @@ class PersonalTaskTests(unittest.TestCase):
         value["turns"].append({"status": "completed", "message": "换个话题", "tool_results": [
             {"name": "get_my_context", "arguments": {}, "result": {"status": "available"}}]})
         self.assertIsNone(previous_task_context(value))
+
+    def test_recommendation_task_keeps_goal_scope_and_explicit_preferences_without_readiness_facts(self):
+        row = recommendation_row()
+        row["result"].update(evidence_id="P-NEVER-CARRY", source_alias="SOURCE-NEVER-CARRY")
+        row["result"]["private_records"] = [{"grade_raw": "NEVER-CARRY"}]
+        value = previous_task_context(state(row))
+        self.assertEqual(value["tasks"], [{"tool": PREPARE_RECOMMENDATION_TOOL, **recommendation_task()}])
+        self.assertNotIn("NEVER-CARRY", json.dumps(value))
+        self.assertNotIn("readiness", json.dumps(value))
+        self.assertFalse(value["authorization_granted"])
+        self.assertTrue(value["fresh_sources_required"])
+
+    def test_check_only_task_stays_distinct_and_can_leave_term_unresolved(self):
+        for args in ({"recommendation_kind": "courses"},
+                     {"recommendation_kind": "timetable", "target_term": "2026-2027-AW"}):
+            hint = previous_task_context(state(recommendation_row("check_recommendation_inputs", args)))
+            self.assertEqual(hint["tasks"], [{"tool": "check_recommendation_inputs",
+                "recommendation_kind": args["recommendation_kind"], "target_term": args.get("target_term")}])
+            self.assertNotIn("course_scope", hint["tasks"][0])
+
+    def test_recheck_does_not_replace_prepared_intent_and_late_queries_cannot_erase_it(self):
+        prepared = recommendation_row()
+        check = recommendation_row("check_recommendation_inputs",
+            {"recommendation_kind": "timetable", "target_term": "2026-2027-AW"})
+        rows = [prepared, check] + [record(query=f"合成课程{index}") for index in range(MAX_TASKS)]
+        value = previous_task_context(state(*rows))
+        self.assertEqual(len(value["tasks"]), MAX_TASKS)
+        self.assertTrue(value["tasks_truncated"])
+        self.assertIn({"tool": PREPARE_RECOMMENDATION_TOOL, **recommendation_task()}, value["tasks"])
+        self.assertNotIn("check_recommendation_inputs", [task["tool"] for task in value["tasks"]])
+
+    def test_recommendation_execution_must_match_actual_kind_term_and_fixed_gates(self):
+        for key, changed in (("target_term", "2025-2026-AW"), ("recommendation_kind", "courses"),
+                             ("can_generate", True), ("can_save_or_export", True),
+                             ("status", "ready"), ("owner_student_id", "NEVER-CARRY")):
+            row = recommendation_row()
+            row["result"]["readiness"][key] = changed
+            self.assertIsNone(previous_task_context(state(row)))
+        failed = recommendation_row()
+        failed["error"] = True
+        self.assertIsNone(previous_task_context(state(failed)))
+
+    def test_recommendation_validator_requires_explicit_bounded_scope_and_safe_intent(self):
+        original = recommendation_task()
+        minimal = deepcopy(original)
+        del minimal["check_exam_conflicts"]
+        del minimal["soft_preferences"]
+        del minimal["request_basis"]
+        self.assertEqual(validate_recommendation_task(minimal), original)
+        for kind in ("courses", "curriculum_module", "topic"):
+            value = recommendation_task(course_scope={"kind": kind, "queries": ["合成范围"]})
+            detached = validate_recommendation_task(value)
+            detached["course_scope"]["queries"].append("changed")
+            self.assertEqual(value["course_scope"]["queries"], ["合成范围"])
+        invalid = [None, {}, recommendation_task(target_term=None), recommendation_task(target_term="本学期"),
+            recommendation_task(target_term="2026-2028-AW"), recommendation_task(check_exam_conflicts=1),
+            recommendation_task(recommendation_kind="courses", check_exam_conflicts=True),
+            recommendation_task(course_scope={"kind": "topic", "queries": []}),
+            recommendation_task(course_scope={"kind": "topic", "queries": ["范围"] * 2}),
+            recommendation_task(course_scope={"kind": "topic", "queries": [str(i) for i in range(7)]}),
+            recommendation_task(course_scope={"kind": "topic", "queries": ["Cookie: NEVER-CARRY"]}),
+            recommendation_task(hard_preferences=["/Users/NEVER-CARRY"]),
+            recommendation_task(hard_preferences=["同一条件"] * 2),
+            recommendation_task(hard_preferences=["条件"] * 7),
+            recommendation_task(soft_preferences=["Cookie: NEVER-CARRY"]),
+            recommendation_task(soft_preferences=["偏好"] * 7),
+            recommendation_task(soft_preferences=["尽量上午"] * 2),
+            recommendation_task(soft_preferences=["周五不排课"]),
+            recommendation_task(request_basis="previous_turn"), recommendation_task(request_basis=True),
+            recommendation_task(pending_messages=["不能由模型附带上一轮原话"]),
+            recommendation_task(authorization_granted=True), recommendation_task(records=[])]
+        for value in invalid:
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "^invalid_recommendation_task$"):
+                    validate_recommendation_task(value)
+
+    def test_recommendation_pending_basis_is_preserved_as_intent_and_never_embeds_history(self):
+        args = recommendation_task(request_basis="pending_task")
+        hint = previous_task_context(state(recommendation_row(arguments=args)))
+        self.assertEqual(hint["tasks"][0]["request_basis"], "pending_task")
+        self.assertNotIn("pending_messages", hint["tasks"][0])
+        self.assertFalse(hint["facts_reusable"])
+
+    def test_soft_preferences_remain_distinct_intent_and_never_become_hard(self):
+        args = recommendation_task(hard_preferences=[], soft_preferences=["尽量下午上课", "优先数据分析"])
+        value = previous_task_context(state(recommendation_row(arguments=args)))
+        self.assertEqual(value["tasks"][0]["hard_preferences"], [])
+        self.assertEqual(value["tasks"][0]["soft_preferences"], args["soft_preferences"])
+        self.assertFalse(value["facts_reusable"])
+
+    def test_task_progress_has_fixed_states_reasons_and_no_formal_completion(self):
+        self.assertIsNone(validate_task_progress(None))
+        for status, scope, reason in (("prepared", "formal", "source_prepared"),
+                ("limited_result", "course_data_test", "test_result"),
+                ("blocked", "formal", "formal_dependencies_unverified"),
+                ("blocked", "course_data_test", "source_unavailable")):
+            value = {"kind": "recommendation", "status": status, "scope": scope, "reason": reason}
+            copied = validate_task_progress(value)
+            self.assertEqual(copied, value)
+            self.assertIsNot(copied, value)
+        original = {"kind": "recommendation", "status": "limited_result", "scope": "course_data_test", "reason": "test_result"}
+        invalid = [[], {}, {**original, "status": "completed"}, {**original, "scope": "formal"},
+            {**original, "reason": "source_prepared"}, {**original, "reason": "Cookie: PRIVATE"},
+            {**original, "kind": "answer"}, {**original, "can_generate": True},
+            {**original, "reason": []}]
+        for value in invalid:
+            with self.assertRaisesRegex(ValueError, "^invalid_task_progress$"):
+                validate_task_progress(value)
+
+    def test_recommendation_context_rejects_extra_facts_or_noncanonical_normalized_intent(self):
+        value = previous_task_context(state(recommendation_row()))
+        invalid = []
+        for key, item in (("records", []), ("locked_section_ids", ["NEVER-CARRY"]),
+                          ("can_generate", True), ("target_term", "2026-2027-A")):
+            copied = deepcopy(value)
+            copied["tasks"][0][key] = item
+            invalid.append(copied)
+        copied = deepcopy(value)
+        del copied["tasks"][0]["check_exam_conflicts"]
+        invalid.append(copied)
+        self.assert_invalid_contexts(invalid)
 
     def test_failed_latest_uses_only_its_successful_queries(self):
         older = state(record(term="2022-2023-AW"))
