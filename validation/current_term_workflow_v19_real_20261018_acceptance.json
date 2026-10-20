@@ -1,0 +1,346 @@
+{
+  "schema": "v19-personal-three-turn-acceptance-bounded/1",
+  "recorded_at_utc": "2026-10-18T02:30:04.878723+00:00",
+  "tools_version": "personal-question-tools-v19-soft-additives-session-drafts",
+  "execution_kind": "authorized_current_term_historical_course_data_test",
+  "models_flash_only": true,
+  "runtime_source_count": 125,
+  "totals": {
+    "provider_attempts": 11,
+    "provider_results": 11,
+    "provider_http_200": 11,
+    "visible_reasoning_events": 11,
+    "retained_reasoning_chars": 11527,
+    "reasoning_truncated_events": 1,
+    "service_preflight_calls": 3,
+    "model_selected_tool_dispatches": 10,
+    "top_level_tool_results": 13,
+    "logical_school_reads": 6,
+    "argument_corrections": 0,
+    "final_format_repairs": 0
+  },
+  "actual_solver_executions": 3,
+  "logical_school_reads_by_operation": {
+    "major_academic": 3,
+    "curriculum": 3,
+    "timetable": 0,
+    "exams": 0
+  },
+  "plan_limits": {
+    "recommendation_kind": "courses",
+    "current_term": "2026-2027-AW",
+    "historical_course_observations_only": true,
+    "personal_timetable_compared": false,
+    "personal_exams_compared": false,
+    "latest_school_offerings_verified": false,
+    "formal_recommendation_enabled": false
+  },
+  "rounds": [
+    {
+      "turn": 1,
+      "status": "completed",
+      "task_status": "partial",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "counts": {
+        "provider_attempts": 3,
+        "provider_results": 3,
+        "provider_http_200": 3,
+        "visible_reasoning_events": 3,
+        "retained_reasoning_chars": 2666,
+        "reasoning_truncated_events": 0,
+        "service_preflight_calls": 1,
+        "model_selected_tool_dispatches": 4,
+        "top_level_tool_results": 5,
+        "logical_school_reads": 2,
+        "argument_corrections": 0,
+        "final_format_repairs": 0
+      },
+      "logical_school_reads_by_operation": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "model_tool_sequence": [
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "generate_current_term_plan",
+        "search_my_curriculum"
+      ],
+      "search_returned_candidates": 10,
+      "generation_input_pool": 10,
+      "delivered_distinct_courses": 4,
+      "plan": {
+        "options": 3,
+        "revision": 0,
+        "locks": 0,
+        "fixed_count": 0,
+        "busy_count": 0,
+        "target_credits": "6",
+        "max_credits": null,
+        "friday_free": "soft",
+        "required_course_count": 0,
+        "soft_scopes": [
+          {
+            "weekday": 5,
+            "periods": null
+          }
+        ],
+        "soft_violation_counts": [
+          0,
+          0,
+          0
+        ],
+        "unhandled_soft_count": 0,
+        "all_locks_present_in_every_option": true,
+        "all_locked_flags_match": true,
+        "all_full_semantics_unverified": true,
+        "same_plan_data_as_previous": null
+      }
+    },
+    {
+      "turn": 2,
+      "status": "completed",
+      "task_status": "partial",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "counts": {
+        "provider_attempts": 5,
+        "provider_results": 5,
+        "provider_http_200": 5,
+        "visible_reasoning_events": 5,
+        "retained_reasoning_chars": 2923,
+        "reasoning_truncated_events": 0,
+        "service_preflight_calls": 1,
+        "model_selected_tool_dispatches": 4,
+        "top_level_tool_results": 5,
+        "logical_school_reads": 2,
+        "argument_corrections": 0,
+        "final_format_repairs": 0
+      },
+      "logical_school_reads_by_operation": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "model_tool_sequence": [
+        "get_current_term_plan",
+        "update_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "search_returned_candidates": null,
+      "generation_input_pool": null,
+      "delivered_distinct_courses": 5,
+      "plan": {
+        "options": 3,
+        "revision": 1,
+        "locks": 1,
+        "fixed_count": 0,
+        "busy_count": 0,
+        "target_credits": "6",
+        "max_credits": null,
+        "friday_free": "hard",
+        "required_course_count": 0,
+        "soft_scopes": [],
+        "soft_violation_counts": [
+          0,
+          0,
+          0
+        ],
+        "unhandled_soft_count": 0,
+        "all_locks_present_in_every_option": true,
+        "all_locked_flags_match": true,
+        "all_full_semantics_unverified": true,
+        "same_plan_data_as_previous": true
+      }
+    },
+    {
+      "turn": 3,
+      "status": "completed",
+      "task_status": "partial",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "counts": {
+        "provider_attempts": 3,
+        "provider_results": 3,
+        "provider_http_200": 3,
+        "visible_reasoning_events": 3,
+        "retained_reasoning_chars": 5938,
+        "reasoning_truncated_events": 1,
+        "service_preflight_calls": 1,
+        "model_selected_tool_dispatches": 2,
+        "top_level_tool_results": 3,
+        "logical_school_reads": 2,
+        "argument_corrections": 0,
+        "final_format_repairs": 0
+      },
+      "logical_school_reads_by_operation": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "model_tool_sequence": [
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "search_returned_candidates": null,
+      "generation_input_pool": null,
+      "delivered_distinct_courses": 5,
+      "plan": {
+        "options": 3,
+        "revision": 2,
+        "locks": 1,
+        "fixed_count": 0,
+        "busy_count": 0,
+        "target_credits": "6",
+        "max_credits": null,
+        "friday_free": "hard",
+        "required_course_count": 0,
+        "soft_scopes": [
+          {
+            "weekday": 4,
+            "periods": null
+          }
+        ],
+        "soft_violation_counts": [
+          0,
+          0,
+          1
+        ],
+        "unhandled_soft_count": 1,
+        "all_locks_present_in_every_option": true,
+        "all_locked_flags_match": true,
+        "all_full_semantics_unverified": true,
+        "same_plan_data_as_previous": true
+      }
+    }
+  ],
+  "round2_preparation_recovery": {
+    "initial_reason": "source_preparation_required",
+    "initial_status": "not_ready",
+    "initial_required_sources_missing": true,
+    "initial_update_did_not_enter_solver": true,
+    "initial_no_options": true,
+    "initial_previous_plan_revision_locks_preserved": true,
+    "actual_order": [
+      "context_preflight",
+      "get_current_plan",
+      "update_rejected_pending_sources",
+      "prepare_current_sources",
+      "retry_same_update"
+    ],
+    "retry_arguments_exact_equal": true,
+    "retry_status": "available",
+    "retry_revision": 1,
+    "lock_count": 1,
+    "lock_is_prior_option_A_requested_item": true,
+    "final_option_count": 3,
+    "is_parameter_or_final_format_repair": false
+  },
+  "round3_actual_ranking": {
+    "same_plan_and_data": true,
+    "same_locked_classes": true,
+    "all_options_preserve_locks": true,
+    "hard_friday_preserved": true,
+    "friday_observed_meeting_counts": [
+      0,
+      0,
+      0
+    ],
+    "target_max_required_and_fixed_conditions_preserved": true,
+    "fixed_and_busy_counts_preserved": true,
+    "same_three_retained_option_memberships": true,
+    "previous_labels_in_new_order": [
+      "B",
+      "C",
+      "A"
+    ],
+    "executed_soft_empty_time_ranges": [
+      {
+        "weekday": 4,
+        "periods": null
+      }
+    ],
+    "actual_violation_counts": [
+      0,
+      0,
+      1
+    ],
+    "counts_recomputed_from_visible_classes": true,
+    "top_level_result_matches_actual_final_T": true,
+    "fresh_personal_input_digest_changed": true,
+    "egress_unchanged": true,
+    "authenticated_generation_unchanged": true,
+    "all_versions_unchanged_claimed": false
+  },
+  "stale_friday_soft_message_failure": {
+    "observed": true,
+    "unhandled_count": 1,
+    "executable_soft_friday": false,
+    "unresolved_hard_count": 0,
+    "hard_friday_was_not_relaxed": true,
+    "unanchored_model_item_misrepresented_as_unhandled_user_preference": true,
+    "user_experience_accepted": false,
+    "later_candidate_fix_applied_to_this_evidence": false
+  },
+  "source_checks": {
+    "observations": 3,
+    "row_counts_by_read": [
+      104,
+      104,
+      104
+    ],
+    "unknown_grade_field_counts_by_read": [
+      63,
+      63,
+      63
+    ],
+    "raw_registered_grade_fields_absent_or_empty_by_read": [
+      63,
+      63,
+      63
+    ],
+    "all_source_integrity_checks_pass": true,
+    "projection_loss_observed": false,
+    "unregistered_grade_field_meaning_inferred": false,
+    "old_snapshot_used_as_current_fallback": false
+  },
+  "curriculum_checks": {
+    "current_pdf_reads": 3,
+    "distinct_current_pdf_count": 3,
+    "all_current_pdf_byte_page_span_checks_pass": true,
+    "actual_first_turn_excerpt_citations": 2,
+    "all_excerpt_evidence_ids_found_in_actual_tool_matches": true,
+    "all_typed_T_proofs_match_actual_tool_results": true,
+    "pdf_layout_human_reviewed": false,
+    "complete_answer_support_semantics_human_reviewed": false,
+    "identity_or_applicability_verified": false
+  },
+  "post_refresh": {
+    "same_three_runs": true,
+    "same_turn_order_and_results": true,
+    "active_plan_unchanged": true,
+    "no_pending_request": true,
+    "counts": {
+      "runs": 3,
+      "provider_starts": 11,
+      "provider_results": 11,
+      "model_tool_dispatches": 10,
+      "logical_school_reads": 6
+    },
+    "new_persisted_chat_business_calls": 0,
+    "no_new_bound_generation_observation_files": true,
+    "counter_boundary": "Persisted chat provider and logical school source events; excludes login and bootstrap HTTP.",
+    "UI_state_evidence": "root_actual_UI_observation",
+    "independent_auditor_operated_UI": false,
+    "draft_restored_send_enabled": true,
+    "auto_send_observed": false
+  },
+  "all_rounds_claimed_complete_success": false,
+  "full_semantics": "not_accepted",
+  "formal_curriculum_applicability": "not_accepted",
+  "formal_recommendation": "not_accepted",
+  "user_acceptance": "not_obtained",
+  "new_model_school_or_network_calls_by_auditor": 0,
+  "private_values_or_locators_exported": false,
+  "frozen_backend_code_hashes_match_runtime": true,
+  "UI_static_followup_validated_separately": true
+}

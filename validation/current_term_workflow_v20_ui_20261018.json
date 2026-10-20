@@ -1,0 +1,47 @@
+{
+  "schema": "v20-real-ui-observations/1",
+  "recorded_at_utc": "2026-10-18T02:38:07.229160+00:00",
+  "application_port": 18875,
+  "tools_version": "personal-question-tools-v20-trusted-soft-requirements",
+  "engineering_receipt": "current_term_workflow_v20_20261018_validation.json",
+  "all_125_current_source_hashes_match": true,
+  "actual_served_js_matches": true,
+  "actual_browser_observations": {
+    "same_conversation_three_turn_history_restored_with_unsent_followup": true,
+    "restored_send_enabled": true,
+    "auto_send_observed": false,
+    "three_terminal_processes_collapsed": true,
+    "latest_option_count": 1,
+    "locked_class_count": 1,
+    "hard_friday_preserved": true,
+    "soft_thursday_visible": true,
+    "stale_model_friday_unhandled_warning_visible": false,
+    "desktop": {
+      "css_width": 1280,
+      "css_height": 960,
+      "horizontal_overflow": false,
+      "composer_visible": true
+    },
+    "narrow": {
+      "css_width": 390,
+      "css_height": 844,
+      "horizontal_overflow": false,
+      "composer_visible": true,
+      "restored_draft_present": true,
+      "send_enabled": true
+    },
+    "root_owned_test_draft_cleared": true,
+    "draft_clear_status_hidden": true,
+    "original_desktop_restored": true
+  },
+  "evidence": "actual screenshots and root browser observations retained privately",
+  "not_verified": [
+    "physical_phone",
+    "forced_close_last_unconfirmed_characters",
+    "restore_after_service_restart",
+    "all_network_failure_and_multi_tab_draft_cases"
+  ],
+  "private_values_or_locators_exported": false,
+  "full_semantics": "not_accepted",
+  "user_acceptance": "not_obtained"
+}

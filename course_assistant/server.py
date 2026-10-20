@@ -97,6 +97,7 @@ class Application:
         return self.school
 
     def close(self):
+        self.personal_chat.drafts.close()
         if self.school:
             self.school.close()
 
@@ -256,6 +257,7 @@ class Application:
             if path == '/api/bootstrap':
                 return {'identity': context.identity(), 'school': self.require_school().status(context),
                         'source': {}, 'demo': {}, 'saved_plans': [], 'versions': {},
+                        'drafts': {'available': True, 'storage': 'server_session_memory', 'max_chars': 2000, 'ttl_seconds': 1800},
                         'chat': self.personal_chat.status(context)}
             if path == '/api/school/status':
                 return self.require_school().status(context)
@@ -265,6 +267,8 @@ class Application:
                 return []
             if path == '/api/chat/status':
                 return self.personal_chat.status(context)
+            if path == '/api/chat/draft':
+                return self.personal_chat.read_draft(context)
             if path == '/api/chat/models':
                 return self.personal_chat.models(context)
             if parsed.path == '/api/chat/runs':
@@ -280,6 +284,8 @@ class Application:
                     raise AccessError('历史列表只接受单个 limit 数量', 400, 'invalid_chat_limit')
                 return self.personal_chat.conversations(context, limit=int(query.get('limit', ['50'])[0]))
             raise AccessError('本人教务数据尚未形成可执行推荐输入', 409, 'real_recommendation_not_ready')
+        if parsed.path == '/api/chat/draft':
+            raise AccessError('请先连接学校本人账号', 403, 'school_connection_required')
         if parsed.path == '/api/chat/conversations':
             query = parse_qs(parsed.query, keep_blank_values=True)
             if (set(query) - {'limit'} or len(query.get('limit', ['50'])) != 1
@@ -306,6 +312,8 @@ class Application:
                 return self.require_school().local_query(context, path, body)
             if path == '/api/chat/turn':
                 return self.personal_chat.turn(body, context)
+            if path == '/api/chat/draft':
+                return self.personal_chat.write_draft(body, context)
             if path == '/api/chat/history':
                 return self.personal_chat.history(body, context)
             if path == '/api/chat/settings':
@@ -330,6 +338,8 @@ class Application:
                 require(set(body) == {'source_alias'}, '仅接受本人方案引用')
                 return self.require_school().read_plan_document(context, body['source_alias']), 'application/pdf', 'pdf'
             raise AccessError('本人教务数据尚未形成可执行推荐输入', 409, 'real_recommendation_not_ready')
+        if path == '/api/chat/draft':
+            raise AccessError('请先连接学校本人账号', 403, 'school_connection_required')
         # The HTTP handler deliberately invokes these outside the global lock.
         # ChatService authorizes each short database/tool phase independently.
         if path == '/api/chat/turn':
@@ -477,7 +487,7 @@ def make_handler(app):
                         app.auth.require_context(context)
                         self.response(result)
                     return
-                if path in {'/api/bootstrap', '/api/chat/status', '/api/chat/conversations', '/api/chat/models', '/api/chat/runs'}:
+                if path in {'/api/bootstrap', '/api/chat/status', '/api/chat/conversations', '/api/chat/models', '/api/chat/runs', '/api/chat/draft'}:
                     context = self.context()
                     if context.auth_mode == SCHOOL_MODE:
                         result = app.get(self.path if parsed.query else path, context)

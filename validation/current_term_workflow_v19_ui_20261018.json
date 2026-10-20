@@ -1,0 +1,41 @@
+{
+  "schema": "v19-real-ui-observations/1",
+  "recorded_at_utc": "2026-10-18T02:26:53.695233+00:00",
+  "application_port": 18875,
+  "engineering_receipt": "current_term_workflow_v19_ui_followup_20261018_validation.json",
+  "actual_browser_observations": {
+    "initial_refresh_restored_unsent_text": true,
+    "initial_send_button_disabled_failure_preserved": true,
+    "after_ui_fix_restored_send_enabled": true,
+    "same_conversation_three_turn_history_restored_with_unsent_followup": true,
+    "sent_messages_not_restored_as_unsent": true,
+    "three_terminal_processes_collapsed": true,
+    "third_main_request_record_expanded_and_collapsed": true,
+    "desktop": {
+      "css_width": 2400,
+      "css_height": 1161,
+      "horizontal_overflow": false
+    },
+    "narrow": {
+      "css_width": 390,
+      "css_height": 843,
+      "horizontal_overflow": false,
+      "composer_visible": true,
+      "restored_text_present": true,
+      "send_enabled": true
+    },
+    "desktop_restored": true,
+    "root_owned_test_draft_cleared": true
+  },
+  "visible_remaining_issue": "模型夹带旧软偏好未执行，但仍被展示为未处理用户偏好；原画面保留",
+  "evidence": "actual screenshots and original local UI observations retained privately",
+  "not_verified": [
+    "physical_phone",
+    "forced_close_last_unconfirmed_characters",
+    "restore_after_service_restart",
+    "all_network_failure_and_multi_tab_draft_cases"
+  ],
+  "private_material_exported": false,
+  "full_semantics": "not_accepted",
+  "user_acceptance": "not_obtained"
+}
