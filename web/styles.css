@@ -271,6 +271,19 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .personal-citation-context { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 12px 0; }
 .personal-citation-context dt { color: var(--muted); font-size: 0.875rem; }
 .personal-citation-context dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.personal-course-plans { min-width: 0; margin-top: 24px; }
+.personal-course-plans > h3 { margin: 0 0 8px; font-size: 1rem; }
+.personal-course-plans > p { margin: 8px 0; }
+.personal-plan-option { min-width: 0; margin: 16px 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--control-radius); }
+.personal-plan-option h4 { margin: 0; font-size: 0.9375rem; }
+.personal-plan-option > p { font-size: 0.875rem; }
+.personal-plan-classes { margin: 12px 0 0; padding: 0; list-style: none; }
+.personal-plan-classes > li { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 8px 18px; padding: 12px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.personal-plan-classes > li > p { margin: 0; font-size: 0.875rem; }
+.personal-plan-course-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.personal-plan-course-heading > strong { font-size: 0.875rem; }
+.personal-plan-next { font-size: 0.875rem; }
+@media (max-width: 700px) { .personal-plan-classes > li { grid-template-columns: minmax(0,1fr); } }
 .agent-tool-card { min-width: 0; margin-top: 20px; }
 .agent-card-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .agent-plan, .agent-comparison-item { min-width: 0; margin-top: 24px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }

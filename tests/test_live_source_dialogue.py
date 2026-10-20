@@ -342,13 +342,33 @@ class LiveSourceDialogueTests(unittest.TestCase):
     def test_catalog_only_turn_rejects_model_attempts_to_read_personal_sources(self):
         for name, args in (("query_my_records", {"operation": "major_academic", "mode": "summary"}),
                            ("search_my_curriculum", {"query": "专业选修"})):
-            with self.subTest(tool=name):
-                self.executed = []
-                response, _, model = self.run_protocol([call(name, args)], question="只查本地课程目录中的合成算法")
-                self.assertEqual((response["status"], response["code"]), ("failed", "tool_not_allowed"))
-                self.assertEqual([tool_name for tool_name, _ in self.executed], ["get_my_context"])
-                self.assertEqual({tool["function"]["name"] for tool in model.calls[0][1]},
-                                 {"get_my_context", "search_course_catalog"})
+            for repair, succeeds in ((final({"kind": "not_ready", "reason": "insufficient_evidence"}), True),
+                                     (call(name, args), False)):
+                with self.subTest(tool=name, repair_succeeds=succeeds):
+                    self.executed = []
+                    response, history, model = self.run_protocol([call(name, args), repair],
+                        question="只查本地课程目录中的合成算法")
+                    if succeeds:
+                        self.assertEqual(response["status"], "completed")
+                        self.assertEqual(response["model_decision"]["kind"], "not_ready")
+                        self.assertEqual(response["citations"], [])
+                    else:
+                        self.assertEqual((response["status"], response["code"]), ("failed", "tool_not_allowed"))
+                        self.assertEqual(history, [])
+                    self.assertEqual(response["repair_attempts"], 1)
+                    self.assertEqual(len(model.calls), 2)
+                    self.assertEqual(model.calls[-1][1], [])
+                    self.assertEqual([tool_name for tool_name, _ in self.executed], ["get_my_context"])
+                    self.assertEqual([row["name"] for row in response["tool_results"]], ["get_my_context"])
+                    self.assertTrue(all(c["kind"] == "context" for c in response["citations"]))
+                    self.assertEqual({tool["function"]["name"] for tool in model.calls[0][1]},
+                                     {"get_my_context", "search_course_catalog"})
+                    self.assertEqual(response["validation_diagnostics"][0]["failure_detail"], "undeclared_tool_call")
+                    retained = json.dumps([model.calls[-1][0], history, response["validation_diagnostics"]],
+                        ensure_ascii=False)
+                    self.assertNotIn("PRIVATE-SYNTHETIC-CURRICULUM-REF", retained)
+                    self.assertNotIn("OBS-PRIVATE-SYNTHETIC", retained)
+                    self.assertNotIn("合成课程0", retained)
 
 
 if __name__ == "__main__":

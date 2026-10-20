@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 from course_assistant.personal_evidence import PersonalEvidenceError, PersonalEvidenceService
 from course_assistant import personal_evidence as evidence
+from course_assistant import semantic_retrieval as semantic
 
 
 def synthetic_pdf(page_texts):
@@ -471,6 +472,150 @@ class PersonalEvidenceTests(unittest.TestCase):
         self.assertIn("10学分", result["matches"][0]["model_text"])
         self.assertTrue(all(row["module_title"] == "专业选修课程" for row in result["matches"]))
         self.assertNotIn("创新创业", "".join(row["model_text"] for row in result["matches"]))
+
+    def synthetic_semantic_status(self):
+        return {"status": "available", "reason": None, "model_id": semantic.MODEL_ID,
+                "revision": semantic.MODEL_REVISION, "dimension": semantic.DIMENSION,
+                "artifact_sha256": "a" * 64, "manifest_sha256": "b" * 64}
+
+    @staticmethod
+    def synthetic_vectors(texts, **_kwargs):
+        # Explicit boundary double; actual BGE vectors are tested separately.
+        vectors = [[1.0] + [0.0] * (semantic.DIMENSION - 1)]
+        vectors.extend(([1.0] if "体育" in text else [-1.0]) + [0.0] * (semantic.DIMENSION - 1)
+                       for text in texts[1:])
+        return {"status": "available", "vectors": vectors, "token_truncated_count": 0,
+                "identity": {"artifact_sha256": "a" * 64, "manifest_sha256": "b" * 64, "revision": semantic.MODEL_REVISION}}
+
+    def test_hybrid_uses_zero_lexical_current_document_candidates_with_original_citations(self):
+        self.pages = ["体育课程修读要求：学生每学年应修读一门体育课程。\n\n"
+                      "高等数学学习微积分和线性代数。\n\n考试安排包含时间和地点。\n"]
+        original = deepcopy(self.pages)
+        self.prepare()
+        lexical = self.service.search("运动课一年要上几次")
+        self.assertEqual(lexical["matches"], [])
+        retriever = self.service._semantic_retriever
+        with patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
+                retriever, "_run_encoder", side_effect=self.synthetic_vectors) as encode:
+            result = self.service.search("运动课一年要上几次", limit=3)
+        self.assertTrue(result["semantic_retrieval"]["dense_used"])
+        self.assertEqual(result["retrieval_mode"], "hybrid_rrf_local_embedding")
+        self.assertEqual(result["search_candidate_count"], len(encode.call_args.args[0]) - 1)
+        first = result["matches"][0]
+        self.assertIn("体育课程", first["text"])
+        self.assertEqual(self.service.resolve(first["reference"])["text"], first["text"])
+        self.assertFalse(first["answer_support_verified"])
+        self.assertFalse(first["official_rule_enabled"])
+        self.assertEqual(self.pages, original)
+        for path in self.root.rglob("*.json"):
+            self.assertNotIn('"vectors"', path.read_text())
+
+    def test_exact_code_bypasses_dense_even_when_encoder_configured(self):
+        self.prepare()
+        retriever = self.service._semantic_retriever
+        with patch.object(retriever, "rank", side_effect=AssertionError("exact code must not encode")):
+            result = self.service.search("061B0010")
+        self.assertEqual(result["retrieval_mode"], "exact_course_code_text")
+        self.assertFalse(result["semantic_retrieval"]["dense_used"])
+        self.assertEqual(result["semantic_retrieval"]["reason"], "exact_course_code_route")
+        self.assertEqual(len(result["matches"]), 1)
+        self.assertNotIn("061B00100", result["matches"][0]["text"])
+
+    def test_named_module_filter_precedes_dense_candidate_projection(self):
+        self.pages = ["1. 通识课程 12学分\n\n(1) 创新创业类 2学分\n通识示例内容。\n\n"
+                      "2. 专业课程 40学分\n\n(1) 专业必修课程 30学分\n必修示例内容。\n\n"
+                      "(2) 专业选修课程 10学分\n在以下课程中选修。\n\n课程号 课程名称 学分\n"
+                      "SYN2002M 合成管理课程 3\n"]
+        self.prepare()
+        retriever = self.service._semantic_retriever
+        with patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
+                retriever, "_run_encoder", side_effect=self.synthetic_vectors) as encode:
+            result = self.service.search("专业选修有哪些学分要求")
+        self.assertTrue(result["named_module_filter_applied"])
+        passages = encode.call_args.args[0][1:]
+        self.assertTrue(passages)
+        self.assertNotIn("创新创业", "".join(passages))
+        self.assertNotIn("必修示例", "".join(passages))
+        self.assertTrue(all(row["module_title"] == "专业选修课程" for row in result["matches"]))
+
+    def test_dense_unavailability_preserves_original_lexical_matches_and_reports_failure(self):
+        self.prepare()
+        baseline = self.service.search("专业模块课程学分")
+        self.assertEqual(baseline["semantic_retrieval"]["status"], "not_configured")
+        retriever = self.service._semantic_retriever
+        with patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
+                retriever, "_run_encoder", side_effect=semantic._Unavailable("runtime_dependencies_missing")):
+            result = self.service.search("专业模块课程学分")
+        self.assertEqual(result["matches"], baseline["matches"])
+        self.assertEqual(result["retrieval_mode"], "lexical_han_bigram")
+        self.assertEqual(result["semantic_retrieval"]["status"], "unavailable")
+        self.assertEqual(result["semantic_retrieval"]["reason"], "runtime_dependencies_missing")
+        self.assertFalse(result["semantic_retrieval"]["dense_used"])
+
+    def test_authorization_source_hash_and_generation_fail_before_encoding(self):
+        self.prepare()
+        retriever = self.service._semantic_retriever
+        original_scope, original_body = self.scope, self.body
+        for failure in ("revoked", "bytes_changed", "owner_changed"):
+            with self.subTest(failure=failure), patch.object(retriever, "rank") as rank:
+                if failure == "revoked":
+                    self.denied, code = True, "grant_revoked"
+                elif failure == "bytes_changed":
+                    self.body, code = b"%PDF-1.4\nSYNTHETIC-CHANGED\n%%EOF\n", "stale_input"
+                else:
+                    self.scope, code = "SYNTHETIC-OWNER-B:another-generation", "evidence_not_prepared"
+                self.assert_code(code, lambda: self.service.search("培养要求"))
+                rank.assert_not_called()
+            self.denied, self.scope, self.body = False, original_scope, original_body
+
+    def test_identity_or_source_change_during_encoding_cannot_return_old_citations(self):
+        self.prepare()
+        retriever = self.service._semantic_retriever
+        original_scope, original_body, original_metadata = self.scope, self.body, deepcopy(self.metadata)
+        for failure in ("revoked", "bytes_changed", "owner_changed", "metadata_changed"):
+            def changing_encode(texts, **_kwargs):
+                if failure == "revoked":
+                    self.denied = True
+                elif failure == "bytes_changed":
+                    self.body = b"%PDF-1.4\nSYNTHETIC-CHANGED\n%%EOF\n"
+                elif failure == "owner_changed":
+                    self.scope = "SYNTHETIC-OWNER-B:another-generation"
+                else:
+                    self.metadata["sha256"] = "b" * 64
+                return self.synthetic_vectors(texts)
+            code = {"revoked": "grant_revoked", "bytes_changed": "stale_input",
+                    "owner_changed": "source_authorization_changed", "metadata_changed": "stale_input"}[failure]
+            with self.subTest(failure=failure), patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
+                    retriever, "_run_encoder", side_effect=changing_encode):
+                self.assert_code(code, lambda: self.service.search("培养要求"))
+            self.denied, self.scope, self.body, self.metadata = False, original_scope, original_body, deepcopy(original_metadata)
+
+    def test_timeout_fallback_cannot_return_lexical_citations_after_source_bytes_change(self):
+        self.prepare()
+        retriever = self.service._semantic_retriever
+        def timed_out_after_change(*_args, **_kwargs):
+            self.body = b"%PDF-1.4\nSYNTHETIC-CHANGED-DURING-TIMEOUT\n%%EOF\n"
+            raise semantic._Unavailable("encoder_timeout")
+        with patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
+                retriever, "_run_encoder", side_effect=timed_out_after_change):
+            self.assert_code("stale_input", lambda: self.service.search("专业模块课程学分"))
+
+    @unittest.skipUnless(os.environ.get("COURSE_SEMANTIC_ENCODER_MANIFEST") and os.environ.get("COURSE_SEMANTIC_PYTHON"),
+                         "explicit local encoder required; synthetic source only")
+    def test_actual_local_encoder_recalls_synthetic_current_pdf_paraphrase(self):
+        self.pages = ["体育课程修读要求：学生每学年应修读一门体育课程。\n\n"
+                      "高等数学学习微积分和线性代数。\n\n考试安排包含时间和地点。\n"]
+        self.prepare()
+        with patch.object(self.service, "_semantic_retriever", semantic.LocalSemanticRetriever()):
+            lexical = self.service.search("运动课一年要上几次", limit=3)
+        self.assertEqual(lexical["matches"], [])
+        result = self.service.search("运动课一年要上几次", limit=3)
+        self.assertTrue(result["semantic_retrieval"]["dense_used"], result["semantic_retrieval"])
+        self.assertEqual(result["retrieval_mode"], "hybrid_rrf_local_embedding")
+        self.assertIn("体育课程", result["matches"][0]["text"])
+        self.assertFalse(result["matches"][0]["answer_support_verified"])
+        reference = result["matches"][0]["reference"]
+        self.assertEqual(self.service.resolve(reference)["text"], result["matches"][0]["text"])
 
     def test_cross_page_table_rows_keep_module_header_and_following_note(self):
         self.pages = ["2099级合成培养方案\n\n3. 专业课程 27学分\n(2) 专业选修课程 11学分\n"

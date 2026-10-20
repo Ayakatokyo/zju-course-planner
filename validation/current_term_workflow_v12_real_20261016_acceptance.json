@@ -1,0 +1,145 @@
+{
+  "schema": "current-term-personal-v12-protocol-failures/1",
+  "recorded_at_utc": "2026-10-16T11:39:56.065839+00:00",
+  "tools_version": "personal-question-tools-v12-argument-recovery",
+  "scope": "Two actual attempts of the unchanged first personal course-combination request under v12. Separate from v11 acceptance evidence.",
+  "runtime_engineering_binding": {
+    "fixed_engineering_receipt": "current_term_workflow_v12_20261016_validation.json",
+    "fixed_engineering_receipt_sha256": "562f3ff68fe67de1f02163eca80e3950e6ce5f5265371c8e0e1525b91af88b2f",
+    "runtime_startup_and_fixed_receipt_source_hashes_match": true,
+    "matching_engineering_file_count": 119,
+    "matching_source_map_sha256": "23b4cc6be10df908eedc32a7922364722358c3d5d2debfaaa7b723c48fef59da",
+    "tools_version_matches_both_attempts": true,
+    "fixed_engineering_result": {
+      "ran": 1395,
+      "passed": 1390,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    "current_worktree_source_equality_checked": false,
+    "boundary": "This binds the recorded v12 runtime startup to its fixed engineering receipt. It does not assert current workspace sources still equal v12."
+  },
+  "actual_provider_generations": 3,
+  "provider_http_200_generations": 3,
+  "visible_reasoning_event_count": 3,
+  "runtime_tool_execution_events": {
+    "starts": 7,
+    "ends": 7,
+    "by_tool": {
+      "get_my_context": 2,
+      "prepare_recommendation_inputs": 1,
+      "query_my_records": 1,
+      "read_my_major_academic": 1,
+      "search_my_curriculum": 1,
+      "read_my_curriculum": 1
+    },
+    "unit": "Recorded actual preflight and nested tool executions, not model-selected tool count or HTTP request count."
+  },
+  "logical_school_source_completed_reads": {
+    "total": 2,
+    "by_operation": {
+      "major_academic": 1,
+      "curriculum": 1,
+      "timetable": 0,
+      "exams": 0
+    },
+    "http_request_count": null,
+    "unit": "Completed logical source actions only; not an HTTP request total."
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "request_unchanged": true,
+      "status": "failed",
+      "task_status": "failed",
+      "code": "model_protocol_error",
+      "actual_provider_generations": 1,
+      "provider_http_200_generations": 1,
+      "visible_reasoning_event_count": 1,
+      "executed_top_level_tool_names": [
+        "get_my_context"
+      ],
+      "runtime_tool_start_count": 1,
+      "runtime_tool_end_count": 1,
+      "runtime_executed_tool_counts": {
+        "get_my_context": 1
+      },
+      "logical_source_completed_reads": [],
+      "failure_sequence": "Provider returned HTTP 200; the local protocol check rejected the first response after context only.",
+      "specific_response_shape": "unknown_not_retained",
+      "batch_tool_call_cause_established": false,
+      "generation_or_update_dispatched": false,
+      "generated_plan_options": 0,
+      "format_repair_attempts": 0,
+      "argument_corrections": 0
+    },
+    {
+      "attempt": 2,
+      "request_unchanged": true,
+      "status": "failed",
+      "task_status": "failed",
+      "code": "model_protocol_error",
+      "actual_provider_generations": 2,
+      "provider_http_200_generations": 2,
+      "visible_reasoning_event_count": 2,
+      "executed_top_level_tool_names": [
+        "get_my_context",
+        "prepare_recommendation_inputs"
+      ],
+      "runtime_tool_start_count": 6,
+      "runtime_tool_end_count": 6,
+      "runtime_executed_tool_counts": {
+        "get_my_context": 1,
+        "prepare_recommendation_inputs": 1,
+        "query_my_records": 1,
+        "read_my_major_academic": 1,
+        "search_my_curriculum": 1,
+        "read_my_curriculum": 1
+      },
+      "logical_source_completed_reads": [
+        {
+          "operation": "major_academic",
+          "status": "completed"
+        },
+        {
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "failure_sequence": "Preparation completed current-turn academic and curriculum source actions; the second provider response returned HTTP 200 and failed local protocol checking.",
+      "specific_response_shape": "unknown_not_retained",
+      "batch_tool_call_cause_established": false,
+      "generation_or_update_dispatched": false,
+      "generated_plan_options": 0,
+      "format_repair_attempts": 0,
+      "argument_corrections": 0
+    }
+  ],
+  "outcome": "not_passed_both_attempts_failed",
+  "unresolved_failure": {
+    "code": "model_protocol_error",
+    "both_specific_raw_shapes": "unknown_not_retained",
+    "batch_attribution": "not_established",
+    "http_200_is_not_protocol_or_task_success": true,
+    "original_failures_preserved": true
+  },
+  "acceptance": {
+    "actual_first_request_task_completion": false,
+    "generated_or_updated_plan": false,
+    "full_answer_semantics": "not_accepted",
+    "formal_curriculum_applicability": "not_accepted",
+    "formal_real_recommendation": "not_accepted",
+    "user_agent_experience": "not_accepted"
+  },
+  "audit_limits": {
+    "evidence": "Only the two preserved failure artifacts and separately authorized v12 runtime/fixed-engineering receipt metadata.",
+    "database_read": false,
+    "new_source_code_read": false,
+    "credentials_or_env_read": false,
+    "new_school_or_model_calls": 0,
+    "production_docs_or_tests_modified": false,
+    "v11_results_reused_as_v12_evidence": false,
+    "private_original_text_paths_or_ids_published": false
+  }
+}

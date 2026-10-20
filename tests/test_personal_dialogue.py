@@ -229,7 +229,7 @@ class PersonalDialogueTests(unittest.TestCase):
         for name, args in (("fetch_school", {}), ("query_my_records", {"operation": "profile"}),
                 ("get_my_context", {"owner": "other"}), ("search_my_curriculum", {"query": "模块", "path": "/tmp/source"}),
                 ("query_my_records", {"operation": "academic", "student_id": "other"})):
-            result, _, _ = self.run_service([call(name, args)])
+            result, _, _ = self.run_service([call(name, args), call(name, args)])
             self.assertEqual(result["status"], "failed")
         self.assertTrue(all(name == "get_my_context" for name, _ in self.executed))
 
@@ -245,9 +245,10 @@ class PersonalDialogueTests(unittest.TestCase):
     def test_year_and_tool_result_limits_are_strict(self):
         for args in ({"operation": "academic", "academic_year": "2099-2099"},
                      {"operation": "academic", "limit": 16}, {"operation": "academic", "limit": True}):
-            result, _, _ = self.run_service([call("query_my_records", args)])
+            result, _, _ = self.run_service([call("query_my_records", args), call("query_my_records", args)])
             self.assertEqual(result["code"], "invalid_tool_arguments")
-        result, _, _ = self.run_service([call("search_my_curriculum", {"query": "模块", "limit": 6})])
+        result, _, _ = self.run_service([call("search_my_curriculum", {"query": "模块", "limit": 6}),
+            call("search_my_curriculum", {"query": "模块", "limit": 6})])
         self.assertEqual(result["code"], "invalid_tool_arguments")
         self.assertTrue(all(name == "get_my_context" for name, _ in self.executed))
 

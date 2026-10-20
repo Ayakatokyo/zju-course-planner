@@ -1,0 +1,24 @@
+{
+  "recorded_at_utc": "2026-10-16T15:14:21.851913+00:00",
+  "summary": {
+    "schema": "offline-current-term-exact-code-lookup-check/1",
+    "source_kind": "authorized_historical_shared_course_observations",
+    "candidate_scope": "two_previously_reviewed_codes_from_prior_bounded_ten_courses",
+    "queries": 2,
+    "queries_matching_expected_primary": 2,
+    "returned_candidates": 2,
+    "exact_four_key_observed_relations": 2,
+    "shared_component_hashes_checked": 8,
+    "source_hash_matches": true,
+    "source_count_matches": true,
+    "formal_identity_promotions": 0,
+    "formal_curriculum_applicability_promotions": 0,
+    "school_calls": 0,
+    "model_calls": 0,
+    "network_calls": 0,
+    "curriculum_pdf_reads": 0,
+    "current_personal_curriculum_evidence_created": false,
+    "agent_task_or_user_acceptance": "not_validated_by_offline_lookup"
+  },
+  "scope": "offline historical shared course data only; zero new personal/PDF evidence; not Agent acceptance"
+}

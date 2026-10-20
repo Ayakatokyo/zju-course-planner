@@ -1,0 +1,31 @@
+{
+  "schema": "v18-actual-failure-ui/1",
+  "recorded_at_utc": "2026-10-16T15:14:21.851913+00:00",
+  "case": "same saved real model_http_402 initial request; no replay",
+  "desktop": {
+    "css_width": 1890,
+    "css_height": 894,
+    "horizontal_overflow": false,
+    "input_visible": true
+  },
+  "narrow": {
+    "css_width": 390,
+    "css_height": 844,
+    "horizontal_overflow": false,
+    "input_visible": true,
+    "error_visible_after_latest_button": true,
+    "physical_phone_tested": false
+  },
+  "history_refresh_then_saved_conversation_opened": true,
+  "error_copy_visible_after_history_load": true,
+  "preflight_not_presented_as_completed_data_query": true,
+  "single_evidence_entry": true,
+  "process_default_collapsed": true,
+  "screenshots_private_only": true,
+  "screenshots_visually_reviewed": true,
+  "desktop_viewport_restored": true,
+  "new_model_or_school_calls": 0,
+  "soft_ranking_cards_or_code_link_agent_output_tested_live": false,
+  "unsent_draft_refresh_tested": false,
+  "user_acceptance": "not_obtained"
+}

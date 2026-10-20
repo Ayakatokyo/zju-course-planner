@@ -37,9 +37,9 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
     def emit(self, kind, fields):
         self.events.append((kind, deepcopy(fields)))
 
-    def run_model(self, responses, *, execution_context=None, task_context=None, clarification_context=None, max_steps=5, emit=None):
+    def run_model(self, responses, *, execution_context=None, task_context=None, clarification_context=None, max_steps=5, max_tools=10, emit=None):
         model = ScriptedModel(responses)
-        service = PersonalDialogueService(model, self.authorize, self.execute, max_steps=max_steps)
+        service = PersonalDialogueService(model, self.authorize, self.execute, max_steps=max_steps, max_tools=max_tools)
         result, history = service.run("合成测试请求", data_use="personal_retrieval",
             execution_context=execution_context, task_context=task_context, clarification_context=clarification_context, emit=emit or self.emit)
         return result, history, model
@@ -277,8 +277,120 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertEqual(history, [])
         self.assertEqual(self.events[-1][1]["status"], "failed")
 
+    def test_declared_argument_shapes_retry_once_with_only_safe_schema_feedback(self):
+        cases = [({}, "required_argument_missing"), ({"operation": []}, "argument_type_invalid"),
+            ({"operation": "major_academic", "unrecognized_parameter": "REJECTED-PARAMETER-TEXT"}, "unexpected_argument"),
+            ({"operation": "major_academic", "limit": 16}, "argument_value_invalid")]
+        for arguments, expected in cases:
+            with self.subTest(issue=expected):
+                self.executed.clear()
+                self.events.clear()
+                result, history, model = self.run_model([call("query_my_records", arguments),
+                    call("query_my_records", {"operation": "major_academic"}, "corrected"), self.valid_record_answer])
+                self.assertEqual(result["status"], "completed", result)
+                self.assertEqual((result["argument_corrections"], result["repair_attempts"]), (1, 0))
+                self.assertEqual([name for name, _ in self.executed], ["get_my_context", "query_my_records"])
+                diagnostic = result["validation_diagnostics"][0]
+                self.assertEqual((diagnostic["tool_name"], diagnostic["failure_detail"]), ("query_my_records", expected))
+                feedback = model.calls[1][0][-1]["content"]
+                self.assertIn('"tool_schemas"', feedback)
+                self.assertIn(expected, feedback)
+                self.assertTrue(model.calls[1][1])
+                retained = json.dumps([model.calls[1][0], history, result["validation_diagnostics"]], ensure_ascii=False)
+                self.assertNotIn("unrecognized_parameter", retained)
+                self.assertNotIn("REJECTED-PARAMETER-TEXT", retained)
+
+    def test_generic_argument_rejection_discards_entire_mixed_batch(self):
+        batch = call("query_my_records", {"operation": "major_academic"}, "valid")
+        batch["tool_calls"] += call("search_my_curriculum", {"query": []}, "invalid")["tool_calls"]
+        def clarify(messages, tools):
+            self.assertEqual(self.executed, [("get_my_context", {})])
+            return final({"kind": "clarify", "question": "请确认这次要查询的范围？"})
+        result, _, _ = self.run_model([batch, clarify])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["argument_corrections"], 1)
+        self.assertEqual(result["validation_diagnostics"][0]["count"], 2)
+        self.assertEqual(self.executed, [("get_my_context", {})])
+
+    def test_generic_and_term_corrections_share_one_retry_and_original_budgets(self):
+        bad = call("query_my_records", {"operation": "major_academic", "limit": 16}, "invalid")
+        term = call("query_my_records", {"operation": "major_academic", "target_term": "全部"}, "bad-term")
+        for responses in ([bad, bad], [bad, term], [term, bad]):
+            self.executed.clear()
+            result, history, model = self.run_model(responses)
+            self.assertEqual(result["code"], "invalid_tool_arguments")
+            self.assertEqual(result["argument_corrections"], 1)
+            self.assertEqual(len(model.calls), 2)
+            self.assertEqual(self.executed, [("get_my_context", {})])
+            self.assertEqual(history, [])
+        for limits in ({"max_tools": 1}, {"max_steps": 1}):
+            self.executed.clear()
+            result, _, model = self.run_model([bad], **limits)
+            self.assertEqual(result["code"], "turn_budget_exceeded")
+            self.assertEqual(len(model.calls), 1)
+            self.assertEqual(self.executed, [("get_my_context", {})])
+
+    def test_argument_recovery_never_admits_identity_paths_cursor_or_sensitive_values(self):
+        for extra in ({"owner": "OTHER"}, {"owner_id": "OTHER"}, {"path": "local"},
+                {"source_path": "local"}, {"cursor": "opaque"}, {"authorization": "grant"},
+                {"unknown": {"student_id": "OTHER"}}, {"user_id": "OTHER"},
+                {"subject_id": "OTHER"}, {"student_name": "OTHER"}):
+            self.executed.clear()
+            result, _, model = self.run_model([call("query_my_records", {"operation": "major_academic", **extra})])
+            self.assertEqual(result["code"], "invalid_tool_arguments")
+            self.assertEqual(result["argument_corrections"], 0)
+            self.assertEqual(len(model.calls), 1)
+            self.assertEqual(self.executed, [("get_my_context", {})])
+        result, _, model = self.run_model([call("search_my_curriculum", {"query": "cookie=SYNTHETIC-SECRET"})])
+        self.assertEqual(result["code"], "sensitive_personal_content")
+        self.assertEqual(result["argument_corrections"], 0)
+        self.assertEqual(len(model.calls), 1)
+
+    def test_message_protocol_failures_project_fixed_categories_without_raw_message(self):
+        prototype = call("get_my_context")
+        def changed_call(**changes):
+            value = deepcopy(prototype)
+            value["tool_calls"][0].update(changes)
+            return value
+        duplicate = deepcopy(prototype)
+        duplicate["tool_calls"] *= 2
+        batch = {"role": "assistant", "content": None, "tool_calls": [
+            call("get_my_context", identifier=f"call-{i}")["tool_calls"][0] for i in range(4)]}
+        cases = [([], "message_type_invalid"), ({"role": "UNTRUSTED-ROLE"}, "message_role_invalid"),
+            ({"role": "assistant", "reasoning_content": {"secret": "UNTRUSTED-REASONING"}}, "reasoning_type_invalid"),
+            ({"role": "assistant", "reasoning_content": "x" * 64001}, "reasoning_length_exceeded"),
+            ({"role": "assistant", "content": {"secret": "UNTRUSTED-CONTENT"}}, "content_type_invalid"),
+            ({"role": "assistant", "content": "x" * 12001}, "content_length_exceeded"),
+            ({"role": "assistant", "tool_calls": {"UNTRUSTED-TOOL": "UNTRUSTED-ARGS"}}, "tool_batch_type_invalid"),
+            (batch, "tool_batch_count_exceeded"), ({"role": "assistant", "content": " "}, "message_empty"),
+            ({"role": "assistant", "tool_calls": [{"UNTRUSTED-FIELD": "UNTRUSTED-CALL"}]}, "tool_call_shape_invalid"),
+            (changed_call(type="UNTRUSTED-TYPE"), "tool_call_type_invalid"),
+            (changed_call(id={"UNTRUSTED-ID": "UNTRUSTED-VALUE"}), "tool_call_id_type_invalid"),
+            (changed_call(id="UNTRUSTED-ID!"), "tool_call_id_format_invalid"),
+            (duplicate, "tool_call_id_duplicate")]
+        for raw, expected in cases:
+            with self.subTest(detail=expected):
+                self.executed.clear()
+                result, history, model = self.run_model([raw])
+                self.assertEqual(result["code"], "model_protocol_error")
+                self.assertEqual((result["repair_attempts"], result["argument_corrections"]), (0, 0))
+                self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], expected)
+                self.assertLessEqual(set(result["validation_diagnostics"][0]), {"error_code", "failure_detail", "count"})
+                self.assertNotIn("UNTRUSTED", json.dumps(result["validation_diagnostics"]))
+                self.assertEqual(self.executed, [("get_my_context", {})])
+                self.assertEqual(len(model.calls), 1)
+                self.assertEqual(history, [])
+
+    def test_message_failure_counts_are_bounded_and_prompt_keeps_batch_limit(self):
+        raw = {"role": "assistant", "content": "UNTRUSTED" * 20000}
+        result, _, model = self.run_model([raw])
+        self.assertEqual(result["validation_diagnostics"], [{"error_code": "model_protocol_error",
+            "failure_detail": "content_length_exceeded", "count": 100000}])
+        self.assertIn("最多提交3个tool_calls", model.calls[0][0][0]["content"])
+        self.assertIn("必须等结果返回后再提交", model.calls[0][0][0]["content"])
+
     def test_term_recovery_does_not_relax_identity_paging_or_current_scope_validation(self):
-        for extra in ({"student_id": "other"}, {"page_token": "PAGE-12345678-1"}, {"limit": 16}):
+        for extra in ({"student_id": "other"}, {"page_token": "PAGE-12345678-1"}):
             with self.subTest(extra=extra):
                 self.executed.clear()
                 result, _, model = self.run_model([call("query_my_records", {
@@ -417,6 +529,65 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertEqual(len(model.calls), 2)
         self.assertEqual(self.executed, [("get_my_context", {})])
 
+    def test_undeclared_tool_batch_is_discarded_and_repair_has_no_source_tools(self):
+        proposed = call("query_my_records", {"operation": "major_academic"}, "allowed-but-not-run")
+        proposed["tool_calls"] += call("unavailable_helper", {"query": "REJECTED-BATCH-MARKER"}, "rejected-id")["tool_calls"]
+        proposed["content"] = "REJECTED-CONTENT-MARKER"
+        proposed["reasoning_content"] = "REJECTED-REASONING-MARKER"
+        result, history, model = self.run_model([proposed,
+            final({"kind": "not_ready", "reason": "insufficient_evidence"})], max_steps=1)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["model_decision"]["kind"], "not_ready")
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual(model.calls[-1][1], [])
+        self.assertEqual(self.executed, [("get_my_context", {})])
+        self.assertEqual([row["name"] for row in result["tool_results"]], ["get_my_context"])
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "undeclared_tool_call")
+        retained = json.dumps([model.calls[-1][0], history, result["validation_diagnostics"]])
+        self.assertNotIn("unavailable_helper", retained)
+        self.assertNotIn("REJECTED-", retained)
+        self.assertNotIn("rejected-id", retained)
+
+    def test_undeclared_tool_repair_reuses_current_record_evidence_without_new_reads(self):
+        result, _, model = self.run_model([
+            call("query_my_records", {"operation": "major_academic"}, "source"),
+            call("another_namespace.finalize", {"query": "DISCARD-ME"}, "unknown"), self.valid_record_answer])
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "query_my_records"])
+        self.assertEqual(model.calls[-1][1], [])
+        self.assertEqual(result["citations"][0]["kind"], "record")
+
+    def test_undeclared_tool_repair_is_shared_once_and_cannot_request_another_tool(self):
+        for second, expected in ((call("unavailable_helper"), "tool_not_allowed"),
+                (call("query_my_records", {"operation": "major_academic"}), "model_protocol_error"),
+                (final({"kind": "answer", "claims": []}), "invalid_final_answer")):
+            with self.subTest(expected=expected):
+                self.executed.clear()
+                result, history, model = self.run_model([call("unavailable_helper"), second])
+                self.assertEqual(result["code"], expected)
+                self.assertEqual(result["repair_attempts"], 1)
+                self.assertEqual(len(model.calls), 2)
+                self.assertEqual(model.calls[-1][1], [])
+                self.assertEqual(self.executed, [("get_my_context", {})])
+                self.assertEqual(history, [])
+
+    def test_sensitive_unknown_tool_arguments_and_revocation_do_not_get_repair(self):
+        for args in ({"password": "SYNTHETIC-SECRET"}, {"query": "cookie=SYNTHETIC-SECRET"},
+                {"owner_student_id": "OTHER"}):
+            with self.subTest(args=args):
+                result, _, model = self.run_model([call("unavailable_helper", args)])
+                self.assertEqual(result["code"], "sensitive_personal_content")
+                self.assertEqual(result["repair_attempts"], 0)
+                self.assertEqual(len(model.calls), 1)
+        def revoke(messages, tools):
+            self.denied = True
+            return call("unavailable_helper")
+        result, _, model = self.run_model([revoke])
+        self.assertEqual(result["code"], "grant_revoked")
+        self.assertEqual(result["repair_attempts"], 0)
+        self.assertEqual(len(model.calls), 1)
+
     def test_unsupported_or_sensitive_answers_do_not_get_format_repair(self):
         for text, code in (("已经正式中选。", "unsupported_personal_claim"), ("password=SYNTHETIC-SECRET", "sensitive_personal_content")):
             with self.subTest(code=code):
@@ -472,7 +643,7 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "invalid_execution_context")
 
     def test_no_prior_run_cannot_produce_diagnostic_evidence(self):
-        result, history, model = self.run_model([call("get_my_run_diagnostics")])
+        result, history, model = self.run_model([call("get_my_run_diagnostics"), call("get_my_run_diagnostics")])
         self.assertNotIn("get_my_run_diagnostics", {row["function"]["name"] for row in model.calls[0][1]})
         # The undeclared call is rejected before execution. A failed turn can
         # retain its genuine context proof, but must never create a prior-run
@@ -482,8 +653,9 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertTrue(all(citation["kind"] == "context" for citation in result["citations"]))
         self.assertFalse(any("diagnostic" in citation for citation in result["citations"]))
         self.assertEqual([tool["name"] for tool in result["tool_results"]], ["get_my_context"])
-        self.assertEqual((history, self.events), ([], []))
-        self.assertEqual(len(model.calls), 1)
+        self.assertEqual(history, [])
+        self.assertFalse(any(kind in {"tool.start", "tool.end"} for kind, _ in self.events))
+        self.assertEqual(len(model.calls), 2)
 
     def test_no_prior_run_can_safely_return_not_ready_without_fabricated_evidence(self):
         result, _, model = self.run_model([final({"kind": "not_ready", "reason": "insufficient_evidence"})])
@@ -561,21 +733,23 @@ class ReadinessDialogueTests(unittest.TestCase):
         self.assertFalse(proof["readiness"]["can_generate"])
         self.assertFalse(proof["readiness"]["can_save_or_export"])
         self.assertEqual(result["tool_results"][-1]["result"]["status"], "available")
-        self.assertIn("真实推荐尚未就绪", result["reply"])
+        self.assertIn("正式推荐尚未就绪", result["reply"])
         self.assertIn("2023-2024学年秋冬学期", result["reply"])
-        self.assertIn("方案生成、保存和导出均未开放", result["reply"])
+        self.assertIn("正式方案生成、保存和导出尚未开放", result["reply"])
         self.assertNotIn("来源准备：", result["reply"])
         self.assertNotIn("仍需核实：", result["reply"])
         remote = json.loads(next(row["content"] for row in reversed(model.calls[-1][0]) if row["role"] == "tool"))
         self.assertEqual(set(remote["readiness"]), set(proof["readiness"]))
-        self.assertIn("它们不是全量候选", remote["readiness"]["next_step"])
+        self.assertIn("已有安排不是可选班次清单", remote["readiness"]["next_step"])
+        self.assertIn("考试仅在明确要求核对时读取", remote["readiness"]["next_step"])
 
     def test_missing_or_non_boolean_capability_never_declares_or_executes_readiness(self):
         for capability in (False, 1, None):
             with self.subTest(capability=capability):
                 self.executed.clear()
                 self.context["capabilities"]["recommendation_input_check"] = capability
-                result, _, model = self.run_model([call("check_recommendation_inputs", self.arguments)])
+                result, _, model = self.run_model([call("check_recommendation_inputs", self.arguments),
+                    call("check_recommendation_inputs", self.arguments)])
                 self.assertEqual(result["code"], "tool_not_allowed")
                 self.assertNotIn("check_recommendation_inputs", {tool["function"]["name"] for tool in model.calls[0][1]})
                 self.assertEqual(self.executed, [("get_my_context", {})])
@@ -586,9 +760,10 @@ class ReadinessDialogueTests(unittest.TestCase):
                           {"recommendation_kind": "courses", "owner_student_id": "SYNTHETIC-OTHER"}):
             with self.subTest(arguments=arguments):
                 self.executed.clear()
-                result, _, model = self.run_model([call("check_recommendation_inputs", arguments)])
+                result, _, model = self.run_model([call("check_recommendation_inputs", arguments),
+                    call("check_recommendation_inputs", arguments)])
                 self.assertEqual(result["code"], "invalid_tool_arguments")
-                self.assertEqual(len(model.calls), 1)
+                self.assertEqual(len(model.calls), 1 if "owner_student_id" in arguments else 2)
                 self.assertEqual(self.executed, [("get_my_context", {})])
 
     def test_unsupported_generation_and_private_tool_fields_never_mint_readiness_proof(self):
@@ -644,7 +819,7 @@ class ReadinessDialogueTests(unittest.TestCase):
         self.assertEqual([name for name, _ in self.executed], ["get_my_context", "check_recommendation_inputs"])
         self.assertNotIn("UNTRUSTED-READINESS-DRAFT", json.dumps(model.calls[-1][0], ensure_ascii=False))
         self.assertNotIn("UNTRUSTED-READINESS-DRAFT", json.dumps(history, ensure_ascii=False))
-        self.assertIn("真实推荐尚未就绪", result["reply"])
+        self.assertIn("正式推荐尚未就绪", result["reply"])
 
     def test_readiness_claim_rejects_extra_capabilities_text_and_invalid_sections(self):
         cases = [({"text": "UNTRUSTED-TEXT"}, ["sources"]), ({"can_generate": True}, ["sources"]),
@@ -671,7 +846,7 @@ class ReadinessDialogueTests(unittest.TestCase):
             {"text": "合成课程的来源成绩为80。", "evidence_ids": ["record-reference"]},
             {"text": "这份培养片段写有合成模块选修3学分。", "evidence_ids": ["curriculum-reference"]}]}
         reply, decision, citations = PersonalDialogueService._final(json.dumps(value), proofs)
-        self.assertIn("真实推荐尚未就绪", reply)
+        self.assertIn("正式推荐尚未就绪", reply)
         self.assertIn("合成课程的来源成绩为80", reply)
         self.assertIn("合成模块选修3学分", reply)
         self.assertEqual(len(decision["evidence_ids"]), 3)

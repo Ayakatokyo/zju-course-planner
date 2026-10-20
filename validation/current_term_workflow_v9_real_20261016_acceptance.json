@@ -1,0 +1,105 @@
+{
+  "schema": "current-term-personal-v9-finite-validation/1",
+  "recorded_at_utc": "2026-10-16T10:40:34.117947+00:00",
+  "tools_version": "personal-question-tools-v9-recommendation-workflow",
+  "six_actual_personal_turns": {
+    "protocol_statuses": [
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "failed"
+    ],
+    "task_statuses": [
+      "blocked",
+      "partial",
+      "partial",
+      "partial",
+      "awaiting_user",
+      "failed"
+    ],
+    "actual_provider_generations": 26,
+    "logical_school_reads": {
+      "major_academic": 5,
+      "curriculum": 5,
+      "timetable": 1,
+      "exams": 0
+    },
+    "real_school_and_personal_data": true,
+    "same_turn_source_integrity_passed": true,
+    "current_citations_match_tools": true,
+    "workflow_observations": [
+      "timetable generation correctly refused with unconfirmed source coverage and missing time fields",
+      "explicit narrowing to courses produced three actual conditional combinations",
+      "comparison selected two actual combinations",
+      "revise retained one class lock and applied hard Friday constraint",
+      "unmapped afternoon requested concrete periods; one final-format repair occurred",
+      "period-only follow-up failed with turn_budget_exceeded; original failure preserved"
+    ],
+    "grade_field_audit": {
+      "source_rows": 104,
+      "numeric": 39,
+      "text_or_nonstandard": 2,
+      "unknown": 63,
+      "unknown_rows_without_nonempty_registered_grade_fields": 63,
+      "projection_loss_observed": false,
+      "unregistered_field_semantics": "not_verified",
+      "completion_or_recognition": "not_inferred"
+    },
+    "timetable_field_audit": {
+      "returned_rows": 3,
+      "known_time_rows": 1,
+      "unknown_time_rows": 2,
+      "reported_total": "unknown",
+      "upstream_has_more": "unknown",
+      "projection_has_more_false_means": "no_more_rows_in_loaded_projection_only",
+      "complete_scope": "not_confirmed",
+      "actual_missing_rows": "not_proven",
+      "unscheduled_or_no_fixed_time": "not_inferred"
+    }
+  },
+  "actual_personal_curriculum_retrieval": {
+    "protocol_status": "completed",
+    "actual_provider_generations": 2,
+    "logical_curriculum_reads": 1,
+    "search_calls": 2,
+    "retrieval_mode": "hybrid_rrf_local_embedding",
+    "encoder_available": true,
+    "dense_used": true,
+    "encoded_candidates_per_search": [
+      215,
+      215
+    ],
+    "returned_chunks": [
+      5,
+      1
+    ],
+    "first_search_zero_lexical_overlap_chunks": 1,
+    "citation_count": 3,
+    "raw_chunk_span_and_document_hash_binding": "pass",
+    "finite_support": "sports_course_requirements_only",
+    "fitness_test_and_extracurricular_exercise_details": "not_verified",
+    "formal_applicability": "not_accepted"
+  },
+  "unaccepted_findings": [
+    "field-missing to incomplete-collection causal claim",
+    "formal-readiness wording ambiguous beside generated test combinations",
+    "clarification required final-format repair",
+    "period follow-up did not complete",
+    "cross-round process-open observation not causally reproduced"
+  ],
+  "acceptance": {
+    "source_integrity_and_finite_raw_support": "limited_support",
+    "full_answer_semantics": "not_accepted",
+    "formal_curriculum_applicability": "not_accepted",
+    "formal_real_recommendation": "not_accepted",
+    "user_agent_experience": "not_accepted"
+  },
+  "audit_limits": {
+    "independent_hmac_verification": false,
+    "new_model_or_school_calls_by_audit": 0,
+    "credentials_read_by_audit": false,
+    "original_personal_text_and_exact_locators": "private_only"
+  }
+}

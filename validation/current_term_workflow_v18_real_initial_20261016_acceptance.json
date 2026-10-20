@@ -1,0 +1,95 @@
+{
+  "schema": "v18-real-initial-acceptance/1",
+  "recorded_at_utc": "2026-10-16T15:13:34.853858+00:00",
+  "tools_version": "personal-question-tools-v18-soft-slots-observed-code-links",
+  "scope": "actual personal task; only authorized current-term historical course data allowed",
+  "actual_run": {
+    "schema": "v18-first-actual-independent-audit/1",
+    "scope": "single_terminal_v18_personal_turn",
+    "outcome": {
+      "status": "failed",
+      "task_status": "failed",
+      "code": "model_http_402"
+    },
+    "counts": {
+      "provider_attempts": 1,
+      "provider_results": 1,
+      "successful_provider_outputs": 0,
+      "visible_reasoning_events": 0,
+      "retained_reasoning_chars": 0,
+      "service_preflight_calls": 1,
+      "model_selected_tool_dispatches": 0,
+      "all_tool_starts": 1,
+      "all_tool_ends": 1,
+      "logical_school_reads": 0,
+      "source_preparation_calls": 0,
+      "candidate_search_calls": 0,
+      "recommendation_solver_calls": 0,
+      "returned_tool_results": 1,
+      "citations": 1,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "validation_diagnostics": 0
+    },
+    "provider_results": [
+      {
+        "step": 1,
+        "status": "failed",
+        "http_status": 402,
+        "error_code": "model_http_402",
+        "elapsed_ms": 475,
+        "usage": {}
+      }
+    ],
+    "tool_sequence": [
+      {
+        "name": "get_my_context",
+        "initiated_by": "service_preflight",
+        "status": "completed"
+      }
+    ],
+    "error_events": [
+      {
+        "error_code": "model_http_402",
+        "stage": "answer"
+      }
+    ],
+    "binding_checks": {
+      "new_run_started_after_v18_recording": true,
+      "unique_request_and_conversation_binding": true,
+      "single_terminal_turn_no_pending": true,
+      "tools_version_matches_runtime_receipt": true,
+      "runtime_source_hash_count": 121,
+      "runtime_hashes_match_frozen_engineering_receipt": true,
+      "current_disk_hash_match_count": 117,
+      "current_disk_hash_changed_count": 4,
+      "all_backend_runtime_hashes_match_current_files": true,
+      "request_response_status_matches_turn": true,
+      "event_count_matches_run": true,
+      "provider_error_matches_run_and_turn": true
+    },
+    "evidence_limits": {
+      "source_acquisition_executed": false,
+      "source_or_pdf_byte_audit_applicable": false,
+      "recommendation_result_created": false,
+      "later_real_rounds_in_this_conversation": false,
+      "model_output_or_answer_semantics_evaluable": false,
+      "formal_recommendation_accepted": false,
+      "user_experience_accepted": false,
+      "provider_error_body_retained": false,
+      "vendor_specific_cause_confirmed": false,
+      "http_402_specific_cause": "not_confirmed_without_provider_body",
+      "local_balance_copy_is_status_mapping_only": true
+    }
+  },
+  "further_real_rounds_executed": false,
+  "soft_ranking_and_code_link_agent_workflow": "not_evaluated_due_provider_http_402",
+  "finite_answer_semantics": "no_model_output",
+  "full_semantics": "not_accepted",
+  "formal_curriculum_applicability": "not_accepted",
+  "formal_recommendation": "not_accepted",
+  "user_acceptance": "not_obtained",
+  "external_deployment": false,
+  "git_state": "new_work_unstaged_uncommitted_unpushed",
+  "private_bindings_exported": false
+}

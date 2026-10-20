@@ -1,0 +1,41 @@
+{
+  "schema": "limited-curriculum-course-identity-review/1",
+  "recorded_at_utc": "2026-10-16T11:06:04.932946+00:00",
+  "source_scope": "same actual v10 request generation; evidence scope, document, bundle and index byte binding independently cross-checked",
+  "candidate_scope": "ten already-searched courses in authorized current-term historical observations",
+  "new_model_calls": 0,
+  "new_school_calls": 0,
+  "additional_academic_years": 0,
+  "reviewed_candidates": 5,
+  "exact_code_matches_in_document": 0,
+  "exact_name_matches_in_document": 2,
+  "name_match_relations": {
+    "required_course_context": 1,
+    "elective_course_context": 1
+  },
+  "reviewed_nonmatches": 3,
+  "verified_stable_cross_source_identities": 0,
+  "observations_for_two_name_matches": 6,
+  "observed_sections_for_two_name_matches": 2,
+  "checks": {
+    "pdf_related_pages_visually_reviewed": 4,
+    "chunk_text_hash_and_span_matches": true,
+    "bundle_document_index_digest_matches": true,
+    "original_files_changed": false
+  },
+  "cannot_infer": [
+    "same course identity from equal names and different codes",
+    "both name matches belong to electives",
+    "formal curriculum applicability",
+    "recognition or repeated-study treatment",
+    "current offering, eligibility or capacity",
+    "complete weeks/calendar or exam feasibility"
+  ],
+  "binding_limitations": [
+    "No direct tool alias/hash receipt; independently cross-bound via same request generation evidence scope and document bytes.",
+    "No independent HMAC verification or formal applicability review."
+  ],
+  "source_bodies_and_exact_locators": "private_only",
+  "status": "review_draft_not_accepted",
+  "recommendation_generated": false
+}

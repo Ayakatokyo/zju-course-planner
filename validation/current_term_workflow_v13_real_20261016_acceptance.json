@@ -1,0 +1,315 @@
+{
+  "schema": "current-term-workflow-v13-real-finite-acceptance/1",
+  "recorded_at_epoch": 1792152179.26578,
+  "scope": "One exact v13 personal conversation, first four turns only; v9/v10/v11/v12/mixed probes excluded.",
+  "tools_version": "personal-question-tools-v13-protocol-diagnostics",
+  "round_count": 4,
+  "rounds": [
+    {
+      "turn": 1,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "model_decision": "answer",
+      "clarification_request_basis": null,
+      "pending_clarification": false,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "provider_generations": 4,
+      "all_provider_http_200": true,
+      "visible_reasoning_events": 4,
+      "retained_visible_reasoning_chars": 5306,
+      "reasoning_truncated_events": 0,
+      "executed_tools": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "generate_current_term_plan"
+      ],
+      "source_logical_reads": [
+        {
+          "tool_name": "read_my_major_academic",
+          "operation": "major_academic",
+          "target_term": "ALL-HISTORY",
+          "captured_rows": 104,
+          "reported_total": 104,
+          "has_more": false,
+          "complete_within_scope": true,
+          "status": "completed"
+        },
+        {
+          "tool_name": "read_my_curriculum",
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "major_source_checks": [
+        {
+          "rows": 104,
+          "unknown_registered_grade": 63,
+          "records_hash_matches": true,
+          "fixed_source_projection_diagnostics_equal": true,
+          "live_nonhistorical": true
+        }
+      ],
+      "prepare_request_bases": [
+        "current_message"
+      ],
+      "actual_plan_calls": [
+        {
+          "tool": "generate_current_term_plan",
+          "status": "available",
+          "action": "generate",
+          "reason": null,
+          "option_count": 3,
+          "lock_count": 0,
+          "revision": 0,
+          "unresolved_codes": []
+        }
+      ],
+      "delivered_plan": {
+        "action": "generate",
+        "option_count": 3,
+        "lock_count": 0,
+        "revision": 0,
+        "friday_hard": false,
+        "all_options_observed_slot_pass": true,
+        "all_options_full_semantics_unverified": true
+      }
+    },
+    {
+      "turn": 2,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "model_decision": "answer",
+      "clarification_request_basis": null,
+      "pending_clarification": false,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "provider_generations": 5,
+      "all_provider_http_200": true,
+      "visible_reasoning_events": 5,
+      "retained_visible_reasoning_chars": 7338,
+      "reasoning_truncated_events": 0,
+      "executed_tools": [
+        "get_my_context",
+        "get_current_term_plan",
+        "update_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "source_logical_reads": [
+        {
+          "tool_name": "read_my_major_academic",
+          "operation": "major_academic",
+          "target_term": "ALL-HISTORY",
+          "captured_rows": 104,
+          "reported_total": 104,
+          "has_more": false,
+          "complete_within_scope": true,
+          "status": "completed"
+        },
+        {
+          "tool_name": "read_my_curriculum",
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "major_source_checks": [
+        {
+          "rows": 104,
+          "unknown_registered_grade": 63,
+          "records_hash_matches": true,
+          "fixed_source_projection_diagnostics_equal": true,
+          "live_nonhistorical": true
+        }
+      ],
+      "prepare_request_bases": [
+        "current_message"
+      ],
+      "actual_plan_calls": [
+        {
+          "tool": "update_current_term_plan",
+          "status": "not_ready",
+          "action": "revise",
+          "reason": "source_preparation_required",
+          "option_count": 0,
+          "lock_count": 0,
+          "revision": 0,
+          "unresolved_codes": []
+        },
+        {
+          "tool": "update_current_term_plan",
+          "status": "available",
+          "action": "revise",
+          "reason": null,
+          "option_count": 3,
+          "lock_count": 1,
+          "revision": 1,
+          "unresolved_codes": []
+        }
+      ],
+      "delivered_plan": {
+        "action": "revise",
+        "option_count": 3,
+        "lock_count": 1,
+        "revision": 1,
+        "friday_hard": true,
+        "all_options_observed_slot_pass": true,
+        "all_options_full_semantics_unverified": true
+      }
+    },
+    {
+      "turn": 3,
+      "protocol_status": "completed",
+      "task_status": "awaiting_user",
+      "error_code": null,
+      "model_decision": "clarify",
+      "clarification_request_basis": "current_message",
+      "pending_clarification": true,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "provider_generations": 1,
+      "all_provider_http_200": true,
+      "visible_reasoning_events": 1,
+      "retained_visible_reasoning_chars": 2522,
+      "reasoning_truncated_events": 0,
+      "executed_tools": [
+        "get_my_context"
+      ],
+      "source_logical_reads": [],
+      "major_source_checks": [],
+      "prepare_request_bases": [],
+      "actual_plan_calls": [],
+      "delivered_plan": null
+    },
+    {
+      "turn": 4,
+      "protocol_status": "completed",
+      "task_status": "awaiting_user",
+      "error_code": null,
+      "model_decision": "clarify",
+      "clarification_request_basis": "pending_task",
+      "pending_clarification": true,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "provider_generations": 3,
+      "all_provider_http_200": true,
+      "visible_reasoning_events": 3,
+      "retained_visible_reasoning_chars": 7155,
+      "reasoning_truncated_events": 0,
+      "executed_tools": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "source_logical_reads": [
+        {
+          "tool_name": "read_my_major_academic",
+          "operation": "major_academic",
+          "target_term": "ALL-HISTORY",
+          "captured_rows": 104,
+          "reported_total": 104,
+          "has_more": false,
+          "complete_within_scope": true,
+          "status": "completed"
+        },
+        {
+          "tool_name": "read_my_curriculum",
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "major_source_checks": [
+        {
+          "rows": 104,
+          "unknown_registered_grade": 63,
+          "records_hash_matches": true,
+          "fixed_source_projection_diagnostics_equal": true,
+          "live_nonhistorical": true
+        }
+      ],
+      "prepare_request_bases": [
+        "pending_task"
+      ],
+      "actual_plan_calls": [
+        {
+          "tool": "update_current_term_plan",
+          "status": "not_ready",
+          "action": "revise",
+          "reason": "hard_preferences_unresolved",
+          "option_count": 0,
+          "lock_count": 1,
+          "revision": 1,
+          "unresolved_codes": [
+            "unsupported_hard_condition"
+          ]
+        }
+      ],
+      "delivered_plan": null
+    }
+  ],
+  "finite_checks": {
+    "round1_actual_generate_delivered_three": true,
+    "round2_actual_revise_locked_one": true,
+    "round2_hard_friday_and_zero_friday_meetings": true,
+    "round2_lock_in_every_option": true,
+    "round3_actual_pending_clarification": true,
+    "round4_prepare_uses_server_pending_basis": true,
+    "round4_actual_update_not_ready": true,
+    "round4_unsupported_control_reference_observed": true,
+    "round4_keeps_previous_pointer_revision_and_locks": true,
+    "round4_no_recomputed_options": true,
+    "round4_still_awaiting_user": true,
+    "pending_original_request_retained": true,
+    "pending_supplement_count_not_decreased": true
+  },
+  "provider_totals": {
+    "generations": 13,
+    "all_http_200": true,
+    "visible_reasoning_events": 13,
+    "retained_visible_reasoning_chars": 22321,
+    "reasoning_truncated_events": 0
+  },
+  "logical_source_read_counts": {
+    "major_academic": 3,
+    "curriculum": 3,
+    "timetable": 0,
+    "exams": 0
+  },
+  "curriculum_document_comparison": {
+    "fresh_first_run_pdf_integrity_checks_pass": true,
+    "same_pdf_bytes_as_v10_review": false,
+    "candidate_difference_categories": [
+      "candidate_document_reference_changed"
+    ],
+    "known_candidate_labels_unchanged": true,
+    "old_page_chunk_module_conclusions_reused": false,
+    "stable_course_identity_verified_count": 0
+  },
+  "acceptance": {
+    "engineering_regression_not_rerun_by_this_audit": true,
+    "actual_model_and_source_calls_observed": true,
+    "first_two_course_data_test_results_finitely_supported": true,
+    "round4_task_completion": false,
+    "round4_period_supplement_recomputed_successfully": false,
+    "round4_control_reference_semantics_accepted": false,
+    "complete_answer_semantics_accepted": false,
+    "formal_programme_applicability_accepted": false,
+    "formal_recommendation_accepted": false,
+    "user_experience_accepted": false,
+    "registration_or_tool_execution_is_not_recomputation": true
+  },
+  "audit_safety": {
+    "credentials_read": false,
+    "new_network_model_school_calls": 0,
+    "production_code_modified": false,
+    "only_safe_aggregates_in_public_receipt": true,
+    "logical_reads_not_HTTP_request_count": true,
+    "independent_hmac_verification": false
+  }
+}

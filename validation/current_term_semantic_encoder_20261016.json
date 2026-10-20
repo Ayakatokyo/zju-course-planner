@@ -1,0 +1,38 @@
+{
+  "schema": "local-semantic-encoder-validation/1",
+  "recorded_at_utc": "2026-10-16T09:38:06.596181+00:00",
+  "encoder": {
+    "status": "available",
+    "reason": null,
+    "model_id": "BAAI/bge-small-zh-v1.5",
+    "revision": "7999e1d3359715c523056ef9478215996d62a620",
+    "dimension": 512,
+    "artifact_sha256": "516df6bdc68ff1c03db95469e565c96b99efe50cd2a29c5147a90e53c02f7bd4"
+  },
+  "engineering_command": "python3 -m unittest tests.test_semantic_retrieval.ActualLocalEncoderTests tests.test_personal_evidence.PersonalEvidenceTests.test_actual_local_encoder_recalls_synthetic_current_pdf_paraphrase -q",
+  "configuration": [
+    "COURSE_SEMANTIC_ENCODER_MANIFEST",
+    "COURSE_SEMANTIC_PYTHON"
+  ],
+  "observed_result": {
+    "ran": 5,
+    "passed": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "elapsed_seconds": 1.754
+  },
+  "scope": "actual local BGE/ORT encoder on synthetic passages and owner-scoped synthetic current PDF only",
+  "checks": [
+    "512-dimensional normalized vectors",
+    "Chinese paraphrase where lexical route has zero matches",
+    "mixed weak lexical noise retains dense candidate",
+    "512-token truncation reported",
+    "manifest/runtime changes rejected"
+  ],
+  "real_personal_documents": false,
+  "remote_embedding_requests": 0,
+  "private_assets_committed": false,
+  "dependency_boundary": "fixed model and tokenizer revision/hashes plus manifest declared runtime versions; independent wheel hash verification not claimed",
+  "full_semantic_acceptance": "not_accepted"
+}

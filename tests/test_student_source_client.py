@@ -10,7 +10,7 @@ from pathlib import Path
 import tempfile
 from urllib.request import Request, urlopen
 
-from course_assistant.student_source_client import MAX_SOURCE_PAGES, SourceClientError, StudentSourceClient, to_envelopes
+from course_assistant.student_source_client import MAX_SOURCE_PAGES, MAX_TIMETABLE_ROWS, SourceClientError, StudentSourceClient, to_envelopes
 from course_assistant.student_sources import business_field_diagnostics
 from course_assistant.school_period_times import period_source
 
@@ -490,6 +490,36 @@ class StudentSourceClientTests(unittest.TestCase):
         self.assertIsNone(result["coverage"]["reported_total"])
         self.assertEqual(result["status"], "partial_acquisition")
 
+    def test_unpaged_timetable_retains_bounded_large_lists_without_inventing_completeness(self):
+        for count in (21, MAX_TIMETABLE_ROWS):
+            with self.subTest(count=count):
+                payload = {"kbList": [{"kcmc": "SYNTHETIC-COURSE-" + str(i)} for i in range(count)]}
+                client = self.client([{"state": "business", "http_status": 200, "content_type": "application/json",
+                    "session_epoch": 1, "payload": payload}])
+                result = client.fetch("timetable", "2026-2027-AW")
+                self.assertEqual(len(self.transport.requests), 1)
+                self.assertEqual(result["coverage"]["captured_rows"], count)
+                self.assertEqual(result["status"], "partial_acquisition")
+                self.assertIsNone(result["coverage"]["reported_total"])
+                self.assertIsNone(result["coverage"]["has_more"])
+                self.assertFalse(result["coverage"]["complete_within_scope"])
+                self.assertIsNone(result["failure"])
+
+    def test_unpaged_timetable_cap_rejects_whole_oversize_response_and_paged_domains_keep_page_size(self):
+        for operation, container, count, failure in (
+                ("timetable", "kbList", MAX_TIMETABLE_ROWS + 1, "timetable_row_limit_exceeded"),
+                ("academic", "items", 21, "page_size_exceeded"),
+                ("exams", "items", 21, "page_size_exceeded")):
+            with self.subTest(operation=operation):
+                client = self.client([{"state": "business", "http_status": 200, "content_type": "application/json",
+                    "session_epoch": 1, "payload": {container: [{"kcmc": "SYNTHETIC-COURSE-" + str(i)} for i in range(count)], "total": count}}])
+                result = client.fetch(operation, "2026-2027-A" if operation == "exams" else "2026-2027-AW")
+                self.assertEqual(len(self.transport.requests), 1)
+                self.assertEqual(result["status"], "schema_changed")
+                self.assertEqual(result["failure"], failure)
+                self.assertEqual(result["pages"], [])
+                self.assertEqual(result["coverage"]["captured_rows"], 0)
+
     def test_period_clock_metadata_is_cached_detached_and_never_crosses_grant_or_epoch(self):
         clock = [{"period": 1, "start_time": "07:10", "end_time": "07:55"}]
         source = {"state": "business", "http_status": 200, "content_type": "application/json", "session_epoch": 1,
@@ -517,12 +547,13 @@ class StudentSourceClientTests(unittest.TestCase):
         self.assertEqual(len(self.transport.requests), 3)
 
     def test_period_clock_metadata_cannot_bypass_row_bounds_or_fixed_projection(self):
-        payload = {"kbList": [{"kcmc": "SYNTHETIC-CLOCK-COURSE"}] * 21, "period_times": [],
+        payload = {"kbList": [{"kcmc": "SYNTHETIC-CLOCK-COURSE"}] * (MAX_TIMETABLE_ROWS + 1), "period_times": [],
                    "period_times_source": period_source()}
         response = {"state": "business", "http_status": 200, "content_type": "application/json", "session_epoch": 1, "payload": payload}
         client = self.client([response])
         result = client.fetch("timetable", "2026-2027-AW")
-        self.assertEqual((result["status"], result["failure"], result["pages"]), ("schema_changed", "page_size_exceeded", []))
+        self.assertEqual((result["status"], result["failure"], result["pages"]), ("schema_changed", "timetable_row_limit_exceeded", []))
+        self.assertEqual(len(self.transport.requests), 1)
         payload["kbList"] = payload["kbList"][:1]
         payload["period_times_source"]["page_path"] = "https://foreign.invalid/"
         client = self.client([response])

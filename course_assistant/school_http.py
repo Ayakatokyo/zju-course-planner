@@ -24,7 +24,7 @@ from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .student_source_parsers import PROFILE_FIELDS
-from .student_source_client import MAX_SOURCE_PAGES
+from .student_source_client import MAX_SOURCE_PAGES, MAX_TIMETABLE_ROWS
 from .school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT, parse_period_table, period_source
 from .student_sources import CREDENTIAL_VALUE, StudentSourceError, sanitize_payload, business_field_diagnostics
 
@@ -917,7 +917,8 @@ class SchoolHTTPClient:
         if operation != "timetable":
             _canonical_pagination(projection)
         containers = [key for key in ("items", "records", "kbList") if key in projection]
-        if len(containers) != 1 or not isinstance(projection[containers[0]], list) or len(projection[containers[0]]) > spec["page_size"]:
+        row_limit = MAX_TIMETABLE_ROWS if operation == "timetable" else spec["page_size"]
+        if len(containers) != 1 or not isinstance(projection[containers[0]], list) or len(projection[containers[0]]) > row_limit:
             _fail("schema_changed")
         observed = _subjects(payload)
         with self._state_lock:

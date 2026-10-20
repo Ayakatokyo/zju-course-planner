@@ -1,0 +1,111 @@
+{
+  "schema": "current-term-model-mixed-v10-initial/1",
+  "recorded_at_utc": "2026-10-16T10:45:20.869615+00:00",
+  "actual_provider_generations": 25,
+  "source_files_fixed_during_probe": true,
+  "source_sha256": {
+    "course_assistant/personal_dialogue.py": "db9d444e21fa0a9de98d33384747ca54aa1e76440ce22f5d7a81670a74cfb3af",
+    "course_assistant/personal_chat.py": "f1b66ce9898ddbb3a21eafe1ce69aa07e3542adb41531c1e406e4eb9a482c663",
+    "course_assistant/personal_course_plans.py": "abae96674011fc5a66f68de69f0ea8c490e6deba8aeabfc8634ae93e4ae6edc7",
+    "course_assistant/current_term_recommendation.py": "c1e08799dbaf03fbe10d6bfd61adfd013a22c21b428e1edbb1bbd258adcec204",
+    "course_assistant/school_accounts.py": "7c3d570cfd37d2a2a8f58f3b341ee262d9f069835e9c92a424acebe483ccfffa",
+    "course_assistant/course_plan_policy.py": "1ef59b0c4823a17057b3be4c446aee16cedf5d8b215cf2256eeb12cd6b3db57f"
+  },
+  "real_school_calls": 0,
+  "real_personal_data": false,
+  "course_data": "existing_current_term_observations",
+  "person_sources": "explicit_synthetic_major_curriculum_timetable",
+  "turns": [
+    {
+      "turn": 1,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "code": null,
+      "actual_provider_generations": 4,
+      "result_action": "generate",
+      "result_reason": null,
+      "options": 3,
+      "locks": 0,
+      "user_busy_slots": 0,
+      "policy_unresolved_codes": []
+    },
+    {
+      "turn": 2,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "code": null,
+      "actual_provider_generations": 6,
+      "result_action": "compare",
+      "result_reason": null,
+      "options": 2,
+      "locks": 0,
+      "user_busy_slots": 0,
+      "policy_unresolved_codes": []
+    },
+    {
+      "turn": 3,
+      "protocol_status": "completed",
+      "task_status": "blocked",
+      "code": null,
+      "actual_provider_generations": 6,
+      "result_action": "revise",
+      "result_reason": "no_observed_option_within_scope",
+      "options": 0,
+      "locks": 1,
+      "user_busy_slots": 0,
+      "policy_unresolved_codes": []
+    },
+    {
+      "turn": 4,
+      "protocol_status": "completed",
+      "task_status": "awaiting_user",
+      "code": null,
+      "actual_provider_generations": 1,
+      "result_action": null,
+      "result_reason": null,
+      "options": 0,
+      "locks": 0,
+      "user_busy_slots": null,
+      "policy_unresolved_codes": []
+    },
+    {
+      "turn": 5,
+      "protocol_status": "completed",
+      "task_status": "blocked",
+      "code": null,
+      "actual_provider_generations": 3,
+      "result_action": "revise",
+      "result_reason": "no_observed_option_within_scope",
+      "options": 0,
+      "locks": 1,
+      "user_busy_slots": 1,
+      "policy_unresolved_codes": []
+    },
+    {
+      "turn": 6,
+      "protocol_status": "completed",
+      "task_status": "blocked",
+      "code": null,
+      "actual_provider_generations": 5,
+      "result_action": null,
+      "result_reason": null,
+      "options": 0,
+      "locks": 0,
+      "user_busy_slots": null,
+      "policy_unresolved_codes": []
+    }
+  ],
+  "initial_probe_passed": false,
+  "findings": [
+    "Actual selected locked class had Friday meetings; hard Friday correctly produced no option while preserving lock.",
+    "Wednesday period supplement compiled into one protected busy arrangement; no option remained because the Friday lock was still active.",
+    "Last explicit relaxation did not complete: model selected pending_task with no server clarification; generic tool-unavailable hid the cause and blocked required fresh sources."
+  ],
+  "acceptance": {
+    "full_semantics": "not_accepted",
+    "user_experience": "not_accepted",
+    "period_nonempty_solution_case": "not_proved_by_this_probe",
+    "formal_recommendation": "not_accepted"
+  },
+  "followup": "Keep original failure. Narrow current-turn preparation schema and provide safe missing-clarification diagnostic before retesting actual workflow."
+}

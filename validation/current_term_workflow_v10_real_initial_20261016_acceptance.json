@@ -1,0 +1,33 @@
+{
+  "schema": "current-term-real-person-v10-initial/1",
+  "recorded_at_utc": "2026-10-16T10:56:49.194663+00:00",
+  "tools_version": "personal-question-tools-v10-period-scope-recovery",
+  "real_school_and_personal_data": true,
+  "actual_provider_generations": 4,
+  "logical_sources": [
+    "major_academic",
+    "curriculum"
+  ],
+  "timetable_or_exams_read": false,
+  "status": "failed",
+  "code": "tool_not_allowed",
+  "generation_attempt": {
+    "status": "not_ready",
+    "reason": "hard_preferences_unresolved",
+    "unresolved_codes": [
+      "unsupported_hard_condition"
+    ],
+    "options": 0,
+    "solver_execution": "not_reached"
+  },
+  "known_failure": "A request to actually perform computation was incorrectly classified as an unsupported scheduling hard condition. A later unregistered tool call was rejected.",
+  "unknown_failure_details": "Unregistered tool name and arguments were not retained, so their identity is not asserted.",
+  "scope": "Actual browser request and independent current-turn audit; original full response/events preserved privately.",
+  "acceptance": {
+    "task_completion": false,
+    "full_semantics": false,
+    "formal_recommendation": false,
+    "user_experience": false
+  },
+  "followup": "Classify workflow obligations separately from scheduling conditions; retain the unregistered-tool boundary while allowing one evidence-only final-format recovery."
+}

@@ -1,0 +1,59 @@
+{
+  "schema": "current-term-real-browser-finite-check/1",
+  "recorded_at_utc": "2026-10-16T12:02:53.906561+00:00",
+  "tools_version": "personal-question-tools-v13-protocol-diagnostics",
+  "scope": "Actual local authenticated personal conversation UI, four rounds; not a replay or user acceptance.",
+  "assets_sha256": {
+    "web/app.js": "c44302fb77f46e3b0a65fbffef7ddf64d124aa91fc927f538c7e59f661e8bb80",
+    "web/styles.css": "d58eec09e7c355d2d85601c4ab4702aeb447c33ddac11f06d59b96ec372ebca7",
+    "web/index.html": "6824f973b7a3b03bdc393701e93ada4b72b9c7d0427060e6ce3eacd6874b2bce"
+  },
+  "desktop": {
+    "css_width": 1890,
+    "css_height": 894,
+    "document_scroll_width": 1890,
+    "dialogue_client_width": 956,
+    "dialogue_scroll_width": 956,
+    "draft_in_viewport": true
+  },
+  "mobile": {
+    "css_width": 390,
+    "css_height": 844,
+    "document_scroll_width": 390,
+    "dialogue_client_width": 358,
+    "dialogue_scroll_width": 358,
+    "draft_in_viewport": true,
+    "viewport_measured_in_page": true,
+    "requested_size_was_adjusted_for_existing_browser_zoom": true
+  },
+  "four_terminal_processes_open": [
+    false,
+    false,
+    false,
+    false
+  ],
+  "evidence_entry_counts_per_turn": [
+    1,
+    1,
+    0,
+    1
+  ],
+  "history_restore": {
+    "explicit_history_selection_after_reload": true,
+    "restored_turns": 4,
+    "terminal_processes_remain_closed": true,
+    "unsent_draft_retained_after_reload": false,
+    "automatic_draft_submission": false,
+    "draft_text_was_synthetic": true
+  },
+  "screenshots_private_only": true,
+  "viewport_restored": true,
+  "new_model_or_school_calls_by_ui_layout_history_checks": 0,
+  "limits": [
+    "The fourth task was still awaiting redundant lock clarification; layout checks do not make that task succeed.",
+    "Unsent text was lost on refresh, recorded as an experience gap, not passed draft persistence.",
+    "Old reported cross-turn expansion was not reproduced here; its cause remains unknown."
+  ],
+  "full_semantics": "not_accepted",
+  "user_acceptance": "not_accepted"
+}

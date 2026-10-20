@@ -1,0 +1,308 @@
+{
+  "schema": "current-term-personal-v11-finite-validation/1",
+  "recorded_at_utc": "2026-10-16T11:29:13.642020+00:00",
+  "tools_version": "personal-question-tools-v11-workflow-recovery",
+  "scope": "Four actual personal conversation rounds with existing current-term historical course observations; independent offline audit only.",
+  "engineering_binding": {
+    "receipt": "current_term_workflow_v11_final_20261016_validation.json",
+    "runtime_loaded_hashes_match_release_file_count": 119,
+    "runtime_and_release_tools_version_match": true,
+    "engineering_pass_is_not_business_acceptance": true
+  },
+  "actual_provider_generations": 13,
+  "unique_recorded_provider_completions": 13,
+  "provider_http_200_generations": 13,
+  "visible_reasoning_event_count": 13,
+  "runtime_tool_execution_events": {
+    "starts": 29,
+    "ends": 29,
+    "by_tool": {
+      "get_my_context": 4,
+      "prepare_recommendation_inputs": 3,
+      "query_my_records": 3,
+      "read_my_major_academic": 3,
+      "search_my_curriculum": 4,
+      "read_my_curriculum": 3,
+      "search_current_term_courses": 4,
+      "generate_current_term_plan": 1,
+      "get_current_term_plan": 2,
+      "update_current_term_plan": 2
+    },
+    "unit": "Recorded actual tool dispatches, including service preflight and nested source acquisition; not model-selected tool count or HTTP request count."
+  },
+  "logical_school_source_completed_reads": {
+    "total": 6,
+    "by_operation": {
+      "major_academic": 3,
+      "curriculum": 3,
+      "timetable": 0,
+      "exams": 0
+    },
+    "http_request_count": null,
+    "unit": "Completed logical source actions; transport pagination and HTTP request totals were not independently counted."
+  },
+  "rounds": [
+    {
+      "turn": 1,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "actual_provider_generations": 3,
+      "provider_http_status_counts": {
+        "200": 3
+      },
+      "visible_reasoning_event_count": 3,
+      "executed_top_level_tool_results": 4,
+      "executed_top_level_tool_names": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "generate_current_term_plan"
+      ],
+      "runtime_tool_start_count": 8,
+      "runtime_tool_end_count": 8,
+      "runtime_executed_tool_counts": {
+        "get_my_context": 1,
+        "prepare_recommendation_inputs": 1,
+        "query_my_records": 1,
+        "read_my_major_academic": 1,
+        "search_my_curriculum": 1,
+        "read_my_curriculum": 1,
+        "search_current_term_courses": 1,
+        "generate_current_term_plan": 1
+      },
+      "logical_school_source_completed_reads": [
+        {
+          "operation": "major_academic",
+          "status": "completed"
+        },
+        {
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "has_saved_pending_clarification": false,
+      "plan": {
+        "action": "generate",
+        "recommendation_kind": "courses",
+        "option_count": 3,
+        "revision": 0,
+        "lock_count": 0,
+        "friday_policy": "soft",
+        "observed_slot_results": {
+          "pass": 3
+        },
+        "options_with_no_observed_friday_meeting": 3,
+        "full_semantics": "unverified"
+      }
+    },
+    {
+      "turn": 2,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "actual_provider_generations": 6,
+      "provider_http_status_counts": {
+        "200": 6
+      },
+      "visible_reasoning_event_count": 6,
+      "executed_top_level_tool_results": 7,
+      "executed_top_level_tool_names": [
+        "get_my_context",
+        "get_current_term_plan",
+        "update_current_term_plan",
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "update_current_term_plan"
+      ],
+      "runtime_tool_start_count": 11,
+      "runtime_tool_end_count": 11,
+      "runtime_executed_tool_counts": {
+        "get_my_context": 1,
+        "get_current_term_plan": 1,
+        "update_current_term_plan": 2,
+        "prepare_recommendation_inputs": 1,
+        "query_my_records": 1,
+        "read_my_major_academic": 1,
+        "search_my_curriculum": 1,
+        "read_my_curriculum": 1,
+        "search_current_term_courses": 2
+      },
+      "logical_school_source_completed_reads": [
+        {
+          "operation": "major_academic",
+          "status": "completed"
+        },
+        {
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "has_saved_pending_clarification": false,
+      "plan": {
+        "action": "revise",
+        "recommendation_kind": "courses",
+        "option_count": 3,
+        "revision": 1,
+        "lock_count": 1,
+        "friday_policy": "hard",
+        "observed_slot_results": {
+          "pass": 3
+        },
+        "options_with_no_observed_friday_meeting": 3,
+        "full_semantics": "unverified"
+      },
+      "adjustment_attempts": [
+        {
+          "status": "not_ready",
+          "reason": "source_preparation_required",
+          "option_count": 0
+        },
+        {
+          "status": "available",
+          "reason": null,
+          "option_count": 3
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "protocol_status": "completed",
+      "task_status": "awaiting_user",
+      "error_code": null,
+      "actual_provider_generations": 1,
+      "provider_http_status_counts": {
+        "200": 1
+      },
+      "visible_reasoning_event_count": 1,
+      "executed_top_level_tool_results": 1,
+      "executed_top_level_tool_names": [
+        "get_my_context"
+      ],
+      "runtime_tool_start_count": 1,
+      "runtime_tool_end_count": 1,
+      "runtime_executed_tool_counts": {
+        "get_my_context": 1
+      },
+      "logical_school_source_completed_reads": [],
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "has_saved_pending_clarification": true,
+      "plan": null
+    },
+    {
+      "turn": 4,
+      "protocol_status": "failed",
+      "task_status": "failed",
+      "error_code": "invalid_tool_arguments",
+      "actual_provider_generations": 3,
+      "provider_http_status_counts": {
+        "200": 3
+      },
+      "visible_reasoning_event_count": 3,
+      "executed_top_level_tool_results": 5,
+      "executed_top_level_tool_names": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "get_current_term_plan",
+        "search_my_curriculum",
+        "search_current_term_courses"
+      ],
+      "runtime_tool_start_count": 9,
+      "runtime_tool_end_count": 9,
+      "runtime_executed_tool_counts": {
+        "get_my_context": 1,
+        "prepare_recommendation_inputs": 1,
+        "query_my_records": 1,
+        "read_my_major_academic": 1,
+        "search_my_curriculum": 2,
+        "read_my_curriculum": 1,
+        "get_current_term_plan": 1,
+        "search_current_term_courses": 1
+      },
+      "logical_school_source_completed_reads": [
+        {
+          "operation": "major_academic",
+          "status": "completed"
+        },
+        {
+          "operation": "curriculum",
+          "status": "completed"
+        }
+      ],
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "has_saved_pending_clarification": false,
+      "plan": null,
+      "retained_selection": {
+        "revision": 1,
+        "lock_count": 1,
+        "same_plan_reference_as_round2": true,
+        "same_locked_selection_as_round2": true,
+        "selection_only": true,
+        "fresh_sources_required": true,
+        "old_schedule_facts_returned": false
+      },
+      "failed_followup": {
+        "pending_task_preparation_recorded": true,
+        "new_generate_or_update_dispatched": false,
+        "new_plan_result_present": false,
+        "logged_error_stage": "answer",
+        "rejected_tool_name_recorded": false,
+        "rejected_arguments_recorded": false,
+        "tool_rejected_events": 0,
+        "specific_rejected_call": "unknown_not_reconstructed",
+        "new_busy_constraint_enforcement": "not_verified_no_recalculation"
+      }
+    }
+  ],
+  "finite_checks": {
+    "four_bound_actual_personal_rounds": true,
+    "first_request_generated_three_course_combinations": true,
+    "second_round_retained_one_lock_and_hard_friday": true,
+    "all_second_round_options_have_no_observed_friday_meeting": true,
+    "third_round_clarification_saved_as_pending": true,
+    "fourth_round_failed_and_did_not_recalculate": true,
+    "revision_one_and_locked_selection_retained": true,
+    "conversation_active_pointer_unchanged": true,
+    "inspect_is_selection_only_with_fresh_sources_required": true,
+    "unknown_rejected_tool_not_guessed": true
+  },
+  "journey_outcome": "incomplete_fourth_round_failed",
+  "unaccepted_findings": [
+    {
+      "kind": "followup_task_completion_failure",
+      "round": 4,
+      "code": "invalid_tool_arguments",
+      "specific_rejected_tool_or_arguments": "not_retained_in_diagnostics; unknown; not guessed",
+      "result": "No new generation/update dispatch and no completed supplemented schedule result."
+    }
+  ],
+  "acceptance": {
+    "finite_tool_result_and_selection_support": "limited_support",
+    "four_turn_task_completion": false,
+    "full_answer_semantics": "not_accepted",
+    "formal_curriculum_applicability": "not_accepted",
+    "formal_real_recommendation": "not_accepted",
+    "user_agent_experience": "not_accepted"
+  },
+  "audit_limits": {
+    "inputs": "Preserved private conversation artifact plus the four owner/realm-bound run metadata and event records only.",
+    "event_counts_cross_checked_against_run_metadata": true,
+    "fourth_round_events_match_preserved_failure_artifact": true,
+    "failed_request_is_preserved": true,
+    "post_failure_live_plan_inspection_performed": false,
+    "source_bytes_or_HMAC_reaudited_here": false,
+    "no_credentials_or_env_read": true,
+    "no_original_grade_files_read": true,
+    "new_school_or_model_calls": 0,
+    "production_or_docs_or_tests_modified": false,
+    "unexecuted_six_turn_templates_used_as_evidence": false,
+    "private_text_paths_and_ids_published": false
+  }
+}

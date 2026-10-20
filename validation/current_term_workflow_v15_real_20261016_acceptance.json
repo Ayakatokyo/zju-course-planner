@@ -1,0 +1,462 @@
+{
+  "schema": "current-term-workflow-real-acceptance/v1",
+  "runtime_contract": "v15",
+  "recorded_at_utc": "2026-10-16T12:56:45.139227+00:00",
+  "evidence_scope": {
+    "single_exact_conversation": true,
+    "actual_rounds": 6,
+    "prior_runtimes_or_synthetic_evidence_mixed_in": false,
+    "v16_candidate_included": false,
+    "new_school_calls": 0,
+    "new_provider_calls": 0,
+    "credentials_read": false
+  },
+  "engineering": {
+    "runtime_regression": {
+      "ran": 1419,
+      "passed": 1414,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    "count_is_not_product_acceptance": true,
+    "current_dialogue_and_facade_hash_match_v15": true,
+    "current_chat_and_policy_are_later_candidates_not_runtime_proof": true
+  },
+  "real_provider": {
+    "generations": 18,
+    "by_round": [
+      4,
+      3,
+      1,
+      3,
+      2,
+      5
+    ],
+    "all_http200": true,
+    "visible_reasoning_events": 18,
+    "retained_reasoning_chars": 35275,
+    "truncated_reasoning_events": 2
+  },
+  "real_tool_execution": {
+    "top_level_results_including_service_preflight": 24,
+    "service_preflights": 6,
+    "model_dispatches": 18,
+    "argument_corrections": 1,
+    "final_format_repairs": 0,
+    "logical_school_reads": {
+      "major_academic": 5,
+      "curriculum": 5,
+      "timetable": 1,
+      "exams": 0
+    },
+    "read_count_unit": "logical_school_read_completions_not_HTTP_requests"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "provider_generations": 4,
+      "tool_results_including_preflight": 5,
+      "executed_model_tools": 4,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tool_sequence": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "generate_current_term_plan",
+        "search_my_curriculum"
+      ],
+      "pending_clarification": false,
+      "controlled_validation_diagnostics": [],
+      "plan": {
+        "action": "generate",
+        "revision": 0,
+        "options": 2,
+        "locks": 0,
+        "busy": 0,
+        "friday_free": "soft",
+        "reason": null,
+        "observed_slot_results": [
+          "pass",
+          "pass"
+        ],
+        "full_semantics": [
+          "unverified",
+          "unverified"
+        ],
+        "complete_within_observed_pool": true,
+        "school_offerings_coverage_complete": false
+      }
+    },
+    {
+      "round": 2,
+      "protocol_status": "completed",
+      "task_status": "blocked",
+      "error_code": null,
+      "provider_generations": 3,
+      "tool_results_including_preflight": 4,
+      "executed_model_tools": 3,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tool_sequence": [
+        "get_my_context",
+        "get_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "pending_clarification": false,
+      "controlled_validation_diagnostics": [],
+      "plan": {
+        "action": "revise",
+        "revision": 1,
+        "options": 0,
+        "locks": 1,
+        "busy": 0,
+        "friday_free": "hard",
+        "reason": "no_observed_option_within_scope",
+        "observed_slot_results": [],
+        "full_semantics": [],
+        "complete_within_observed_pool": true,
+        "school_offerings_coverage_complete": false
+      }
+    },
+    {
+      "round": 3,
+      "protocol_status": "completed",
+      "task_status": "awaiting_user",
+      "error_code": null,
+      "provider_generations": 1,
+      "tool_results_including_preflight": 1,
+      "executed_model_tools": 0,
+      "logical_school_reads": {
+        "major_academic": 0,
+        "curriculum": 0,
+        "timetable": 0,
+        "exams": 0
+      },
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tool_sequence": [
+        "get_my_context"
+      ],
+      "pending_clarification": true,
+      "controlled_validation_diagnostics": []
+    },
+    {
+      "round": 4,
+      "protocol_status": "completed",
+      "task_status": "blocked",
+      "error_code": null,
+      "provider_generations": 3,
+      "tool_results_including_preflight": 5,
+      "executed_model_tools": 4,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tool_sequence": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "update_current_term_plan"
+      ],
+      "pending_clarification": false,
+      "controlled_validation_diagnostics": [],
+      "plan": {
+        "action": "revise",
+        "revision": 2,
+        "options": 0,
+        "locks": 1,
+        "busy": 1,
+        "friday_free": "hard",
+        "reason": "no_observed_option_within_scope",
+        "observed_slot_results": [],
+        "full_semantics": [],
+        "complete_within_observed_pool": true,
+        "school_offerings_coverage_complete": false
+      }
+    },
+    {
+      "round": 5,
+      "protocol_status": "completed",
+      "task_status": "blocked",
+      "error_code": null,
+      "provider_generations": 2,
+      "tool_results_including_preflight": 3,
+      "executed_model_tools": 2,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 1,
+        "exams": 0
+      },
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tool_sequence": [
+        "get_my_context",
+        "get_current_term_plan",
+        "prepare_recommendation_inputs"
+      ],
+      "pending_clarification": false,
+      "controlled_validation_diagnostics": []
+    },
+    {
+      "round": 6,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "provider_generations": 5,
+      "tool_results_including_preflight": 6,
+      "executed_model_tools": 5,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "repair_attempts": 0,
+      "argument_corrections": 1,
+      "tool_sequence": [
+        "get_my_context",
+        "get_current_term_plan",
+        "prepare_recommendation_inputs",
+        "get_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "pending_clarification": false,
+      "controlled_validation_diagnostics": [
+        {
+          "tool_name": "update_current_term_plan",
+          "failure_detail": "unexpected_argument",
+          "error_code": "invalid_tool_arguments",
+          "attempt": 1,
+          "count": 1,
+          "status": "retrying"
+        }
+      ],
+      "plan": {
+        "action": "revise",
+        "revision": 3,
+        "options": 1,
+        "locks": 0,
+        "busy": 1,
+        "friday_free": "soft",
+        "reason": null,
+        "observed_slot_results": [
+          "pass"
+        ],
+        "full_semantics": [
+          "unverified"
+        ],
+        "complete_within_observed_pool": true,
+        "school_offerings_coverage_complete": false
+      }
+    }
+  ],
+  "initial_candidate_scope": {
+    "search_returned_courses": 10,
+    "generate_pool_courses": 6,
+    "all_pool_codes_in_current_search": true,
+    "delivered_distinct_courses": 3,
+    "delivered_options": 2,
+    "required_course_codes_argument_present": false,
+    "required_course_codes_result_empty": true,
+    "unrequested_required_course_added": false
+  },
+  "current_first_turn_curriculum": {
+    "PDF_and_bundle_hash_match": true,
+    "independent_all_page_text_extraction_matches": true,
+    "pages": 6,
+    "chunks": 204,
+    "selected_E_citations": 3,
+    "all_raw_page_spans_and_retained_model_spans_exact": true,
+    "required_heading_context_hits": 2,
+    "elective_heading_context_hits": 1,
+    "model_context_incomplete_hits": 3,
+    "finite_topic_presence_supported": true,
+    "short_course_label_is_not_verified_canonical_identity": true,
+    "visual_layout_accepted": false,
+    "verified_stable_course_identities": 0,
+    "binding_status": "not_verified",
+    "rules_status": "not_reviewed",
+    "dense_used": true,
+    "retrieval_mode": "hybrid_rrf_local_embedding",
+    "candidates": 204,
+    "encoded_candidates": 204,
+    "dense_success_is_not_semantic_acceptance": true,
+    "old_PDF_review_used": false
+  },
+  "round4_busy_and_observed_no_option": {
+    "weekday": 3,
+    "periods": [
+      6,
+      7,
+      8
+    ],
+    "actual_busy_count": 1,
+    "actual_lock_count": 1,
+    "friday_free": "hard",
+    "actual_pending_basis": true,
+    "period_scope_supported_by_stored_pending_and_supplement": true,
+    "explicit_engine_slot_DTO_retained": false,
+    "live_state_memory_introspection": false,
+    "current_v16_policy_replay_used": false,
+    "actual_solver_reports_complete_observed_pool_no_option": true,
+    "global_or_formal_infeasibility_claimed": false
+  },
+  "round5_timetable_stop": {
+    "current_P_timetable_state": "partial",
+    "current_receipt_prepare_executed": true,
+    "get_and_prepare_finished_in_first_model_batch": true,
+    "next_generation_direct_answer": true,
+    "post_prepare_dispatches": 0,
+    "actual_timetable_solver_calls": 0,
+    "no_budget_error": true,
+    "same_plan_and_dataset_selection_retained": true,
+    "retained_selection_revision": 2,
+    "retained_selection_locked_count": 1,
+    "selection_only": true,
+    "fresh_sources_required": true,
+    "top_level_selection_busy_default_is_not_state_loss_proof": true,
+    "tools_empty_request_schema_independently_retained": false,
+    "tools_empty_path": "Derived from hash-matched runtime dialogue, current P proof and observed batch completion; provider request schema was not separately retained."
+  },
+  "round5_timetable_source": {
+    "rows": 3,
+    "time_raw_known_rows": 1,
+    "time_raw_unknown_rows": 2,
+    "registered_upstream_field_groups": {
+      "time_raw": {
+        "present_rows": 1,
+        "empty_present_rows": 0,
+        "absent_rows": 2
+      },
+      "sfqd_raw": {
+        "present_rows": 3,
+        "empty_present_rows": 0,
+        "absent_rows": 0
+      },
+      "dsz_raw": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      },
+      "xxq_raw": {
+        "present_rows": 3,
+        "empty_present_rows": 0,
+        "absent_rows": 0
+      },
+      "weekday": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      },
+      "periods": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      },
+      "week_set": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      },
+      "week_annotation_raw": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      },
+      "start_period_raw": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      },
+      "duration_raw": {
+        "present_rows": 0,
+        "empty_present_rows": 0,
+        "absent_rows": 3
+      }
+    },
+    "source_projection_fixed_diagnostics_equal": true,
+    "records_hash_matches": true,
+    "observed_live_nonhistorical": true,
+    "normalized_issue_count": 0,
+    "coverage": {
+      "captured_rows": 3,
+      "complete_within_scope": false,
+      "has_more": null,
+      "pages_captured": 1,
+      "reported_total": null
+    },
+    "boundary": "Absent time fields are not parsing errors or evidence of unscheduled courses. Unknown reported_total and has_more do not establish missing rows; missing time is not established as the cause of partial status."
+  },
+  "round6_revision": {
+    "actual_revision": 3,
+    "same_plan_and_data_version": true,
+    "actual_unlock_count": 1,
+    "actual_friday_argument": "soft",
+    "actual_max_credit_argument_matches_request": true,
+    "change_evidence_fields": [
+      "unlock_class_refs",
+      "friday_free",
+      "max_credits"
+    ],
+    "result_options": 1,
+    "result_locks": 0,
+    "result_busy": 1,
+    "result_friday": "soft",
+    "target_and_max_credit_result_match_request": true,
+    "actual_option_avoids_wednesday_periods_6_8": true,
+    "prepare_calls": 2,
+    "logical_school_reads": {
+      "major_academic": 1,
+      "curriculum": 1,
+      "timetable": 0,
+      "exams": 0
+    },
+    "repeated_prepare_reused_current_turn_receipts": true,
+    "controlled_argument_issue": "unexpected_argument",
+    "rejected_raw_key_or_value_retained": false,
+    "rejected_shape_not_guessed": true
+  },
+  "grade_semantics": {
+    "prior_runtime_unknown_counts_carried_over": false,
+    "complete_semantics_accepted": false
+  },
+  "acceptance": {
+    "finite_current_data_workflow_supported": true,
+    "protocol_completed_is_not_full_task_completed": true,
+    "complete_answer_semantics": false,
+    "programme_course_identity_and_applicability": false,
+    "formal_recommendation": false,
+    "user_acceptance": false,
+    "source_hash_pass_is_not_semantic_acceptance": true
+  },
+  "git": {
+    "production_changed_by_audit": false,
+    "commit_or_push_by_audit": false,
+    "existing_changes_preserved": true
+  }
+}

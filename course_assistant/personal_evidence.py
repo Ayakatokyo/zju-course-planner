@@ -1,4 +1,4 @@
-"""Owner-scoped local PDF evidence, without school, model or executable rules.
+"""Owner-scoped local PDF evidence, without school requests or executable rules.
 
 Callbacks are server-owned: ``authorize`` supplies a scope_key incorporating
 owner/realm/session generation, ``describe_document`` supplies the current
@@ -31,6 +31,7 @@ import time
 import unicodedata
 
 from .reference_retrieval import terms
+from .semantic_retrieval import LocalSemanticRetriever
 
 SCHEMA = "personal-evidence/1"
 CHUNKING = "curriculum-semantic-source-spans-v3"
@@ -57,7 +58,7 @@ AUTH_ERRORS = frozenset({"grant_revoked", "grant_expired", "permission_denied", 
     "school_connection_expired", "unauthenticated"})
 WARNINGS = ["本机提取文本未经人工核对，不构成官方规则或本人适用认定。",
     "表格读序、跨页关系及附注作用域尚未审核；整页和相邻页只提供核对上下文。",
-    "未调用模型；检索命中不等于答案支持、已获学分或推荐就绪。"]
+    "未调用远程生成模型；检索命中不等于答案支持、已获学分或推荐就绪。"]
 
 
 class PersonalEvidenceError(ValueError):
@@ -444,6 +445,7 @@ class PersonalEvidenceService:
             _fail("invalid_arguments")
         self._authorize_callback, self._read_callback = authorize, read_document
         self._describe_callback, self._extractor = describe_document, extractor or _extract_pdf
+        self._semantic_retriever = LocalSemanticRetriever.from_environment()
         self._extraction_version = EXTRACTION if extractor is None else "injected-page-extractor-v2"
         self.root = Path(root).expanduser().absolute()
         if self.root.resolve() != self.root:
@@ -742,7 +744,7 @@ class PersonalEvidenceService:
         with self._locked():
             state, bundle = self._load(key, document)
         self._source(key, document)
-        tokens, codes, ranked = terms(query), _query_codes(query), []
+        tokens, codes, ranked, candidates = terms(query), _query_codes(query), [], []
         compact_query = re.sub(r"\s+", "", unicodedata.normalize("NFKC", query))
         module_matches = {}
         if not codes:
@@ -767,14 +769,32 @@ class PersonalEvidenceService:
                 score += 50
                 if chunk["semantic_role"] == "module_requirement":
                     score += 30
+            candidates.append({"id": str(ordinal), "text": chunk["model_text"], "lexical_score": score})
             if score:
                 ranked.append((-score, ordinal, chunk))
         ranked.sort(key=lambda row: row[:2])
+        semantic = {"status": "not_used", "reason": "exact_course_code_route", "dense_used": False}
+        if not codes:
+            retrieval = self._semantic_retriever.rank(query, candidates, limit)
+            semantic = {name: retrieval[name] for name in (
+                "status", "reason", "dense_used", "candidate_count", "encoded_count",
+                "candidate_truncated_count", "text_truncated_count", "token_truncated_count",
+                "ranking_version", "dense_reserved_count")}
+            if retrieval["dense_used"]:
+                semantic["encoder"] = {name: retrieval[name] for name in ("model_id", "revision", "dimension", "artifact_sha256")}
+                ranked = [(-(row["fusion_score"]), int(row["id"]), bundle["chunks"][int(row["id"])])
+                          for row in retrieval["matches"]]
+            # Failed or timed-out inference also takes time: a source/identity
+            # change must not revive old lexical citations via the fallback.
+            self._source(key, document)
         matches = [{**self._view(key, state, bundle, chunk), "score": -score} for score, _, chunk in ranked[:limit]]
         self._current(key, document)
         return {**self._summary(key, document, state), "status": "pending_review" if matches else "no_supported_answer_in_scope",
-            "matches": matches, "retrieval_mode": "exact_course_code_text" if codes else "lexical_han_bigram",
-            "search_candidate_count": len(ranked), "named_module_filter_applied": bool(module_matches)}
+            "matches": matches, "retrieval_mode": "exact_course_code_text" if codes else (
+                "hybrid_rrf_local_embedding" if semantic["dense_used"] else "lexical_han_bigram"),
+            "semantic_retrieval": semantic,
+            "search_candidate_count": len(candidates) if semantic["dense_used"] else len(ranked),
+            "named_module_filter_applied": bool(module_matches)}
 
     @_safe_storage
     def resolve(self, reference):

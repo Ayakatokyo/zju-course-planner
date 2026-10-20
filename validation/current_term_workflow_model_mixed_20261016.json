@@ -1,0 +1,178 @@
+{
+  "schema": "current-term-workflow-mixed-validation/1",
+  "recorded_at_utc": "2026-10-16T09:36:49.065888+00:00",
+  "kind": "real_deepseek_existing_course_observations_synthetic_person",
+  "actual_provider_generations": 23,
+  "actual_provider_reasoning_segments": 23,
+  "real_school_network_calls": 0,
+  "real_personal_sources": false,
+  "scope": "bounded current-term history observations; not live offerings or official eligibility",
+  "turns": [
+    {
+      "turn": 1,
+      "status": "completed",
+      "task_status": "partial",
+      "action": "generate",
+      "option_count": 3,
+      "model_generations": 4,
+      "source_operations": [
+        "major_academic",
+        "plan_catalogue",
+        "plan_document",
+        "timetable"
+      ],
+      "tool_names": [
+        "get_my_context",
+        "search_current_term_courses",
+        "prepare_recommendation_inputs",
+        "query_my_records",
+        "generate_current_term_plan"
+      ]
+    },
+    {
+      "turn": 2,
+      "status": "completed",
+      "task_status": "partial",
+      "action": "compare",
+      "option_count": 2,
+      "model_generations": 3,
+      "source_operations": [
+        "major_academic",
+        "plan_catalogue",
+        "plan_document",
+        "timetable"
+      ],
+      "tool_names": [
+        "get_my_context",
+        "get_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ]
+    },
+    {
+      "turn": 3,
+      "status": "completed",
+      "task_status": "partial",
+      "action": "revise",
+      "option_count": 3,
+      "model_generations": 5,
+      "source_operations": [
+        "major_academic",
+        "plan_catalogue",
+        "plan_document",
+        "timetable"
+      ],
+      "tool_names": [
+        "get_my_context",
+        "get_current_term_plan",
+        "update_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ]
+    },
+    {
+      "turn": 4,
+      "status": "completed",
+      "task_status": "partial",
+      "action": "revise",
+      "option_count": 3,
+      "model_generations": 5,
+      "source_operations": [
+        "major_academic",
+        "plan_catalogue",
+        "plan_document",
+        "timetable"
+      ],
+      "tool_names": [
+        "get_my_context",
+        "get_current_term_plan",
+        "update_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ]
+    },
+    {
+      "turn": 5,
+      "status": "completed",
+      "task_status": "awaiting_user",
+      "action": null,
+      "option_count": 0,
+      "model_generations": 1,
+      "source_operations": [],
+      "tool_names": [
+        "get_my_context"
+      ]
+    },
+    {
+      "turn": 6,
+      "status": "completed",
+      "task_status": "partial",
+      "action": "revise",
+      "option_count": 3,
+      "model_generations": 5,
+      "source_operations": [
+        "major_academic",
+        "plan_catalogue",
+        "plan_document",
+        "timetable"
+      ],
+      "tool_names": [
+        "get_my_context",
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "query_my_records",
+        "generate_current_term_plan",
+        "update_current_term_plan"
+      ]
+    }
+  ],
+  "checks": {
+    "six_turns": true,
+    "first_generated": true,
+    "comparison": true,
+    "locked_scope_preserved": true,
+    "explicit_relaxation_recovered": true,
+    "unmapped_clock_not_ignored": true,
+    "period_followup_completed": true,
+    "sources_fixed_during_run": true,
+    "fixed_arrangements_preserved": true,
+    "lock_applied_then_explicitly_removed": true,
+    "hard_friday_executed": true,
+    "explicit_soft_friday_restored": true,
+    "pending_busy_slot_applied": true,
+    "no_exam_fetch_requested": true,
+    "current_term_only": true,
+    "formal_semantics_unverified": true
+  },
+  "passed": true,
+  "fixed_source_hashes": {
+    "course_assistant/personal_dialogue.py": "d3ef1036f6d50e796e97dbc705e3d8f3c1da026c7458dffa03192e48da26bd4a",
+    "course_assistant/personal_chat.py": "1d25eb107321e118470a3d4a2c0395b44fff641cb7cf822c7b0c39f92f026309",
+    "course_assistant/personal_course_plans.py": "828279a6719bbd180c5a15fc9c40ed27e31631aa8445d6d9b6ea993c406ac83a",
+    "course_assistant/current_term_recommendation.py": "c1e08799dbaf03fbe10d6bfd61adfd013a22c21b428e1edbb1bbd258adcec204",
+    "course_assistant/school_accounts.py": "7c3d570cfd37d2a2a8f58f3b341ee262d9f069835e9c92a424acebe483ccfffa",
+    "course_assistant/course_plan_policy.py": "59b21261b144cac587c1e1d8874630bf8b8030ee00f3bc099d1ba08a36b121ea"
+  },
+  "preserved_prior_failures": [
+    {
+      "phase": "initial_tool_schema",
+      "result": "HTTP400; Python regex anchor rejected; corrected ECMAScript wire schema"
+    },
+    {
+      "phase": "first_six_turn_followup",
+      "result": "fifth and sixth awaiting_user; busy predicate paraphrase not aligned; later normalization and schema descriptions corrected"
+    }
+  ],
+  "later_defensive_change": {
+    "module": "personal_course_plans.py",
+    "behavior": "expired active plan reference cannot start new constraints and drop protections",
+    "verification": "synthetic cache eviction regression; current final engineering receipt separate"
+  },
+  "acceptance": {
+    "bounded_field_and_solver_checks": "passed",
+    "full_semantics": "not_accepted",
+    "official_curriculum_applicability": "not_accepted",
+    "real_person_recommendation": "not_yet_tested",
+    "user_experience": "not_accepted"
+  }
+}

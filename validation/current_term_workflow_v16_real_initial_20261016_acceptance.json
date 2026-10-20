@@ -1,0 +1,364 @@
+{
+  "schema": "current-term-workflow-real-initial-acceptance/v1",
+  "runtime_contract": "v16",
+  "recorded_at_utc": "2026-10-16T13:07:12.843484+00:00",
+  "evidence_scope": {
+    "single_exact_initial_request": true,
+    "persisted_terminal": true,
+    "previous_runtime_or_synthetic_evidence_mixed_in": false,
+    "later_v17_changes_not_covered": true,
+    "existing_frozen_private_audit_only": true
+  },
+  "engineering": {
+    "runtime_regression": {
+      "ran": 1426,
+      "passed": 1421,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    "fixed_runtime_source_hashes_checked": 119,
+    "mismatches_at_audit": 0,
+    "engineering_count_is_not_task_or_user_acceptance": true
+  },
+  "actual_result": {
+    "protocol_status": "failed",
+    "task_status": "failed",
+    "error_code": "turn_budget_exceeded"
+  },
+  "real_provider": {
+    "generations": 8,
+    "all_http200": true,
+    "provider_visible_reasoning_events": 8,
+    "retained_reasoning_chars": 16384,
+    "truncated_events": 2
+  },
+  "real_tool_execution": {
+    "top_level_tool_results": 10,
+    "service_preflights": 1,
+    "actual_model_dispatches": 9,
+    "logical_school_reads": {
+      "major_academic": 1,
+      "curriculum": 1,
+      "timetable": 0,
+      "exams": 0
+    },
+    "logical_reads_not_http_requests": true,
+    "argument_corrections": 0,
+    "final_repairs": 0,
+    "controlled_diagnostics": []
+  },
+  "source_readiness": {
+    "prepare_basis": "current_message",
+    "hard_preferences_count": 0,
+    "soft_preferences_count": 1,
+    "required_source_statuses": {
+      "course_reference": "available",
+      "academic_records": "available",
+      "curriculum": "available"
+    },
+    "all_required_sources_available": true,
+    "major_rows": 104,
+    "major_current_record_hash_matches": true,
+    "major_observed_live_nonhistorical": true,
+    "current_PDF_and_bundle_hash_matches": true,
+    "source_failure_explains_plan_not_ready": false,
+    "formal_readiness_gate_still_closed": true
+  },
+  "actual_tool_trace": [
+    {
+      "index": 0,
+      "tool": "get_my_context",
+      "status": "available",
+      "error": false,
+      "reason": null,
+      "action": null,
+      "revision": null,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": null,
+      "policy_status": null,
+      "controlled_unresolved": [],
+      "source_preparation": null,
+      "actions": null
+    },
+    {
+      "index": 1,
+      "tool": "prepare_recommendation_inputs",
+      "status": "available",
+      "error": false,
+      "reason": null,
+      "action": null,
+      "revision": null,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": null,
+      "policy_status": null,
+      "controlled_unresolved": [],
+      "source_preparation": null,
+      "actions": null
+    },
+    {
+      "index": 2,
+      "tool": "search_current_term_courses",
+      "status": "available",
+      "error": false,
+      "reason": null,
+      "action": "search",
+      "revision": null,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": null,
+      "controlled_unresolved": [],
+      "source_preparation": {
+        "major_academic": "missing",
+        "curriculum": "missing",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "generate"
+      ]
+    },
+    {
+      "index": 3,
+      "tool": "search_current_term_courses",
+      "status": "available",
+      "error": false,
+      "reason": null,
+      "action": "search",
+      "revision": null,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": null,
+      "controlled_unresolved": [],
+      "source_preparation": {
+        "major_academic": "missing",
+        "curriculum": "missing",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "generate"
+      ]
+    },
+    {
+      "index": 4,
+      "tool": "search_current_term_courses",
+      "status": "available",
+      "error": false,
+      "reason": null,
+      "action": "search",
+      "revision": null,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": null,
+      "controlled_unresolved": [],
+      "source_preparation": {
+        "major_academic": "missing",
+        "curriculum": "missing",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "generate"
+      ]
+    },
+    {
+      "index": 5,
+      "tool": "generate_current_term_plan",
+      "status": "not_ready",
+      "error": false,
+      "reason": "no_observed_option_within_scope",
+      "action": "generate",
+      "revision": 0,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": "ready",
+      "controlled_unresolved": [],
+      "source_preparation": {
+        "major_academic": "available",
+        "curriculum": "available",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "revise",
+        "search"
+      ]
+    },
+    {
+      "index": 6,
+      "tool": "generate_current_term_plan",
+      "status": "not_ready",
+      "error": false,
+      "reason": "locked_scope_requires_revision",
+      "action": "generate",
+      "revision": 0,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": null,
+      "controlled_unresolved": [],
+      "source_preparation": {
+        "major_academic": "available",
+        "curriculum": "available",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "search"
+      ]
+    },
+    {
+      "index": 7,
+      "tool": "update_current_term_plan",
+      "status": "not_ready",
+      "error": false,
+      "reason": "change_evidence_required",
+      "action": "revise",
+      "revision": 0,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": "needs_clarification",
+      "controlled_unresolved": [
+        {
+          "code": "current_user_change_evidence_required",
+          "field": "max_credits"
+        }
+      ],
+      "source_preparation": {
+        "major_academic": "available",
+        "curriculum": "available",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "revise"
+      ]
+    },
+    {
+      "index": 8,
+      "tool": "update_current_term_plan",
+      "status": "not_ready",
+      "error": false,
+      "reason": "change_evidence_required",
+      "action": "revise",
+      "revision": 0,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": "needs_clarification",
+      "controlled_unresolved": [
+        {
+          "code": "current_user_change_evidence_required",
+          "field": "max_credits"
+        }
+      ],
+      "source_preparation": {
+        "major_academic": "available",
+        "curriculum": "available",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "revise"
+      ]
+    },
+    {
+      "index": 9,
+      "tool": "update_current_term_plan",
+      "status": "not_ready",
+      "error": false,
+      "reason": "no_observed_option_within_scope",
+      "action": "revise",
+      "revision": 1,
+      "option_count": 0,
+      "lock_count": 0,
+      "busy_count": 0,
+      "policy_status": "ready",
+      "controlled_unresolved": [],
+      "source_preparation": {
+        "major_academic": "available",
+        "curriculum": "available",
+        "timetable": "not_required",
+        "exams": "not_requested"
+      },
+      "actions": [
+        "revise",
+        "search"
+      ]
+    }
+  ],
+  "candidate_scope": {
+    "search_result_counts": [
+      10,
+      10,
+      10
+    ],
+    "search_matching_counts": [
+      35,
+      10,
+      21
+    ],
+    "search_truncated": [
+      true,
+      false,
+      true
+    ],
+    "admitted_unique_union": 26,
+    "first_generation_pool": 6,
+    "second_attempted_pool": 10,
+    "second_pool_adds": 4,
+    "second_pool_removes": 0,
+    "both_pools_in_current_search": true,
+    "required_course_codes_added": false,
+    "first_and_last_actual_constraints_equal": true,
+    "pool_observation_eligibility_diagnostics_retained": false
+  },
+  "failure_layers": {
+    "initial_and_final_no_option": "Deterministic course-data solver reported no option in the selected six-course observed pool; complete_within_observed_scope true and limit_reached false. Per-candidate rejection diagnostics were not retained, so the underlying course/time/credit cause is unknown.",
+    "pool_expansion_rejection": "Owned facade returned locked_scope_requires_revision for replacing active six-course pool with its ten-course superset, even with lock_count=0 and busy_count=0; second solver was not executed.",
+    "two_policy_rejections": "max_credits change was not authorized by current user evidence; current_user_change_evidence_required returned before recomputation.",
+    "source_status_label_boundary": "Five top-level business not_ready results are not five source-read failures. Search wrapper default missing source fields do not override current P and solver source availability.",
+    "final_budget": {
+      "recorded_code_only": "turn_budget_exceeded",
+      "provider_generations": 8,
+      "model_tools_before_final_rejected_batch": 9,
+      "service_preflight": 1,
+      "run_elapsed_seconds": 76.091,
+      "under_120_seconds": true,
+      "last_model_end_followed_directly_by_error": true,
+      "subtype_assessment": "Hash-matched control flow rejects the next proposed tool batch at the ten-result ceiling; eight provider generations also consume the ordinary step allowance. Budget subtype was not separately logged.",
+      "original_last_batch_names_args_or_count_retained": false,
+      "last_batch_shape_not_guessed": true
+    }
+  },
+  "acceptance": {
+    "engineering_regression_separate": true,
+    "actual_task_completed": false,
+    "finite_failure_trace_supported": true,
+    "complete_answer_semantics": false,
+    "programme_course_identity_and_applicability": false,
+    "formal_recommendation": false,
+    "user_acceptance": false,
+    "source_hash_pass_is_not_semantic_acceptance": true
+  },
+  "audit_safety": {
+    "new_school_calls": 0,
+    "new_provider_calls": 0,
+    "credentials_read": false,
+    "production_edited": false,
+    "raw_text_identifiers_source_locators_and_full_hashes_excluded": true
+  },
+  "git": {
+    "production_changed_by_audit": false,
+    "commit_or_push_by_audit": false,
+    "existing_changes_preserved": true
+  }
+}

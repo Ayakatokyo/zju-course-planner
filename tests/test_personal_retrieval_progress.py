@@ -235,12 +235,18 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
                 self.assertFalse(progress["terminal"])
                 self.assertIsNone(progress["active_reasoning"])
                 self.assertTrue(any(item.get("tool_name") == "read_my_major_academic" and item["kind"] == "tool.start" for item in progress["events"]))
-                self.assertEqual(self.model.shared["calls"], [])
+                # The first model call now selects the exact live record
+                # query; school I/O no longer precedes task selection. The
+                # source lock must still leave progress polling responsive,
+                # with no second generation while that query is blocked.
+                self.assertEqual(len(self.model.shared["calls"]), 1)
+                self.assertTrue(any(item["kind"] == "model.end" for item in progress["events"]))
             finally:
                 client.release.set()
             code, result, _ = pending.result(timeout=3)
             self.assertEqual(code, 200, result)
             self.assertEqual(result["status"], "completed", result)
+            self.assertEqual(len(self.model.shared["calls"]), 2)
 
     def test_active_reasoning_is_owner_and_generation_scoped(self):
         self.login()

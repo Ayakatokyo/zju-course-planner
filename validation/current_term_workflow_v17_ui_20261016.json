@@ -1,0 +1,68 @@
+{
+  "schema": "current-term-workflow-ui/1",
+  "runtime_contract": "v17",
+  "recorded_at_utc": "2026-10-16T13:24:54.957177+00:00",
+  "surface": "actual_18875_personal_page",
+  "actual_rounds": 4,
+  "observations": {
+    "desktop": {
+      "dialogueClientWidth": 956,
+      "dialogueScrollWidth": 956,
+      "documentScrollWidth": 1890,
+      "evidenceEntriesPerTurn": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "height": 894,
+      "inputVisible": true,
+      "mainRequestRecordsClosed": true,
+      "mainRequestRecordsCount": 3,
+      "terminalProcessesClosed": true,
+      "turns": 4,
+      "width": 1890
+    },
+    "mobile": {
+      "dialogueClientWidth": 358,
+      "dialogueScrollWidth": 358,
+      "documentScrollWidth": 390,
+      "height": 844,
+      "inputVisible": true,
+      "mainRequestRecordsClosed": true,
+      "mainRequestRecordsCount": 3,
+      "terminalProcessesClosed": true,
+      "turns": 4,
+      "width": 390
+    },
+    "requestRecordExpansion": {
+      "activeFridayHard": true,
+      "activeLockOne": true,
+      "hasRequestText": true,
+      "oldCurrentHardLabelVisible": false,
+      "open": true
+    }
+  },
+  "source_sha256": {
+    "web/app.js": "27c4076f0878326317c5d784d5e79eea435c35f225595dfb8bff805fbddc2295",
+    "web/styles.css": "d58eec09e7c355d2d85601c4ab4702aeb447c33ddac11f06d59b96ec372ebca7"
+  },
+  "screenshots_private_only": true,
+  "screenshots_visually_inspected": true,
+  "viewport_restored_to_desktop": true,
+  "new_model_or_school_calls_for_ui_checks": 0,
+  "checks_not_run": [
+    "history_refresh_v17",
+    "unsent_draft_persistence_v17",
+    "live_course_not_ready_classification",
+    "live_initial_pool_expansion",
+    "negative_friday_patch_rejection"
+  ],
+  "scope": {
+    "engineering_event_rendering_separate": true,
+    "finite_layout_and_record_disclosure": "supported",
+    "full_semantics": "not_accepted",
+    "formal_recommendation": "not_accepted",
+    "user_acceptance": "not_accepted"
+  }
+}

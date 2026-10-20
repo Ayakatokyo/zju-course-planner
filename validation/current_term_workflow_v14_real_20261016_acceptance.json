@@ -1,0 +1,340 @@
+{
+  "schema": "current-term-workflow-real-acceptance/v1",
+  "runtime_contract": "v14",
+  "recorded_at": "2026-10-16T12:29:02.042511+00:00",
+  "evidence_scope": {
+    "single_exact_conversation": true,
+    "actual_rounds": 6,
+    "audit_uses_existing_private_records_only": true,
+    "other_runtime_or_synthetic_probes_mixed_in": false,
+    "new_school_calls": 0,
+    "new_model_calls": 0,
+    "credentials_read": false,
+    "post_run_fixes_not_covered_by_this_actual_run": true
+  },
+  "engineering": {
+    "actual_runtime_reported_suite": {
+      "ran": 1407,
+      "passed": 1402,
+      "skipped": 5,
+      "failed": 0
+    },
+    "suite_count_is_not_semantic_or_user_acceptance": true
+  },
+  "real_provider": {
+    "generations": 24,
+    "by_round": [
+      4,
+      6,
+      1,
+      3,
+      5,
+      5
+    ],
+    "all_http_200": true,
+    "provider_visible_reasoning_events": 24,
+    "retained_visible_reasoning_chars": 47217,
+    "truncated_visible_reasoning_events": 6,
+    "visible_reasoning_is_provider_returned_bounded_content": true
+  },
+  "logical_school_reads": {
+    "counts": {
+      "major_academic": 5,
+      "curriculum": 5,
+      "timetable": 1,
+      "exams": 0
+    },
+    "by_round": [
+      {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      {
+        "major_academic": 0,
+        "curriculum": 0,
+        "timetable": 0,
+        "exams": 0
+      },
+      {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 1,
+        "exams": 0
+      },
+      {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      }
+    ],
+    "count_unit": "logical_read_completed_events_not_http_requests"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "provider_generations": 4,
+      "tool_results_including_service_preflight": 6,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "finite_acceptance": "supported_with_boundaries",
+      "plan": {
+        "action": "generate",
+        "revision": 0,
+        "options": 3,
+        "locks": 0,
+        "busy": 0,
+        "friday_hard": false,
+        "friday_zero": true,
+        "locks_in_every_option": true,
+        "observed_slot_pass": true,
+        "full_semantics_unverified": true,
+        "wednesday_6_7_8_avoided": null
+      },
+      "pending_clarification": false
+    },
+    {
+      "round": 2,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "provider_generations": 6,
+      "tool_results_including_service_preflight": 5,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "argument_corrections": 1,
+      "final_format_repairs": 0,
+      "finite_acceptance": "supported_with_boundaries",
+      "plan": {
+        "action": "revise",
+        "revision": 1,
+        "options": 3,
+        "locks": 1,
+        "busy": 0,
+        "friday_hard": true,
+        "friday_zero": true,
+        "locks_in_every_option": true,
+        "observed_slot_pass": true,
+        "full_semantics_unverified": true,
+        "wednesday_6_7_8_avoided": null
+      },
+      "pending_clarification": false
+    },
+    {
+      "round": 3,
+      "protocol_status": "completed",
+      "task_status": "awaiting_user",
+      "error_code": null,
+      "provider_generations": 1,
+      "tool_results_including_service_preflight": 1,
+      "logical_school_reads": {
+        "major_academic": 0,
+        "curriculum": 0,
+        "timetable": 0,
+        "exams": 0
+      },
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "finite_acceptance": "supported_with_boundaries",
+      "plan": null,
+      "pending_clarification": true
+    },
+    {
+      "round": 4,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "provider_generations": 3,
+      "tool_results_including_service_preflight": 3,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "finite_acceptance": "supported_with_boundaries",
+      "plan": {
+        "action": "revise",
+        "revision": 2,
+        "options": 3,
+        "locks": 1,
+        "busy": 1,
+        "friday_hard": true,
+        "friday_zero": true,
+        "locks_in_every_option": true,
+        "observed_slot_pass": true,
+        "full_semantics_unverified": true,
+        "wednesday_6_7_8_avoided": true
+      },
+      "pending_clarification": false
+    },
+    {
+      "round": 5,
+      "protocol_status": "failed",
+      "task_status": "failed",
+      "error_code": "turn_budget_exceeded",
+      "provider_generations": 5,
+      "tool_results_including_service_preflight": 10,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 1,
+        "exams": 0
+      },
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "finite_acceptance": "failed",
+      "failure_class": "source_insufficient_search_continued_until_tool_budget",
+      "timetable_source_rows": 3,
+      "timetable_time_unknown_rows": 2,
+      "source_state": "partial",
+      "course_search_calls": 6,
+      "exact_repeated_search_arguments": 0,
+      "actual_generate_or_update_calls": 0,
+      "budget": {
+        "recorded_code": "turn_budget_exceeded",
+        "subtype": "tool_ceiling_inferred_from_control_flow",
+        "raw_rejected_last_batch_retained": false,
+        "model_dispatches": 9,
+        "service_preflight": 1,
+        "provider_generations_below_step_limit": true,
+        "elapsed_below_120_seconds": true
+      }
+    },
+    {
+      "round": 6,
+      "protocol_status": "completed",
+      "task_status": "partial",
+      "error_code": null,
+      "provider_generations": 5,
+      "tool_results_including_service_preflight": 5,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1,
+        "timetable": 0,
+        "exams": 0
+      },
+      "argument_corrections": 0,
+      "final_format_repairs": 1,
+      "finite_acceptance": "failed",
+      "failure_class": "explicit_friday_relaxation_not_applied",
+      "actual_update_friday_argument": "soft",
+      "actual_result_friday_constraint": "hard",
+      "matching_change_evidence_present": true,
+      "model_omitted_soft_argument": false,
+      "plan": {
+        "revision": 3,
+        "options": 3,
+        "locks": 0,
+        "busy": 1,
+        "same_plan_as_round4": true,
+        "requested_credit_limit_applied": true
+      },
+      "final_format_repair_issue": "invalid_json",
+      "format_repair_does_not_accept_semantics": true
+    }
+  ],
+  "finite_source_checks": {
+    "major_academic": {
+      "logical_reads": 5,
+      "captured_rows_each": 104,
+      "independently_checked_immutable_observations": 3,
+      "registered_grade_unknown_rows_each_checked_observation": 63,
+      "record_hashes_match": true,
+      "source_file_hashes_match": true,
+      "source_projection_fixed_diagnostics_equal": true,
+      "observed_live_and_not_historical": true,
+      "unknown_boundary": "Registered grade aliases absent or empty in these checked source rows; no projection loss detected. This does not establish failure, completion, earned credits, recognition, or exhaustive upstream field semantics."
+    },
+    "timetable": {
+      "logical_reads": 1,
+      "rows": 3,
+      "known_raw_time_rows": 1,
+      "unknown_raw_time_rows": 2,
+      "record_hash_matches": true,
+      "source_projection_fixed_diagnostics_equal": true,
+      "observed_live_and_not_historical": true,
+      "coverage_complete_within_scope": false,
+      "coverage_reported_total": null,
+      "coverage_has_more": null,
+      "display_projection_has_more": false,
+      "boundary": "Display pagination ending does not prove school-wide coverage. Unknown time does not establish unscheduled or no fixed time; actual missing rows were not established."
+    },
+    "curriculum": {
+      "logical_reads": 5,
+      "source_read_completed": true,
+      "old_pdf_semantic_review_reused": false,
+      "candidate_programme_applicability_and_rule_semantics": "unaccepted"
+    },
+    "local_course_reference_boundary": "Course data test; observed identities and slot checks are not verified formal eligibility or complete timetable semantics."
+  },
+  "finite_answer_and_plan_support": {
+    "rounds_1_to_4": "limited_supported",
+    "revision_sequence_for_delivered_plans": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "round4_actual_locked_count": 1,
+    "round4_actual_busy_count": 1,
+    "round4_periods": [
+      6,
+      7,
+      8
+    ],
+    "round4_weekday": 3,
+    "round4_period_support": "Pure policy replay of stored pending user intent, corroborated by actual delivered options avoiding these periods; no live facade-memory introspection.",
+    "round2_controlled_argument_correction": {
+      "tool_name": "get_current_term_plan",
+      "failure_detail": "argument_value_invalid",
+      "attempt": 1
+    },
+    "round5": "failed_without_actual_timetable_solver_dispatch",
+    "round6": "failed_explicit_friday_relaxation"
+  },
+  "acceptance": {
+    "overall_workflow": "not_accepted",
+    "complete_answer_semantics": "not_accepted",
+    "programme_applicability": "not_accepted",
+    "formal_recommendation": "not_accepted",
+    "user_experience": "not_accepted",
+    "engineering_regression_separate": true,
+    "protocol_completion_is_not_task_completion": true,
+    "source_hash_pass_is_not_semantic_acceptance": true
+  },
+  "git": {
+    "production_code_changed_by_this_audit": false,
+    "commit_or_push_performed_by_this_audit": false,
+    "existing_worktree_changes_preserved": true
+  }
+}
