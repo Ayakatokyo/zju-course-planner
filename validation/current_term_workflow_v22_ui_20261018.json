@@ -1,0 +1,35 @@
+{
+  "recorded_at_utc": "2026-10-18T03:23:46.933604+00:00",
+  "tools_version": "personal-question-tools-v22-core-continuation",
+  "source_validation": "validation/current_term_workflow_v22_20261018_validation.json",
+  "fixed_source_match_after_real_runs": true,
+  "desktop_css_viewport": {
+    "width": 1280,
+    "height": 960
+  },
+  "observed": {
+    "dialogue_turns": 3,
+    "open_terminal_process_panels": 0,
+    "input_visible": true,
+    "horizontal_overflow": false,
+    "locked_plan_card_minimum_six_hard_friday_and_one_lock_visible": true,
+    "saved_credit_explanation_visible": true,
+    "screenshots_private_only": true,
+    "desktop_restored": true
+  },
+  "not_retested": [
+    "mobile",
+    "refresh",
+    "network_failure"
+  ],
+  "user_acceptance": "not_accepted",
+  "git": {
+    "head": "f1eb7f88bba547ea77a71185db5938881941db01",
+    "staged_files": [],
+    "tracked_modified_count": 31,
+    "untracked_count": 89,
+    "inputs_git_unchanged": true,
+    "new_commit": false,
+    "pushed": false
+  }
+}

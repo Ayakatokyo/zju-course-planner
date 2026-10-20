@@ -1,0 +1,228 @@
+{
+  "schema": "current-term-workflow-v22-real-limited-acceptance/1",
+  "recorded_at_utc": "2026-10-18T03:25:05.801832+00:00",
+  "runtime_version": "v22",
+  "engineering_binding": {
+    "validation_kind": "targeted delta over frozen v21 full baseline",
+    "baseline_full_run": {
+      "ran": 1497,
+      "passed": 1492,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    "targeted_delta": {
+      "ran": 247,
+      "passed": 247,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0
+    },
+    "new_full_suite_run_claimed": false,
+    "source_digest_count": 126,
+    "runtime_and_current_digests_match_at_binding_and_freeze": true,
+    "original_inputs_integrity_check_passed": true
+  },
+  "scope": {
+    "historical_current_term_course_data_test_only": true,
+    "explicit_input_course_count": 3,
+    "new_academic_year_or_endpoint_expansion": false,
+    "personal_timetable_or_exams_requested": false,
+    "formal_recommendation_gate_retained": true
+  },
+  "actual_totals": {
+    "provider_attempts": 9,
+    "provider_results": 9,
+    "provider_http_200": 9,
+    "visible_reasoning_events": 7,
+    "service_preflight_calls": 3,
+    "model_selected_tool_dispatches": 10,
+    "top_level_tool_results": 13,
+    "logical_school_reads": 4,
+    "actual_solver_results": 2,
+    "argument_corrections": 0,
+    "final_format_repairs": 0
+  },
+  "all_models_deepseek_flash": true,
+  "all_turns_thinking_enabled": true,
+  "visible_reasoning_only_counts_provider_returned_nonempty_content": true,
+  "logical_school_reads_by_operation": {
+    "major_academic": 2,
+    "curriculum": 2,
+    "timetable": 0,
+    "exams": 0
+  },
+  "logical_read_counts_are_not_http_request_counts": true,
+  "rounds": [
+    {
+      "ordinal": 1,
+      "task_status": "partial",
+      "provider_generations": 4,
+      "provider_http_200": 4,
+      "visible_reasoning_responses": 3,
+      "service_preflight": 1,
+      "model_tool_dispatches": 5,
+      "top_level_tool_results": 6,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "actual_solver_results": 1,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "outcome": "limited_course_data_test_result",
+      "input_course_pool": 3,
+      "delivered_options": 1,
+      "revision": 0,
+      "locks": 0,
+      "minimum_credits": "6",
+      "maximum_credits": null,
+      "friday_condition": "soft",
+      "source_credits": [
+        "7.0"
+      ]
+    },
+    {
+      "ordinal": 2,
+      "task_status": "partial",
+      "provider_generations": 3,
+      "provider_http_200": 3,
+      "visible_reasoning_responses": 2,
+      "service_preflight": 1,
+      "model_tool_dispatches": 4,
+      "top_level_tool_results": 5,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "actual_solver_results": 1,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "outcome": "limited_revised_course_data_test_result",
+      "input_course_pool": 3,
+      "delivered_options": 1,
+      "revision": 1,
+      "locks": 1,
+      "minimum_credits": "6",
+      "maximum_credits": null,
+      "friday_condition": "hard",
+      "required_course_count": 0,
+      "fixed_arrangements": 0,
+      "user_busy_arrangements": 0,
+      "known_preservation_request_completed_without_clarification": true,
+      "locked_target_matches_requested_course": true,
+      "all_options_contain_lock": true,
+      "locked_flags_match": true,
+      "friday_meeting_counts": [
+        0
+      ],
+      "actual_reordering_observed": false
+    },
+    {
+      "ordinal": 3,
+      "task_status": "completed",
+      "provider_generations": 2,
+      "provider_http_200": 2,
+      "visible_reasoning_responses": 2,
+      "service_preflight": 1,
+      "model_tool_dispatches": 1,
+      "top_level_tool_results": 2,
+      "logical_school_reads": {},
+      "actual_solver_results": 0,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "outcome": "bounded_saved_computation_explanation_completed",
+      "model_tool_only_inspect": true,
+      "prepare_calls": 0,
+      "search_calls": 0,
+      "new_school_reads": 0,
+      "new_solver_calls": 0,
+      "new_condition_changes": 0,
+      "revision": 1,
+      "retained_locks_from_summary": 1,
+      "summary_origin": "owned_last_computation",
+      "minimum_credits": "6",
+      "maximum_credits": null,
+      "source_credits": "7.0",
+      "excess_above_minimum": "1.0",
+      "input_course_pool": 3,
+      "returned_search_courses": 3,
+      "omitted_from_pool": 0,
+      "exact_target_status": "not_recorded",
+      "rejection_reason_status": "not_recorded",
+      "why_answer_delivered": true,
+      "typed_reply_exactly_reconstructed_from_actual_summary": true
+    }
+  ],
+  "continuity": {
+    "same_plan_data_and_kind_across_actual_generate_and_revise": true,
+    "same_owned_plan_data_revision_for_explanation": true,
+    "active_pointer_matches_revised_plan": true,
+    "revision_sequence": [
+      0,
+      1,
+      1
+    ],
+    "lock_sequence_for_actual_state": [
+      0,
+      1,
+      1
+    ],
+    "minimum_and_maximum_preserved": true,
+    "required_courses_preserved": true,
+    "fixed_and_busy_arrangements_preserved": true,
+    "input_digest_changed_after_fresh_source_reads": true,
+    "explanation_input_digest_unchanged": true
+  },
+  "finite_source_and_answer_checks": {
+    "bound_major_observations": 2,
+    "records_per_observation": [
+      104,
+      104
+    ],
+    "unknown_grades_per_observation": [
+      63,
+      63
+    ],
+    "raw_registered_grade_fields_absent_or_empty_per_observation": [
+      63,
+      63
+    ],
+    "source_bytes_record_hashes_fixed_diagnostics_and_assertions_match": true,
+    "unregistered_field_semantics_inferred": false,
+    "current_curriculum_bundles": 2,
+    "current_pdf_byte_page_span_checks_match": true,
+    "successful_read_counts_match_immutable_bindings": true,
+    "all_selected_references_found_in_actual_projection": true,
+    "selected_typed_results_match_actual_tool_projection": true,
+    "all_three_typed_replies_exactly_reconstructed_from_actual_selected_proofs": true,
+    "historical_explanation_claims_supported_by_owned_summary": true,
+    "summary_does_not_assert_exact_target_infeasible": true,
+    "scope_does_not_assert_complete_school_offerings": true,
+    "human_complete_curriculum_semantics_reviewed": false,
+    "stable_course_identity_and_curriculum_applicability_verified": false
+  },
+  "acceptance": {
+    "bounded_three_turn_generate_lock_explain_workflow_supported": true,
+    "full_answer_semantics": false,
+    "formal_curriculum_applicability": false,
+    "formal_recommendation": false,
+    "user_acceptance": false
+  },
+  "evidence_boundaries": {
+    "previous_v21_failures_retained_separately": true,
+    "previous_rejected_final_body_cause_remains_unknown": true,
+    "new_format_repair_branch_observed_real": false,
+    "zero_final_repairs_does_not_validate_the_recovery_branch": true,
+    "one_option_result_does_not_establish_real_reordering": true,
+    "engineering_provider_success_and_finite_semantics_are_distinct": true,
+    "page_observations_recorded_separately_by_root": true
+  },
+  "auditor": {
+    "read_only_selected_existing_evidence": true,
+    "new_school_calls": 0,
+    "new_provider_calls": 0,
+    "credentials_or_auth_tables_read": false,
+    "no_additional_engineering_tests": true
+  }
+}

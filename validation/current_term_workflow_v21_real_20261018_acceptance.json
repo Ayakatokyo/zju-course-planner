@@ -1,0 +1,225 @@
+{
+  "schema": "current-term-workflow-v21-real-limited-acceptance/1",
+  "recorded_at_utc": "2026-10-18T03:17:22.478029+00:00",
+  "runtime_version": "v21",
+  "engineering_baseline": {
+    "tests_ran": 1497,
+    "passed": 1492,
+    "skipped": 5,
+    "failed": 0,
+    "errors": 0,
+    "source_digest_count": 126,
+    "initial_binding_all_source_digests_match": true,
+    "initial_three_attempt_freeze_all_source_digests_match": true,
+    "subsequent_disk_candidate_changed_file_count": 3,
+    "subsequent_candidate_not_applied_to_running_v21": true
+  },
+  "scope": {
+    "historical_current_term_course_data_test_only": true,
+    "explicit_input_course_count": 3,
+    "new_academic_year_or_endpoint_expansion": false,
+    "personal_timetable_or_exams_requested": false,
+    "formal_recommendation_gate_retained": true
+  },
+  "actual_totals": {
+    "provider_attempts": 19,
+    "provider_results": 19,
+    "provider_http_200": 19,
+    "visible_reasoning_events": 19,
+    "service_preflight_calls": 4,
+    "model_selected_tool_dispatches": 24,
+    "top_level_tool_results": 28,
+    "logical_school_reads": 6,
+    "actual_solver_results": 1,
+    "argument_corrections": 0,
+    "final_format_repairs": 1
+  },
+  "all_models_deepseek_flash": true,
+  "logical_school_reads_by_operation": {
+    "major_academic": 3,
+    "curriculum": 3,
+    "timetable": 0,
+    "exams": 0
+  },
+  "logical_read_counts_are_not_http_request_counts": true,
+  "rounds": [
+    {
+      "ordinal": 1,
+      "task_status": "partial",
+      "provider_generations": 6,
+      "provider_http_200": 6,
+      "visible_reasoning_responses": 6,
+      "model_tool_dispatches": 7,
+      "service_preflight": 1,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "actual_solver_results": 1,
+      "argument_corrections": 0,
+      "final_format_repairs": 1,
+      "options_delivered": 1,
+      "revision": 0,
+      "locks": 0,
+      "outcome": "limited_course_data_test_result",
+      "input_course_pool": 3,
+      "options": 1,
+      "minimum_credits": "6",
+      "maximum_credits": null,
+      "delivered_source_credits": [
+        "7.0"
+      ],
+      "friday_condition": "soft"
+    },
+    {
+      "ordinal": 2,
+      "task_status": "awaiting_user",
+      "provider_generations": 6,
+      "provider_http_200": 6,
+      "visible_reasoning_responses": 6,
+      "model_tool_dispatches": 7,
+      "service_preflight": 1,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "actual_solver_results": 0,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "options_delivered": 0,
+      "revision": 0,
+      "locks": 0,
+      "outcome": "unexpected_clarification",
+      "actual_update_attempts": 2,
+      "reason": "hard_preferences_unresolved",
+      "unresolved_categories": [
+        "unsupported_hard_condition"
+      ],
+      "pure_preservation_fragments_misclassified": true,
+      "lock_and_hard_friday_not_applied": true
+    },
+    {
+      "ordinal": 3,
+      "task_status": "failed",
+      "provider_generations": 5,
+      "provider_http_200": 5,
+      "visible_reasoning_responses": 5,
+      "model_tool_dispatches": 9,
+      "service_preflight": 1,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "actual_solver_results": 0,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "options_delivered": 0,
+      "revision": 0,
+      "locks": 0,
+      "outcome": "failed",
+      "error_code": "turn_budget_exceeded",
+      "actual_update_attempts": 2,
+      "reason": "change_evidence_required",
+      "unresolved_categories": [
+        "current_user_change_evidence_required"
+      ],
+      "actual_lock_argument_present": false,
+      "tool_budget_reached": 10,
+      "not_step_or_time_budget": true,
+      "latest_rejected_batch_raw_shape_retained": false,
+      "lock_and_hard_friday_not_applied": true
+    },
+    {
+      "ordinal": 4,
+      "task_status": "failed",
+      "provider_generations": 2,
+      "provider_http_200": 2,
+      "visible_reasoning_responses": 2,
+      "model_tool_dispatches": 1,
+      "service_preflight": 1,
+      "logical_school_reads": {},
+      "actual_solver_results": 0,
+      "argument_corrections": 0,
+      "final_format_repairs": 0,
+      "options_delivered": 0,
+      "revision": 0,
+      "locks": 0,
+      "outcome": "failed",
+      "error_code": "unsupported_personal_claim",
+      "actual_tools_only_context_and_inspect": true,
+      "new_school_reads": 0,
+      "new_solver_calls": 0,
+      "computation_summary_available_and_valid": true,
+      "summary_origin": "owned_last_computation",
+      "historical_minimum_credits": "6",
+      "historical_maximum_credits": null,
+      "historical_source_credits": "7.0",
+      "historical_excess_above_minimum": "1.0",
+      "historical_locks": 0,
+      "why_answer_delivered": false,
+      "rejected_final_body_retained": false,
+      "rejection_false_positive_or_true_overclaim": "not_determined"
+    }
+  ],
+  "continuity": {
+    "all_actual_revisions_zero": true,
+    "all_actual_plan_locks_zero": true,
+    "active_plan_pointer_matches_initial": true,
+    "successful_adjustments": 0,
+    "input_digest_changes_with_fresh_reads": true,
+    "explanation_input_digest_unchanged": true,
+    "all_actual_plan_references_match_initial": true,
+    "all_projected_nonempty_data_versions_match_initial": true,
+    "some_blocked_results_do_not_project_data_version": true,
+    "latest_inspect_plan_data_revision_matches_initial": true
+  },
+  "finite_source_checks": {
+    "bound_major_observations": 3,
+    "records_per_observation": [
+      104,
+      104,
+      104
+    ],
+    "unknown_grades_per_observation": [
+      63,
+      63,
+      63
+    ],
+    "raw_registered_grade_fields_absent_or_empty_per_observation": [
+      63,
+      63,
+      63
+    ],
+    "source_bytes_record_hashes_fixed_diagnostics_and_assertions_match": true,
+    "unregistered_field_semantics_inferred": false,
+    "current_curriculum_bundles": 3,
+    "current_pdf_byte_page_span_checks_match": true,
+    "successful_read_counts_match_immutable_bindings": true,
+    "selected_typed_results_match_actual_tool_projection": true,
+    "nested_summary_reference_lookup_independently_corrected": true,
+    "initial_auditor_lookup_gap_was_not_source_failure": true,
+    "human_complete_curriculum_semantics_reviewed": false,
+    "stable_course_identity_and_curriculum_applicability_verified": false
+  },
+  "acceptance": {
+    "initial_limited_generation_supported": true,
+    "common_multiturn_journey_complete": false,
+    "lock_and_hard_friday_applied": false,
+    "why_answer_complete": false,
+    "full_answer_semantics": false,
+    "formal_recommendation": false,
+    "user_acceptance": false
+  },
+  "evidence_boundaries": {
+    "original_failed_attempts_retained": true,
+    "provider_http_200_does_not_establish_answer_semantics": true,
+    "rejected_model_final_text_not_available_for_cause_attribution": true,
+    "new_candidate_engineering_is_not_real_v21_recovery_evidence": true
+  },
+  "auditor": {
+    "read_only_existing_selected_evidence": true,
+    "new_school_calls": 0,
+    "new_provider_calls": 0,
+    "credentials_or_auth_tables_read": false
+  }
+}
