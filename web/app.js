@@ -324,6 +324,7 @@ function agentCitation(citation,options={}){
     if(item.kind==='diagnostic')return `<li class="agent-citation"><strong>${number}上一轮实际运行记录</strong>${agentDiagnosticMarkup(item.diagnostic)}</li>`;
     if(item.kind==='recommendation_readiness')return `<li class="agent-citation"><strong>${number}推荐准备检查</strong>${personalRecommendationReadiness(item.readiness,true)}</li>`;
     if(item.kind==='course_data_plan')return `<li class="agent-citation"><strong>${number}课程数据测试依据</strong>${personalCoursePlanEvidence(item.course_data_plan)}</li>`;
+    if(item.kind==='academic_term')return `<li class="agent-citation"><strong>${number}${esc(item.title||'教务字段说明')}</strong><p>${esc(item.text||'')}</p><p class="field-help">本系统字段解释，不是个人成绩或学校政策认定。</p></li>`;
     if(item.kind==='course_reference')return `<li class="agent-citation"><strong>${number}${esc(item.course?.course_name||item.title||'本地课程参考')}</strong><p>${esc(item.course?.course_code||'')}</p><p class="field-help">${esc(item.text||'本地课程名称与代码参考；当前开课与本人可选资格待核实。')}</p></li>`;
     if(item.kind==='curriculum'||!item.kind&&Number.isSafeInteger(item.page))return `<li class="agent-citation">${personalChatEvidence(item,options)}</li>`;
     return '<li class="agent-citation"><p class="field-help">来源类型待确认，暂不展示原文。</p></li>';
@@ -349,11 +350,39 @@ function agentDisplayReply(turn){
     const tool=Number.isInteger(index)?turn.tool_results?.[index]:agentVisibleTools(turn)[0];
     if(recommendationTools.includes(tool?.name)&&tool.result?.status==='feasible')return `已推荐 ${tool.result.plans?.length||0} 套课表。`;
   }
-  return turn.reply||'';
+  // The model can echo an already-numbered citation before the server appends it.
+  // Collapse only adjacent duplicates bound to this answer's actual citations.
+  const citationNumbers=new Set((turn.citations||[]).map(item=>item.chunk||item).map(item=>item.citation_number).filter(Number.isSafeInteger));
+  return (turn.reply||'').replace(/\[(\d+)\](?:[ \t]*\[\1\])+/g,(match,number)=>citationNumbers.has(Number(number))?`[${number}]`:match);
 }
-function renderPersonalEvidence(turn,key){
+function personalAnswerText(turn,text){
+  const numbers=new Set((turn.citations||[]).map(item=>(item.chunk||item).citation_number).filter(Number.isSafeInteger));
+  return String(text||'').replace(/[ \t]*\[(\d+)\]/g,(match,number)=>numbers.has(Number(number))?'':match).trim();
+}
+function personalGradeAnswer(turn){
+  if(!['completed','ok'].includes(turn.status)||turn.error||turn.task_status==='blocked')return null;
+  const citations=(turn.citations||[]).map(item=>item.chunk||item);
+  const records=citations.filter(item=>item.kind==='record'&&['academic','major_academic'].includes(item.operation)&&item.record);
+  if(!records.length)return null;
+  const groups=new Map();
+  for(const item of records){
+    const scope=JSON.stringify([item.operation,item.target_term,item.observation_id,item.historical_only,item.data_source]);
+    if(!groups.has(scope))groups.set(scope,{...item,records:[],citation_numbers:[]});
+    groups.get(scope).records.push(item.record);groups.get(scope).citation_numbers.push(item.citation_number);
+  }
+  const listing=/(明细|列出|列一下|课程成绩|每门.*成绩|成绩.*表格)/.test(turn.message||'')&&!/(为什么|解释|建议|比较|怎么算)/.test(turn.message||'')&&citations.every(item=>['record','summary'].includes(item.kind)&&['academic','major_academic'].includes(item.operation));
+  if(!listing)return null;
+  const html=[...groups.values()].map(group=>`<section class="agent-grade-answer"><h4>${esc(personalTermLabel(group.target_term))} · 成绩明细</h4><p class="field-help">${esc(personalSourceKind(group))} · ${esc(schoolCoverageText(group))} · 本答复展示 ${group.records.length} 条</p>${personalRecordTable({...group,citation_numbers:[],compact:true})}<p class="field-help">表内绩点与学分均为来源字段，未作 GPA 或已获学分认定。</p></section>`).join('');
+  return {html,listing};
+}
+function agentDetail(key,title,body,className='agent-secondary-detail',defaultOpen=false){
+  const choice='detail:'+key,open=Object.hasOwn(state.agentEvidenceOpen,choice)?state.agentEvidenceOpen[choice]===true:defaultOpen;
+  return `<details class="${esc(className)}" data-detail-key="${esc(choice)}" ${open?'open':''}><summary>${title}</summary>${body}</details>`;
+}
+function renderPersonalEvidence(turn,key,answerExplanation='',gradeExplanation=false){
   const citations=(turn.citations||[]).map(item=>item.chunk||item),numbers=new Map(citations.filter(item=>typeof item.evidence_id==='string').map(item=>[item.evidence_id,item.citation_number])),shown=new Set(),sections=[];
   const number=item=>numbers.get(item?.evidence_id),marked=item=>{if(typeof item?.evidence_id==='string')shown.add(item.evidence_id);},seen=item=>typeof item?.evidence_id==='string'&&shown.has(item.evidence_id);
+  if(answerExplanation)sections.push(`<section class="agent-evidence-section"><h4>答复说明</h4><p class="agent-original-answer">${esc(answerExplanation)}</p>${gradeExplanation?'<p class="field-help">查询学期以本轮来源范围为准；单条记录未提供学期字段，不代表查询范围未知。</p>':''}</section>`);
   for(const tool of turn.tool_results||[]){
     const result=tool.result||{};
     if(tool.error){sections.push(notice('本次资料检索未完成，详情见本轮说明。'));continue;}
@@ -392,21 +421,36 @@ function renderPersonalEvidence(turn,key){
   const remaining=citations.filter(item=>!seen(item));
   if(remaining.length)sections.push(`<ul class="agent-evidence-citations">${remaining.map(item=>agentCitation(item)).join('')}</ul>`);
   if(!sections.length)return '';
-  return `<details class="agent-evidence" data-evidence-key="${esc(key)}" ${state.agentEvidenceOpen[key]===true?'open':''}><summary>查看依据</summary><div class="agent-evidence-body">${sections.join('')}</div></details>`;
+  const grouped=sections.map((section,index)=>{
+    // Headings and markup are produced by the renderers above; source text is escaped.
+    const heading=section.match(/^<section class="agent-evidence-section"><h4>([\s\S]*?)<\/h4>/);
+    const title=heading?heading[1]:(section.startsWith('<ul')?'引用原文':'来源说明');
+    const body=heading?section.slice(heading[0].length).replace(/<\/section>$/,''):section;
+    return agentDetail(`${key}:source:${index}`,title,body,'agent-evidence-section');
+  }).join('');
+  return `<details class="agent-evidence" data-evidence-key="${esc(key)}" ${state.agentEvidenceOpen[key]===true?'open':''}><summary>查看依据</summary><div class="agent-evidence-body">${grouped}</div></details>`;
 }
 function renderAgentTurns(){
   if(!state.agentTurns.length)return isSchoolIdentity()?'<div class="agent-welcome"><h1>有什么想了解的？</h1><p>查询成绩、课表、考试和培养要求，或提出选课与排课需求。</p></div>':'<div class="agent-welcome"><span class="welcome-symbol" aria-hidden="true">课</span><h1>想怎么安排这学期的课？</h1><p>从修读目标和时间偏好开始，逐步比较、调整你的课表。</p><p class="agent-empty">当前为合成演示，推荐结果用于验证。</p></div>';
   return state.agentTurns.map((turn,index)=>{
     const completed=['completed','ok'].includes(turn.status);
     const label=completed&&turn.reply_origin==='personal_model_clarification'?'待补充信息':turn.reply_origin==='verified_clarification_prompt'?'待澄清':turn.task_status==='partial'?'已有部分结果':turn.task_status==='blocked'?'任务受阻':completed?'浙大教务助手':'本轮未完成';
-    const reply=turn.error||agentDisplayReply(turn);
+    const originalReply=turn.error||(isSchoolIdentity()?personalAnswerText(turn,agentDisplayReply(turn)):agentDisplayReply(turn));
+    const grades=isSchoolIdentity()?personalGradeAnswer(turn):null;
+    const verifiedPlan=completed&&!turn.error&&isSchoolIdentity()?personalCoursePlanValue(turn.recommendation_result):null;
+    const planBrief=verifiedPlan&&!verifiedPlan.reason&&['generate','revise','compare'].includes(verifiedPlan.action)&&verifiedPlan.options?.length>0?`已${verifiedPlan.action==='revise'?'调整并重新计算':verifiedPlan.action==='compare'?'比较':'生成'} ${Math.min(3,verifiedPlan.options.length)} 套条件参考方案，课程与保留条件见下方。`:'';
+    const planAnalysis=planBrief&&typeof turn.model_decision?.evidence_analysis==='string'?personalAnswerText(turn,turn.model_decision.evidence_analysis):'';
+    const reply=grades?.listing?'成绩明细见下表，按本轮引用的来源记录展示。':planBrief?'':originalReply;
     const key=turn.request_id||turn.run_id||`turn-${turn.turn_id??index}`;
     const failedEvents=[...(agentTurnProgress(turn)?.events||[])].map(agentEventData).reverse();
     const failure=!completed&&isSchoolIdentity()?agentFailureText(failedEvents.find(event=>event.kind==='answer.rejected')||failedEvents.find(event=>event.kind==='error')||{code:turn.code}):'';
-    const evidence=isSchoolIdentity()?renderPersonalEvidence(turn,key):`${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}`;
+    const evidence=isSchoolIdentity()?'':`${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}`;
     const plans=isSchoolIdentity()?renderPersonalCoursePlans(turn.recommendation_result,turn.is_stale===true):'';
-    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${turn.partial_tools_completed?'<p>本轮已完成的工具结果如下。</p>':''}${plans}${evidence}</div>`;
-    return `<article class="agent-turn" data-turn-key="${esc(key)}"><div class="agent-message user" data-scroll-anchor="${esc(key)}:question"><p>${esc(turn.message)}</p></div><div class="agent-message ${completed&&!turn.error||turn.pending?'assistant':'system'}">${renderAgentProcess(turn)}${turn.pending&&!isSchoolIdentity()?'<p class="agent-pending" role="status">正在回复…</p>':answer}</div></article>`;
+    const analysis=planAnalysis?`<section class="agent-plan-analysis"><h3>选择依据</h3>${planAnalysis.split(/\n\s*\n/).filter(text=>text.trim()).map(text=>`<p>${esc(text)}</p>`).join('')}</section>`:'';
+    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':planBrief?'浙大教务助手':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${grades?.html||''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${!isSchoolIdentity()&&turn.partial_tools_completed?'<p>本轮已完成的工具结果如下。</p>':''}${plans}${analysis}${evidence}</div>`;
+    const progress=turn.pending?agentTurnProgress(turn):null;
+    const pending=turn.pending?`<p class="agent-pending" role="status">${esc(progress?agentProcessStage(progress):'正在回复…')}</p>`:'';
+    return `<article class="agent-turn" data-turn-key="${esc(key)}"><div class="agent-message user" data-scroll-anchor="${esc(key)}:question"><p>${esc(turn.message)}</p></div><div class="agent-message ${completed&&!turn.error||turn.pending?'assistant':'system'}">${pending}${answer}</div></article>`;
   }).join('');
 }
 function personalText(value,missing='待确认'){return value!=='unknown'&&['string','number','boolean'].includes(typeof value)&&String(value).trim()?String(value):missing;}
@@ -434,11 +478,11 @@ function personalRecommendationReadiness(value,checked=false){
 }
 function personalCoursePlanValue(value){return value&&typeof value==='object'&&value.schema_version==='personal-course-data-test/1'&&value.mode==='current_term_course_data_test'&&value.reference_mode==='historical_course_observations'&&value.validation_scope==='observed_weekday_periods_conservative_overlap_policy'?value:null;}
 function personalCoursePlanReason(reason){const names={course_data_test_not_configured:'本学期课程数据测试尚未配置。',source_preparation_required:'本轮所需本人来源尚未齐备。',timetable_not_complete:'本轮课表来源尚不完整，暂不能完成排课检查。',timetable_unparseable:'本轮课表缺少可核对的星期或节次。',personal_timetable_changed_requires_regeneration:'本人课表已变化，需要按本轮资料重新生成。',course_data_unavailable:'获准课程观察暂不可用。',course_search_required:'本轮课程候选尚未检索，需要先按指定范围检索。',course_data_version_changed:'课程观察版本已变化，需要重新检索。',hard_preferences_unresolved:'仍有硬条件待明确，请补充后再计算。',change_evidence_required:'请明确本轮要修改哪项条件，再按新条件调整。',policy_context_required:'当前任务条件尚未建立，请先说明选课目标和必须保留的要求。',locked_scope_requires_revision:'范围调整涉及已锁定课程，需要明确如何保留或调整锁定。',no_observed_option_within_scope:'在本轮已检查范围内尚未找到符合条件的测试方案。',stale_plan_reference:'上一轮方案已不可用，需要重新生成。',stale_plan_revision:'方案版本已变化，请按当前方案继续调整。'};return Object.hasOwn(names,reason)?names[reason]:'本轮尚无可展示的测试方案。';}
-function personalCoursePlanPolicy(value){
+function personalCoursePlanPolicy(value,showRecords=true){
   if(!value||typeof value!=='object'||!['ready','needs_clarification'].includes(value.status))return '';
   const reasons={multiple_time_scopes_require_review:'涉及多个时间范围，请分别说明星期和节次。',clock_period_mapping_unverified:'需要核对钟点与学校节次的对应关系。',invalid_period_scope:'请补充有效的星期和节次范围。',unsupported_hard_condition:'这项硬条件暂不能可靠计算，需要进一步明确。',unsupported_positive_schedule_requirement:'当前尚不能可靠落实该上课时段要求。',hard_condition_evidence_required:'缺少支持这项硬条件的来源或具体范围。',conflicting_credit_bounds:'学分目标和上限有冲突，请明确保留哪一项。',hard_condition_budget_exceeded:'硬条件数量超出本轮处理范围，请先保留关键条件。',current_user_change_evidence_required:'还需说明本轮允许修改哪些条件。',non_asserted_hard_condition:'这句话未明确提出必须满足的条件，请说明实际要求。'};
   const unresolved=(Array.isArray(value.unresolved)?value.unresolved:[]).slice(0,6).map(item=>`<li><span><strong>${esc(personalText(item?.text,'待补充的硬条件'))}</strong>：${esc(Object.hasOwn(reasons,item?.code)?reasons[item.code]:'还需补充具体条件后核对。')}</span></li>`);
-  const records=(Array.isArray(value.enforced_hard_preferences)?value.enforced_hard_preferences:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,6);
+  const records=(showRecords&&Array.isArray(value.enforced_hard_preferences)?value.enforced_hard_preferences:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,6);
   const soft=(Array.isArray(value.unhandled_soft_preferences)?value.unhandled_soft_preferences:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,6);
   return `${value.status==='needs_clarification'?'<p>硬条件尚未完整解析，补充后再计算方案。</p>':''}${unresolved.length?`<ul class="results-list">${unresolved.join('')}</ul>`:''}${records.length?`<details class="personal-plan-request-records"><summary>需求记录</summary><ul class="results-list">${records.map(text=>`<li><span>${esc(text)}</span></li>`).join('')}</ul></details>`:''}${soft.length?`<p class="field-help">以下软偏好尚未参与排序：${esc(soft.join('；'))}。</p>`:''}`;
 }
@@ -468,9 +512,19 @@ function personalObservedCodeLink(course){
   if(!link||Object.keys(link).length!==4||link.relation_kind!=='same_source_header'||link.verification_status!=='observed'||link.source_field!=='display_code'||typeof code!=='string'||!(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,59}$/).test(code)||(/\d{11,}|password|cookie|token|authorization|session/i).test(code)||(/^\d+$/).test(code)&&!(code.length>=6&&code.length<=10)||code.toLowerCase()===course?.course_code?.toLowerCase())return '';
   return `<br><span class="field-help">同一来源标题另列代码 ${esc(code)}；课程等价与本人适用未核实。</span>`;
 }
+function personalComputationDetails(summary){
+  if(!summary||summary.origin!=='owned_last_computation')return '';
+  const amount=value=>typeof value==='string'&&/^[0-9]+(?:\.[0-9]+)?$/.test(value)&&value.length<=64?value:'未记录';
+  const count=value=>Number.isSafeInteger(value)&&value>=0?String(value):'未记录';
+  const credit=summary.credit_target||{},scope=summary.scope||{},options=(Array.isArray(summary.options)?summary.options:[]).filter(item=>['A','B','C'].includes(item?.label)).slice(0,3);
+  const criteria=['observed_slot_result','soft_meeting_count','known_credits','excess_above_minimum','course_count','stable_observation_order'];
+  const ranking=summary.ranking?.version==='current-term-observed-ranking/1'&&JSON.stringify(summary.ranking.criteria)===JSON.stringify(criteria)?'排序依次考虑：观察节次检查、软空闲时段占用、已知学分、超出下限的学分、课程数量和固定观察顺序。空闲偏好更好的组合可能排在学分更接近目标的组合之前。':'原计算未记录完整排序依据，不能补推具体取舍。';
+  const exact={seen_feasible:'原搜索记录了恰好达到下限的组合。',not_found_in_complete_examined_scope:'在原计算池内未找到恰好达到下限的组合。',search_incomplete:'原搜索未完成，不能排除恰好达到下限的组合。'}[summary.exact_target?.status]||'是否存在恰好达到下限的其他组合未记录。';
+  return `<div class="personal-computation-details"><h4>已保存的计算记录</h4><p>学分下限 ${esc(amount(credit.minimum))} · 上限 ${credit.maximum===null?'未设置':esc(amount(credit.maximum))}</p><ul>${options.map(option=>`<li>方案 ${option.label}：${esc(amount(option.total_credits))} 学分，比下限多 ${esc(amount(option.excess_above_minimum))}；软空闲时段占用 ${count(option.soft_meeting_count)} 段，周五占用 ${count(option.friday_meeting_count)} 段，锁定 ${count(option.locked_class_count)} 项。</li>`).join('')}</ul><p>${esc(ranking)}</p><p>${esc(exact)}</p><p>输入池 ${count(scope.input_course_count)} 门，检索返回 ${count(scope.returned_search_count)} 门，未进入计算池 ${count(scope.omitted_count)} 门；未进入不表示不适用。${scope.limit_reached===true?'已达搜索上限，仅覆盖已检查部分。':scope.complete_within_input_scope===true?'输入池内有界搜索已完成。':'输入池内搜索完整性未确认。'}输入池不代表学校全部开课。</p><p class="field-help">本次未重新读取教务资料或求解。历史课程观察的当前开课、可选资格、培养适用、完整周次、校历和考试仍待核实。</p></div>`;
+}
 function personalCoursePlanEvidence(value){
   const result=personalCoursePlanValue(value);if(!result)return '<p class="field-help">本次课程数据测试结果结构待确认。</p>';
-  if(result.action==='inspect')return `<p>已定位上一轮方案的选择信息；这次回查不证明旧课程事实仍有效，比较或调整仍需本轮资料核查。</p>${personalCoursePlanPolicy(result.policy_status)}`;
+  if(result.action==='inspect')return `<p>已定位上一轮方案的选择信息；这次回查不证明旧课程事实仍有效，比较或调整仍需本轮资料核查。</p>${personalComputationDetails(result.computation_summary)}${personalCoursePlanPolicy(result.policy_status)}`;
   const options=Array.isArray(result.options)?result.options.slice(0,3):[],courses=Array.isArray(result.courses)?result.courses.slice(0,10):[];
   const computed=options.length>0||result.reason==='no_observed_option_within_scope';
   const actions={search:result.reason?'课程观察检索尚未完成':'已检索获准课程观察',generate:computed?'已执行条件测试计算':'条件测试尚未计算',revise:computed?'已按调整条件重新计算':'本次调整尚未执行',compare:computed?'已按本轮资料比较方案':'本次比较尚未执行'},action=Object.hasOwn(actions,result.action)?actions[result.action]:'本次处理状态待确认';
@@ -479,6 +533,17 @@ function personalCoursePlanEvidence(value){
   const scope=result.action==='search'?'':`<p class="field-help">来源准备：${esc(personalCoursePlanSources(result))}。</p>`;
   const search=result.search_status?.limit_reached===true?'<p class="field-help">搜索已达本轮上限，结果仅限已检查范围。</p>':'';
   return `<p>${esc(action)} · ${esc(personalTermLabel(result.target_term))}</p><p>${esc(summary)}</p>${candidates}${scope}${personalCoursePlanPolicy(result.policy_status)}${search}<p class="field-help">历史课程观察不证明当前开课、可选或有余量；正式适用、完整周次、校历和考试仍待核验。</p>`;
+}
+function personalPlanHeadline(result,options){
+  const amount=value=>typeof value==='string'&&/^\d+(?:\.\d+)?$/.test(value)&&Number.isFinite(Number(value))?Number(value):typeof value==='number'&&Number.isFinite(value)&&value>=0?value:null;
+  const minimum=amount(result.constraints?.target_credits),maximum=amount(result.constraints?.max_credits);
+  const known=options.map(option=>amount(option.total_credits));
+  const meets=minimum!==null&&known.every(value=>value!==null&&value>=minimum&&(maximum===null||value<=maximum));
+  const credit=meets?`均满足至少 ${personalText(result.constraints.target_credits)} 学分${maximum===null?'':'、不超过 '+personalText(result.constraints.max_credits)+' 学分'}的要求。`:'学分与条件见各方案。';
+  const friday=options.map(option=>option.friday_meeting_count),valid=friday.every(value=>Number.isSafeInteger(value)&&value>=0);
+  const preference=['soft','hard'].includes(result.constraints?.friday_free);
+  const time=preference&&valid?(friday.every(value=>value>0)?'本次方案周五都有占用，尚未实现周五空闲。':friday.every(value=>value===0)?'按已有节次，周五均未见占用。':'各方案的周五占用不同，可按下方时间比较。'):preference?'周五占用仍待核对。':'';
+  return `<p class="personal-plan-conclusion">${esc(credit)}${time?` <strong>${esc(time)}</strong>`:''}</p>`;
 }
 function renderPersonalCoursePlans(value,stale=false){
   const result=personalCoursePlanValue(value);if(!result||!['generate','revise','compare'].includes(result.action))return '';
@@ -495,10 +560,12 @@ function renderPersonalCoursePlans(value,stale=false){
     const label=['A','B','C'].includes(option?.label)?option.label:'待确认',slot={pass:'观察节次检查通过',unknown:'观察节次待确认',fail:'观察节次存在冲突'},check=Object.hasOwn(slot,option?.observed_slot_result)?slot[option.observed_slot_result]:'观察检查状态待确认';
     const classes=(Array.isArray(option?.classes)?option.classes:[]).slice(0,12).map(row=>{
       const periods=(Array.isArray(row?.weekday_period_text)?row.weekday_period_text:[]).filter(text=>typeof text==='string'&&text.trim()).slice(0,60);
-      return `<li><div><div class="personal-plan-course-heading"><strong>${esc(personalText(row?.course_name,'课程待确认'))}</strong>${row?.locked===true?'<span class="badge neutral">已锁定</span>':''}</div><span class="field-help">${esc(personalText(row?.course_code,'课程代码待确认'))} · ${esc(personalText(row?.credits))} 学分</span></div><p>${periods.length?periods.map(text=>esc(text)).join('；'):'观察节次待确认'}</p></li>`;
+      return `<li><div class="personal-plan-course-heading"><strong>${esc(personalText(row?.course_name,'课程待确认'))}</strong><span>${esc(personalText(row?.credits))} 学分</span>${row?.locked===true?'<span class="badge neutral">已锁定</span>':''}</div><p>${periods.length?periods.map(text=>esc(text)).join('；'):'观察节次待确认'}</p></li>`;
     }).join('');
-    const soft=personalSoftPreferenceView(result,option),softText=soft?`<p class="field-help">偏好时段占用合计 ${soft.total} 段：${esc(soft.details.join('；'))}。</p>`:'';
-    return `<article class="personal-plan-option"><div class="agent-card-heading"><h4>方案 ${esc(label)}</h4><span class="badge ${option?.observed_slot_result==='pass'?'success':'warning'}">${esc(check)}</span><span class="badge warning">正式适用未核</span></div><p>学分合计 ${esc(personalText(option?.total_credits))} · 周五观察时段 ${count(option?.friday_meeting_count)} 段</p>${softText}<ul class="personal-plan-classes">${classes||'<li>本轮未取得可展示的班次。</li>'}</ul></article>`;
+    const friday=Number.isSafeInteger(option?.friday_meeting_count)&&option.friday_meeting_count>=0?(option.friday_meeting_count===0?'周五未见占用':`周五占用 ${option.friday_meeting_count} 段`):'周五占用待确认';
+    const soft=personalSoftPreferenceView(result,option);
+    const softDetails=soft?soft.details.filter((_,index)=>{const scope=option.soft_preference_evaluation.scopes[index];return scope.weekday!==5||scope.periods!==null||scope.meeting_count!==option.friday_meeting_count;}):[];
+    return `<article class="personal-plan-option"><div class="personal-plan-option-heading"><h4>方案 ${esc(label)}</h4><strong>${esc(personalText(option?.total_credits))}<span> 学分</span></strong></div><p class="personal-plan-timing">${esc(friday)}${option?.observed_slot_result==='pass'?'':` · ${esc(check)}`}</p>${softDetails.length?`<p class="personal-plan-timing">偏好时段占用：${esc(softDetails.join('；'))}</p>`:''}<ul class="personal-plan-classes">${classes||'<li>本轮未取得可展示的班次。</li>'}</ul></article>`;
   }).join('');
   const search=result.search_status?.limit_reached===true?'<p class="field-help">搜索已达本轮上限，可能还有其他组合。</p>':result.search_status?.complete_within_observed_scope===false?'<p class="field-help">结果仅限本轮已检查范围，可能还有其他组合。</p>':'';
   const labels=options.map(option=>option?.label).filter(label=>['A','B','C'].includes(label));
@@ -509,8 +576,12 @@ function renderPersonalCoursePlans(value,stale=false){
   const knownSelection=typeof result.plan_ref==='string'&&Number.isSafeInteger(result.revision)&&result.revision>=0&&locked>0;
   const blockedAction=result.action==='revise'?'本次调整尚未执行。':result.action==='compare'?'本次比较尚未执行。':'本次条件测试尚未计算。';
   const protection=countsChecked?`<p>保留锁定 ${count(locked)} 项${coursesOnly?'':' · 本人课表固定 '+count(result.fixed_arrangement_count)+' 项'}${Number.isSafeInteger(result.user_busy_arrangement_count)&&result.user_busy_arrangement_count>=0&&result.user_busy_arrangement_count<=20?' · 用户禁排时间 '+count(result.user_busy_arrangement_count)+' 项':''}</p>`:`<p>${computed?'本次测试已计算，未找到方案；原方案未更新。':blockedAction}${knownSelection?`原锁定 ${count(locked)} 项保留。`:'锁定状态待确认。'}</p><p class="field-help">${computed?'本次计算未提供固定项与用户禁排时间计数。':'本人课表固定项与用户禁排时间尚未完成本轮核对。'}</p>`;
-  const ranked=options.length&&options.every(option=>personalSoftPreferenceView(result,option)),softSummary=ranked?`<p class="field-help">软空闲偏好：${esc(personalSoftPreferenceView(result,options[0]).labels.join('；'))}。${result.action==='compare'?'按已知占用段数比较。':'先减少偏好时段占用，再接近目标学分。'}计数包括课程及已保留的固定、禁排时段。</p>`:'';
-  return `<section class="personal-course-plans" aria-label="课程数据条件测试方案"><h3>${title}</h3><p class="field-help">测试数据 · ${esc(personalTermLabel(result.target_term))} · 历史课程观察</p>${coursesOnly?'<p class="field-help">课程组合参考，未执行与本人课表的时段核对。</p>':''}${stale?'<p class="field-help">历史测试结果，来源版本已变化；继续比较或调整需按新一轮资料复核。</p>':''}${preferences.length?`<p>${esc(preferences.join(' · '))}</p>`:''}${protection}${softSummary}${personalCoursePlanPolicy(result.policy_status)}${cards||`<p>${esc(personalCoursePlanReason(result.reason))}</p>`}${search}<p class="field-help">仅核对已观察的星期与节次；当前开课、可选资格、余量、完整周次、校历、考试及培养适用仍未验证。</p><p class="personal-plan-next">${esc(next)}</p></section>`;
+  const policy=personalCoursePlanPolicy(result.policy_status,false),scope=`<p class="field-help">测试数据 · ${esc(personalTermLabel(result.target_term))} · 历史课程观察</p>${coursesOnly?'<p class="field-help">课程组合参考，未执行与本人课表的时段核对。</p>':''}`;
+  const limits='<p class="field-help">仅核对已观察的星期与节次；当前开课、可选资格、余量、完整周次、校历、考试及培养适用仍未验证。</p>';
+  const staleNote=stale?'<p class="personal-plan-notice">历史测试结果，来源版本已变化；继续比较或调整需按新一轮资料复核。</p>':'';
+  if(!options.length)return `<section class="personal-course-plans" aria-label="课程数据条件测试方案"><h3>${title}</h3>${scope}${staleNote}${preferences.length?`<p>${esc(preferences.join(' · '))}</p>`:''}${protection}${policy}<p>${esc(personalCoursePlanReason(result.reason))}</p>${search}${limits}<p class="personal-plan-next">${esc(next)}</p></section>`;
+  const activeProtection=countsChecked?[locked>0?`已保留 ${count(locked)} 项锁定`:'',!coursesOnly&&result.fixed_arrangement_count>0?`保留 ${count(result.fixed_arrangement_count)} 项本人固定安排`:'',result.user_busy_arrangement_count>0?`保留 ${count(result.user_busy_arrangement_count)} 项禁排时间`:''].filter(Boolean).join(' · '):'';
+  return `<section class="personal-course-plans" aria-label="课程数据条件测试方案"><h3>${options.length} 套${coursesOnly?'课程组合':result.recommendation_kind==='timetable'?'课表':'课程'}参考方案</h3>${staleNote}${personalPlanHeadline(result,options)}<p class="personal-plan-scope">${esc(personalTermLabel(result.target_term))}历史课程参考，正式适用未核。${coursesOnly?'未核本人课表及考试冲突。':'完整周次与考试冲突待核验。'}</p>${activeProtection?`<p class="personal-plan-protection">${esc(activeProtection)}</p>`:''}<div class="personal-plan-options">${cards}</div>${search}${policy}</section>`;
 }
 function personalCitationContext(value){
   const context=value&&typeof value==='object'?value:{},states=context.field_states||{},profile=[];
@@ -538,7 +609,7 @@ function personalRecordTable(result){
   const records=Array.isArray(result.records)?result.records:[];if(!records.length)return '<p class="inline-empty">本次已读范围中没有匹配记录。可修改查询词，或前往“我的教务”正常读取所需范围。</p>';
   const academic=['academic','major_academic'].includes(operation);
   const fields=academic?[['grade_raw','成绩'],['grade_points_raw','绩点'],['nominal_credits','学分'],['academic_year_raw','学年'],['term_raw','学期'],['completion_status_raw','修读状态']]:operation==='exams'?[['final_exam_time_raw','期末考试时间'],['final_exam_place_raw','期末考试地点'],['midterm_exam_time_raw','期中考试时间'],['midterm_exam_place_raw','期中考试地点'],['exam_time_raw','考试时间'],['exam_date','考试日期'],['start_time','开始时间'],['end_time','结束时间'],['place_raw','考试地点']]:[['time_raw','上课时间'],['place_raw','上课地点'],['academic_year_raw','学年'],['term_raw','学期']];
-  const available=fields.filter(([key])=>records.some(record=>record&&schoolKnownField(record,key)&&personalText(record[key],'')!==''));
+  const available=result.compact&&academic?fields.slice(0,3).map(([key,label])=>[key,key==='grade_points_raw'?'来源绩点':key==='nominal_credits'?'名义学分':label]):fields.filter(([key])=>records.some(record=>record&&schoolKnownField(record,key)&&personalText(record[key],'')!==''));
   return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程名称</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map((record,index)=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${personalCitationNumber({citation_number:result.citation_numbers?.[index]})}${esc(name)}${code?`<small>${esc(code)}</small>`:''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
 }
 function stopAgentProgress(session=state.agentProgressPoll){
@@ -626,13 +697,14 @@ function renderAgentProcess(turn){
   const trace=events.filter(event=>['tool.start','tool.end','tool.rejected','model.start','model.end','answer.validated','answer.rejected','answer.repair','error'].includes(event.kind||event.type));
   const mode=progress.confirmed===false?'等待服务端确认本轮模式':progress.thinking===true?'本轮已开启深度思考':progress.thinking===false?'本轮普通模式，未开启深度思考':'本轮模式待确认';
   const content=completed.map((event,index)=>`<section><h4>第 ${event.step||event.call||index+1} 次模型调用 · 已返回</h4><p>${esc(event.reasoning_content)}</p>${event.reasoning_truncated||event.reasoning_redacted?'<p class="field-help">此片段已按展示边界截断或脱敏。</p>':''}</section>`).join('')+(active?.text?`<section><h4>${running?'正在返回的推理':'最后收到的推理片段'}${Number.isSafeInteger(active.call)?' · 第 '+active.call+' 次模型调用':''}</h4><p>${esc(active.text)}</p>${active.truncated||active.redacted?'<p class="field-help">此片段已按展示边界截断或脱敏。</p>':''}</section>`:'');
+  const showReasoning=Boolean(content)||progress.thinking===true;
   const ids=[agentShortId(progress.run_id||turn.run_id)?`运行 ${agentShortId(progress.run_id||turn.run_id)}`:'',agentShortId(progress.request_id||turn.request_id)?`请求 ${agentShortId(progress.request_id||turn.request_id)}`:'',agentDuration(progress.duration_ms)].filter(Boolean).join(' · ');
-  return `<details class="agent-process" data-process-key="${esc(key)}" data-scroll-anchor="${esc(key)}:process" ${open?'open':''}>${summary}<div class="agent-process-body"><p class="agent-process-description">${esc(agentProcessDescription(progress))}</p><p class="field-help">${esc(mode)}${progress.model?' · '+esc(progress.model):''}${ids?'<br>'+esc(ids):''}</p>${trace.length?`<section class="agent-process-execution"><h4>实际处理记录</h4><ol class="agent-process-trace" data-trace-key="${esc(key)}">${trace.map(event=>agentRunEventMarkup(event,true)).join('')}</ol></section>`:''}<section class="agent-process-provider"><h4>供应商可见推理${completed.length?' · '+completed.length+' 段':''}</h4>${content?`<div class="agent-process-reasoning" data-reasoning-key="${esc(key)}">${content}</div><p class="field-help">${esc(progress.reasoning_notice||'仅显示供应商实际返回的推理文本，不代表模型完整内部思考。')}</p>`:`<p class="field-help">${turn.pending?'尚未收到供应商可见推理文本。':'本轮未返回供应商可见推理文本。'}</p>`}</section>${turn.progress_error?`<p class="field-help" role="status">${esc(turn.progress_error)}</p>`:''}${progress.available===false?'<p class="field-help">当前服务没有可用的实时进度。</p>':''}${renderAgentTurnRun(turn)}</div></details>`;
+  return `<details class="agent-process" data-process-key="${esc(key)}" data-scroll-anchor="${esc(key)}:process" ${open?'open':''}>${summary}<div class="agent-process-body${showReasoning?'':' without-reasoning'}"><p class="agent-process-description">${esc(agentProcessDescription(progress))}</p><p class="field-help">${esc(mode)}${progress.model?' · '+esc(progress.model):''}${ids?'<br>'+esc(ids):''}</p>${trace.length?agentDetail(`${key}:trace`,'实际处理记录',`<ol class="agent-process-trace" data-trace-key="${esc(key)}">${trace.map(event=>agentRunEventMarkup(event)).join('')}</ol>`,'agent-process-execution'):''}${showReasoning?agentDetail(`${key}:reasoning`,`供应商可见推理${completed.length?' · '+completed.length+' 段':''}`,`${content?`<div class="agent-process-reasoning" data-reasoning-key="${esc(key)}">${content}</div><p class="field-help">${esc(progress.reasoning_notice||'仅显示供应商实际返回的推理文本，不代表模型完整内部思考。')}</p>`:`<p class="field-help">${turn.pending?'正在等待模型返回推理文本…':'已开启深度思考，但本轮未收到可展示的推理文本；可在运行详情中核对调用状态。'}</p>`}`,'agent-process-provider',running): ''}${turn.progress_error?`<p class="field-help" role="status">${esc(turn.progress_error)}</p>${turn.run_id?`<button class="button small" data-action="agent-process-load" data-run-id="${esc(turn.run_id)}">重新读取处理记录</button>`:''}`:''}${progress.available===false?'<p class="field-help">当前服务没有可用的实时进度。</p>':''}</div></details>`;
 }
 async function hydrateAgentProcess(turn,capture=agentDiagnosticsCapture()){
   if(!isSchoolIdentity()||typeof turn.run_id!=='string')return;
   try{const result=await api('/api/chat/run',{run_id:turn.run_id},capture.agentEpoch);if(!sameAgentDiagnostics(capture)||!state.agentTurns.includes(turn))return;if(result.run?.run_id!==turn.run_id||!Array.isArray(result.events))throw Error('invalid final progress');state.agentRunDetails[turn.run_id]=result;turn.progress_error='';}
-  catch(error){if(sameAgentDiagnostics(capture)&&state.agentTurns.includes(turn))turn.progress_error='本轮运行过程暂未载入，可稍后从运行详情重试。';}
+  catch(error){if(sameAgentDiagnostics(capture)&&state.agentTurns.includes(turn))turn.progress_error='本轮运行过程暂未载入，可重新读取处理记录。';}
 }
 async function loadAgentProcess(runId){
   const turn=state.agentTurns.find(item=>item.run_id===runId);if(!turn||!personalChatReady())return;state.agentProcessOpen[turn.request_id||runId]=true;const capture=agentDiagnosticsCapture();await hydrateAgentProcess(turn,capture);if(sameAgentDiagnostics(capture))renderAssistant();
@@ -647,7 +719,7 @@ function renderAgentModelControls(){
 }
 function renderAgentThinking(){
   const active=state.agentStatus?.thinking===true,busy=agentControlsBusy()||state.agentModelsBusy,known=state.agentModels.some(item=>item.id===state.agentStatus?.model);
-  return `<button id="agent-thinking" class="agent-thinking-toggle" type="button" aria-pressed="${active}" title="${active?'关闭':'开启'}深度思考" ${busy||!known?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4a3 3 0 0 0-5.6-1.5A3.8 3.8 0 0 0 3 8.7a4 4 0 0 0 .7 7.5A4 4 0 0 0 12 19M12 4a3 3 0 0 1 5.6-1.5A3.8 3.8 0 0 1 21 8.7a4 4 0 0 1-.7 7.5A4 4 0 0 1 12 19M12 4v15M7 8c0 2 1 3 3 3M17 8c0 2-1 3-3 3M7 16c1-2 2-2 3-2M17 16c-1-2-2-2-3-2"/></svg><span>深度思考</span></button>`;
+  return `<button id="agent-thinking" class="agent-thinking-toggle" type="button" aria-pressed="${active}" title="${active?'关闭':'开启'}深度思考" ${busy||!known||typeof state.agentStatus?.thinking!=='boolean'?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4a3 3 0 0 0-5.6-1.5A3.8 3.8 0 0 0 3 8.7a4 4 0 0 0 .7 7.5A4 4 0 0 0 12 19M12 4a3 3 0 0 1 5.6-1.5A3.8 3.8 0 0 1 21 8.7a4 4 0 0 1-.7 7.5A4 4 0 0 1 12 19M12 4v15M7 8c0 2 1 3 3 3M17 8c0 2-1 3-3 3M7 16c1-2 2-2 3-2M17 16c-1-2-2-2-3-2"/></svg><span>深度思考</span></button>`;
 }
 async function refreshAgentModels(remote=false){
   if(!personalChatReady()||state.agentModelsBusy||agentControlsBusy())return;
@@ -658,7 +730,7 @@ async function refreshAgentModels(remote=false){
 }
 async function saveAgentSettings(options={}){
   if(!personalChatReady()||agentControlsBusy()||state.agentModelsBusy)return;
-  const model=$('#agent-model')?.value,thinking=typeof options.thinking==='boolean'?options.thinking:state.agentStatus?.thinking===true;if(!state.agentModels.some(item=>item.id===model))return;
+  const model=$('#agent-model')?.value,thinking=typeof options.thinking==='boolean'?options.thinking:state.agentStatus?.thinking;if(typeof thinking!=='boolean'||!state.agentModels.some(item=>item.id===model))return;
   const capture=agentDiagnosticsCapture();state.agentSettingsBusy=true;state.agentModelsError='';renderAssistant();renderAgentHistory();
   try{const result=await api('/api/chat/settings',{model,thinking},capture.agentEpoch);if(!sameAgentDiagnostics(capture))return;const status=result.chat||result;if(status.data_kind!=='personal_source'||typeof status.model!=='string')throw Error('invalid settings');state.agentStatus=status;state.agentRetry=null;}
   catch(error){if(sameAgentDiagnostics(capture))state.agentModelsError=error.status===404||error.status===405?'当前服务暂不支持模型切换，原配置继续有效。':'模型设置未更新，请稍后重试。';}
@@ -668,7 +740,7 @@ function agentCourseTestTool(name){return ['search_current_term_courses','genera
 function agentRunStatus(value,toolName){if(value==='not_ready'&&agentCourseTestTool(toolName))return '课程条件测试受阻，待核对';return ({running:'处理中',processing:'处理中',started:'处理中',retrying:'正在修正',completed:'已完成',ok:'已完成',success:'已完成',available:'已返回',partial:'部分结果',blocked:'受阻',accepted:'已通过',rejected:'未通过',failed:'未完成',error:'出错',not_ready:'资料未就绪',timeout:'超时',skipped:'未执行',cancelled:'已取消',aborted:'已中止',revoked:'已撤销'})[value]||'状态待确认';}
 function agentUsageText(value){if(!value||typeof value!=='object')return '';const fields=[['prompt_tokens','输入'],['completion_tokens','输出'],['total_tokens','合计']].filter(([key])=>Number.isSafeInteger(value[key])&&value[key]>=0);return fields.map(([key,label])=>`${label} ${value[key]} tokens`).join(' · ');}
 function agentEventData(event){return event&&typeof event==='object'?{...(event.fields&&typeof event.fields==='object'?event.fields:{}),...(event.data&&typeof event.data==='object'?event.data:{}),...(event.payload&&typeof event.payload==='object'?event.payload:{}),...event}:{};}
-function agentToolName(name){return ({get_my_context:'本人已知范围',query_my_records:'本人教务记录',search_course_catalog:'本地课程参考',read_my_timetable:'读取本人课表',read_my_exams:'读取本人考试',search_my_curriculum:'培养资料检索',resolve_my_evidence:'来源回查',get_my_run_diagnostics:'上一轮运行诊断',check_recommendation_inputs:'推荐输入检查',prepare_recommendation_inputs:'准备推荐所需来源',search_current_term_courses:'本学期课程观察检索',generate_current_term_plan:'课程数据测试计算',update_current_term_plan:'测试方案复核与调整',get_current_term_plan:'定位当前方案选择',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'})[name]||'受限资料工具';}
+function agentToolName(name){return ({get_my_context:'本人已知范围',lookup_academic_terms:'教务字段说明',query_my_records:'本人教务记录',search_course_catalog:'本地课程参考',read_my_timetable:'读取本人课表',read_my_exams:'读取本人考试',search_my_curriculum:'培养资料检索',resolve_my_evidence:'来源回查',get_my_run_diagnostics:'上一轮运行诊断',check_recommendation_inputs:'推荐输入检查',prepare_recommendation_inputs:'准备推荐所需来源',search_current_term_courses:'本学期课程观察检索',generate_current_term_plan:'课程数据测试计算',update_current_term_plan:'测试方案复核与调整',get_current_term_plan:'定位当前方案选择',read_my_major_academic:'读取主修成绩',read_my_academic:'读取学期成绩',read_my_curriculum:'读取培养资料'})[name]||'受限资料工具';}
 function agentEventScope(event){
   const values=[],operations={academic:'学期成绩',major_academic:'主修成绩',curriculum:'培养资料',timetable:'课表',exams:'考试'},operation=operations[event.operation];
   if(operation)values.push(operation);
@@ -704,7 +776,7 @@ function renderAgentRunContent(runId){
   const run=detail.run||{},events=Array.isArray(detail.events)?detail.events:[],reasoning=events.map(agentEventData).filter(event=>typeof event.reasoning_content==='string'&&event.reasoning_content.trim());
   return `<div class="agent-run-content"><p class="field-help">${esc(agentRunStatus(run.status))} · ${esc(personalText(run.model,'模型待确认'))} · ${run.thinking===true?'思考模式':run.thinking===false?'普通模式':'模式待确认'}${agentDuration(run.duration_ms)?' · '+esc(agentDuration(run.duration_ms)):''}${agentUsageText(run.usage)?' · '+esc(agentUsageText(run.usage)):''}<br>运行 ${esc(agentShortId(runId))}${agentShortId(run.request_id)?' · 请求 '+esc(agentShortId(run.request_id)):''}</p><ol class="agent-run-timeline">${events.map(event=>agentRunEventMarkup(event)).join('')}</ol><details class="agent-provider-reasoning"><summary>供应商可见推理${reasoning.length?' · '+reasoning.length+' 段':''}</summary><p class="field-help">${esc(personalText(detail.reasoning_notice,'仅展示供应商实际返回的推理文本，不代表模型完整内部思考。'))}</p>${reasoning.length?reasoning.map(event=>`<p class="agent-reasoning-text">${esc(event.reasoning_content)}</p>`).join(''):'<p class="field-help">本次记录未提供供应商可见推理文本。</p>'}</details></div>`;
 }
-function renderAgentTurnRun(turn){if(!isSchoolIdentity()||typeof turn.run_id!=='string')return '';const id=turn.run_id;return `<details class="agent-run-details" ${state.agentRunOpen[id]?'open':''}><summary data-action="agent-run-toggle" data-run-id="${esc(id)}">查看完整运行详情</summary>${renderAgentRunContent(id)}</details>`;}
+
 function renderAgentRunList(){return `<details class="agent-runs" ${state.agentRunsOpen?'open':''}><summary data-action="agent-runs-toggle">运行记录</summary><div class="agent-runs-body"><button class="button small" data-action="agent-runs-refresh" ${state.agentRunsBusy?'disabled':''}>${state.agentRunsBusy?'正在读取…':'更新运行记录'}</button>${state.agentRunsError?notice(state.agentRunsError):''}${!state.agentRuns.length?'<p class="field-help">尚无可展示的运行记录。</p>':state.agentRuns.map(run=>`<details class="agent-run-details" ${state.agentRunOpen[run.run_id]?'open':''}><summary data-action="agent-run-toggle" data-run-id="${esc(run.run_id)}">${esc(agentRunStatus(run.status))} · ${esc(personalText(run.model,'模型待确认'))} · ${esc(schoolCaptureTime(run.started_at??run.created_at))}</summary>${renderAgentRunContent(run.run_id)}</details>`).join('')}</div></details>`;}
 async function refreshAgentRuns(){
   if(!personalChatReady()||state.agentRunsBusy)return;const capture=agentDiagnosticsCapture();state.agentRunsBusy=true;state.agentRunsError='';renderAssistant();
@@ -744,7 +816,8 @@ function restoreAgentScroll(){
   const last=state.agentTurns.at(-1),lastKey=last?.request_id||last?.run_id,finished=lastKey&&scroll.pendingKey===lastKey&&!last.pending;
   const anchors=typeof element.querySelectorAll==='function'?[...element.querySelectorAll('[data-scroll-anchor]')]:[];
   if(follow){
-    const answer=finished&&anchors.find(item=>item.dataset.answerKey===lastKey);
+    const revealAnswer=finished||!last?.pending&&(scroll.forceLatest||!scroll.initialized);
+    const answer=revealAnswer&&anchors.find(item=>item.dataset.answerKey===lastKey);
     if(answer&&typeof answer.getBoundingClientRect==='function'&&typeof element.getBoundingClientRect==='function')element.scrollTop=Math.max(0,element.scrollTop+answer.getBoundingClientRect().top-element.getBoundingClientRect().top-8);
     else element.scrollTop=element.scrollHeight||0;
     scroll.newMessages=false;
@@ -772,7 +845,7 @@ function renderAssistant() {
   const personal=school&&personalChatReady();
   const consent=configured&&status.remote&&!school?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${busy?'disabled':''}><span>允许向 ${esc(status.provider||'远程模型')} 发送合成测试需求${status.allow_reference_text?'和参考片段':''}</span></label>`:configured?'':`<span class="badge warning">${school&&!personalChatReady()?'本人资料对话待接入':school&&status?.configured?'本人资料暂不可用':'模型未配置'}</span>`;
   const modelError=personal&&state.agentModelsError?`<p class="agent-settings-error" role="status">${esc(state.agentModelsError)}</p>`:'';
-  panel.innerHTML=`<div class="assistant-workspace">${personal?renderAgentRunList():''}<section id="agent-dialogue-scroll" class="agent-dialogue" tabindex="0" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section>${renderAgentScrollControls()}<section class="dialogue-composer"><form id="agent-draft-form" autocomplete="off"><label for="agent-draft" class="sr-only">${school?'向浙大教务助手提问':'选课需求'}</label><textarea id="agent-draft" rows="2" maxlength="2000" placeholder="${school?'询问教务信息，或提出选课与排课需求…':'告诉我你的修读目标和时间偏好…'}" ${busy?'disabled':''}></textarea>${agentDraftSupported()?'<p id="agent-draft-status" class="field-help" role="status" aria-live="polite"></p>':''}${modelError}<div class="agent-compose-footer"><div class="agent-compose-context">${personal?renderAgentThinking():''}${consent}</div><div class="agent-compose-actions">${personal?renderAgentModelControls():''}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></div></form></section></div>`;
+  panel.innerHTML=`<div class="assistant-workspace"><section id="agent-dialogue-scroll" class="agent-dialogue" tabindex="0" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section>${renderAgentScrollControls()}<section class="dialogue-composer"><form id="agent-draft-form" autocomplete="off"><label for="agent-draft" class="sr-only">${school?'向浙大教务助手提问':'选课需求'}</label><textarea id="agent-draft" rows="2" maxlength="2000" placeholder="${school?'询问教务信息，或提出选课与排课需求…':'告诉我你的修读目标和时间偏好…'}" ${busy?'disabled':''}></textarea>${agentDraftSupported()?'<p id="agent-draft-status" class="field-help" role="status" aria-live="polite"></p>':''}${modelError}<div class="agent-compose-footer"><div class="agent-compose-context">${personal?renderAgentThinking():''}${consent}</div><div class="agent-compose-actions">${personal?renderAgentModelControls():''}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></div></form></section></div>`;
   $('#agent-draft').value=state.agentDraft;
   $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;queueAgentDraftSave();updateAgentSend();});
   $('#agent-remote-consent')?.addEventListener('change',event=>{state.agentConsent=event.target.checked;updateAgentSend();});
@@ -781,6 +854,7 @@ function renderAssistant() {
   $('#agent-thinking')?.addEventListener('click',()=>saveAgentSettings({thinking:state.agentStatus?.thinking!==true}));
   $$('.agent-process').forEach(element=>bindAgentDisclosureChoice(element,state.agentProcessOpen,element.dataset.processKey));
   $$('.agent-evidence').forEach(element=>bindAgentDisclosureChoice(element,state.agentEvidenceOpen,element.dataset.evidenceKey));
+  $$('details[data-detail-key]').forEach(element=>bindAgentDisclosureChoice(element,state.agentEvidenceOpen,element.dataset.detailKey));
   updateAgentDraftStatus();restoreAgentScroll();restoreAgentReasoningScroll();
 }
 function renderAgentHistory(){

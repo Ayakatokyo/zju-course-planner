@@ -1,0 +1,72 @@
+{
+  "version": "conversation-ui-v27",
+  "date": "2026-10-21",
+  "scope": "presentation_only",
+  "backend_tools_version": "personal-question-tools-v26-harness",
+  "validation": {
+    "targeted_tests_run": 137,
+    "passed": 137,
+    "failed": 0,
+    "skipped": 0,
+    "full_backend_suite_rerun": false,
+    "javascript_syntax": "passed",
+    "diff_whitespace": "passed",
+    "served_assets_match": {
+      "app.js": true,
+      "styles.css": true
+    }
+  },
+  "source_sha256": {
+    "web/app.js": "9e395bdb0abd0659ceb831ba2e6b5d676c532a8c0c57e5edda7a039ac8042bef",
+    "web/styles.css": "f759229460d83de464b5aa09ab56735a75bd3d6f0ed5207a1f5ab11fb3ad8a5e",
+    "tests/test_personal_course_plan_web.py": "1b71f08d7b8175c1fcddd4a1ca39c0b1a807d95d25a3cf0c327ab4a9cebeae22",
+    "tests/test_personal_progress_web.py": "b4113f087595f7a360a1c9c740e205606f89512adb93936aaf592b69cc492649"
+  },
+  "ui": {
+    "desktop": {
+      "answerStartVisible": true,
+      "composerVisible": true,
+      "defaultOpenDetails": 0,
+      "dialogueOverflow": false,
+      "height": 891,
+      "pageOverflow": false,
+      "planColumns": "463.018px 463.018px 0px",
+      "width": 1890
+    },
+    "mobile": {
+      "composerVisible": true,
+      "dialogueOverflow": false,
+      "height": 844,
+      "pageOverflow": false,
+      "paragraphOverflow": 0,
+      "planColumns": "344.023px",
+      "width": 390
+    },
+    "disclosures": {
+      "duplicatePerTurnRunDetails": 0,
+      "reasoningChars": 6383,
+      "reasoningSections": 4,
+      "sourceRecordRows": 4,
+      "traceEvents": 27
+    },
+    "viewportRestored": true
+  },
+  "facts": {
+    "new_personal_chat_runs_since_reference": 0,
+    "text_contrast_ratios": {
+      "ink_on_canvas": 15.16,
+      "ink_on_white": 16.26,
+      "muted_on_canvas": 6.66,
+      "muted_on_white": 7.14
+    }
+  },
+  "limits": {
+    "new_live_model_or_school_tests": false,
+    "backend_restart": false,
+    "semantic_acceptance": false,
+    "formal_recommendation_acceptance": false,
+    "user_acceptance": false,
+    "committed": false,
+    "pushed": false
+  }
+}

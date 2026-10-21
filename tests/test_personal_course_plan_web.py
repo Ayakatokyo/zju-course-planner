@@ -22,23 +22,64 @@ evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-SYNTHETI
 """
         web_contract.WebContractTests.run_js(self, fixture + assertions)
 
-    def test_main_options_are_visible_before_one_evidence_entry_and_have_no_actions(self):
+    def test_main_options_are_visible_without_diagnostics_or_actions(self):
         self.run_js(r"""
 let calls=0;context.fetch=async()=>{calls++;throw Error('render must not send');};
 evaluate("state.agentTurns=[{status:'completed',task_status:'partial',message:'用已有课程数据测试',reply:'已有条件测试结果。',recommendation_result:plan,tool_results:[{name:'generate_current_term_plan',result:{status:'available',evidence_id:'T-1',result:plan}}],citations:[{kind:'course_data_plan',evidence_id:'T-1',citation_number:1,course_data_plan:plan}]}];renderAssistant()");
 const html=element('#panel-assistant').innerHTML;
-assert.match(html,/<strong>已有部分结果<\/strong>/);assert.match(html,/条件测试方案/);assert.match(html,/测试数据 · 2026-2027 秋冬 · 历史课程观察/);assert.match(html,/至少 6 学分 · 上限 8 学分 · 周五尽量空闲 · 必含课程 SYN-PE/);assert.match(html,/保留锁定 1 项 · 本人课表固定 2 项/);
-assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);assert.equal((html.match(/合成体育/g)||[]).length,1);assert.match(html,/已锁定/);assert.match(html,/周一第1、2节/);assert.match(html,/观察节次检查通过/);assert.match(html,/观察节次待确认/);assert.match(html,/正式适用未核/);assert.match(html,/搜索已达本轮上限/);
-assert.ok(html.indexOf('class="personal-course-plans"')<html.indexOf('<summary>查看依据'));assert.equal((html.match(/<summary>查看依据/g)||[]).length,1);assert.equal((html.match(/课程数据测试依据/g)||[]).length,1);assert.match(html,/\[1\] 课程数据测试依据/);
+assert.match(html,/<strong>浙大教务助手<\/strong>/);assert.match(html,/2 套课程参考方案/);assert.match(html,/2026-2027 秋冬历史课程参考/);assert.match(html,/已保留 1 项锁定 · 保留 2 项本人固定安排/);
+assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);assert.equal((html.match(/合成体育/g)||[]).length,1);assert.match(html,/已锁定/);assert.match(html,/周一第1、2节/);assert.match(html,/周五未见占用/);assert.match(html,/观察节次待确认/);assert.match(html,/正式适用未核/);assert.match(html,/搜索已达本轮上限/);
+assert.doesNotMatch(html,/查看依据|处理过程|条件与核验范围|运行记录|agent-evidence|agent-process|agent-runs|\[1\]/);assert.equal(evaluate('plan.locked_class_refs.length'),1);assert.equal(evaluate('plan.constraints.required_course_codes[0]'),'SYN-PE');
 assert.doesNotMatch(html,/PLN-SYNTHETIC|CLS-SYNTHETIC|SYNTHETIC-DATA-v1|save-agent-option|export-agent-option|已获学分|全局最优/);assert.equal(calls,0);assert.equal(evaluate('agentCanSend()'),false);
 // With an unsent follow-up, terminal task incompleteness does not block input.
 evaluate("state.agentDraft='锁定 A 中的合成体育';renderAssistant()");assert.equal(evaluate('agentCanSend()'),true);assert.doesNotMatch(element('#panel-assistant').innerHTML.match(/<textarea[^>]*>/)[0],/disabled/);
 """)
 
+    def test_saved_computation_detail_retains_tradeoffs_inside_evidence(self):
+        self.run_js(r"""
+context.summary={origin:'owned_last_computation',credit_target:{minimum:'6',maximum:null},options:[{label:'A',total_credits:'7',excess_above_minimum:'1',soft_meeting_count:0,friday_meeting_count:0,locked_class_count:1}],ranking:{version:'current-term-observed-ranking/1',criteria:['observed_slot_result','soft_meeting_count','known_credits','excess_above_minimum','course_count','stable_observation_order']},exact_target:{status:'unknown'},scope:{input_course_count:3,returned_search_count:3,omitted_count:0,complete_within_input_scope:true}};
+context.plan={...context.plan,action:'inspect',computation_summary:context.summary};
+const html=evaluate("renderPersonalEvidence({tool_results:[{name:'get_current_term_plan',result:{result:plan}}]},'SYNTHETIC')");
+assert.match(html,/已保存的计算记录/);assert.match(html,/上限 未设置/);assert.match(html,/软空闲时段占用 0 段/);assert.match(html,/学分更接近目标/);assert.match(html,/其他组合未记录/);assert.match(html,/输入池 3 门/);assert.match(html,/本次未重新读取/);assert.ok(html.indexOf('已保存的计算记录')>html.indexOf('<summary>查看依据'));
+""")
+
+    def test_headline_uses_actual_credits_and_occupancy_without_promoting_unknowns(self):
+        self.run_js(r"""
+const before=evaluate('JSON.stringify(plan)');
+let html=evaluate('personalPlanHeadline(plan,plan.options)');
+assert.doesNotMatch(html,/均满足|周五均未见占用/); // B has only 5 credits.
+assert.equal(evaluate('JSON.stringify(plan)'),before);
+evaluate("plan.options[1].total_credits='7.5';plan.options[0].friday_meeting_count=1");
+html=evaluate('personalPlanHeadline(plan,plan.options)');assert.match(html,/均满足至少 6 学分、不超过 8 学分/);assert.match(html,/周五都有占用，尚未实现周五空闲/);
+for(const value of [null,'unknown','',false,'9']){
+ context.value=value;evaluate('plan.options[1].total_credits=value');
+ assert.doesNotMatch(evaluate('personalPlanHeadline(plan,plan.options)'),/均满足/);
+}
+evaluate("plan.options[1].total_credits='7.5';delete plan.options[1].friday_meeting_count");
+html=evaluate('personalPlanHeadline(plan,plan.options)');assert.match(html,/周五占用仍待核对/);assert.doesNotMatch(html,/周五都有占用|周五均未见占用/);
+evaluate("plan.options.forEach(o=>o.friday_meeting_count=0)");assert.match(evaluate('personalPlanHeadline(plan,plan.options)'),/按已有节次，周五均未见占用/);
+""")
+
+    def test_generated_plan_leads_with_result_without_intermediate_search_narration(self):
+        self.run_js(r"""
+evaluate("state.agentTurns=[{status:'completed',task_status:'partial',message:'推荐课程',reply:'逐次课程检索的重复说明',recommendation_result:plan,tool_results:[],citations:[]}]");
+const html=evaluate('renderAgentTurns()');
+assert.match(html,/2 套课程参考方案/);assert.doesNotMatch(html,/逐次课程检索的重复说明|查看依据|处理过程|条件与核验范围/);assert.doesNotMatch(html,/查询学期以本轮来源范围为准/);assert.match(html,/正式适用未核/);assert.match(html,/搜索已达本轮上限/);
+""")
+
+    def test_evidence_analysis_remains_visible_with_plan_without_intermediate_narration(self):
+        self.run_js(r"""
+evaluate("state.agentTurns=[{status:'completed',task_status:'partial',message:'结合已修和培养推荐',reply:'逐次检索说明；合成培养条款支持这一方向。',model_decision:{kind:'answer',evidence_analysis:'合成培养条款支持这一方向。 [1] <script>unsafe</script>'},recommendation_result:plan,tool_results:[],citations:[]}]");
+const html=evaluate('renderAgentTurns()'),main=html;
+assert.match(main,/2 套课程参考方案/);assert.match(main,/合成培养条款支持这一方向/);
+assert.doesNotMatch(main,/逐次检索说明|<script>/);assert.match(main,/&lt;script&gt;/);
+assert.doesNotMatch(html,/查看依据|处理过程|条件与核验范围/);
+""")
+
     def test_failed_or_unselected_tool_result_does_not_become_a_main_answer(self):
         self.run_js(r"""
 evaluate("state.agentTurns=[{status:'failed',task_status:'partial',message:'计算',reply:'模型答复未完成。',partial_tools_completed:true,tool_results:[{name:'generate_current_term_plan',result:{status:'available',evidence_id:'T-1',result:plan}}],citations:[{kind:'course_data_plan',evidence_id:'T-1',citation_number:1,course_data_plan:plan}]}]");
-const html=evaluate('renderAgentTurns()');assert.doesNotMatch(html,/class="personal-course-plans"|class="personal-plan-option"/);assert.match(html,/本轮已完成的工具结果如下/);assert.match(html,/已执行条件测试计算/);assert.match(html,/返回 2 套条件测试方案/);assert.equal((html.match(/<summary>查看依据/g)||[]).length,1);
+const html=evaluate('renderAgentTurns()');assert.doesNotMatch(html,/class="personal-course-plans"|class="personal-plan-option"/);assert.match(html,/模型答复未完成/);assert.doesNotMatch(html,/本轮已完成的工具结果如下|已执行条件测试计算|返回 2 套条件测试方案/);assert.doesNotMatch(html,/查看依据|处理过程|条件与核验范围/);
 """)
 
     def test_actual_owned_lock_survives_source_failure_without_ui_zero_counts(self):
@@ -79,13 +120,14 @@ evaluate("plan.action='generate';plan.recommendation_kind='courses';plan.constra
     def test_soft_ranking_is_shown_only_for_consistent_actual_evaluation(self):
         self.run_js(r"""
 assert.doesNotMatch(evaluate('renderPersonalCoursePlans(plan)'),/软空闲偏好：|偏好时段占用合计|先减少偏好时段占用/);
+evaluate("plan.constraints.soft_free_slots=[{weekday:5,periods:null}];plan.options.forEach((o,i)=>o.soft_preference_evaluation={status:'evaluated',method:'observed_meeting_overlap_count',violation_count:i,scopes:[{weekday:5,periods:null,meeting_count:i}]})");assert.doesNotMatch(evaluate('renderPersonalCoursePlans(plan)'),/偏好时段占用/);
 evaluate("plan.constraints.friday_free='hard';plan.constraints.soft_free_slots=[{weekday:4,periods:null}];plan.options.forEach((o,i)=>o.soft_preference_evaluation={status:'evaluated',method:'observed_meeting_overlap_count',violation_count:i,scopes:[{weekday:4,periods:null,meeting_count:i}]})");
-let html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/周五必须空闲/);assert.match(html,/保留锁定 1 项/);assert.match(html,/软空闲偏好：周四全天/);assert.match(html,/先减少偏好时段占用，再接近目标学分/);assert.match(html,/偏好时段占用合计 0 段：周四全天 0 段/);assert.match(html,/偏好时段占用合计 1 段：周四全天 1 段/);
-evaluate("plan.action='compare'");html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/按已知占用段数比较/);assert.doesNotMatch(html,/先减少偏好时段占用/);
+let html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/已保留 1 项锁定/);assert.match(html,/偏好时段占用：周四全天 0 段/);assert.match(html,/偏好时段占用：周四全天 1 段/);assert.doesNotMatch(html,/条件与核验范围|先减少偏好时段占用/);
+evaluate("plan.action='compare'");html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/偏好时段占用：周四全天 1 段/);assert.doesNotMatch(html,/先减少偏好时段占用/);
 const saved=evaluate('JSON.stringify(plan.options[0].soft_preference_evaluation)');
 for(const change of ["plan.options[0].soft_preference_evaluation.violation_count=8","plan.options[0].soft_preference_evaluation.status='pending'","plan.options[0].soft_preference_evaluation.scopes[0].periods=['<svg>']","delete plan.options[0].soft_preference_evaluation"]){
  evaluate('plan.options[0].soft_preference_evaluation=JSON.parse('+JSON.stringify(saved)+')');evaluate(change);
- html=evaluate('renderPersonalCoursePlans(plan)');assert.doesNotMatch(html,/软空闲偏好：|<svg>|偏好时段占用合计 8 段/);
+ assert.equal(evaluate('personalSoftPreferenceView(plan,plan.options[0])'),null);html=evaluate('renderPersonalCoursePlans(plan)');assert.doesNotMatch(html,/<svg>|周四全天 8 段/);
 }
 """)
 
@@ -93,8 +135,8 @@ for(const change of ["plan.options[0].soft_preference_evaluation.violation_count
         self.run_js(r"""
 for(const [task,label] of [['partial','已有部分结果'],['blocked','任务受阻']]){
  context.task=task;evaluate("state.agentTurns=[{status:'completed',task_status:task,request_id:'REQUEST-SYN',run_id:'RUN-SYN',message:'测试',reply:'本轮说明',progress:{status:'running',confirmed:true,events:[{kind:'tool.end',tool_name:'generate_current_term_plan',status:'completed'}]},tool_results:[],citations:[]}]");
- let html=evaluate('renderAgentTurns()');assert.ok(html.includes('<strong>'+label+'</strong>'));assert.ok(html.includes('处理过程 · 本轮已结束，'+label));assert.doesNotMatch(html,/<details class="agent-process"[^>]*\sopen[\s>]|本轮处理完成/);
- evaluate('delete state.agentTurns[0].progress');html=evaluate('renderAgentTurns()');assert.ok(html.includes('处理过程 · 本轮已结束，'+label));
+ let html=evaluate('renderAgentTurns()');assert.ok(html.includes('<strong>'+label+'</strong>'));assert.doesNotMatch(html,/处理过程|agent-process/);assert.doesNotMatch(html,/<details class="agent-process"[^>]*\sopen[\s>]|本轮处理完成/);
+ evaluate('delete state.agentTurns[0].progress');html=evaluate('renderAgentTurns()');assert.doesNotMatch(html,/处理过程|agent-process/);
 }
 const running=evaluate("agentProcessStage({status:'running',events:[{kind:'tool.end',tool_name:'generate_current_term_plan',status:'completed'}]})");assert.match(running,/本次工具已返回，继续检查答复/);assert.doesNotMatch(running,/本轮处理完成|任务完成/);
 """)
@@ -144,7 +186,7 @@ for(const [name,label] of Object.entries(labels)){
     def test_user_busy_time_and_unresolved_hard_conditions_keep_distinct_provenance(self):
         self.run_js(r"""
 evaluate("plan.options=[];plan.reason='hard_preferences_unresolved';plan.fixed_arrangement_count=1;plan.user_busy_arrangement_count=2;plan.policy_status={status:'needs_clarification',unresolved:[{text:'周二下午必须空',code:'clock_period_mapping_unverified'},{text:'<img src=x>原硬条件',code:'PRIVATE-UNKNOWN-CODE'}],enforced_hard_preferences:['最多8学分'],unhandled_soft_preferences:[]}");
-const html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/本次条件测试尚未计算/);assert.match(html,/原锁定 1 项保留/);assert.match(html,/尚未完成本轮核对/);assert.match(html,/条件测试状态/);assert.match(html,/硬条件尚未完整解析/);assert.match(html,/周二下午必须空/);assert.match(html,/钟点与学校节次的对应关系/);assert.match(html,/<summary>需求记录<\/summary>[\s\S]*最多8学分/);assert.match(html,/&lt;img src=x&gt;原硬条件/);assert.doesNotMatch(html,/已纳入任务的硬条件|<img|PRIVATE-UNKNOWN-CODE|clock_period_mapping_unverified|本人课表固定 1 项|用户禁排时间 2 项|固定 3 项|class="personal-plan-option"/);
+const html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/本次条件测试尚未计算/);assert.match(html,/原锁定 1 项保留/);assert.match(html,/尚未完成本轮核对/);assert.match(html,/条件测试状态/);assert.match(html,/硬条件尚未完整解析/);assert.match(html,/周二下午必须空/);assert.match(html,/钟点与学校节次的对应关系/);assert.doesNotMatch(html,/需求记录|最多8学分/);assert.match(html,/&lt;img src=x&gt;原硬条件/);assert.doesNotMatch(html,/已纳入任务的硬条件|<img|PRIVATE-UNKNOWN-CODE|clock_period_mapping_unverified|本人课表固定 1 项|用户禁排时间 2 项|固定 3 项|class="personal-plan-option"/);
 const outsideRecords=html.replace(/<details\b[^>]*>[\s\S]*?<\/details>/g,'');assert.match(outsideRecords,/硬条件尚未完整解析/);assert.match(outsideRecords,/周二下午必须空/);assert.match(outsideRecords,/钟点与学校节次的对应关系/);assert.match(outsideRecords,/&lt;img src=x&gt;原硬条件/);
 const evidence=evaluate('personalCoursePlanEvidence(plan)');assert.match(evidence,/条件测试尚未计算/);assert.doesNotMatch(evidence,/已执行条件测试计算|已按调整条件重新计算/);
 evaluate("plan.action='inspect';plan.selection_hint={options:[{classes:[{course_name:'PRIVATE-OLD-COURSE',weekday_period_text:['PRIVATE-OLD-TIME']}]}]}");const inspected=evaluate('personalCoursePlanEvidence(plan)');assert.match(inspected,/周二下午必须空/);assert.doesNotMatch(inspected,/PRIVATE-OLD-/);
@@ -153,20 +195,15 @@ evaluate("plan.action='inspect';plan.selection_hint={options:[{classes:[{course_
     def test_unhandled_soft_preferences_are_visible_without_becoming_hard_or_blocking_results(self):
         self.run_js(r"""
 evaluate("plan.user_busy_arrangement_count=0;plan.policy_status={status:'ready',unresolved:[],enforced_hard_preferences:[],unhandled_soft_preferences:['尽量集中在上午','<svg>偏好']}");const before=evaluate('JSON.stringify(plan.constraints)');
-const html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/以下软偏好尚未参与排序：尽量集中在上午；&lt;svg&gt;偏好/);assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);assert.match(html,/用户禁排时间 0 项/);assert.doesNotMatch(html,/硬条件尚未完整解析|已纳入任务的硬条件|<svg>/);assert.equal(evaluate('JSON.stringify(plan.constraints)'),before);
+const html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/以下软偏好尚未参与排序：尽量集中在上午；&lt;svg&gt;偏好/);assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);assert.doesNotMatch(html,/用户禁排时间 0 项/);assert.doesNotMatch(html,/硬条件尚未完整解析|已纳入任务的硬条件|<svg>/);assert.equal(evaluate('JSON.stringify(plan.constraints)'),before);
 """)
 
-    def test_historical_lock_request_is_collapsed_after_unlock_and_not_current_constraint(self):
+    def test_historical_lock_request_is_absent_after_unlock_without_rewriting_conditions(self):
         self.run_js(r"""
 evaluate("plan.action='revise';plan.locked_class_refs=[];plan.options.forEach(option=>option.classes.forEach(row=>row.locked=false));plan.constraints.max_credits='7';plan.user_busy_arrangement_count=1;plan.policy_status={status:'ready',unresolved:[],enforced_hard_preferences:['之前的锁定必须保留','<img src=x onerror=bad()>历史需求'],unhandled_soft_preferences:['尽量集中在上午']}");
-const before=evaluate('JSON.stringify(plan)');
-for(const html of [evaluate('renderPersonalCoursePlans(plan)'),evaluate('personalCoursePlanEvidence(plan)')]){
- const records=html.match(/<details\b[^>]*>[\s\S]*?<summary>需求记录<\/summary>[\s\S]*?<\/details>/);
- assert.ok(records,'Historical request text has its own disclosure');assert.doesNotMatch(records[0].match(/^<details[^>]*>/)[0],/\bopen(?:\s|=|>)/);assert.match(records[0],/之前的锁定必须保留/);assert.match(records[0],/&lt;img src=x onerror=bad\(\)&gt;历史需求/);
- const visible=html.replace(records[0],'');assert.doesNotMatch(visible,/之前的锁定|历史需求|已纳入任务的硬条件|硬条件尚未完整解析/);assert.match(visible,/以下软偏好尚未参与排序：尽量集中在上午/);assert.doesNotMatch(html,/<img|onerror="/);
-}
-const card=evaluate('renderPersonalCoursePlans(plan)');assert.match(card,/至少 6 学分 · 上限 7 学分 · 周五尽量空闲/);assert.match(card,/保留锁定 0 项 · 本人课表固定 2 项 · 用户禁排时间 1 项/);assert.doesNotMatch(card,/已锁定/);assert.equal(evaluate('JSON.stringify(plan)'),before);
-evaluate('plan.policy_status.enforced_hard_preferences=[]');assert.doesNotMatch(evaluate('personalCoursePlanPolicy(plan.policy_status)'),/需求记录|<details/);
+const before=evaluate('JSON.stringify(plan)'),html=evaluate('renderPersonalCoursePlans(plan)');
+assert.doesNotMatch(html,/需求记录|之前的锁定|历史需求|已纳入任务的硬条件|硬条件尚未完整解析|<img|onerror="|已锁定|保留锁定 0 项/);
+assert.match(html,/以下软偏好尚未参与排序：尽量集中在上午/);assert.match(html,/保留 2 项本人固定安排 · 保留 1 项禁排时间/);assert.equal(evaluate('JSON.stringify(plan)'),before);
 """)
 
     def test_policy_blocked_reasons_are_readable_without_claiming_a_computation(self):
@@ -177,17 +214,17 @@ for(const [reason,text] of Object.entries(reasons)){context.reason=reason;evalua
 
     def test_course_combination_and_timetable_scope_are_not_conflated(self):
         self.run_js(r"""
-evaluate("plan.recommendation_kind='courses';plan.fixed_arrangement_count=0");let html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/<h3>课程组合条件测试<\/h3>/);assert.match(html,/课程组合参考，未执行与本人课表的时段核对/);assert.doesNotMatch(html,/本人课表固定 0 项|本人无课|已避开本人/);assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);
-evaluate("plan.action='compare'");assert.match(evaluate('renderPersonalCoursePlans(plan)'),/<h3>课程组合条件测试比较<\/h3>/);
-evaluate("plan.recommendation_kind='timetable';plan.fixed_arrangement_count=1");html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/<h3>课表条件测试比较<\/h3>/);assert.match(html,/本人课表固定 1 项/);assert.doesNotMatch(html,/未执行与本人课表/);
-evaluate('delete plan.recommendation_kind');assert.match(evaluate('renderPersonalCoursePlans(plan)'),/<h3>条件测试方案比较<\/h3>/);
+evaluate("plan.recommendation_kind='courses';plan.fixed_arrangement_count=0");let html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/<h3>2 套课程组合参考方案<\/h3>/);assert.match(html,/未核本人课表及考试冲突/);assert.doesNotMatch(html,/本人课表固定 0 项|本人无课|已避开本人/);assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);
+evaluate("plan.action='compare'");assert.match(evaluate('renderPersonalCoursePlans(plan)'),/<h3>2 套课程组合参考方案<\/h3>/);
+evaluate("plan.recommendation_kind='timetable';plan.fixed_arrangement_count=1");html=evaluate('renderPersonalCoursePlans(plan)');assert.match(html,/<h3>2 套课表参考方案<\/h3>/);assert.match(html,/保留 1 项本人固定安排/);assert.doesNotMatch(html,/未核本人课表/);
+evaluate('delete plan.recommendation_kind');assert.match(evaluate('renderPersonalCoursePlans(plan)'),/<h3>2 套课程参考方案<\/h3>/);
 evaluate("plan.recommendation_kind='courses';plan.options=[]");assert.match(evaluate('renderPersonalCoursePlans(plan)'),/<h3>课程组合条件测试状态<\/h3>/);
 """)
 
     def test_history_restores_main_plan_without_recomputation_or_save_export(self):
         self.run_js(r"""
 const paths=[];context.fetch=async(path)=>{paths.push(path);assert.equal(path,'/api/chat/history');return {ok:true,json:async()=>({conversation_id:'CHAT-SYN',turn_id:3,data_kind:'personal_source',turns:[{turn_id:3,status:'completed',task_status:'partial',is_stale:true,message:'上次测试',reply:'历史条件测试结果',recommendation_result:context.plan,tool_results:[],citations:[]}]})};};
-await evaluate("loadAgentConversation('CHAT-SYN')");const html=element('#panel-assistant').innerHTML;assert.match(html,/历史条件测试结果/);assert.match(html,/历史测试结果，来源版本已变化/);assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);assert.match(html,/正式适用未核/);assert.deepEqual(paths,['/api/chat/history']);assert.doesNotMatch(html,/save-agent-option|export-agent-option|PLN-SYNTHETIC|CLS-SYNTHETIC/);
+await evaluate("loadAgentConversation('CHAT-SYN')");const html=element('#panel-assistant').innerHTML;assert.doesNotMatch(html,/历史条件测试结果|查看依据|处理过程|运行记录/);assert.match(html,/历史测试结果，来源版本已变化/);assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);assert.match(html,/正式适用未核/);assert.deepEqual(paths,['/api/chat/history']);assert.doesNotMatch(html,/save-agent-option|export-agent-option|PLN-SYNTHETIC|CLS-SYNTHETIC/);
 """)
 
 

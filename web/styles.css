@@ -227,12 +227,15 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .agent-message.system { padding: 12px 16px; border-radius: var(--radius); background: var(--warning-bg); color: var(--warning); }
 .agent-message small { display: block; margin-top: 8px; }
 .agent-pending { margin: 18px 0; color: var(--muted); }
-.agent-process { margin: 0 0 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--canvas); }
-.agent-process > summary { font-size: 0.875rem; color: var(--primary); }
-.agent-process-body { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px 18px; margin-top: 12px; }
+.agent-process { margin: 0 0 18px; padding: 10px 0; }
+.agent-answer + .agent-process { margin: 0; padding-top: 4px; }
+.agent-process > summary { min-height: 32px; font-size: 0.8125rem; color: var(--muted); }
+.agent-process-body { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; margin-top: 12px; padding: 16px; background: var(--canvas); border-radius: var(--control-radius); }
+.agent-process-body.without-reasoning { grid-template-columns: minmax(0,1fr); }
 .agent-process-body > p { grid-column: 1 / -1; margin: 0; }
 .agent-process-description { font-size: 0.875rem; }
 .agent-process-execution, .agent-process-provider { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.agent-process-execution > summary, .agent-process-provider > summary { min-height: 32px; font-size: 0.8125rem; color: var(--muted); }
 .agent-process-body h4 { margin: 0 0 8px; font-size: 0.8125rem; font-weight: 600; }
 .agent-process-trace { max-height: 180px; overflow: auto; overscroll-behavior: contain; margin: 0; padding: 0 8px 0 0; list-style: none; }
 .agent-process-trace .agent-run-event { margin-top: 8px; padding: 8px 0 0; font-size: 0.8125rem; }
@@ -271,19 +274,37 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .personal-citation-context { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 12px 0; }
 .personal-citation-context dt { color: var(--muted); font-size: 0.875rem; }
 .personal-citation-context dd { margin: 2px 0 0; overflow-wrap: anywhere; }
-.personal-course-plans { min-width: 0; margin-top: 24px; }
-.personal-course-plans > h3 { margin: 0 0 8px; font-size: 1rem; }
+.personal-course-plans { min-width: 0; margin-top: 12px; }
+.personal-course-plans > h3 { margin: 0 0 10px; font-size: 1.25rem; }
 .personal-course-plans > p { margin: 8px 0; }
-.personal-plan-option { min-width: 0; margin: 16px 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--control-radius); }
-.personal-plan-option h4 { margin: 0; font-size: 0.9375rem; }
-.personal-plan-option > p { font-size: 0.875rem; }
-.personal-plan-classes { margin: 12px 0 0; padding: 0; list-style: none; }
-.personal-plan-classes > li { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 8px 18px; padding: 12px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
-.personal-plan-classes > li > p { margin: 0; font-size: 0.875rem; }
-.personal-plan-course-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.personal-plan-course-heading > strong { font-size: 0.875rem; }
-.personal-plan-next { font-size: 0.875rem; }
-@media (max-width: 700px) { .personal-plan-classes > li { grid-template-columns: minmax(0,1fr); } }
+.personal-plan-conclusion { line-height: 1.8; }
+.personal-plan-conclusion > strong { font-weight: 600; }
+.personal-plan-scope { color: var(--muted); font-size: 0.8125rem; }
+.personal-plan-notice { color: var(--warning); font-size: 0.875rem; }
+.personal-plan-protection { font-size: 0.875rem; font-weight: 550; }
+.personal-plan-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px),1fr)); gap: 16px; margin: 20px 0 14px; }
+.personal-plan-option { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
+.personal-plan-option-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.personal-plan-option-heading h4 { margin: 0; font-size: 1rem; font-weight: 600; }
+.personal-plan-option-heading > strong { font-size: 1.25rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.personal-plan-option-heading > strong > span { font-size: 0.8125rem; font-weight: 400; }
+.personal-plan-timing { margin-top: 6px; color: var(--muted); font-size: 0.8125rem; }
+.personal-plan-classes { margin: 14px 0 0; padding: 0; list-style: none; }
+.personal-plan-classes > li { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.personal-plan-classes > li:last-child { padding-bottom: 0; }
+.personal-plan-classes > li > p { margin: 0; color: var(--muted); font-size: 0.8125rem; }
+.personal-plan-course-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.personal-plan-course-heading > strong { font-size: 0.9375rem; font-weight: 550; }
+.personal-plan-course-heading > span { font-size: 0.8125rem; color: var(--muted); white-space: nowrap; }
+.personal-plan-next { font-size: 0.8125rem; color: var(--muted); }
+.agent-plan-analysis { margin: 24px 0 20px; }
+.agent-plan-analysis h3 { margin-bottom: 12px; font-size: 1rem; }
+.agent-plan-analysis p { margin: 10px 0; font-size: 0.9375rem; line-height: 1.8; }
+.agent-secondary-detail { margin: 8px 0; color: var(--muted); font-size: 0.8125rem; }
+.agent-secondary-detail > summary { min-height: 32px; padding: 4px 0; }
+.agent-secondary-detail > p { margin: 8px 0; }
+details > summary:hover { color: var(--primary); }
+@media (max-width: 700px) { .personal-plan-options { grid-template-columns: minmax(0,1fr); } }
 .agent-tool-card { min-width: 0; margin-top: 20px; }
 .agent-card-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .agent-plan, .agent-comparison-item { min-width: 0; margin-top: 24px; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); }
@@ -344,8 +365,11 @@ details > p, details > .table-wrap { margin-top: 14px; }
 .agent-citation { padding: 14px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .agent-citation > p { margin-top: 10px; }
 .agent-evidence { margin-top: 20px; }
+.agent-evidence > summary { min-height: 32px; color: var(--muted); font-size: 0.8125rem; }
 .agent-evidence-body { margin-top: 12px; }
 .agent-evidence-section { padding: 14px 0; border-top: 1px solid var(--line); }
+.agent-evidence-section > summary { min-height: 32px; font-size: 0.875rem; }
+.agent-evidence-section[open] > summary { margin-bottom: 10px; }
 .agent-evidence-section > h4 { margin: 0 0 10px; font-size: 0.875rem; }
 .agent-evidence-section > h4:not(:first-child) { margin-top: 18px; }
 .agent-evidence-section > p { margin: 8px 0; }
@@ -575,3 +599,15 @@ main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
   .school-navigation .button { flex: 1; padding-inline: 8px; }
   .school-agent-intro h1 { font-size: 1.5rem; }
 }
+
+/* Put cited grade rows in the answer, keeping source metadata in one disclosure. */
+.agent-grade-answer{margin:20px 0 24px}
+.agent-grade-answer h4{font-size:1rem;margin:0 0 6px}
+.agent-grade-answer .personal-record-table{min-width:0;width:100%;margin-top:10px;table-layout:fixed}
+.agent-grade-answer .personal-record-table th:first-child{width:49%}
+.agent-grade-answer .personal-record-table td{overflow-wrap:anywhere;vertical-align:top}
+.agent-grade-answer .personal-record-table th,.agent-grade-answer .personal-record-table td{padding:10px 8px}
+.agent-grade-answer .personal-record-table small{font-size:.75rem}
+.agent-original-answer{white-space:pre-wrap}
+.personal-computation-details p,.personal-computation-details li{line-height:1.7}
+@media(max-width:600px){.agent-grade-answer .personal-record-table{font-size:.8rem}.agent-grade-answer .personal-record-table th:first-child{width:43%}.agent-grade-answer .personal-record-table th,.agent-grade-answer .personal-record-table td{padding:9px 5px}}

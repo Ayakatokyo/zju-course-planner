@@ -1,0 +1,73 @@
+{
+  "version": "conversation-ui-v28",
+  "date": "2026-10-21",
+  "scope": "presentation_only",
+  "backend_tools_version": "personal-question-tools-v26-harness",
+  "validation": {
+    "targeted_tests_run": 137,
+    "passed": 137,
+    "failed": 0,
+    "skipped": 0,
+    "full_backend_suite_rerun": false,
+    "javascript_syntax": "passed",
+    "diff_whitespace": "passed",
+    "served_assets_match": {
+      "app.js": true,
+      "styles.css": true
+    }
+  },
+  "source_sha256": {
+    "web/app.js": "e5f77e2754d81edc07374a09df3872c632e3ab1798beebc683c953e5e086acbe",
+    "web/styles.css": "f759229460d83de464b5aa09ab56735a75bd3d6f0ed5207a1f5ab11fb3ad8a5e",
+    "tests/test_personal_course_plan_web.py": "357c0f8818fab9de81e3f4c7066cd1353e0bac80d1b26be33ef0c065f885d78a",
+    "tests/test_personal_progress_web.py": "a3c00ee5a8b5afef3ec36909209da3bb0b554c9c38db6210f3729b40c3e43e0b",
+    "tests/test_web_contract.py": "63cb5268042df923baa7d719e9c05b398c72ba746e2a922a91a10644e47874ee"
+  },
+  "ui": {
+    "desktop": {
+      "analysisVisible": true,
+      "citationMarkers": false,
+      "composerVisible": true,
+      "dialogueOverflow": false,
+      "height": 1091,
+      "optionCount": 2,
+      "pageOverflow": false,
+      "planColumns": "453.633px 453.652px 0px",
+      "removedLabels": false,
+      "removedSections": 0,
+      "width": 2400
+    },
+    "mobile": {
+      "composerVisible": true,
+      "dialogueOverflow": false,
+      "height": 843,
+      "optionCount": 2,
+      "pageOverflow": false,
+      "planColumns": "325.273px",
+      "removedSections": 0,
+      "width": 390
+    },
+    "viewportRestored": true
+  },
+  "facts": {
+    "new_personal_chat_runs_since_reference": 0,
+    "source_records_and_server_logs_preserved": true,
+    "removed_ui_sections": [
+      "查看依据",
+      "处理过程",
+      "条件与核验范围",
+      "运行记录"
+    ],
+    "pending_status": "one_line",
+    "unmet_conditions_and_actionable_failures_visible": true
+  },
+  "limits": {
+    "new_live_model_or_school_tests": false,
+    "backend_restart": false,
+    "semantic_acceptance": false,
+    "formal_recommendation_acceptance": false,
+    "user_acceptance": false,
+    "committed": false,
+    "pushed": false
+  }
+}
