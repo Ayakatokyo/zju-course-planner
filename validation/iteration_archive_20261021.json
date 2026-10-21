@@ -1,0 +1,129 @@
+{
+  "date": "2026-10-21",
+  "timezone": "Asia/Shanghai",
+  "base_commit": "a9b261fb11aed62ceca8cb075bd4dd3edf6c188e",
+  "batches": [
+    {
+      "title": "refactor(项目清理): 退役旧接入入口与可恢复成功日志",
+      "paths": [
+        "browser/student_source_connector/README.md",
+        "browser/student_source_connector/background.js",
+        "browser/student_source_connector/content.js",
+        "browser/student_source_connector/core.js",
+        "browser/student_source_connector/manifest.json",
+        "browser/student_source_connector/popup.css",
+        "browser/student_source_connector/popup.html",
+        "browser/student_source_connector/popup.js",
+        "course_assistant/student_browser_bridge.py",
+        "course_assistant/student_source_provider.py",
+        "experiments/llm_explanation/README.md",
+        "experiments/llm_explanation/prepare_input.py",
+        "scripts/run_student_source_probe.py",
+        "scripts/run_student_source_sync.py",
+        "tests/test_student_browser_bridge.py",
+        "tests/test_student_connector.py",
+        "tests/test_student_source_cli.py",
+        "tests/test_student_source_provider.py",
+        "tests/test_student_source_sync.py",
+        "validation/agent_experience_20261016_tests.txt",
+        "validation/agent_semantic_compact_20261016_tests.txt",
+        "validation/chat_live_20261013_tests.txt",
+        "validation/git_timewindows_20261013_tests.txt",
+        "validation/live_data_pipeline_20261016_tests.txt",
+        "validation/live_data_pipeline_final_20261016_tests.txt",
+        "validation/personal_agent_20261015_tests.txt",
+        "validation/personal_d1_20261015_tests.txt",
+        "validation/run_checks.py",
+        "docs/Embedding引入判断与实施顺序_20261013.md",
+        "docs/学生信息系统接入实施与验收_20261014.md",
+        "docs/学生来源接口迁移与按需培养方案_20261014.md",
+        "docs/开发交接摘要_20261014_学生来源接入尝试.md",
+        "docs/项目文件清理审查_20261020.md"
+      ],
+      "window": "第81节，2026-10-21清理窗口",
+      "commit": "8ab984d3cddb2d92ffef5db0f25b0de20bd9bb76"
+    },
+    {
+      "title": "feat(教务对话): 增加字段释义并固化连续问答契约",
+      "paths": [
+        "tests/test_live_source_coordinator.py",
+        "course_assistant/academic_terms.py",
+        "tests/test_personal_conversation.py",
+        "validation/dialogue_v24_activation_20261021.json",
+        "validation/dialogue_v24_candidate_20261021_validation.json",
+        "validation/dialogue_v24_flash_synthetic_20261021.json",
+        "validation/dialogue_v24_real_20261021_acceptance.json",
+        "docs/对话优化与开源项目取舍_20261021.md"
+      ],
+      "window": "第82—84节，v24",
+      "commit": "ffdcadeafbb7bfe3a3d74b188b29fd5ad6ef2e20"
+    },
+    {
+      "title": "perf(本人资料): 减少成绩分页并复用语义排序",
+      "paths": [
+        "course_assistant/personal_evidence.py",
+        "course_assistant/personal_plan_explanation.py",
+        "course_assistant/semantic_retrieval.py",
+        "course_assistant/student_source_client.py",
+        "tests/test_chat_inspection_http.py",
+        "tests/test_personal_chat_http.py",
+        "tests/test_personal_evidence.py",
+        "tests/test_personal_http.py",
+        "tests/test_personal_recommendation_dialogue.py",
+        "tests/test_personal_retrieval_progress.py",
+        "tests/test_semantic_retrieval.py",
+        "tests/test_student_source_client.py",
+        "validation/dialogue_v25_candidate_20261021_validation.json",
+        "validation/dialogue_v25_encoder_20261021.json",
+        "validation/dialogue_v25_real_20261021_acceptance.json"
+      ],
+      "window": "第85节，v25",
+      "commit": "d1c60920ba40bca846c28432c48a00d03910432b"
+    },
+    {
+      "title": "feat(教务执行): 自动补齐计算依赖并保留来源分析",
+      "paths": [
+        "course_assistant/course_plan_policy.py",
+        "course_assistant/personal_chat.py",
+        "course_assistant/personal_course_plans.py",
+        "course_assistant/personal_dialogue.py",
+        "course_assistant/school_accounts.py",
+        "tests/test_course_plan_policy.py",
+        "tests/test_personal_dialogue.py",
+        "course_assistant/academic_harness.py",
+        "tests/test_academic_harness.py",
+        "validation/harness_v26_candidate_20261021_validation.json",
+        "validation/harness_v26_delivery_20261021_validation.json",
+        "validation/harness_v26_final_20261021_validation.json",
+        "validation/harness_v26_real_20261021_acceptance.json",
+        "docs/教务Agent与Harness架构_v1_20261021.md"
+      ],
+      "window": "第86节，v26；共用文件最终整合",
+      "commit": "a8da491eb5f9914af47d395beb3acd50986e9c74"
+    },
+    {
+      "title": "refactor(对话界面): 聚焦核心答案并移除过程记录入口",
+      "paths": [
+        "web/app.js",
+        "web/styles.css",
+        "tests/test_personal_course_plan_web.py",
+        "tests/test_personal_progress_web.py",
+        "tests/test_web_contract.py",
+        "validation/dialogue_ui_v27_20261021_validation.json",
+        "validation/dialogue_ui_v28_20261021_validation.json"
+      ],
+      "window": "第87—88节，v27—v28界面连续调整，最终v28",
+      "commit": "dae5a64ef9aeefd02e432753266233b7373aa33f"
+    }
+  ],
+  "pre_archive_paths": 82,
+  "final_code_tree_matches_pre_archive": true,
+  "staged_exact_paths_and_hashes_checked": true,
+  "private_or_inputs_staged": false,
+  "original_failure_evidence_preserved": true,
+  "intermediate_commits_independently_retested": false,
+  "new_school_or_model_calls": false,
+  "backend_restart": false,
+  "pushed_code_head": "dae5a64ef9aeefd02e432753266233b7373aa33f",
+  "documentation_commit": "Resolve using this file git log and origin/main"
+}
