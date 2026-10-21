@@ -205,8 +205,9 @@ class PersonalCoursePlanService:
         self._check()
         return project_course_plan_result({"status": status, "data_kind": "course_data_test", "result": result})
 
-    def _missing(self, action, sources, reason, *, state=None, policy=None):
+    def _missing(self, action, sources, reason, *, state=None, policy=None, kind=None):
         result = _base(action, sources)
+        result["recommendation_kind"] = kind
         result.update(reason=reason, actions=["prepare_sources"] if reason in {"source_preparation_required", "timetable_not_complete", "timetable_unparseable"} else ["search"])
         if state:
             # These are owned selection references, not refreshed timetable
@@ -329,6 +330,34 @@ class PersonalCoursePlanService:
         state = self._plans.get(args["plan_ref"])
         return state["kind"] if state else None
 
+    def dependency_task(self, name, args, *, active_plan_ref=None, turn_identity=None):
+        """Minimum fresh-source recipe for a valid, owned computation request.
+
+        Search, inspect, stale revisions and foreign plans cause no acquisition.
+        A recipe grants no change authorization; execute still enforces policy.
+        """
+        args = validate_course_plan_args(name, args)
+        self._check()
+        if name not in (NAMES[1], NAMES[2]):
+            return None
+        state = self._plans.get(args["plan_ref"] if name == NAMES[2] else active_plan_ref)
+        if name == NAMES[2]:
+            if (state is None or args["plan_ref"] != active_plan_ref
+                    or args["expected_revision"] != state["constraints"]["revision"]):
+                return None
+            codes, names = state["codes"], {row["course_code"]: row["course_name"] for row in state["class_metadata"].values()}
+        else:
+            if active_plan_ref is not None and state is None:
+                return None
+            admitted = self._search_admission
+            if not admitted or admitted["turn"] is not turn_identity or not set(args["course_codes"]) <= admitted["codes"]:
+                return None
+            codes, names = args["course_codes"], admitted.get("course_names", {})
+        kind = self.required_sources(name, args, active_plan_ref=active_plan_ref)
+        return {"recommendation_kind": kind, "target_term": CURRENT_TERM,
+            "course_scope": {"kind": "courses", "queries": list(dict.fromkeys(names.get(code, code) for code in codes))[:6]},
+            "hard_preferences": [], "soft_preferences": [], "request_basis": "current_message", "check_exam_conflicts": False}
+
     @staticmethod
     def _computation_summary(state, labels):
         """Explain owned computation metadata without refreshing or recomputing.
@@ -447,6 +476,8 @@ class PersonalCoursePlanService:
                     self._turn_sequence += 1
                 self._search_admission = {"turn": turn_identity, "version": found["dataset_version"],
                                           "codes": admitted | {r["course_code"] for r in found["courses"]},
+                                          "course_names": {**(previous.get("course_names", {}) if same_turn else {}),
+                                              **{r["course_code"]: r["course_name"] for r in found["courses"]}},
                                           "turn_sequence": previous["turn_sequence"] if same_turn else self._turn_sequence}
             return self._wrap(result)
         # Prepare changes off the owned state: failed reference allocation must
@@ -465,10 +496,10 @@ class PersonalCoursePlanService:
         upgrading = state is not None and state["kind"] == "courses" and kind == "timetable"
         if any(sources.get(key, {}).get("verified") is not True or sources.get(key, {}).get("status") not in {"available", "partial"}
                for key in ("major_academic", "curriculum")):
-            return self._missing(action, sources, "source_preparation_required", state=state)
+            return self._missing(action, sources, "source_preparation_required", state=state, kind=kind)
         fixed = self._fixed(sources) if kind == "timetable" else []
         if fixed is None:
-            return self._missing(action, sources, "timetable_unparseable" if sources.get("timetable", {}).get("status") == "available" else "timetable_not_complete", state=state)
+            return self._missing(action, sources, "timetable_unparseable" if sources.get("timetable", {}).get("status") == "available" else "timetable_not_complete", state=state, kind=kind)
         codes = args["course_codes"] if name == NAMES[1] else state["codes"]
         try:
             engine = CurrentTermCourseDataTest.from_delivery(self.delivery_index, current_term=CURRENT_TERM,

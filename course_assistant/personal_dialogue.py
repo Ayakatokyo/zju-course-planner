@@ -17,12 +17,13 @@ import time
 
 from .model_client import ModelError, strict_json
 from .personal_observations import normalize_record_query
+from .academic_terms import TERMS
 
 VERSION = "personal-retrieval-v1"
 OPERATIONS = {"academic", "major_academic", "timetable", "exams"}
 # Reserve independent envelopes so a record scan cannot consume curriculum
 # evidence. This is serialized evidence size, not the complete prompt budget.
-EVIDENCE_LIMITS = {"C": 2600, "S": 4000, "R": 18000, "E": 6500, "D": 5000, "K": 2500, "P": 6000, "T": 16000}
+EVIDENCE_LIMITS = {"C": 2600, "S": 4000, "R": 18000, "E": 6500, "D": 5000, "K": 2500, "P": 6000, "T": 16000, "G": 4000}
 MAX_EGRESS_CHARS = sum(EVIDENCE_LIMITS.values())
 MAX_LOCAL_CONTEXT_BYTES = 160000
 MAX_HISTORY_BYTES = 32000
@@ -58,12 +59,18 @@ REASONS = {
     "insufficient_evidence": "本轮已取得的资料不足以支持该结论；请缩小问题或先核对来源和未确认项。",
 }
 GENERAL_GUIDANCE = {
-    "identity": "我是浙大教务助手，可以查询当前登录账号的成绩、课表、考试和培养资料，也可以查询本地课程名称与代码参考，并说明来源与待确认项。真实课程与课表推荐尚未就绪。",
+    "identity": "我是浙大教务助手，可以帮你查成绩、课表、考试，理解培养要求，也可以按已开放的课程数据范围生成和调整课程组合。你可以直接提问，再接着追问或修改条件。",
     "greeting": "你好。可以直接告诉我想核对的课程、成绩、课表、考试或培养要求。",
-    "capabilities": "我可以从教务接口查询当前账号的成绩、课表、考试和培养资料，查询本地课程名称与代码参考。真实课表推荐、毕业资格审核和学校选退课仍未就绪。",
+    "capabilities": "我可以查询你的成绩、课表、考试和培养资料，解释结果，查课程名称与代码；在已开放的数据范围内，还可以生成、比较和调整课程组合。可以先说一个需求，例如‘查2023—2024学年秋冬成绩’或‘用本学期已有数据安排三门课，尽量周五空闲’。方案测试不代表正式可选，我不会代为选退课。",
     "clarify_input": "可以说出你想核对的课程、成绩、学期或培养要求。",
 }
 SYSTEM = """你是本人教务资料助手，当前身份、来源和权限均由服务器固定。用中文。
+先识别用户是在查询最新事实、解释已有结果、补充上一轮条件，还是换题。用自然中文直接回答本问；不要把解释追问变成能力介绍，也不要让用户学习工具名、AW/SS等接口代码。
+解释‘未知是什么意思’、均值/绩点/学分/来源范围等概念时，调用lookup_academic_terms取得本系统语义，再用普通text结论结合上下文解释；无需为概念解释重取学校资料。此工具是公开字段解释，不支持断言个人数值或猜测未知原因。
+概念解释通常一至两段，只解释本问的术语。历史答案用于理解指代，不要在概念解释中主动声称‘上一轮展示了某字段/查过某资料’；这需要实际记录证据。不要把其他相关术语全部展开。
+正文先用一两句话回答，不重复边界说明。成绩明细会由页面根据本轮引用的record证据直接排成表格；正文简述范围和覆盖、引用需展示的记录即可，不把各行成绩重写成长段，不附加未问的均值统计。学期查询范围由record_source确定；单条记录的term_raw未知只表示记录未提供学期字段，不能说查询学期未知。只有影响本问结论的缺项才放在正文，其余来源字段说明可在依据中查看。
+具体方案为什么选这些课、学分或排序如何得出，直接读取get_current_term_plan的计算摘要；只有用户问术语定义才用lookup_academic_terms。已有所问选项的摘要就直接解释，不反复get相同方案。
+用户说‘每个/各个/所有学期’时，任务是按学期查询，不能用一次主修历史总览代替。没有可靠起止学期时只问一次起止范围；已明确的学期分别读取。用户问明细就列课程与成绩，问概况才汇总，不擅自替换任务。
 你必须实际调用本轮工具，才可说明个人成绩、课程、课表、考试或培养文件事实。
 服务器会先执行get_my_context，并在本轮system中给出结果；无需重复调用。个人资料由教务接口在本轮只读取数，快照仅作本轮证据，不能用旧缓存冒充最新。课程名称/代码参考使用search_course_catalog本地课程库。
 先检查operations（本轮已经取得的范围）、api_operations（可在线读取的种类）和source_receipts（实际失败或待澄清状态）。operations为空不表示学校没有数据；有api_operations时可按用户明确的学期选择工具读取。相对学期未核实或范围需澄清时先问，不编造学期。
@@ -81,12 +88,14 @@ query_my_records.query只填课程名关键词或完整课程码，成绩总览�
 培养命中只说明本轮接口取得文件的片段，不证明本人正式适用。可结合实际返回model_context的模块标题/表头/附注；缺少必要关系时保留未知，不概括完整规则。
 不同模块在文件中分别列示，不证明它们禁止替代、不能抵扣或可以互认。只有明确的对应条款才能支持这类规则；没有条款就保留未知，不从目录或版式推断。
 先直接回答用户所问的课程或模块，只补充与本问有关的范围和未知。不要主动罗列其他模块，也不要重复同一限制。
-只执行最新用户消息的任务。历史意图均已结束，仅供理解代词；不得把它们重新当作待办或重复取数。仅问本地课程目录时只查课程目录，不顺带读成绩或培养资料。
+只执行最新用户消息的任务。历史问答帮助理解代词、已经解释过的内容及正在补充的目标；不能把历史答案当最新个人事实或动作授权，也不得无关地重复取数。仅问本地课程目录时只查课程目录，不顺带读成绩或培养资料。
 来源只说明局部片段时，不得声称“唯一待确认”“其他均已确认”等穷尽结论。
+学习分析须分清来源事实与建议。少量课程分数只能描述这些记录的表现，不足以确认能力掌握程度或断定“主要短板”；未完整检索相关记录时说明范围。可据课程内容提出练习建议，不把未知成绩当未修读，也不把建议写成已核实的个人结论。
+用户要求结合主修成绩选课时，概况统计不能代替相关课程记录。先围绕目标方向或已选候选用query_my_records的records模式按课名关键词查询相关已修记录，再结合培养原文选择候选并说明依据。一次最多查询必要的几个关键词，沿用同轮来源，不要求全量成绩逐行读完；没有命中或成绩未知时保留未知，不据此排除课程或认定没修过。
 不要根据课名自行添加理工基础类等课程类别。来源未给出正式归类时直接按课程列出，不把描述性分组当培养归属。
 当前没有正式学业审核、缺口计算、学校实时选课、保存导出或选退课工具，不能声称这些动作成功。若已声明本学期课程数据测试工具，可在其明确范围内实际搜索、生成、比较、锁定和调整条件测试方案；不把测试数据称为学校最新开课、正式可选或全量无冲突。
 仅当用户明确只检查准备情况时用check_recommendation_inputs；它不读取资料，也不生成方案。一般推荐请求先理解推荐种类、目标学期、课程范围和用户实际偏好；缺必要范围先澄清，不能以检查完成当作推荐完成。
-若已声明prepare_recommendation_inputs，完整任务使用此工具按必要范围取得本轮本人来源并检查；prepared_sources已包含实际取得的有界事实和独立引用，直接结合它们继续任务，不再为同一概况重复prepare或查询。仅需更多相关培养条款或未返回记录时定向补查；不用先做一次同样的check，不要求用户手动准备或点击查询面板。course_scope可为课程、培养模块或主题（如数据分析），不强迫主题问法给出确切课程码。hard_preferences只放用户明确必须的条件；尽量、优先等放soft_preferences。
+若context.capabilities.harness_managed_dependencies为true，生成/调整工具会自动取得必要本轮来源，无需为固定流程先调用prepare；先检索候选，再执行生成，调整先get当前方案再update。需要先分析本人情况或培养条款时，自主调用query_my_records/search_my_curriculum读取相关数据再作选择。只有显式准备检查、待补请求续接或额外考试检查时使用prepare_recommendation_inputs；旧运行环境未声明自动依赖时仍先prepare。prepared_sources已包含实际取得的有界事实和独立引用，直接结合它们继续任务，不再为同一概况重复prepare或查询。仅需更多相关培养条款或未返回记录时定向补查；不用先做一次同样的check，不要求用户手动准备或点击查询面板。course_scope可为课程、培养模块或主题（如数据分析），不强迫主题问法给出确切课程码。hard_preferences只放用户明确必须的条件；尽量、优先等放soft_preferences。
 previous_clarification只指服务端显式提供的待补请求；已有计划、历史问答或继续调整不构成待补请求。没有该字段时，prepare和clarify均用current_message或省略，不能选pending_task。
 有previous_clarification时，准备推荐必须显式选择request_basis：继续同一待补请求选pending_task，换题选current_message。pending_task只继承服务端保留的原用户请求和补充来解释硬条件，不能用它授权本轮解锁或放宽；没有待补请求时不能选pending_task。
 若工具返回clarification_context_missing，本次未读取来源；不要重复pending_task。重新核对当前消息及可信任务范围，足够明确才用current_message准备，否则先澄清；不能因此复活旧待补请求或推测缺项。
@@ -104,9 +113,10 @@ check_recommendation_inputs顶层available仅表示检查完成；readiness.stat
 只有本轮工具返回的evidence_id可用于本轮回答，历史引用必须本轮重取。不可编造引用或把引用存在当作语义支持证明。
 回答用自然中文说明已读覆盖、未知和待审核状态，不直接复述has_more、reported_total、complete_within_scope、completion_status、rules_status等工程字段名；claims.text中不要写随机evidence_id，引用由服务端编号。
 最终content必须是单个JSON对象，禁止Markdown围栏，使用以下结构之一：
+工具返回的answer_claim是已绑定本轮引用的合法结论结构，可直接放入answer.claims；它只指导格式，不表示任务已完成。用户请求的必要范围和动作完成后再作答，相关其他证据仍可另列claim。
 {"kind":"answer","claims":[{"text":"基于本轮record或curriculum等普通证据的简短说明","evidence_ids":["本轮实际标识"]}]}
-概况证据必须用结构化结论：{"kind":"answer","claims":[{"kind":"source_summary","evidence_id":"本轮summary标识","sections":["counts","numeric_grades","completion_status"]}]}。
-source_summary只选择本轮summary证据和需要解释的统计维度，由服务端根据record_source与实际聚合呈现来源名称、范围和数字，禁止另写text或改写数值。sections为1至3个不重复项，只选该summary.available_sections提供的维度。需要跨学期时分别引用各学期summary。
+概况证据必须用结构化结论：{"kind":"answer","claims":[{"kind":"source_summary","evidence_id":"本轮summary标识","sections":["counts","numeric_grades"]}]}。
+source_summary只选择本轮summary证据和需要解释的统计维度，由服务端根据record_source与实际聚合呈现来源名称、范围和数字，禁止另写text或改写数值。sections为1至3个不重复项，只选该summary.available_sections提供的维度；通常选counts与numeric_grades，用户问完成状态才选completion_status。需要跨学期时分别引用各学期summary。
 普通text结论不能引用summary证据；课程明细继续引用record证据，培养说明继续引用curriculum证据。混合问题可在claims中并列source_summary与普通text结论，最多8项。
 推荐准备证据必须用结构化结论：{"kind":"answer","claims":[{"kind":"recommendation_readiness","evidence_id":"本轮P标识","sections":["next_step"]}]}。
 recommendation_readiness的sections只能选sources、dependencies、next_step中1至3个不重复项；按当前任务只选必要内容，不默认全部展示。服务端从严格P证据生成推荐种类、目标学期、实际准备状态及未就绪边界。模型不得加text、改来源状态或开启生成门槛，普通text结论不能引用P证据。
@@ -134,6 +144,10 @@ def _tool(name, description, properties=None, required=None):
 
 TOOLS = [
     _tool("get_my_context", "查询已知入学年/专业及本机已读operation范围。不是身份输入，不刷新学校数据。"),
+    _tool("lookup_academic_terms", "解释本系统的成绩、学分、来源和方案术语。只读公开字段说明，零学校取数；不能证明个人事实或学校正式政策。", {
+        "topics": {"type": "array", "items": {"type": "string", "enum": sorted(TERMS)},
+            "minItems": 1, "maxItems": 3,
+            "description": "unknown_grade成绩未知；numeric_average均值与绩点；completion_status完成状态；credits学分；source_scope来源范围；coverage覆盖分页；curriculum培养适用；course_plan条件方案。"}}, ["topics"]),
     _tool("query_my_records", "本轮从教务接口读取本人记录。总览用空query及mode=summary；明细mode=records，next_page_token可续取。明确学期传target_term。不能作毕业认定。", {
         "operation": {"type": "string", "enum": sorted(OPERATIONS)},
         "query": {"type": "string", "maxLength": 100},
@@ -437,7 +451,7 @@ def _source_summary(claim, proofs):
     if "completion_status" in sections:
         counts = summary["completion_status_counts"]
         lines.append(f"来源完成状态字段已知{counts['known']}条、未知{counts['unknown']}条；这里只表示该字段是否已知，不据此推断通过、未通过或已获学分。")
-    return "".join(lines), [reference]
+    return "\n".join(lines), [reference]
 
 
 def _readiness_claim(claim, proofs):
@@ -492,7 +506,11 @@ def _course_plan_claim(claim, proofs):
     options = result.get("options", [])
     term = result.get("target_term", "")
     if action == "search":
-        text = f"在{term}已有课程观察中找到{len(result.get('courses', []))}门候选课程。可以继续按这些候选生成条件测试方案。"
+        calculated = any(other.get("course_data_plan", {}).get("action") in {"generate", "revise", "compare"}
+            and other["course_data_plan"].get("target_term") == term and other["tool_index"] > proof["tool_index"]
+            for other in proofs.values())
+        text = f"在{term}已有课程观察中找到{len(result.get('courses', []))}门候选课程。"
+        text += "该检索范围不代表学校全部开课。" if calculated else "可以继续按这些候选生成条件测试方案。"
         query = (result.get("search") or {}).get("query", "").strip().casefold()
         linked = [(row, link) for row in result.get("courses", []) for link in row.get("observed_code_links", [])
                   if link["code"].casefold() == query]
@@ -515,7 +533,7 @@ def _course_plan_claim(claim, proofs):
                 text += f"各套共同课程{len(shared)}门；具体课程和班次差异见对照卡片。"
         if result.get("locked_class_refs"):
             text += f"当前保留{len(result['locked_class_refs'])}个教学班锁定。"
-        text += "已检查观察数据中的星期和节次；完整周次、校历、考试及本人正式适用尚未核实，不能据此确认正式可选或完整无冲突。"
+        text += "这是历史课程数据上的条件参考，正式可选及完整冲突仍待核验。"
     else:
         reasons = {
             "source_preparation_required": "本轮所需的本人来源尚未取得，测试方案暂未计算。可以按当前任务准备这些来源后继续。",
@@ -538,6 +556,13 @@ def _course_plan_claim(claim, proofs):
 def _arguments(name, value, allowed_terms=None):
     if not isinstance(value, dict):
         _fail("invalid_tool_arguments")
+    if name == "lookup_academic_terms":
+        topics = value.get("topics")
+        if (set(value) != {"topics"} or not isinstance(topics, list) or not 1 <= len(topics) <= 3
+                or any(not isinstance(topic, str) or topic not in TERMS for topic in topics)
+                or len(set(topics)) != len(topics)):
+            _fail("invalid_tool_arguments")
+        return deepcopy(value)
     if name == "prepare_recommendation_inputs":
         from .personal_tasks import validate_recommendation_task
         try:
@@ -792,6 +817,20 @@ def _timetable_source_stop(results, proofs):
     Require an actually executed prepare and current projected evidence; a
     missing cache, a context hint, or source_preparation_required is not enough.
     """
+    for row in reversed(results):
+        if row["name"] not in {"generate_current_term_plan", "update_current_term_plan"} or row.get("error"):
+            continue
+        children = row["result"].get("prepared_sources", [])
+        if not any(child.get("name") == "query_my_records" and child.get("result", {}).get("operation") == "timetable" for child in children):
+            continue
+        reference = row["result"].get("evidence_id")
+        proof = proofs.get(reference, {})
+        plan = proof.get("course_data_plan", {})
+        state = plan.get("source_preparation", {}).get("timetable")
+        if (proof.get("kind") == "course_data_plan" and plan.get("recommendation_kind") == "timetable"
+                and (state in {"partial", "failed"} or state in {"available", "unparseable"}
+                     and plan.get("reason") in {"timetable_unparseable", "timetable_not_complete"})):
+            return {"evidence_id": reference, "reason": "timetable_source_" + state, "target_term": plan["target_term"]}
     prepared_index = next((index for index in range(len(results) - 1, -1, -1)
         if results[index]["name"] == "prepare_recommendation_inputs" and not results[index].get("error")
         and results[index]["arguments"].get("recommendation_kind") == "timetable"
@@ -978,11 +1017,43 @@ class PersonalDialogueService:
             budget[0] += amount
             budget[2][kind] = budget[2].get(kind, 0) + amount
             identifier = f"{kind}{namespace}-{len(proofs) + 1}"
-            proofs[identifier] = {"evidence_id": identifier, "kind": {"R": "record", "E": "curriculum", "C": "context", "S": "summary", "D": "diagnostic", "K": "course_reference", "P": "recommendation_readiness", "T": "course_data_plan"}[kind],
+            proofs[identifier] = {"evidence_id": identifier, "kind": {"R": "record", "E": "curriculum", "C": "context", "S": "summary", "D": "diagnostic", "K": "course_reference", "P": "recommendation_readiness", "T": "course_data_plan", "G": "academic_term"}[kind],
                 "tool_index": tool_index, **local_data}
             return identifier
 
-        if name == "get_my_context":
+        def project_prepared(task, children):
+            from .personal_acquisition import recommendation_source_requests
+            planned = recommendation_source_requests(task)
+            if type(children) is not list or len(children) > len(planned):
+                _fail("invalid_tool_result")
+            accepted = set()
+            local["prepared_sources"], remote["prepared_sources"] = [], []
+            for child in children:
+                if type(child) is not dict or set(child) != {"name", "arguments", "result"}:
+                    _fail("invalid_tool_result")
+                index = next((index for index, request in enumerate(planned)
+                    if child["name"] == request["tool"] and child["arguments"] == request["arguments"]), None)
+                if index is None or index in accepted:
+                    _fail("invalid_tool_result")
+                accepted.add(index)
+                # Apply the same field whitelist, evidence budget and scope
+                # checks as an individual tool result; raw sources never
+                # enter the model's preparation envelope.
+                child_local, child_remote = PersonalDialogueService._project(child["name"], child["result"],
+                    child["arguments"], namespace, proofs, tool_index, budget, allowed_terms)
+                local["prepared_sources"].append({"name": child["name"], "result": child_local})
+                remote["prepared_sources"].append({"name": child["name"], "result": child_remote})
+
+        if name == "lookup_academic_terms":
+            entries = []
+            for topic in args["topics"]:
+                entry = {"topic": topic, **TERMS[topic], "data_kind": "service_reference"}
+                identifier = evidence("G", entry, entry)
+                if identifier:
+                    entries.append({"evidence_id": identifier, **entry})
+            local.update(data_kind="service_reference", entries=deepcopy(entries))
+            remote.update(data_kind="service_reference", entries=entries)
+        elif name == "get_my_context":
             context = {}
             profile = result.get("profile") if isinstance(result.get("profile"), dict) else result
             for key in ("cohort", "major_name"):
@@ -1013,7 +1084,7 @@ class PersonalDialogueService:
                                          if isinstance(item, str) and item in OPERATIONS or isinstance(item, dict) and item.get("operation") in OPERATIONS]
             capabilities = result.get("capabilities", {})
             context["capabilities"] = {key: bool(value) for key, value in capabilities.items()
-                if key in {"curriculum_available", "personal_record_query", "curriculum_local_search", "read_only_acquisition", "live_record_query", "local_course_catalog", "course_catalog_search", "recommendation_input_check", "course_data_test"} and type(value) is bool} if isinstance(capabilities, dict) else {}
+                if key in {"curriculum_available", "personal_record_query", "curriculum_local_search", "read_only_acquisition", "live_record_query", "local_course_catalog", "course_catalog_search", "recommendation_input_check", "course_data_test", "harness_managed_dependencies"} and type(value) is bool} if isinstance(capabilities, dict) else {}
             catalog = result.get("course_catalog", {})
             if isinstance(catalog, dict):
                 context["course_catalog"] = {key: _scalar(catalog[key], 300) for key in ("status", "source_description", "source_version") if key in catalog}
@@ -1087,38 +1158,29 @@ class PersonalDialogueService:
             if identifier:
                 local["evidence_id"] = remote["evidence_id"] = identifier
                 remote.update(check_executed=True, readiness=readiness)
+                remote["answer_claim"] = {"kind": "recommendation_readiness", "evidence_id": identifier, "sections": ["next_step"]}
             else:
                 remote.update(status="not_ready", reason="readiness_projection_budget_exhausted")
             if wrapped:
-                from .personal_acquisition import recommendation_source_requests
-                planned = recommendation_source_requests(args)
-                children = result["prepared_sources"]
-                if type(children) is not list or len(children) > len(planned):
-                    _fail("invalid_tool_result")
-                accepted = set()
-                local["prepared_sources"], remote["prepared_sources"] = [], []
-                for child in children:
-                    if type(child) is not dict or set(child) != {"name", "arguments", "result"}:
-                        _fail("invalid_tool_result")
-                    index = next((index for index, request in enumerate(planned)
-                        if child["name"] == request["tool"] and child["arguments"] == request["arguments"]), None)
-                    if index is None or index in accepted:
-                        _fail("invalid_tool_result")
-                    accepted.add(index)
-                    # Apply the same field whitelist, evidence budget and scope
-                    # checks as an individual tool result; raw sources never
-                    # enter the model's preparation envelope.
-                    child_local, child_remote = PersonalDialogueService._project(child["name"], child["result"],
-                        child["arguments"], namespace, proofs, tool_index, budget, allowed_terms)
-                    local["prepared_sources"].append({"name": child["name"], "result": child_local})
-                    remote["prepared_sources"].append({"name": child["name"], "result": child_remote})
+                project_prepared(args, result["prepared_sources"])
         elif name in COURSE_PLAN_TOOLS:
             from .personal_course_plans import project_course_plan_result
             try:
-                checked = project_course_plan_result(result)
+                checked = project_course_plan_result({key: value for key, value in result.items() if key not in {"dependency_task", "prepared_sources"}})
                 plan = checked["result"]
             except ValueError:
                 _fail("invalid_tool_result")
+            if "dependency_task" in result or "prepared_sources" in result:
+                from .personal_tasks import validate_recommendation_task
+                try:
+                    task = validate_recommendation_task(result.get("dependency_task"))
+                except ValueError:
+                    _fail("invalid_tool_result")
+                if (name not in {"generate_current_term_plan", "update_current_term_plan"}
+                        or task["target_term"] != plan.get("target_term")
+                        or plan.get("recommendation_kind") is not None and task["recommendation_kind"] != plan["recommendation_kind"]):
+                    _fail("invalid_tool_result")
+                project_prepared(task, result.get("prepared_sources"))
             if plan.get("plan_ref") and plan.get("action") in {"generate", "revise", "compare"}:
                 for proof in proofs.values():
                     if (proof.get("kind") == "course_data_plan" and proof["course_data_plan"].get("plan_ref") == plan["plan_ref"]
@@ -1130,6 +1192,10 @@ class PersonalDialogueService:
             if identifier:
                 local["evidence_id"] = remote["evidence_id"] = identifier
                 remote["result"] = plan
+                remote["answer_claim"] = {"kind": "course_data_plan", "evidence_id": identifier}
+                if plan.get("action") == "inspect" and plan.get("computation_summary"):
+                    remote["answer_claim"] = {"kind": "course_data_plan", "evidence_id": identifier,
+                        "sections": ["credit_target", "observed_tradeoff"]}
             else:
                 remote.update(status="not_ready", reason="course_plan_projection_budget_exhausted")
         elif name == "search_course_catalog":
@@ -1176,6 +1242,8 @@ class PersonalDialogueService:
                 local["source_grade_summary"] = {**summary, **({"evidence_id": identifier} if identifier else {})}
                 if identifier:
                     remote["source_grade_summary"] = {**summary, "evidence_id": identifier}
+                    remote["answer_claim"] = {"kind": "source_summary", "evidence_id": identifier,
+                        "sections": ["counts", "numeric_grades"]}
                 else:
                     remote["summary_projection_omitted"] = True
             for index, record in enumerate(records[:args["limit"]]):
@@ -1320,7 +1388,7 @@ class PersonalDialogueService:
             _final_fail("invalid_final_answer", "claims_not_array")
         if not 1 <= len(value["claims"]) <= 8:
             _final_fail("invalid_final_answer", "claim_count_out_of_bounds", claim_count=len(value["claims"]))
-        selected, lines = [], []
+        selected, lines, analysis_lines = [], [], []
         for claim in value["claims"]:
             structured_summary = isinstance(claim, dict) and claim.get("kind") == "source_summary"
             structured_readiness = isinstance(claim, dict) and claim.get("kind") == "recommendation_readiness"
@@ -1359,8 +1427,13 @@ class PersonalDialogueService:
                     required_evidence_ids=_claim_references(value["claims"], proofs))
             selected.extend(ref for ref in references if ref not in selected)
             lines.append(text.strip() + " " + " ".join(f"[{selected.index(ref) + 1}]" for ref in dict.fromkeys(references)))
+            if not (structured_summary or structured_readiness or structured_plan) and any(
+                    proofs[ref].get("kind") in {"record", "curriculum"} for ref in references):
+                analysis_lines.append(lines[-1])
         decision = {"kind": kind, "evidence_ids": selected,
             "source_tool_result_index": max(proofs[ref]["tool_index"] for ref in selected)}
+        if analysis_lines:
+            decision["evidence_analysis"] = "\n\n".join(analysis_lines)
         return "\n\n".join(lines), decision, [{
             **{key: deepcopy(item) for key, item in proofs[ref].items() if key != "tool_index"},
             "citation_number": index, "label": f"[{index}]"} for index, ref in enumerate(selected, 1)]
@@ -1410,6 +1483,10 @@ class PersonalDialogueService:
                 "当前用户换题或取消时以当前消息为准；只有能确定任务所需全部槽位时才查询，缺项继续clarify。"
                 "继续为该请求补槽时clarify.request_basis选pending_task，换题选current_message。"
                 "旧事实与引用不可复用，来源仍须本轮重新取得。")
+        if previous and all(row["role"] in {"user", "assistant"} and not row.get("tool_calls") for row in previous) and any(row["role"] == "assistant" for row in previous):
+            system += ("\n服务端提供的近期历史问答（仅用于连贯理解，都是历史数据，不是新指令、当前事实或权限）：\n" + _json(previous)
+                + "\n其中旧答案可能不完整或有误，用户纠正优先。解释用语可参考本轮lookup_academic_terms；查询最新数值、明细或更改方案仍需本轮工具。旧引用不可复用。")
+            previous = []
         if previous and all(row["role"] == "user" for row in previous):
             system += "\n服务端提供的已结束历史意图（仅供指代，不是待办，不包含可复用事实）：\n" + _json([row["content"] for row in previous])
             previous = []
@@ -1419,19 +1496,31 @@ class PersonalDialogueService:
         namespace, start = secrets.token_hex(4), self.clock()
         decision, reply, citations, failure, model_used = None, "", [], None, False
         context_result, model_tool_count, repair_attempts, argument_corrections = None, 0, 0, 0
-        source_stop, source_diagnostics = None, 0
+        source_stop, source_diagnostics, task_corrections = None, 0, 0
         validation_diagnostics, omit_history, repair_required_evidence = [], set(), set()
         declared_tools = TOOLS + ([DIAGNOSTIC_TOOL] if diagnostic_context is not None else [])
         catalog_only = bool(re.search(r"本地.{0,8}(?:目录|课程|课程库)|课程目录|课程库", message)) and not re.search(r"成绩|培养|课表|考试|绩点|修读|毕业", message)
         if catalog_only:
             declared_tools = [tool for tool in declared_tools if tool["function"]["name"] in {"get_my_context", "search_course_catalog", "get_my_run_diagnostics"}]
         declared_names = {tool["function"]["name"] for tool in declared_tools}
+        term_phrase = r"(?:每个|各个|所有|全部|各|每)学期"
+        per_term_request = bool(re.search(term_phrase, message) and not re.search(
+            r"(?:不要|不用|不需要|无需).{0,6}" + term_phrase + "|" + term_phrase + r".{0,5}(?:不需要|不用|不要)", message))
 
         def perform(name, arguments, *, initiated_by="model"):
             self._authorize(scope)
             previous_proofs, previous_terms, previous_budget = set(proofs), set(allowed_terms), deepcopy(budget)
             try:
-                if name == "get_my_run_diagnostics":
+                if (per_term_request and name == "query_my_records" and
+                        (arguments.get("operation") == "major_academic" or
+                         arguments.get("operation") == "academic" and not arguments.get("target_term"))):
+                    event("tool.rejected", {"tool_name": name, "failure_detail": "academic_term_scope_required"})
+                    _fail("academic_term_scope_required")
+                if name == "lookup_academic_terms":
+                    event("tool.start", {"tool_name": name})
+                    raw_result = {"status": "available"}
+                    event("tool.end", {"tool_name": name, "status": "completed"})
+                elif name == "get_my_run_diagnostics":
                     raw_result = {"status": "available", "diagnostic": diagnostic_context} if diagnostic_context is not None else {"status": "not_ready"}
                     event("tool.start", {"tool_name": name})
                     event("tool.end", {"tool_name": name, "status": "completed" if diagnostic_context is not None else "not_ready"})
@@ -1474,8 +1563,11 @@ class PersonalDialogueService:
                 code = getattr(error, "code", getattr(error, "reason", "tool_unavailable"))
                 if code in AUTH_ERRORS:
                     _fail(code)
-                code = code if code in {"sensitive_personal_content", "invalid_tool_result", "evidence_not_prepared", "source_unavailable", "extractor_unavailable", "clarification_context_missing"} else "tool_unavailable"
+                code = code if code in {"sensitive_personal_content", "invalid_tool_result", "evidence_not_prepared", "source_unavailable", "extractor_unavailable", "clarification_context_missing", "academic_term_scope_required"} else "tool_unavailable"
                 remote = {"status": "unavailable", "code": code, "unknown": ["no_evidence_returned"]}
+                if code == "academic_term_scope_required":
+                    remote.update(status="not_ready", query_executed=False,
+                        next_step="逐学期成绩需要明确起止范围并分别查询academic；范围不明确时先用中文询问，不能用主修历史代替。")
                 if code == "clarification_context_missing":
                     remote.update(status="not_ready", query_executed=False,
                         allowed_request_basis=["current_message"], pending_task_available=False)
@@ -1520,6 +1612,20 @@ class PersonalDialogueService:
                         "下面是可直接使用的完整合法答复JSON，不加text：" + _json({"kind": "answer", "claims": [
                             {"kind": "recommendation_readiness", "evidence_id": reference, "sections": ["next_step"]}
                             for reference in references]}))
+            if detail.get("failure_detail") == "summary_requires_structured_claim":
+                claims = []
+                for reference in sorted(repair_required_evidence):
+                    proof = proofs.get(reference, {})
+                    if proof.get("kind") != "summary":
+                        continue
+                    available = proof["source_grade_summary"]["available_sections"]
+                    sections = [key for key in ("counts", "numeric_grades") if key in available]
+                    if re.search(r"完成状态|状态.*(?:已知|未知)|(?:已知|未知).*状态", message) and "completion_status" in available:
+                        sections.append("completion_status")
+                    if sections:
+                        claims.append({"kind": "source_summary", "evidence_id": reference, "sections": sections})
+                if claims:
+                    messages[-1]["content"] += "\n本问概况可使用以下结构；其他需要保留的证据另列claim：" + _json({"kind": "answer", "claims": claims})
             omit_history.add(len(messages) - 1)
             event("answer.repair", {"status": "started", "attempt": repair_attempts})
 
@@ -1555,9 +1661,12 @@ class PersonalDialogueService:
                 additions = course_plan_tool_schemas()
                 for tool in additions:
                     if tool["function"]["name"] in {"generate_current_term_plan", "update_current_term_plan"}:
-                        tool["function"]["description"] += (" 每轮生成或调整前须先已有本轮主修与培养来源；"
-                            "get_my_context的历史方案提示不代表来源已在本轮读取，缺少时先调用prepare_recommendation_inputs。"
-                            "仅解释已有计算时使用get_current_term_plan的计算摘要，不调用本工具或另行搜索、准备。")
+                        if context_result.get("capabilities", {}).get("harness_managed_dependencies") is True:
+                            tool["function"]["description"] = tool["function"]["description"].replace("须先准备本轮主修、培养，排课另需本人完整课表。", "执行层自动取得本轮主修、培养，排课另读本人课表；无需先prepare。")
+                            tool["function"]["description"] += " 执行层自动补齐必要本轮来源，prepared_sources返回相关事实；已取来源同轮复用，失败不以旧缓存替代。"
+                        else:
+                            tool["function"]["description"] += " 每轮生成或调整前须先有本轮主修与培养，缺少时调用prepare_recommendation_inputs。"
+                        tool["function"]["description"] += " 仅解释已有计算时使用get_current_term_plan，不搜索、准备或求解。"
                     if tool["function"]["name"] == "get_current_term_plan":
                         tool["function"]["description"] += (" 仅解释当前已保存计算的目标、排序或候选范围时使用本工具；"
                             "依据其owner-bound计算摘要解释，不改条件、不重新搜索或prepare，不把历史计算称为新读取。")
@@ -1572,6 +1681,8 @@ class PersonalDialogueService:
                 declared_names.update(tool["function"]["name"] for tool in additions)
             # A server preflight is real local work, not a fabricated assistant
             # tool call. This current-scope projection is not persisted in history.
+            from .academic_harness import resource_catalog
+            messages[0]["content"] += "\n执行层资源目录（可用路由，不是已读取的事实）：\n" + _json(resource_catalog(context_result))
             messages[0]["content"] += "\n服务器已完成本轮本机范围检查（service_preflight get_my_context）：\n" + _json(context_result)
             for step in range(self.max_steps + 1):
                 self._authorize(scope)
@@ -1644,6 +1755,27 @@ class PersonalDialogueService:
                     try:
                         reply, decision, citations = self._final(assistant["content"], proofs,
                             **({"pending_clarification": True} if previous_clarification else {}))
+                        # Validate the common task boundary as well as JSON shape.
+                        # One corrective turn may use the declared tools; it does
+                        # not replay sources or loosen authorization/plan guards.
+                        explaining = bool(re.search(r"什么意思|是什么(?:意思)?|怎么理解|解释|为什么|为何", message)
+                            and re.search(r"成绩|未知|绩点|均值|学分|状态|培养|方案|课表|范围|覆盖", message))
+                        wrong_explanation = explaining and decision.get("kind") == "general_chat"
+                        wrong_scope = per_term_request and decision.get("kind") == "answer" and any(
+                            item.get("kind") == "summary" and item.get("operation") == "major_academic" for item in citations)
+                        if wrong_explanation or wrong_scope:
+                            detail = "explanation_answer_required" if wrong_explanation else "per_term_scope_required"
+                            if task_corrections:
+                                _fail("task_not_completed")
+                            task_corrections += 1
+                            messages.pop()  # Do not feed the irrelevant draft back.
+                            event("answer.rejected", {"failure_detail": detail})
+                            messages.append({"role": "system", "content": (
+                                "本轮答复没有完成当前任务：" + detail + "。请重新处理当前问题，最多补正一次。"
+                                "解释问题必须解释所问内容，可用lookup_academic_terms读取语义，不能用general_chat能力介绍代替。"
+                                "逐学期请求不能用主修总览代替；缺起止学期请用中文clarify，不猜范围。不要重复已读范围。")})
+                            omit_history.add(len(messages) - 1)
+                            continue
                         if source_stop and decision["kind"] != "answer":
                             _final_fail("unverified_personal_answer", "prepared_source_answer_required",
                                 required_evidence_ids={source_stop["evidence_id"]})
@@ -1729,7 +1861,7 @@ class PersonalDialogueService:
             "reply_origin": "service_error" if failure else "model_selected_service_guidance" if decision["kind"] == "general_chat" else "personal_model_clarification" if decision["kind"] == "clarify" else "personal_model_evidence",
             "model_decision": None if failure else decision, "partial_tools_completed": bool(failure and results and not inaccessible),
             "history_reset": history_reset, "versions": {"dialogue_contract": VERSION, "authorization_version": scope}}
-        response.update(repair_attempts=repair_attempts, argument_corrections=argument_corrections,
+        response.update(repair_attempts=repair_attempts, argument_corrections=argument_corrections, task_corrections=task_corrections,
                         validation_diagnostics=[] if inaccessible else validation_diagnostics)
         if not failure and decision["kind"] in {"answer", "not_ready"}:
             selected_plans = [item["course_data_plan"] for item in citations if item.get("kind") == "course_data_plan"]

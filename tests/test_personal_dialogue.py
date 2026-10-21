@@ -123,7 +123,7 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertNotIn("NEVER-SEND", serialized)
         self.assertNotIn(self.scope, serialized)
         self.assertNotIn("source_alias", serialized)
-        self.assertEqual({row["function"]["name"] for row in model.calls[0][1]}, {"get_my_context", "query_my_records", "search_my_curriculum", "search_course_catalog"})
+        self.assertEqual({row["function"]["name"] for row in model.calls[0][1]}, {"get_my_context", "query_my_records", "search_my_curriculum", "search_course_catalog", "lookup_academic_terms"})
 
     def test_evidence_sends_related_paragraph_not_private_references_or_whole_pages(self):
         result, messages, _ = self.run_service([call("search_my_curriculum", {"query": "专业模块", "limit": 5}), answer_from_last_tool])
@@ -203,6 +203,17 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["code"], "unverified_personal_answer")
         self.assertNotIn("100", result["reply"])
+
+    def test_only_validated_personal_evidence_text_becomes_visible_analysis(self):
+        result, _, _ = self.run_service([call("search_my_curriculum", {"query": "模块"}), answer_from_last_tool])
+        self.assertEqual(result["model_decision"]["evidence_analysis"], result["reply"])
+        self.assertTrue(result["citations"])
+        context, _, _ = self.run_service([call("get_my_context"), answer_from_last_tool])
+        self.assertEqual(context["status"], "completed")
+        self.assertNotIn("evidence_analysis", context.get("model_decision") or {})
+        invalid = final({"kind": "answer", "claims": [{"text": "合成建议", "evidence_ids": ["E-old"]}]})
+        rejected, _, _ = self.run_service([invalid, invalid])
+        self.assertNotIn("evidence_analysis", rejected.get("model_decision") or {})
 
     def test_not_ready_tool_cannot_mint_proof_even_if_callback_has_nonempty_records(self):
         self.records["status"] = "not_ready"

@@ -5,6 +5,21 @@ from course_assistant.course_plan_policy import compile_hard_constraints, author
 
 
 class CoursePlanPolicyTests(unittest.TestCase):
+    def test_missing_grade_instruction_does_not_block_or_hide_schedule_constraints(self):
+        phrase = "不能把未见成绩当作没学过"
+        result = compile_hard_constraints("至少6学分，尽量周五空闲；" + phrase, [])
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["engine_patch"]["target_credits"], "6")
+        self.assertEqual(result["engine_patch"]["friday_free"], "soft")
+        for suffix in ("且周三第6到8节不能排课", "，周三第6到8节不能排课"):
+            with self.subTest(suffix=suffix):
+                result = compile_hard_constraints(phrase + suffix, [])
+                self.assertEqual(result["status"], "ready")
+                self.assertEqual(result["blocked_slots"][0]["weekday"], 3)
+                self.assertEqual(result["blocked_slots"][0]["periods"], [6, 7, 8])
+        self.assertEqual(compile_hard_constraints(phrase + "且必须同校区", [])["status"], "needs_clarification")
+        self.assertEqual(compile_hard_constraints(phrase + "且周三下午必须空", [])["status"], "needs_clarification")
+
     def metadata(self):
         return {"class-one": {"course_code": "SYN-ONE", "course_name": "合成一", "locked": True, "option_positions": {"A": 1}},
                 "class-two": {"course_code": "SYN-TWO", "course_name": "合成二", "locked": False, "option_positions": {"A": 2}}}

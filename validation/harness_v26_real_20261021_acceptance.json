@@ -1,0 +1,550 @@
+{
+  "version": "v26-academic-harness",
+  "scope": "local authenticated limited verification; no publication or course add/drop",
+  "engineering_receipt": "validation/harness_v26_delivery_20261021_validation.json",
+  "engineering": {
+    "ran": 1460,
+    "passed": 1455,
+    "skipped": 5,
+    "failures": 0,
+    "errors": 0
+  },
+  "source_sha256": {
+    "course_assistant/academic_harness.py": "14428a8b1a7587fa9e870d8fc13fd24911928d536028a68ca905fe4b7a89a639",
+    "course_assistant/personal_chat.py": "680cf3c039a5fadddebc6f4b6385fd8cfc821db822a6ebb2275159a9bdd358ea",
+    "course_assistant/personal_dialogue.py": "a8ab78648a1bc85ba587d7b6e07b222f26909feec6077951ef44d3c37f5ac92d",
+    "course_assistant/personal_course_plans.py": "b7c078a89846d7da6865b066871d7dbbe3993215e5fd7d6a6ad7580a980fb76a",
+    "course_assistant/school_accounts.py": "4b77d307e569c2cc81a77693108b40cfe76c51ae0c008f5a40939d7940b68a47",
+    "course_assistant/course_plan_policy.py": "fa8ea920a1e7ddb9e8ae6964979b8af8c034bb1c2c563c3960bf9940da6710e0",
+    "web/app.js": "bf1793f4c906ad68457d9efa2467ab3c531706fb7446d13a35f3df7378692b09"
+  },
+  "served_app_js_matches": true,
+  "runtime_pid": 24430,
+  "port": 18875,
+  "model": "deepseek-flash",
+  "stages": [
+    {
+      "stage": "candidate: analysis, automatic generation, revision, readonly explanation",
+      "cases": [
+        {
+          "turn": 1,
+          "task_status": "completed",
+          "duration_seconds": 22.24,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 3,
+          "reasoning_chars": 1369,
+          "model_tools": [
+            "query_my_records",
+            "query_my_records",
+            "query_my_records",
+            "query_my_records",
+            "query_my_records",
+            "search_my_curriculum"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "citation_checks": [
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            }
+          ],
+          "actual_solver_tool_calls": 0,
+          "automatic_dependency_queries": 0,
+          "option_count": 0,
+          "revision": null,
+          "locked_count": 0,
+          "target_credits": null,
+          "friday_preference": null,
+          "evidence_analysis_available": false
+        },
+        {
+          "turn": 2,
+          "task_status": "partial",
+          "duration_seconds": 20.68,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 3,
+          "reasoning_chars": 607,
+          "model_tools": [
+            "search_current_term_courses",
+            "search_current_term_courses",
+            "search_current_term_courses",
+            "generate_current_term_plan",
+            "get_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            }
+          ],
+          "actual_solver_tool_calls": 1,
+          "automatic_dependency_queries": 2,
+          "option_count": 1,
+          "revision": 0,
+          "locked_count": 0,
+          "target_credits": "6",
+          "friday_preference": "soft",
+          "evidence_analysis_available": false
+        },
+        {
+          "turn": 3,
+          "task_status": "partial",
+          "duration_seconds": 18.85,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 3,
+          "reasoning_chars": 1092,
+          "model_tools": [
+            "get_current_term_plan",
+            "update_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            }
+          ],
+          "actual_solver_tool_calls": 1,
+          "automatic_dependency_queries": 2,
+          "option_count": 1,
+          "revision": 1,
+          "locked_count": 1,
+          "target_credits": "6",
+          "friday_preference": "hard",
+          "evidence_analysis_available": false
+        },
+        {
+          "turn": 4,
+          "task_status": "completed",
+          "duration_seconds": 4.16,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 1,
+          "reasoning_chars": 94,
+          "model_tools": [
+            "get_current_term_plan"
+          ],
+          "logical_school_reads": {},
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "actual_solver_tool_calls": 0,
+          "automatic_dependency_queries": 0,
+          "option_count": 0,
+          "revision": 1,
+          "locked_count": 0,
+          "target_credits": null,
+          "friday_preference": null,
+          "evidence_analysis_available": false
+        }
+      ],
+      "source_checks": [
+        {
+          "turn": 3,
+          "operation": "major_academic",
+          "record_count": 104,
+          "page_count": 2,
+          "checks": {
+            "raw_hash": true,
+            "record_hash": true,
+            "raw_row_count": true,
+            "owner_term_operation": true,
+            "registered_values_match_raw": true,
+            "live": true
+          }
+        },
+        {
+          "turn": 1,
+          "operation": "major_academic",
+          "record_count": 104,
+          "page_count": 2,
+          "checks": {
+            "raw_hash": true,
+            "record_hash": true,
+            "raw_row_count": true,
+            "owner_term_operation": true,
+            "registered_values_match_raw": true,
+            "live": true
+          }
+        },
+        {
+          "turn": 2,
+          "operation": "major_academic",
+          "record_count": 104,
+          "page_count": 2,
+          "checks": {
+            "raw_hash": true,
+            "record_hash": true,
+            "raw_row_count": true,
+            "owner_term_operation": true,
+            "registered_values_match_raw": true,
+            "live": true
+          }
+        }
+      ],
+      "curriculum_checks": [
+        {
+          "turn": 1,
+          "checks": {
+            "bundle_hash": true,
+            "pdf_hash": true,
+            "page_hashes": true,
+            "source_spans": true,
+            "pdf_reextract": true
+          }
+        },
+        {
+          "turn": 2,
+          "checks": {
+            "bundle_hash": true,
+            "pdf_hash": true,
+            "page_hashes": true,
+            "source_spans": true,
+            "pdf_reextract": true
+          }
+        },
+        {
+          "turn": 3,
+          "checks": {
+            "bundle_hash": true,
+            "pdf_hash": true,
+            "page_hashes": true,
+            "source_spans": true,
+            "pdf_reextract": true
+          }
+        }
+      ],
+      "plan_continuity_checked": true
+    },
+    {
+      "stage": "candidate integrated request: original failure preserved",
+      "task_status": "blocked",
+      "reason": "hard_preferences_unresolved",
+      "repair_attempts": 1,
+      "validation_diagnostics": [
+        {
+          "error_code": "tool_not_allowed",
+          "failure_detail": "undeclared_tool_call",
+          "attempt": 0,
+          "evidence_count": 11
+        }
+      ],
+      "cause": "evidence interpretation instruction incorrectly classified as schedule hard constraint"
+    },
+    {
+      "stage": "after process instruction fix: integrated generation; analysis still folded",
+      "cases": [
+        {
+          "turn": 1,
+          "task_status": "partial",
+          "duration_seconds": 32.56,
+          "model_calls": 5,
+          "nonempty_reasoning_responses": 5,
+          "reasoning_chars": 6137,
+          "model_tools": [
+            "search_current_term_courses",
+            "search_my_curriculum",
+            "query_my_records",
+            "search_current_term_courses",
+            "search_current_term_courses",
+            "generate_current_term_plan",
+            "lookup_academic_terms"
+          ],
+          "logical_school_reads": {
+            "curriculum": 1,
+            "major_academic": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            }
+          ],
+          "actual_solver_tool_calls": 1,
+          "automatic_dependency_queries": 0,
+          "option_count": 3,
+          "revision": 0,
+          "locked_count": 0,
+          "target_credits": "6",
+          "friday_preference": "soft",
+          "evidence_analysis_available": false
+        }
+      ],
+      "source_checks": [
+        {
+          "turn": 1,
+          "operation": "major_academic",
+          "record_count": 104,
+          "page_count": 2,
+          "checks": {
+            "raw_hash": true,
+            "record_hash": true,
+            "raw_row_count": true,
+            "owner_term_operation": true,
+            "registered_values_match_raw": true,
+            "live": true
+          }
+        }
+      ],
+      "curriculum_checks": [
+        {
+          "turn": 1,
+          "checks": {
+            "bundle_hash": true,
+            "pdf_hash": true,
+            "page_hashes": true,
+            "source_spans": true,
+            "pdf_reextract": true
+          }
+        }
+      ],
+      "plan_continuity_checked": false
+    },
+    {
+      "stage": "delivery: relevant records, curriculum, generation and visible analysis",
+      "cases": [
+        {
+          "turn": 1,
+          "task_status": "partial",
+          "duration_seconds": 31.38,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 4,
+          "reasoning_chars": 6383,
+          "model_tools": [
+            "prepare_recommendation_inputs",
+            "search_current_term_courses",
+            "query_my_records",
+            "generate_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "actual_solver_tool_calls": 1,
+          "automatic_dependency_queries": 2,
+          "option_count": 2,
+          "revision": 0,
+          "locked_count": 0,
+          "target_credits": "6",
+          "friday_preference": "soft",
+          "evidence_analysis_available": true
+        }
+      ],
+      "source_checks": [
+        {
+          "turn": 1,
+          "operation": "major_academic",
+          "record_count": 104,
+          "page_count": 2,
+          "checks": {
+            "raw_hash": true,
+            "record_hash": true,
+            "raw_row_count": true,
+            "owner_term_operation": true,
+            "registered_values_match_raw": true,
+            "live": true
+          }
+        }
+      ],
+      "curriculum_checks": [
+        {
+          "turn": 1,
+          "checks": {
+            "bundle_hash": true,
+            "pdf_hash": true,
+            "page_hashes": true,
+            "source_spans": true,
+            "pdf_reextract": true
+          }
+        }
+      ],
+      "plan_continuity_checked": false
+    }
+  ],
+  "ui": {
+    "desktop_verified": true,
+    "analysis_visible_with_plan": true,
+    "provider_reasoning_segments_visible": 4,
+    "empty_reasoning_placeholder_visible": false,
+    "process_open_and_close_verified": true,
+    "mobile_retested": false,
+    "refresh_or_network_recovery_retested": false
+  },
+  "limitations": [
+    "Candidate initial learning analysis overinterpreted a few grades; bounded analysis guidance added.",
+    "The final request still voluntarily used prepare; implicit dependencies are verified by the earlier v26 generation and revision cases and final synthetic regression.",
+    "Selected courses and explanations have limited source checks, not complete semantic or formal curriculum applicability acceptance.",
+    "Local current-term sections are historical observations; latest offerings, eligibility, quotas, weeks, calendars and exams remain unverified.",
+    "The final request intentionally excluded own timetable and exams; no new real timetable acquisition acceptance in this round."
+  ],
+  "full_semantics_verified": false,
+  "formal_recommendation_verified": false,
+  "user_acceptance": false,
+  "committed": false,
+  "pushed": false
+}

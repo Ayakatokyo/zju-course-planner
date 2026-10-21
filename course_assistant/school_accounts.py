@@ -171,7 +171,8 @@ class SchoolAccountService:
 
     def _build(self, context, connection):
         authorize = lambda: self._authorize(context, connection)
-        connection.source = StudentSourceClient(_BoundTransport(connection), authorize, clock=self.clock)
+        connection.source = StudentSourceClient(_BoundTransport(connection), authorize,
+            clock=self.clock, major_page_size=100)
 
     @staticmethod
     def _close_client(client):
@@ -750,6 +751,18 @@ class SchoolAccountService:
                 sources["exams"]["status"] = "partial" if any(r.get("status") == "partial_acquisition" for r in exam_receipts) else "available"
         self._authorize_local(context, connection, connection.client.session_epoch)
         return sources
+
+    def personal_chat_tool_requirements(self, context, name, args, *, policy_context, receipts, before):
+        """Resolve dependencies under the same owner/version lock as execution."""
+        connection = self._connection(context)
+        with connection.lock:
+            before()
+            self._authorize(context, connection)
+            plans = self._course_plan_service(context, connection)
+            if plans is None:
+                return None
+            return plans.dependency_task(name, args,
+                active_plan_ref=policy_context.get("active_plan_ref"), turn_identity=receipts)
 
     def personal_chat_live_tool(self, context, name, args, *, receipts, emit, authorize, adopt, before=None, policy_context=None):
         """Use a fresh receipt from this turn, never a latest historical row.
