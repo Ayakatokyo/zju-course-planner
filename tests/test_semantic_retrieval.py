@@ -60,6 +60,45 @@ class SemanticRetrievalTests(unittest.TestCase):
         self.assertEqual(self.candidates, original)
         run.assert_not_called()
 
+    def test_identical_derived_ranking_reuses_work_without_sharing_mutable_results(self):
+        with self.available(), patch.object(self.retriever, "_run_encoder", return_value=self.vectors()) as run:
+            first = self.retriever.rank("合成问题", self.candidates, 3)
+            expected = deepcopy(first["matches"])
+            first["matches"].clear()
+            second = self.retriever.rank("合成问题", self.candidates, 3)
+            self.assertEqual(second["matches"], expected)
+            self.assertTrue(second["cache_hit"])
+            self.assertEqual(second["encoded_count"], 0)
+            run.assert_called_once()
+            changed = deepcopy(self.candidates)
+            changed[0]["text"] += "变更"
+            self.retriever.rank("合成问题", changed, 3)
+            self.retriever.rank("另一个问题", self.candidates, 3)
+            self.retriever.rank("合成问题", self.candidates, 2)
+            self.assertEqual(run.call_count, 4)
+
+    def test_warm_ranking_rechecks_encoder_identity_and_availability(self):
+        with self.available(), patch.object(self.retriever, "_run_encoder", return_value=self.vectors()):
+            self.retriever.rank("合成问题", self.candidates)
+        with patch.object(self.retriever, "status", return_value={"status":"unavailable", "reason":"changed"}), patch.object(self.retriever, "_run_encoder") as run:
+            result = self.retriever.rank("合成问题", self.candidates)
+            self.assertFalse(result["dense_used"])
+            self.assertNotIn("cache_hit", result)
+            run.assert_not_called()
+        with self.available() as status, patch.object(self.retriever, "_run_encoder", side_effect=semantic._Unavailable("changed")) as run:
+            status.return_value["manifest_sha256"] = "c" * 64
+            result = self.retriever.rank("合成问题", self.candidates)
+            self.assertFalse(result["dense_used"])
+            run.assert_called_once()
+
+    def test_ranking_cache_is_instance_local_and_bounded(self):
+        with self.available(), patch.object(self.retriever, "_run_encoder", return_value=self.vectors()) as run:
+            for index in range(9):
+                self.retriever.rank(f"合成问题{index}", self.candidates)
+            self.retriever.rank("合成问题0", self.candidates)
+            self.assertEqual(run.call_count, 10)
+        self.assertFalse(semantic.LocalSemanticRetriever()._rank_cache)
+
     def test_only_explicit_application_environment_configures_encoder(self):
         env = {"HF_HOME": "/SYNTHETIC", "OPENAI_BASE_URL": "https://invalid.example"}
         self.assertEqual(semantic.LocalSemanticRetriever.from_environment(env).status()["status"], "not_configured")

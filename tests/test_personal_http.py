@@ -135,8 +135,9 @@ class PersonalHTTPTests(unittest.TestCase):
         self.assertEqual(len(source["records"]), 75)
         self.assertEqual(source["status"], "complete_within_scope")
         self.assertEqual(source["coverage"], {"captured_rows": 75, "reported_total": 75,
-            "pages_captured": 4, "complete_within_scope": True, "has_more": False})
-        self.assertEqual([call["page"] for call in self.clients[0].calls], [1, 2, 3, 4])
+            "pages_captured": 1, "complete_within_scope": True, "has_more": False})
+        self.assertEqual([call["page"] for call in self.clients[0].calls], [1])
+        self.assertEqual([call["page_size"] for call in self.clients[0].calls], [100])
         code, summary, _ = self.request("POST", "/api/personal/records",
             {"operation": "major_academic", "observation_id": source["observation_id"], "mode": "summary"})
         self.assertEqual(code, 200, summary)
@@ -277,7 +278,7 @@ class PersonalHTTPTests(unittest.TestCase):
             with self.subTest(kind=type(error).__name__), patch.object(self.app.school, "_personal_services", side_effect=error):
                 result = self.sync()
                 self.assertEqual(len(result["records"]), 75)
-                self.assertEqual(result["coverage"]["pages_captured"], 4)
+                self.assertEqual(result["coverage"]["pages_captured"], 1)
                 self.assertFalse(result["coverage"]["has_more"])
                 self.assertEqual(result["observation_registration"]["status"], "failed")
                 self.assertNotIn("synthetic private path", json.dumps(result))

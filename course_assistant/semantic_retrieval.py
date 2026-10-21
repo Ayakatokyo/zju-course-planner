@@ -5,6 +5,8 @@ Python interpreter runs this same file as a bounded ONNX worker. No text is sent
 to a model service, persisted, or treated as an identity/rule decision here.
 """
 from hashlib import sha256
+from collections import OrderedDict
+from copy import deepcopy
 import importlib.metadata
 import json
 import math
@@ -13,6 +15,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import threading
 
 
 MODEL_ID = "BAAI/bge-small-zh-v1.5"
@@ -120,6 +123,11 @@ class LocalSemanticRetriever:
         if type(timeout_seconds) not in (int, float) or not 1 <= timeout_seconds <= 60:
             raise ValueError("invalid_semantic_timeout")
         self.timeout_seconds = timeout_seconds
+        # Pure ranking results only, bounded to this retriever instance. Personal
+        # evidence owns one instance per authenticated generation and still
+        # validates fresh source bytes and authorization before/after ranking.
+        self._rank_cache = OrderedDict()
+        self._rank_cache_lock = threading.Lock()
 
     @classmethod
     def from_environment(cls, environ=None):
@@ -211,6 +219,13 @@ class LocalSemanticRetriever:
             result.update(status="unavailable", reason="encoder_candidate_limit")
             return result
         selected = prepared
+        cache_key = sha256(json.dumps([_identity(status), RANKING_VERSION, query.strip(), candidates, limit],
+            ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        with self._rank_cache_lock:
+            cached = self._rank_cache.get(cache_key)
+            if cached is not None:
+                self._rank_cache.move_to_end(cache_key)
+                return {**deepcopy(cached), "encoded_count": 0, "cache_hit": True}
         try:
             output = self._run_encoder([QUERY_PREFIX + query.strip()] + [row["text"] for row in selected],
                                        expected_identity=status)
@@ -249,6 +264,11 @@ class LocalSemanticRetriever:
                           matches=[{"id": row["id"], "lexical_score": row["lexical_score"],
                                     "dense_score": dense[row["id"]], "fusion_score": scores[row["id"]]}
                                    for row in ordered[:limit]])
+            with self._rank_cache_lock:
+                self._rank_cache[cache_key] = deepcopy(result)
+                self._rank_cache.move_to_end(cache_key)
+                while len(self._rank_cache) > 8:
+                    self._rank_cache.popitem(last=False)
         except _Unavailable as error:
             result.update(status="unavailable", reason=str(error))
         return result

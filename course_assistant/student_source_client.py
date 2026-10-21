@@ -113,16 +113,19 @@ class StudentSourceClient:
     """
 
     def __init__(self, transport, authorize, *, clock=time.time, timeout=30,
-                 retries=1, maxpages=MAX_SOURCE_PAGES, cache_seconds=300, total_timeout=60):
+                 retries=1, maxpages=MAX_SOURCE_PAGES, cache_seconds=300, total_timeout=60,
+                 major_page_size=20):
         if (not callable(authorize) or not _finite(timeout) or not 0 < timeout <= 30 or
                 type(retries) is not int or not 0 <= retries <= 1 or
                 type(maxpages) is not int or not 1 <= maxpages <= MAX_SOURCE_PAGES or
                 not _finite(total_timeout) or not 0 < total_timeout <= 120 or
-                not _finite(cache_seconds) or not 0 <= cache_seconds <= 86400):
+                not _finite(cache_seconds) or not 0 <= cache_seconds <= 86400 or
+                type(major_page_size) is not int or major_page_size not in {20, 100}):
             raise SourceClientError("invalid_client_policy")
         self.transport, self.authorize, self.clock = transport, authorize, clock
         self.timeout, self.retries, self.maxpages, self.cache_seconds = timeout, retries, maxpages, cache_seconds
         self.total_timeout = total_timeout
+        self.major_page_size = major_page_size
         self._lock = threading.RLock()
         self._cache, self._subjects = {}, {}
         self._last_epoch, self._pending = None, None
@@ -186,7 +189,8 @@ class StudentSourceClient:
             raise SourceClientError("invalid_plan_scope")
         if operation == "plan_document" and (not isinstance(plan_ref, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,120}", plan_ref)):
             raise SourceClientError("invalid_plan_reference")
-        spec = {"operation": operation, "page": 1, "page_size": 20}
+        spec = {"operation": operation, "page": 1,
+                "page_size": self.major_page_size if operation == "major_academic" and self.maxpages % 5 == 0 else 20}
         if target_term is not None:
             spec["target_term"] = target_term
         if scope is not None:
@@ -406,7 +410,14 @@ class StudentSourceClient:
                 if total is not None and rows > total:
                     state, failure = "schema_changed", "captured_rows_exceed_total"
                     break
-                if (total is not None and rows == total) or page["rows"] == 0 or (total is None and page["rows"] < 20):
+                if (total is not None and rows == total) or page["rows"] == 0 or (total is None and spec["page_size"] == 20 and page["rows"] < 20):
+                    break
+                # Larger batches reduce round trips, not the original row budget.
+                # A server may cap the requested size; without a total, keep
+                # reading to an empty page rather than treating a short batch
+                # as complete. Existing repeated-page and identity checks apply.
+                if operation == "major_academic" and rows >= self.maxpages * 20:
+                    state, failure = "source_unavailable", "page_limit_exceeded"
                     break
             else:
                 if total is not None and total > sum(item["rows"] for item in pages):

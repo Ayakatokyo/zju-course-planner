@@ -587,8 +587,34 @@ class PersonalEvidenceTests(unittest.TestCase):
                     "owner_changed": "source_authorization_changed", "metadata_changed": "stale_input"}[failure]
             with self.subTest(failure=failure), patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
                     retriever, "_run_encoder", side_effect=changing_encode):
-                self.assert_code(code, lambda: self.service.search("培养要求"))
+                # Each injected race must execute the encoder, rather than hit
+                # the derived ranking left by the previous rejected search.
+                self.assert_code(code, lambda: self.service.search("培养要求 " + failure))
             self.denied, self.scope, self.body, self.metadata = False, original_scope, original_body, deepcopy(original_metadata)
+
+    def test_warm_ranking_still_checks_current_source_and_authorization(self):
+        self.prepare()
+        retriever = self.service._semantic_retriever
+        with patch.object(retriever, "status", return_value=self.synthetic_semantic_status()), patch.object(
+                retriever, "_run_encoder", side_effect=self.synthetic_vectors) as encode:
+            first = self.service.search("培养要求")
+            second = self.service.search("培养要求")
+            self.assertTrue(second["semantic_retrieval"]["cache_hit"])
+            self.assertEqual(first["matches"], second["matches"])
+            encode.assert_called_once()
+            rank = retriever.rank
+            def revoke_after_hit(*args, **kwargs):
+                result = rank(*args, **kwargs)
+                self.assertTrue(result["cache_hit"])
+                self.denied = True
+                return result
+            with patch.object(retriever, "rank", side_effect=revoke_after_hit):
+                self.assert_code("grant_revoked", lambda: self.service.search("培养要求"))
+            self.denied = False
+            self.body = b"%PDF-1.4\nSYNTHETIC-CHANGED\n%%EOF\n"
+            with patch.object(retriever, "rank") as cached:
+                self.assert_code("stale_input", lambda: self.service.search("培养要求"))
+                cached.assert_not_called()
 
     def test_timeout_fallback_cannot_return_lexical_citations_after_source_bytes_change(self):
         self.prepare()

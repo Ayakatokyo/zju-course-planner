@@ -780,6 +780,7 @@ class PersonalEvidenceService:
                 "status", "reason", "dense_used", "candidate_count", "encoded_count",
                 "candidate_truncated_count", "text_truncated_count", "token_truncated_count",
                 "ranking_version", "dense_reserved_count")}
+            semantic["cache_hit"] = retrieval.get("cache_hit", False)
             if retrieval["dense_used"]:
                 semantic["encoder"] = {name: retrieval[name] for name in ("model_id", "revision", "dimension", "artifact_sha256")}
                 ranked = [(-(row["fusion_score"]), int(row["id"]), bundle["chunks"][int(row["id"])])

@@ -1,0 +1,478 @@
+{
+  "recorded_at_utc": "2026-10-21T07:24:01.337493+00:00",
+  "version": "personal-question-tools-v25-clear-fast",
+  "runtime": {
+    "port": 18875,
+    "pid": 21941,
+    "model": "deepseek-flash",
+    "logged_in_after_activation": true
+  },
+  "scope": "four real owner-bound turns; bounded source checks and UI; not complete semantic or formal recommendation acceptance",
+  "rounds": [
+    {
+      "turn": 1,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 4.21,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 2,
+      "logical_school_reads": {
+        "academic": 1
+      },
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "citation_checks": [
+        {
+          "kind": "summary",
+          "raw_bound_counts_and_decimal_mean": true
+        },
+        {
+          "kind": "record",
+          "exact_current_projection": true
+        },
+        {
+          "kind": "record",
+          "exact_current_projection": true
+        },
+        {
+          "kind": "record",
+          "exact_current_projection": true
+        },
+        {
+          "kind": "record",
+          "exact_current_projection": true
+        }
+      ],
+      "model_tools": [
+        "query_my_records"
+      ]
+    },
+    {
+      "turn": 2,
+      "task_status": "partial",
+      "thinking": true,
+      "duration_seconds": 24.39,
+      "model_calls": 5,
+      "nonempty_reasoning_responses": 5,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "format_repairs": 1,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "citation_checks": [
+        {
+          "kind": "course_data_plan",
+          "actual_tool_result": true
+        },
+        {
+          "kind": "course_data_plan",
+          "actual_tool_result": true
+        },
+        {
+          "kind": "course_data_plan",
+          "actual_tool_result": true
+        },
+        {
+          "kind": "course_data_plan",
+          "actual_tool_result": true
+        }
+      ],
+      "model_tools": [
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "generate_current_term_plan"
+      ],
+      "plan": {
+        "action": "generate",
+        "revision": 0,
+        "target_term": "2026-2027-AW",
+        "options_count": 1,
+        "locked_count": 0
+      }
+    },
+    {
+      "turn": 3,
+      "task_status": "partial",
+      "thinking": true,
+      "duration_seconds": 19.31,
+      "model_calls": 3,
+      "nonempty_reasoning_responses": 3,
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "citation_checks": [
+        {
+          "kind": "course_data_plan",
+          "actual_tool_result": true
+        }
+      ],
+      "model_tools": [
+        "prepare_recommendation_inputs",
+        "get_current_term_plan",
+        "update_current_term_plan"
+      ],
+      "plan": {
+        "action": "revise",
+        "revision": 1,
+        "target_term": "2026-2027-AW",
+        "options_count": 1,
+        "locked_count": 1
+      }
+    },
+    {
+      "turn": 4,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 4.46,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 2,
+      "logical_school_reads": {},
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "citation_checks": [
+        {
+          "kind": "course_data_plan",
+          "actual_tool_result": true
+        }
+      ],
+      "model_tools": [
+        "get_current_term_plan"
+      ],
+      "plan": {
+        "action": "inspect",
+        "revision": 1,
+        "target_term": "2026-2027-AW",
+        "options_count": 0,
+        "locked_count": 0
+      }
+    }
+  ],
+  "model_calls": 12,
+  "sources": [
+    {
+      "turn": 1,
+      "operation": "academic",
+      "records": 4,
+      "pages": 1,
+      "coverage": {
+        "captured_rows": 4,
+        "complete_within_scope": true,
+        "has_more": false,
+        "pages_captured": 1,
+        "reported_total": 4
+      },
+      "checks": {
+        "raw_hash": true,
+        "record_hash": true,
+        "raw_row_count": true,
+        "owner_term_operation": true,
+        "registered_values_match_raw": true,
+        "live": true
+      }
+    },
+    {
+      "turn": 2,
+      "operation": "major_academic",
+      "records": 104,
+      "pages": 2,
+      "coverage": {
+        "captured_rows": 104,
+        "complete_within_scope": true,
+        "has_more": false,
+        "pages_captured": 2,
+        "reported_total": 104
+      },
+      "checks": {
+        "raw_hash": true,
+        "record_hash": true,
+        "raw_row_count": true,
+        "owner_term_operation": true,
+        "registered_values_match_raw": true,
+        "live": true
+      }
+    },
+    {
+      "turn": 3,
+      "operation": "major_academic",
+      "records": 104,
+      "pages": 2,
+      "coverage": {
+        "captured_rows": 104,
+        "complete_within_scope": true,
+        "has_more": false,
+        "pages_captured": 2,
+        "reported_total": 104
+      },
+      "checks": {
+        "raw_hash": true,
+        "record_hash": true,
+        "raw_row_count": true,
+        "owner_term_operation": true,
+        "registered_values_match_raw": true,
+        "live": true
+      }
+    }
+  ],
+  "pdf_bundles": [
+    {
+      "turn": 2,
+      "checks": {
+        "bundle_hash": true,
+        "pdf_hash": true,
+        "page_hashes": true,
+        "source_spans": true,
+        "pdf_reextract": true
+      }
+    },
+    {
+      "turn": 3,
+      "checks": {
+        "bundle_hash": true,
+        "pdf_hash": true,
+        "page_hashes": true,
+        "source_spans": true,
+        "pdf_reextract": true
+      }
+    }
+  ],
+  "plan_continuity_checks_passed": true,
+  "latency_comparison": {
+    "generate": {
+      "v24": {
+        "total_seconds": 22.8,
+        "model_ms": 7068,
+        "major_read_ms": 6274,
+        "curriculum_read_ms": 2273,
+        "curriculum_search_including_read_ms": 6061,
+        "prepare_including_reads_ms": 12938
+      },
+      "v25": {
+        "total_seconds": 24.39,
+        "model_ms": 11564,
+        "major_read_ms": 2376,
+        "curriculum_read_ms": 3430,
+        "curriculum_search_including_read_ms": 7048,
+        "prepare_including_reads_ms": 10108
+      }
+    },
+    "adjust_locked": {
+      "v24": {
+        "total_seconds": 24.89,
+        "model_ms": 9869,
+        "major_read_ms": 6235,
+        "curriculum_read_ms": 2246,
+        "curriculum_search_including_read_ms": 5915,
+        "prepare_including_reads_ms": 12936
+      },
+      "v25": {
+        "total_seconds": 19.31,
+        "model_ms": 7091,
+        "major_read_ms": 2413,
+        "curriculum_read_ms": 3374,
+        "curriculum_search_including_read_ms": 7009,
+        "prepare_including_reads_ms": 10156
+      }
+    },
+    "explain_saved": {
+      "v24": {
+        "total_seconds": 6.67,
+        "model_ms": 5236,
+        "major_read_ms": 0,
+        "curriculum_read_ms": 0,
+        "curriculum_search_including_read_ms": 0,
+        "prepare_including_reads_ms": 0
+      },
+      "v25": {
+        "total_seconds": 4.46,
+        "model_ms": 3151,
+        "major_read_ms": 0,
+        "curriculum_read_ms": 0,
+        "curriculum_search_including_read_ms": 0,
+        "prepare_including_reads_ms": 0
+      }
+    }
+  },
+  "latency_limits": [
+    "Single journey per version, no statistical performance guarantee.",
+    "Generation required one course_plan_requires_structured_claim repair; total generation did not improve.",
+    "Curriculum candidates changed (210 then 205); both rankings were freshly encoded, no real-flow cache hit claimed.",
+    "Preparation timing contains nested school reads; do not sum it with those reads."
+  ],
+  "explanation_characters": {
+    "v24": 334,
+    "v25": 99
+  },
+  "ui": {
+    "desktop_css": {
+      "width": 1890,
+      "height": 891,
+      "page_overflow": false,
+      "input_visible": true
+    },
+    "narrow_css": {
+      "width": 390,
+      "height": 844,
+      "page_overflow": false,
+      "table_overflow": false,
+      "input_visible": true,
+      "four_grade_rows": true,
+      "last_row_accessible_by_scroll": true
+    },
+    "one_evidence_disclosure_per_answer": true,
+    "grade_and_computation_disclosure_open_close_checked": true,
+    "plan_search_narration_folded": true,
+    "viewport_restored": true,
+    "history_reload_no_business_calls": true,
+    "served_asset_sha256": {
+      "app.js": "dd3319477763c0bb6a046b09de10f8ca4b66a66f04a1fb4fb05b09d3b6b2c7a8",
+      "styles.css": "610284d2ad92f87a6e2a1d1be6ca3e760f1f914e3449573bb343cee8abd6d0e6"
+    }
+  },
+  "engineering": {
+    "full_suite_receipt": "validation/dialogue_v25_candidate_20261021_validation.json",
+    "full_suite_ran": 1448,
+    "full_suite_passed": 1443,
+    "skipped": 5,
+    "failures": 0,
+    "errors": 0,
+    "later_ui_tests": {
+      "ran": 127,
+      "passed": 127,
+      "failures": 0,
+      "errors": 0,
+      "source_changes_after_full_suite": [
+        "web/app.js",
+        "tests/test_personal_course_plan_web.py"
+      ]
+    },
+    "real_encoder_module_tests": {
+      "ran": 22,
+      "passed": 22
+    },
+    "encoder_benchmark_receipt": "validation/dialogue_v25_encoder_20261021.json"
+  },
+  "source_sha256": {
+    "course_assistant/auth.py": "f4b2e51bdd3953c436febe6de190dc638b03299de1aa03bf6b4888fcf04af371",
+    "course_assistant/personal_drafts.py": "93d6321aae07035757d366c7d2f911f07d44413257f9191b7f5158dcc6360417",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/chat_progress.py": "e47b4a1a5a43978e4fd909cc43c1ac4d42a882c8c63974d5a0bf8455b8ace56c",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "course_assistant/semantic_retrieval.py": "87354ecc34ae575a2ac144922a54c20fddf057b18857a1648d88ee400033e1da",
+    "course_assistant/school_accounts.py": "ccb57da906fc8cf2c855de27876789c291204ad4df72fde5ac3bc94ba16e7825",
+    "course_assistant/server.py": "5309c3d3fab1032e92e57dd38492bb02f4b47bab33ac3549533b5b79687c2b71",
+    "course_assistant/student_sources.py": "69ac7526efa176c58382d0c6ff761bdef12ea79eadb783bce21618acf5644432",
+    "course_assistant/chat_model_settings.py": "3517bc218934ade342b01c547d0cbdd852ac86371b7df6fd047705115d5a3572",
+    "course_assistant/academic_terms.py": "f4735396c5febcc9b01dffcb3bb445e884d5e0639646330f8d702f9edc996065",
+    "course_assistant/school_period_times.py": "17cb3b2ba484e99b0c74eac11638a2b12708b72577d81278e2f793db27d9d71d",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/recommendation_readiness.py": "e15043820bdfe96aac166f26b1d7da3225e0c1c9ad80db0354bb1353f23d9439",
+    "course_assistant/chat_runs.py": "a4a7b79be86c8995b7c18bc0a00109b52c9bbe826d884c8f83f3afb345ebc462",
+    "course_assistant/personal_course_plans.py": "319be91e047c6e4ed7db3ecab750d0fbb61c55aa1b00137d6a4a42bc5bd0c509",
+    "course_assistant/personal_tasks.py": "44d3f44cf91170ce8be225260ea1d0e3f0fbce36a9d8a7880c173b8680d6d684",
+    "course_assistant/model_client.py": "adc57059094cccfc5315e76449247df4232ce4f7dbdc31d0616dff0030c34fb3",
+    "course_assistant/student_source_parsers.py": "0486922311b281ed671bc9461fac32e47fdb38bbc419cd4a7722f7f061f3ec3b",
+    "course_assistant/student_source_client.py": "36a52c04bb34a9cc2cf07351fecb4b1d32f71fa02e6c196aa903406045d1e5e0",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/personal_observations.py": "5f1d5d0e4aadcde35ca0633331f96619227f8fb75693a49766b0b93d554f6aa5",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/personal_acquisition.py": "953ad965e5180cc068afa54f183be5ae03716499f88bcc402d71bf7db5a090a4",
+    "course_assistant/course_plan_policy.py": "ce0f98b5b77dd7209e5d08ec66ddaa7894efd1cd662cf8865384583b83ac9142",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/chat.py": "f84529e7af1e9c4f1badf85bf84fa6af3e02235a788802d8f4c04c5bb84de5f4",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/course_catalog.py": "3b615467eacef315fe8dcb4823d7c5c9ec5113a55f26f01fae19d9125f8aa4ed",
+    "course_assistant/student_plan_acquisition.py": "445a31c57221a2b8adf13eee1aaec59313da9248d35f4ad3430fb2d7a8e1fb73",
+    "course_assistant/personal_dialogue.py": "8b9e9a6a85a5f8a11703a67713e67924c7886d72293a16e5db8e82369a3dfed0",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "course_assistant/personal_chat.py": "c7ac87c452b92af9ab9142baa0e536394d96cd9f3451e6d8636280fa33074b53",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/school_http.py": "91a3071caa02ae7ae4a244b696d23dfab93d459d6f77edc7d9aa4f78e4720bc1",
+    "course_assistant/course_code_links.py": "d230a043ffd8f673403bdb489951cfbdb9a3fa996814254239f2e01b6542f64d",
+    "course_assistant/current_term_recommendation.py": "565dd1209e0a83ad5c3019f8fa4fbedd234c0ecc060ef7ed4348e0630dc85141",
+    "course_assistant/personal_plan_explanation.py": "cf0be579d6a01d9a0c95d2f1c4be89ec658b26f11398f565837b9a9ead01aac1",
+    "course_assistant/personal_evidence.py": "b1e64ee6ab4e4f97d750879590bcdaabdb2890f2f1c21ce690ea6c44cc56093c",
+    "web/index.html": "6824f973b7a3b03bdc393701e93ada4b72b9c7d0427060e6ce3eacd6874b2bce",
+    "web/styles.css": "610284d2ad92f87a6e2a1d1be6ca3e760f1f914e3449573bb343cee8abd6d0e6",
+    "web/app.js": "dd3319477763c0bb6a046b09de10f8ca4b66a66f04a1fb4fb05b09d3b6b2c7a8",
+    "tests/test_school_timetable_web.py": "c93383fe4ccd879a246c5ea2a5ee0eb063a73f0e8b6b588e6275bab27bd67f5c",
+    "tests/test_personal_task_journey.py": "ee57f60aacf5fed86ee6fcdc94fcff66979b530570f62a2480f1c0f417ea76f8",
+    "tests/test_course_source_adapters.py": "7c690ef1f00d85f1a66368162a8876b8d3e687d9dcc54cd7d25bcf158a149536",
+    "tests/test_plan_requirements_audit.py": "f06e8dd14fbb2e2d29c44db8099d21a2d07e4313e252873d74765123bc43aa91",
+    "tests/test_exporter.py": "21184709ad4d18111e1d2e7233f536d8b782ccb420d453546c47b9cb28dfba0e",
+    "tests/test_personal_draft_http.py": "a2d37f7a9423827eaa715a569a95d32a9167f3de3d28bc5b573b5e1a32d9aeb0",
+    "tests/test_chat_progress.py": "22c4a6def1c02db781fec359bd8e7debb50cbda590d29fb1cd459258afb7b4c6",
+    "tests/test_live_source_dialogue.py": "3a1c91defcf4029a34b2b6d400de231e69a2bc25374635812c97798ce3a42ac7",
+    "tests/test_personal_dialogue.py": "d12e5c575aeb5b64c169747d1efc82c7504cac19597f422401f8b6e3fca836b9",
+    "tests/test_chat_history.py": "6e7e7684cd695fc7f221fa0ecf767cbc7eca4b2019958e432f90d405e92b2c16",
+    "tests/test_chat_inspection_http.py": "80809ca2444e178701802e14b342708ec0df04a02ac25ea72bce2b9b9152be03",
+    "tests/test_personal_chat_http.py": "8b637a651750ded66051194d18f49eb8f6a3bcb7fb5805242e96ef54cd1a1197",
+    "tests/test_planner.py": "8ea5eb10b72f349688ea7085d79aa123805ba5636fa58d5e7e643c34d26bb87c",
+    "tests/test_auth.py": "8661ac377649daeddcfe5d0d98900871b4535ea21a770446b2577062897e079e",
+    "tests/test_personal_dialogue_recovery.py": "8d43c99bcf8a4b1bb8966bc45fcfafde47560c5c973cc4228bec4d406127a1d1",
+    "tests/test_personal_recommendation_dialogue.py": "8874f0e2cbf1d1f76acff321e632162fd4ce97c3cc3cd4565d7e3f626b399a89",
+    "tests/test_course_catalog.py": "7c17c2c12d5517094f4b90691f74d9b8ce2d7a65f43a485b2f57ffc7d08a006c",
+    "tests/test_recommendation.py": "7a52c9f2ece2eb5c21a87656fd519c26ef309f1f42cff69684e415499391589a",
+    "tests/test_student_plan_acquisition.py": "796e1e95c38166f1791e7525487ef5fb606a0e4f9a4ffa9728e54102fcc0ed4a",
+    "tests/test_personal_retrieval_progress.py": "60f91ef9da867c87f2f7cfb11d29fb2b68b63898023e222587329817261b747a",
+    "tests/test_course_plan_policy.py": "c48149ed7c9069a5f5ea0024fae51d86bc8d2b7f1d3f3a0070e6991b944cc51a",
+    "tests/test_importer.py": "6e9e88c82d296e08d978dff796186dbdd1790ca7606cde538407759ebb243743",
+    "tests/test_live_chat_acceptance.py": "489d0c1d4ea652c2dba363e7766f6c1c781995e896af2e45442aafebe970230b",
+    "tests/test_course_code_links.py": "078ef479d13c00852790f785168a538532090c93500dbd315de0d27e8d40697a",
+    "tests/test_personal_course_plan_web.py": "c5a46c40bd0032accdb6dcc9b06dc6d6faa03a4fba79ee9963e4eee287fef57e",
+    "tests/test_personal_evidence.py": "a4642af55141b9b1806478ff6a3943133a50f4c3765716c9d1dd121496a25924",
+    "tests/test_school_period_times.py": "87d36f09f7cabe05c1b1fc1b7ae786b119d2db538497fa5a9386e2fa19d88648",
+    "tests/test_web_contract.py": "ac19c957116d0bec9ff30e5e028cf921d7710c6048210ef0e0e71c73ddd81dee",
+    "tests/test_personal_draft_web.py": "1ff9893eb8de815958219569d8de507a714c04f26b9b471448f7e63add9e552a",
+    "tests/test_chat_runs.py": "5702d108b1ac03c11e54ed736b8f07b8eded1ad6e96a04377e5b3f4e9281756f",
+    "tests/test_prepared_context_dialogue.py": "af3ee34ea29b9d5521b9f7c96a15724e6d4bf25bd32e17e8690f71c48c54c82c",
+    "tests/test_personal_progress_web.py": "ecf234a88e87aa55796a6941cfaaa3dbf2b9085f83787e4282ff367024c13fe0",
+    "tests/test_student_source_client.py": "57dced717066de10add0fe02fa3ec014bd621be8878ecaf4cfbb4ea1762c5824",
+    "tests/test_personal_tasks.py": "62240b795e5886b9567455c92bf100a5ba1b59fdc59be84a3d91740b8c49e0e2",
+    "tests/test_model_client.py": "b70adf9ebaf688c04caf878d613999967814c2587a1c0b99d9c0104dd3e8d660",
+    "tests/test_chat.py": "606a23e4a487182059ec9c0ed1c95929c300cd831e19b35079b1559ce2199a39",
+    "tests/test_personal_conversation.py": "884d88fd2aa2c40e89e7b792cbd57c28f508d00ee03dae84d99bee0595875f39",
+    "tests/test_current_term_recommendation.py": "e6b48def7669f3e395eff1384f9e680e05fe9a6f6f6622d018683439ce599c29",
+    "tests/test_audit.py": "7b89e433ec7e9b8966c5d471c8acda5fe7f59829fe22c6b9947099a61eead324",
+    "tests/test_school_http.py": "4d7c378c25eeeb38b7c81ca8500bab149d6b68972a434b6d73c040a2903e4b09",
+    "tests/test_recommendation_storage.py": "43eed1785e18ea0e2c3ab7c902de3f83b5de24ba335622c7e2c682d86e115447",
+    "tests/test_personal_drafts.py": "98589a3d2c83558382c9e98e81a30199c94f8aeeeec6211c4e464b2f819928be",
+    "tests/test_recommendation_dialogue.py": "6820cea01ae5be63f4a9656f33fbf720de4dc9df8f7d98a1781d4d558a8f21a6",
+    "tests/test_personal_observations.py": "363bb66a89e2c11cc32fd869a5103c31eb4b854d72fe4de2e8314260728c4dbd",
+    "tests/test_student_sources.py": "78eef37feaab19734e7033a1f0328c99ad5225ed04f6715e2ec88ed6f116eef6",
+    "tests/test_school_accounts.py": "e057d6c1a29a5be332050b551c996af5dde78b1ef0133ea3909a7964c0ce7604",
+    "tests/test_reference_retrieval.py": "e6b2634c90b858a65eb313320e35e5d61889c7cbdb1877048d2507fbafeda1ed",
+    "tests/test_application.py": "f95635f9af14c12f253fec2698c76c32e83eb8468b3510fbd7d9624d9a5be1db",
+    "tests/test_school_http_app.py": "7df1c9060025c22d3fed5a4c5af543536ff9ee541c50ce95c2eb74b86c1c2d05",
+    "tests/test_recommendation_readiness.py": "14f08a5ddaea67f9fb67d82c153dd12854cbdce9ef73fd43066db96c7d309512",
+    "tests/test_personal_http.py": "c114152d02c51ee2144bfc7eaa3a02daac50f011aee56db138415ca1d52b61a6",
+    "tests/test_live_source_coordinator.py": "08d232ae8b662d8a917f15c74dd82e4ce21763128a0e6e02a1cc32b337643e00",
+    "tests/test_semantic_retrieval.py": "e3ae26a87cb41795551f303bf8e6631ddcc0fcd8f7fcef10439e7f4d0932b670",
+    "tests/test_local_reference.py": "f1ff43913dd1cb6a88a1555fa59e7fb09ea75dc19c2fa3951f10f490f9846204",
+    "tests/test_local_reference_observations.py": "55b689a403d4ac391872b7e619a8af317280846d1fff3e0cd9031ee19855bf85",
+    "tests/test_personal_acquisition.py": "fa83dbc480cc9053ae6c5d89c8d84797c8ebb3ae68a2774a3a006c911c2ec9ec",
+    "tests/test_personal_course_plans.py": "3071e6bedf580769208bb21d75c6b5dbdfb1fb59cfe0c95dffa7af312d37ff7c",
+    "tests/test_personal_chat.py": "26c8d78eed6aa58c9626cd7dd9d41f54cbfca859f2ee97ceeec3ec112c1a291c",
+    "tests/test_course_dedup.py": "a35ebbae8c94ff3e577fff685ed8177134bcc2d99398fead5d277bba3d1f3595",
+    "tests/test_chat_http.py": "cff5e90dfff1a7570d1b66eac1c2c423ca0cb5c21efa33e21e0916d4b3181ec0",
+    "tests/test_student_source_parsers.py": "b577bd1439da51e52ccb685052bf3b15841d1c2c94eee0862f3e72b87f9ee0ad"
+  },
+  "formal_curriculum_applicability_verified": false,
+  "formal_recommendation_verified": false,
+  "full_semantics_verified": false,
+  "user_acceptance": false,
+  "git_committed": false,
+  "git_pushed": false,
+  "personal_materials": "Private local evidence only; no credentials or original records included in this report."
+}

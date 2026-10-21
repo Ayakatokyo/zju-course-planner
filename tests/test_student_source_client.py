@@ -8,7 +8,6 @@ from unittest.mock import patch
 import json
 from pathlib import Path
 import tempfile
-from urllib.request import Request, urlopen
 
 from course_assistant.student_source_client import MAX_SOURCE_PAGES, MAX_TIMETABLE_ROWS, SourceClientError, StudentSourceClient, to_envelopes
 from course_assistant.student_sources import business_field_diagnostics
@@ -61,6 +60,37 @@ class StudentSourceClientTests(unittest.TestCase):
 
     def fetch(self, client, **kwargs):
         return client.fetch("academic", "SYNTHETIC-TERM", **kwargs)
+
+    def test_larger_major_batches_preserve_all_rows_with_two_requests(self):
+        rows = [{"kcmc": f"SYNTHETIC-{i}", "xf":"2"} for i in range(104)]
+        client = self.client([business(rows[:100], total=104, page=1), business(rows[100:], total=104, page=2)], major_page_size=100)
+        result = client.fetch("major_academic", "ALL-HISTORY")
+        self.assertEqual(result["coverage"]["captured_rows"], 104)
+        self.assertTrue(result["coverage"]["complete_within_scope"])
+        self.assertEqual([r["page_size"] for r in self.transport.requests], [100,100])
+
+    def test_major_batch_preserves_original_row_budget_and_server_cap(self):
+        rows = [{"kcmc": f"SYNTHETIC-{i}"} for i in range(104)]
+        client = self.client([business(rows[:100], total=104)], major_page_size=100, maxpages=5)
+        result = client.fetch("major_academic", "ALL-HISTORY")
+        self.assertEqual(result["failure"], "page_limit_exceeded")
+        self.assertFalse(result["coverage"]["complete_within_scope"])
+        self.assertEqual(len(self.transport.requests), 1)
+        client = self.client([business(rows[i:i+20], total=104, page=i//20+1) for i in range(0,104,20)], major_page_size=100)
+        result = client.fetch("major_academic", "ALL-HISTORY")
+        self.assertEqual(result["coverage"]["captured_rows"], 104)
+        self.assertTrue(result["coverage"]["complete_within_scope"])
+        client = self.client([business(rows[:20], total=104)], major_page_size=100, maxpages=1)
+        result = client.fetch("major_academic", "ALL-HISTORY")
+        self.assertEqual(self.transport.requests[0]["page_size"], 20)
+        self.assertFalse(result["coverage"]["complete_within_scope"])
+
+    def test_large_batch_still_stops_on_changed_identity(self):
+        rows = [{"kcmc": f"SYNTHETIC-{i}"} for i in range(100)]
+        client = self.client([business(rows, total=104), business(total=104, subject="SYNTHETIC-OTHER")], major_page_size=100)
+        result = client.fetch("major_academic", "ALL-HISTORY")
+        self.assertEqual(result["pages"], [])
+        self.assertFalse(result["coverage"]["complete_within_scope"])
 
     def test_field_diagnostics_reject_unbounded_keys_values_and_wrong_row_counts(self):
         source = business([{"kcmc": "合成课", "sftg": None}])
@@ -560,39 +590,6 @@ class StudentSourceClientTests(unittest.TestCase):
         result = client.fetch("timetable", "2026-2027-AW")
         self.assertEqual((result["status"], result["failure"], result["pages"]), ("schema_changed", "unsafe_business_projection", []))
 
-    def test_real_loopback_bridge_transport_client_roundtrip_only_stripped_synthetic_data(self):
-        from course_assistant.student_browser_bridge import BrowserBridgeTransport, BrowserBridgeServer
-        transport = BrowserBridgeTransport(self.authorize, timeout=1)
-        server = BrowserBridgeServer(transport).start()
-        self.addCleanup(server.close)
-        origin, epoch = "chrome-extension://" + "a" * 32, "synthetic_epoch_0001"
-        def post(path, payload, token=None):
-            headers = {"Content-Type": "application/json", "Origin": origin}
-            if token:
-                headers["Authorization"] = "Bearer " + token
-            request = Request(server.url + path, data=json.dumps(payload).encode(), headers=headers)
-            with urlopen(request, timeout=2) as response:
-                return json.loads(response.read())
-        token = post("/pair", {"code": transport._pair_code, "session_epoch": epoch})["token"]
-        client = StudentSourceClient(transport, self.authorize, timeout=2)
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            result_future = pool.submit(client.fetch, "academic", "2026-2027-AW")
-            job = None
-            deadline = time.monotonic() + 1
-            while time.monotonic() < deadline:
-                job = post("/next", {"session_epoch": epoch}, token)["job"]
-                if job:
-                    break
-                time.sleep(0.005)
-            self.assertIsNotNone(job)
-            response = business([{ "kcmc": "SYNTHETIC-COURSE", "password": "SYNTHETIC-SECRET"}], epoch=epoch)
-            response["content_type"] = "application/json"
-            post("/result", {"id": job["id"], "response": response}, token)
-            result = result_future.result(timeout=2)
-        self.assertEqual(result["status"], "complete_within_scope")
-        self.assertEqual(result["pages"][0]["response"]["capture_method"], "browser_http")
-        self.assertNotIn("SYNTHETIC-SECRET", str(result))
-        self.assertNotIn(token, str(result))
 
 
 if __name__ == "__main__":

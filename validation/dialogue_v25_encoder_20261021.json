@@ -1,0 +1,27 @@
+{
+  "scope": "real local encoder; synthetic passages only; not school latency",
+  "results": [
+    {
+      "elapsed_ms": 822,
+      "dense_used": true,
+      "cache_hit": false,
+      "encoded_count": 3,
+      "ids": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
+    {
+      "elapsed_ms": 34,
+      "dense_used": true,
+      "cache_hit": true,
+      "encoded_count": 0,
+      "ids": [
+        "0",
+        "1",
+        "2"
+      ]
+    }
+  ]
+}

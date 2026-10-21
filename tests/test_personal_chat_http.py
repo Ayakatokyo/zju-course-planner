@@ -61,7 +61,7 @@ class PersonalChatHTTPTests(unittest.TestCase):
         self.assertEqual(reply["status"], "completed", reply)
         self.assertEqual([tool["name"] for tool in reply["tool_results"]], ["get_my_context", "query_my_records"])
         self.assertEqual(len(reply["tool_results"][-1]["result"]["records"]), 3)
-        self.assertEqual(len(self.clients[0].calls), before + 4)
+        self.assertEqual(len(self.clients[0].calls), before + 1)
         code, history, _ = self.request("POST", "/api/chat/history", {"conversation_id": reply["conversation_id"]})
         self.assertEqual(code, 200, history)
         self.assertEqual(history["turns"][0]["reply"], reply["reply"])

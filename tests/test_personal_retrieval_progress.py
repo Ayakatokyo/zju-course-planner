@@ -156,7 +156,7 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
         self.assertEqual(query["result"]["source_grade_summary"]["numeric_grade_count"], 60)
         self.assertEqual(query["result"]["coverage"]["captured_rows"], 75)
         self.assertFalse(query["result"]["coverage"]["has_more"])
-        self.assertEqual([item["page"] for item in sources], [1, 2, 3, 4])
+        self.assertEqual([item["page"] for item in sources], [1])
         self.assertGreater(query["result"]["retrieval"]["returned_records"], 0)
         self.assertLessEqual(query["result"]["retrieval"]["returned_records"], 15)
         self.assertTrue(query["result"]["retrieval"]["has_more"])
@@ -171,14 +171,14 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
         self.assertEqual(code, 200, repeated)
         self.assertEqual(repeated["status"], "completed", repeated)
         self.assertTrue(repeated["history_reset"])
-        self.assertEqual(len(sources), before + 4)
-        self.assertEqual([item["page"] for item in sources[before:]], [1, 2, 3, 4])
+        self.assertEqual(len(sources), before + 1)
+        self.assertEqual([item["page"] for item in sources[before:]], [1])
         latest_initial = self.model.shared["calls"][-2]
         self.assertFalse(any(item["role"] == "tool" for item in latest_initial))
         self.assertEqual([item["content"] for item in latest_initial if item["role"] == "user"], [repeated_body["message"]])
         system = next(item["content"] for item in latest_initial if item["role"] == "system")
-        self.assertIn("已结束历史意图", system)
-        self.assertIn("不是待办", system)
+        self.assertIn("近期历史问答", system)
+        self.assertIn("旧引用不可复用", system)
         self.assertIn(body["message"], system)
 
     def test_one_http_turn_repairs_format_with_actual_persisted_events_without_reacquiring(self):
@@ -206,7 +206,7 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
         self.assertEqual(source["reported_total"], 75)
         self.assertFalse(source["has_more"])
         self.assertTrue(source["complete_within_scope"])
-        self.assertEqual([item["page"] for item in self.clients[0].calls], [1, 2, 3, 4])
+        self.assertEqual([item["page"] for item in self.clients[0].calls], [1])
 
     def test_identity_chat_calls_model_without_acquiring_school_sources(self):
         self.login()
