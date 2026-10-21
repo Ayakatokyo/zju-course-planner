@@ -1,0 +1,19 @@
+{
+  "pid": 17443,
+  "database_counts_before_start": {
+    "owned_conversations": 29,
+    "owned_chat_requests": 111
+  },
+  "tools_version": "personal-question-tools-v24-conversation",
+  "recorded_at_utc": "2026-10-21T06:32:56.618347+00:00",
+  "root_status": 200,
+  "javascript_status": 200,
+  "javascript_matches_source": true,
+  "database_counts_after_start": {
+    "owned_conversations": 29,
+    "owned_chat_requests": 111
+  },
+  "database_counts_preserved": true,
+  "school_login_page_verified": true,
+  "school_personal_rounds_after_switch": 0
+}

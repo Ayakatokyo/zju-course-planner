@@ -1,0 +1,337 @@
+{
+  "schema": "dialogue-v24-real-limited-verification/1",
+  "recorded_at_utc": "2026-10-21T06:50:40.177872+00:00",
+  "runtime": {
+    "tools_version": "personal-question-tools-v24-conversation",
+    "pid": 17443,
+    "restarted_this_verification": false,
+    "only_deepseek_flash": true,
+    "backend_matches_full_suite_binding": true,
+    "served_app_js_matches_disk": true,
+    "app_js_sha256": "c38314ff3905dcc6f26c9d1646bfbc0c379436f60a438ef9acc7c4f341fd4ed9",
+    "git_committed_or_pushed": false
+  },
+  "engineering": {
+    "prior_full_suite": {
+      "ran": 1438,
+      "passed": 1433,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    "subsequent_ui_regression": {
+      "ran": 107,
+      "passed": 107,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0
+    },
+    "new_full_suite_run": false,
+    "web_syntax": "pass",
+    "changed_source_sha256": {
+      "tests/test_personal_progress_web.py": "43b6bc8ed602769ec663cd605b6e4ee5e8017908a84b77cb7117de2870ee1c2f",
+      "web/app.js": "c38314ff3905dcc6f26c9d1646bfbc0c379436f60a438ef9acc7c4f341fd4ed9"
+    }
+  },
+  "actual_totals": {
+    "turns": 9,
+    "provider_generations": 20,
+    "all_model_ends_completed": true,
+    "thinking_enabled_turns": 8,
+    "thinking_enabled_generations": 18,
+    "provider_responses_with_nonempty_reasoning": 17,
+    "ordinary_mode_generations": 2,
+    "ordinary_mode_reasoning_responses": 0,
+    "service_preflights": 9,
+    "model_selected_tools": 15,
+    "logical_school_reads": {
+      "academic": 3,
+      "major_academic": 2,
+      "curriculum": 2,
+      "timetable": 0,
+      "exams": 0
+    },
+    "read_counts_are_http_counts": false,
+    "solver_results": 2,
+    "format_repairs": 0,
+    "argument_corrections": 0,
+    "task_corrections": 0
+  },
+  "rounds": [
+    {
+      "turn": 1,
+      "task_status": "awaiting_user",
+      "thinking": true,
+      "duration_seconds": 2.05,
+      "model_calls": 1,
+      "nonempty_reasoning_responses": 1,
+      "reasoning_chars": 620,
+      "model_tools": [],
+      "logical_school_reads": {},
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "逐学期范围澄清"
+    },
+    {
+      "turn": 2,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 4.38,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 2,
+      "reasoning_chars": 270,
+      "model_tools": [
+        "query_my_records",
+        "query_my_records"
+      ],
+      "logical_school_reads": {
+        "academic": 2
+      },
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "两个指定学期成绩概况"
+    },
+    {
+      "turn": 3,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 3.26,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 2,
+      "reasoning_chars": 164,
+      "model_tools": [
+        "lookup_academic_terms"
+      ],
+      "logical_school_reads": {},
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "平均分与GPA解释"
+    },
+    {
+      "turn": 4,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 4.25,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 2,
+      "reasoning_chars": 208,
+      "model_tools": [
+        "query_my_records"
+      ],
+      "logical_school_reads": {
+        "academic": 1
+      },
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "省略学年的成绩明细续问"
+    },
+    {
+      "turn": 5,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 3.42,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 1,
+      "reasoning_chars": 272,
+      "model_tools": [
+        "lookup_academic_terms"
+      ],
+      "logical_school_reads": {},
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "未知完成状态解释"
+    },
+    {
+      "turn": 6,
+      "task_status": "partial",
+      "thinking": true,
+      "duration_seconds": 22.8,
+      "model_calls": 4,
+      "nonempty_reasoning_responses": 4,
+      "reasoning_chars": 983,
+      "model_tools": [
+        "prepare_recommendation_inputs",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "generate_current_term_plan"
+      ],
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "限定课程组合生成",
+      "plan_check": {
+        "action": "generate",
+        "revision": 0,
+        "computation_summary": null,
+        "option_count": 1,
+        "locked_count": 0,
+        "friday_condition": "soft",
+        "minimum_credits": "6",
+        "maximum_credits": null
+      }
+    },
+    {
+      "turn": 7,
+      "task_status": "partial",
+      "thinking": true,
+      "duration_seconds": 24.89,
+      "model_calls": 3,
+      "nonempty_reasoning_responses": 3,
+      "reasoning_chars": 2121,
+      "model_tools": [
+        "get_current_term_plan",
+        "prepare_recommendation_inputs",
+        "update_current_term_plan"
+      ],
+      "logical_school_reads": {
+        "major_academic": 1,
+        "curriculum": 1
+      },
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "保锁与周五硬条件重算",
+      "plan_check": {
+        "action": "revise",
+        "revision": 1,
+        "computation_summary": null,
+        "option_count": 1,
+        "locked_count": 1,
+        "friday_condition": "hard",
+        "minimum_credits": "6",
+        "maximum_credits": null
+      }
+    },
+    {
+      "turn": 8,
+      "task_status": "completed",
+      "thinking": true,
+      "duration_seconds": 6.67,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 2,
+      "reasoning_chars": 601,
+      "model_tools": [
+        "get_current_term_plan"
+      ],
+      "logical_school_reads": {},
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "只解释保存方案",
+      "plan_check": {
+        "action": "inspect",
+        "revision": 1,
+        "computation_summary": {
+          "origin": "owned_last_computation",
+          "solver_executed_this_call": false,
+          "current_sources_read": false,
+          "credit_target": {
+            "minimum": "6",
+            "maximum": null
+          },
+          "scope": {
+            "input_course_count": 3,
+            "returned_search_count": 3,
+            "omitted_count": 0,
+            "complete_within_input_scope": true,
+            "limit_reached": false,
+            "school_offerings_complete": false
+          },
+          "options": [
+            {
+              "label": "A",
+              "total_credits": "7.0",
+              "excess_above_minimum": "1.0",
+              "soft_meeting_count": 0,
+              "friday_meeting_count": 0,
+              "locked_class_count": 1
+            }
+          ],
+          "ranking": {
+            "version": "current-term-observed-ranking/1",
+            "criteria": [
+              "observed_slot_result",
+              "soft_meeting_count",
+              "known_credits",
+              "excess_above_minimum",
+              "course_count",
+              "stable_observation_order"
+            ]
+          },
+          "rejections": {
+            "status": "not_recorded",
+            "counts": []
+          },
+          "exact_target": {
+            "status": "not_recorded"
+          }
+        }
+      }
+    },
+    {
+      "turn": 9,
+      "task_status": "completed",
+      "thinking": false,
+      "duration_seconds": 3.79,
+      "model_calls": 2,
+      "nonempty_reasoning_responses": 0,
+      "reasoning_chars": 0,
+      "model_tools": [
+        "lookup_academic_terms"
+      ],
+      "logical_school_reads": {},
+      "format_repairs": 0,
+      "argument_corrections": 0,
+      "task_corrections": 0,
+      "scenario": "普通模式学分解释"
+    }
+  ],
+  "bounded_source_checks": {
+    "raw_record_snapshots": 5,
+    "pdf_bundles": 2,
+    "registered_values_and_source_hashes_match": true,
+    "summary_counts_decimal_means_and_detail_citations_match": true,
+    "current_pdf_hash_pages_and_referenced_spans_match": true,
+    "plan_revision_lock_scope_and_credit_continuity_match": true,
+    "unregistered_field_semantics_verified": false,
+    "formal_curriculum_identity_applicability_verified": false
+  },
+  "ui": {
+    "real_reasoning_visible_during_run": true,
+    "real_reasoning_visible_after_history_reload": true,
+    "normal_mode_no_empty_main_reasoning_column": true,
+    "adjacent_bound_citation_duplicates_fixed_and_verified_in_actual_history": true,
+    "stored_answer_evidence_preserved": true,
+    "same_session_reload_login_and_history_retained": true,
+    "thinking_restored_on": true,
+    "desktop_only_this_round": true,
+    "mobile_and_network_interruption_not_tested": true
+  },
+  "scope": {
+    "current_term_historical_course_observations_only": true,
+    "new_school_endpoint_or_year_expansion": false,
+    "course_add_drop_or_external_publish": false,
+    "credentials_written_to_project_or_reports": false
+  },
+  "remaining": {
+    "common_paths_supported_by_this_run": true,
+    "complete_semantics_verified": false,
+    "formal_recommendation_verified": false,
+    "user_acceptance": false,
+    "experience_observations": [
+      "成绩明细正文仍偏密集，表格主要位于依据中",
+      "部分说明仍重复未知/认定边界",
+      "课程准备和重算约23至25秒，仍可继续减少不必要步骤"
+    ]
+  }
+}

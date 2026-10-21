@@ -67,7 +67,7 @@ class LiveSourceConnectionRaceTests(unittest.TestCase):
 
 
 class LiveIntentCoordinatorTests(unittest.TestCase):
-    def test_live_second_turn_sends_prior_user_intent_without_old_facts_or_reasoning(self):
+    def test_live_second_turn_sends_displayed_dialogue_without_raw_tools_or_reasoning(self):
         class LiveSchool(FakeSchool):
             def personal_chat_live_tool(inner, context, name, args, *, receipts, emit, authorize, adopt, before=None):
                 self.assertTrue(callable(before), "the coordinator must pass its strict version check")
@@ -109,7 +109,7 @@ class LiveIntentCoordinatorTests(unittest.TestCase):
             self.assertEqual(second["status"], "completed")
             self.assertEqual([row["content"] for row in model.calls[1] if row["role"] == "user"],
                              ["合成数学分析成绩是多少", "第二门呢？"])
-            self.assertTrue(all(row["role"] == "user" for row in model.calls[1]))
+            self.assertEqual([row["content"] for row in model.calls[1] if row["role"] == "assistant"], ["已查合成记录"])
             self.assertNotIn("OLD-SYNTHETIC", json.dumps(model.calls[1]))
             self.assertTrue(second["history_reset"])
 

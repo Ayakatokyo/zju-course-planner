@@ -1,0 +1,229 @@
+{
+  "recorded_at_utc": "2026-10-21T06:28:49.913785+00:00",
+  "scope": "Real DeepSeek Flash with invented source fixtures and actual local solver; no school calls, no user acceptance.",
+  "grade_journey": [
+    {
+      "status": "completed",
+      "decision_kind": "clarify",
+      "thinking": false,
+      "model_calls": 2,
+      "reasoning_chars": 0,
+      "format_repairs": 0,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "query_my_records",
+          "status": "not_ready",
+          "error": true
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context"
+      ],
+      "option_count": 0
+    },
+    {
+      "status": "completed",
+      "decision_kind": "answer",
+      "thinking": false,
+      "model_calls": 3,
+      "reasoning_chars": 0,
+      "format_repairs": 1,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "query_my_records",
+          "status": "complete_within_scope",
+          "error": false
+        },
+        {
+          "name": "query_my_records",
+          "status": "complete_within_scope",
+          "error": false
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context",
+        "query_my_records",
+        "query_my_records"
+      ],
+      "option_count": 0
+    },
+    {
+      "status": "completed",
+      "decision_kind": "answer",
+      "thinking": false,
+      "model_calls": 2,
+      "reasoning_chars": 0,
+      "format_repairs": 0,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "lookup_academic_terms",
+          "status": "available",
+          "error": false
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context"
+      ],
+      "option_count": 0
+    },
+    {
+      "status": "completed",
+      "decision_kind": "answer",
+      "thinking": false,
+      "model_calls": 2,
+      "reasoning_chars": 0,
+      "format_repairs": 0,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "lookup_academic_terms",
+          "status": "available",
+          "error": false
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context"
+      ],
+      "option_count": 0
+    },
+    {
+      "status": "completed",
+      "decision_kind": "answer",
+      "thinking": true,
+      "model_calls": 2,
+      "reasoning_chars": 102,
+      "format_repairs": 0,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "lookup_academic_terms",
+          "status": "available",
+          "error": false
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context"
+      ],
+      "option_count": 0
+    }
+  ],
+  "recommendation_journey": [
+    {
+      "status": "completed",
+      "decision_kind": "answer",
+      "thinking": true,
+      "model_calls": 4,
+      "reasoning_chars": 3977,
+      "format_repairs": 1,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "search_current_term_courses",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "prepare_recommendation_inputs",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "generate_current_term_plan",
+          "status": "available",
+          "error": false
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context",
+        "search_current_term_courses",
+        "prepare_recommendation_inputs",
+        "generate_current_term_plan"
+      ],
+      "option_count": 3
+    },
+    {
+      "status": "completed",
+      "decision_kind": "answer",
+      "thinking": true,
+      "model_calls": 2,
+      "reasoning_chars": 376,
+      "format_repairs": 0,
+      "task_corrections": 0,
+      "tool_results": [
+        {
+          "name": "get_my_context",
+          "status": "available",
+          "error": false
+        },
+        {
+          "name": "get_current_term_plan",
+          "status": "available",
+          "error": false
+        }
+      ],
+      "executed_callback_names": [
+        "get_my_context",
+        "get_current_term_plan"
+      ],
+      "option_count": 0
+    }
+  ],
+  "review": {
+    "all_terms_asks_scope_before_school_callback": true,
+    "two_distinct_term_queries": [
+      "2099-2100-AW",
+      "2099-2100-SS"
+    ],
+    "explanations_use_only_local_context_and_public_terms": true,
+    "thinking_on_returned_text": true,
+    "generated_three_options": true,
+    "saved_plan_explanation_no_recompute": true
+  },
+  "ui": {
+    "url": "http://127.0.0.1:18875/",
+    "backend_pid_unchanged": 10152,
+    "normal_mode_empty_main_column_removed": true,
+    "existing_login_preserved_on_reload": true,
+    "new_backend_not_activated": true,
+    "mobile_new_run_not_tested": true
+  },
+  "limits": [
+    "Per-term clarification still used one rejected tool attempt before asking; no school callback executed.",
+    "Prior exploratory synthetic runs retained separately, including unnecessary source call and repeated plan reads.",
+    "Final search-result wording correction tested locally after these model runs; no new model run claimed for that wording.",
+    "Complete personal semantics, official curriculum applicability and formal recommendation remain unaccepted."
+  ]
+}
