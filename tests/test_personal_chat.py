@@ -301,8 +301,7 @@ class PersonalChatTests(unittest.TestCase):
         self.app.school = PartialTimetableSchool()
         def preparation_answer(messages, tools):
             value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
-            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-                "evidence_id": value["evidence_id"], "sections": ["next_step"]}]})
+            return final({'kind': 'answer', 'text': '上一轮准备检查的记录，本轮未重新读取教务资料。取得3条记录，接口未声明总数，覆盖无法确认；2条仍有课时缺少文本或结构化时间证据。', 'evidence_ids': ([value['evidence_id']])})
 
         def request_previous(messages, tools):
             return call("get_my_run_diagnostics", {})
@@ -312,8 +311,7 @@ class PersonalChatTests(unittest.TestCase):
             previous = value["previous_preparation"]
             self.assertTrue(previous["historical_only"])
             self.assertTrue(previous["fresh_sources_required"])
-            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-                "evidence_id": previous["evidence_id"], "sections": ["next_step"]}]})
+            return final({'kind': 'answer', 'text': '上一轮准备检查的记录，本轮未重新读取教务资料。取得3条记录，接口未声明总数，覆盖无法确认；2条仍有课时缺少文本或结构化时间证据。', 'evidence_ids': ([previous['evidence_id']])})
 
         self.factory.stop()
         model = ScriptedModel([
@@ -601,7 +599,7 @@ class PersonalChatTests(unittest.TestCase):
         self.app.school = LiveSyntheticSchool()
         task = self.recommendation_task(recommendation_kind="courses", hard_preferences=[])
         def correct_basis(messages, tools):
-            diagnostic = json.loads(messages[-1]["content"])
+            diagnostic = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
             self.assertEqual(diagnostic["code"], "clarification_context_missing")
             self.assertFalse(diagnostic["query_executed"])
             self.assertEqual(diagnostic["allowed_request_basis"], ["current_message"])
@@ -609,9 +607,8 @@ class PersonalChatTests(unittest.TestCase):
             return call(PREPARE_RECOMMENDATION_TOOL, task, "current-basis")
 
         def typed_preparation(messages, tools):
-            evidence = json.loads(messages[-1]["content"])["evidence_id"]
-            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-                "evidence_id": evidence, "sections": ["sources"]}]})
+            evidence = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
+            return final({'kind': 'answer', 'text': '正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', 'evidence_ids': ([evidence])})
 
         model = ScriptedModel([call(PREPARE_RECOMMENDATION_TOOL, {**task, "request_basis": "pending_task"}),
             correct_basis, typed_preparation])

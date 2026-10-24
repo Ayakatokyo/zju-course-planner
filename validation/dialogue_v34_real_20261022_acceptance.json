@@ -1,0 +1,1764 @@
+{
+  "recorded_at": "2026-10-22T18:23:01.364913+08:00",
+  "version": "v34-dialogue-quality",
+  "git_base": "e3f304ba4e9c671b4636c83ffffacde41236b45b",
+  "runtime": {
+    "pid": 69702,
+    "port": 18875,
+    "model": "deepseek-flash",
+    "thinking": true,
+    "logged_in_at_last_ui_check": true,
+    "active_runs": 0,
+    "extra_capture_enabled": false,
+    "restarts_for_fixes": 5,
+    "restart_for_handoff": false
+  },
+  "engineering": [
+    {
+      "phase": "targeted",
+      "ran": 154,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "passed": 154,
+      "log_sha256": "26f9981d2d7b627d61574b19e837f92cbd5df64c9b113ae36efbad926a712a29"
+    },
+    {
+      "phase": "full_suite",
+      "ran": 1486,
+      "skipped": 5,
+      "failures": 1,
+      "errors": 0,
+      "passed": 1480,
+      "log_sha256": "73785c50f80d7db1ce18b57d0725f09234b84f77ed6e82755268bfc54f96eb3f"
+    },
+    {
+      "phase": "full_suite_final",
+      "ran": 1486,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0,
+      "passed": 1481,
+      "log_sha256": "0ab70cf7317b3807f5203d5d3e6da71c6d5f1b659f22a5218c1539d1d04059b7"
+    },
+    {
+      "phase": "protocol_targeted",
+      "ran": 200,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "passed": 200,
+      "log_sha256": "fb5fdce391602b6ec15789c416e845155b2b87e06c3f3a2088701a4d18a6fb8f"
+    },
+    {
+      "phase": "final_context_tests",
+      "ran": 178,
+      "skipped": 0,
+      "failures": 2,
+      "errors": 2,
+      "passed": 174,
+      "log_sha256": "838fce451d1295f5048308c837f1d98996b171f7a50b136c99da797c0aad4c75"
+    },
+    {
+      "phase": "full_suite_delivery",
+      "ran": 1486,
+      "skipped": 5,
+      "failures": 1,
+      "errors": 0,
+      "passed": 1480,
+      "log_sha256": "62a4e10ad399931b8fc44a769b4ea6b9c9556705cb0293d3c882901f281ce93c"
+    },
+    {
+      "phase": "full_suite_final_delivery",
+      "ran": 1486,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0,
+      "passed": 1481,
+      "log_sha256": "2588f6176399c60cedea870da3d96c18868c9ab611a99e99a09b29b6c4e2593e"
+    },
+    {
+      "phase": "repair_context_tests",
+      "ran": 102,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "passed": 102,
+      "log_sha256": "c0a3a5d2dcba3f02ff8c32817cfb4acaf4f95b8b04e651fb50b07cb14a24f862"
+    },
+    {
+      "phase": "full_suite_repair_context",
+      "ran": 1487,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0,
+      "passed": 1482,
+      "log_sha256": "b43f82c1ef9e103318f00bb1a7300c8d38507520affa64785ca33cc63bb7d05e"
+    },
+    {
+      "phase": "retained_lock_tests",
+      "ran": 154,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "passed": 154,
+      "log_sha256": "f3243d5bf0850a1754b65a3dff07013a25ce261a55109757cb26ac1ffb4bbafe"
+    },
+    {
+      "phase": "negative_guarantee_tests",
+      "ran": 211,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 1,
+      "passed": 210,
+      "log_sha256": "3f01b076499743e9108a1ff25b31d8dcd7c680eafcddebc3e5772f067bcb05f5"
+    },
+    {
+      "phase": "negative_guarantee_final_tests",
+      "ran": 211,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "passed": 211,
+      "log_sha256": "9034ece80044d8ee1031e744684dba0cddd1392b1828c6377b7a72d7328bf295"
+    }
+  ],
+  "full_suite_after_last_two_patches": false,
+  "final_targeted_tests": 211,
+  "static_checks": [
+    "node --check web/app.js",
+    "git diff --check"
+  ],
+  "enabled_source_sha256": {
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/academic_harness.py": "f7196ec92783e37b3f741ccfd325b3a20a9f39ea901842aa9dde3798928132ed",
+    "course_assistant/academic_terms.py": "f4735396c5febcc9b01dffcb3bb445e884d5e0639646330f8d702f9edc996065",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "f4b2e51bdd3953c436febe6de190dc638b03299de1aa03bf6b4888fcf04af371",
+    "course_assistant/chat.py": "f84529e7af1e9c4f1badf85bf84fa6af3e02235a788802d8f4c04c5bb84de5f4",
+    "course_assistant/chat_model_settings.py": "3517bc218934ade342b01c547d0cbdd852ac86371b7df6fd047705115d5a3572",
+    "course_assistant/chat_progress.py": "e47b4a1a5a43978e4fd909cc43c1ac4d42a882c8c63974d5a0bf8455b8ace56c",
+    "course_assistant/chat_runs.py": "a4a7b79be86c8995b7c18bc0a00109b52c9bbe826d884c8f83f3afb345ebc462",
+    "course_assistant/course_catalog.py": "3b615467eacef315fe8dcb4823d7c5c9ec5113a55f26f01fae19d9125f8aa4ed",
+    "course_assistant/course_code_links.py": "d230a043ffd8f673403bdb489951cfbdb9a3fa996814254239f2e01b6542f64d",
+    "course_assistant/course_plan_policy.py": "38312f47bc91c2aef3d59afef26bcf7adfeb98488ecf5007e3b08378e79ef37c",
+    "course_assistant/current_term_recommendation.py": "ddfff902d2b630c6a89a05305bdd601680a91e368ecfaf174a35bf8694728d9a",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "course_assistant/model_client.py": "adc57059094cccfc5315e76449247df4232ce4f7dbdc31d0616dff0030c34fb3",
+    "course_assistant/personal_acquisition.py": "953ad965e5180cc068afa54f183be5ae03716499f88bcc402d71bf7db5a090a4",
+    "course_assistant/personal_chat.py": "7cc2bf7b23336e25000050c4720312dd2307ba88411eae9916b1a133c739dcf4",
+    "course_assistant/personal_course_plans.py": "fce4e43d4a180a0ac8fa86e614f69d67d60696f97c305b2b420838370ae9da25",
+    "course_assistant/personal_dialogue.py": "c77a6dd09e080031563156377f67040535d8585390b430654b3c443fffc91182",
+    "course_assistant/personal_drafts.py": "93d6321aae07035757d366c7d2f911f07d44413257f9191b7f5158dcc6360417",
+    "course_assistant/personal_evidence.py": "b1e64ee6ab4e4f97d750879590bcdaabdb2890f2f1c21ce690ea6c44cc56093c",
+    "course_assistant/personal_observations.py": "5f1d5d0e4aadcde35ca0633331f96619227f8fb75693a49766b0b93d554f6aa5",
+    "course_assistant/personal_plan_explanation.py": "31ef588a6580edc9fe5f45bd46dedcfbe35315c92009426315c08556d9a58edd",
+    "course_assistant/personal_tasks.py": "44d3f44cf91170ce8be225260ea1d0e3f0fbce36a9d8a7880c173b8680d6d684",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/recommendation_readiness.py": "601740d5ef683f2093c68371fcb3e078a564aa427ac470efb847c7eda0063097",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/school_accounts.py": "4b77d307e569c2cc81a77693108b40cfe76c51ae0c008f5a40939d7940b68a47",
+    "course_assistant/school_http.py": "91a3071caa02ae7ae4a244b696d23dfab93d459d6f77edc7d9aa4f78e4720bc1",
+    "course_assistant/school_period_times.py": "17cb3b2ba484e99b0c74eac11638a2b12708b72577d81278e2f793db27d9d71d",
+    "course_assistant/semantic_retrieval.py": "87354ecc34ae575a2ac144922a54c20fddf057b18857a1648d88ee400033e1da",
+    "course_assistant/server.py": "5b8593d092a319bfeee23072ee7888b02e863d5c7cabd83106e63c87921957f4",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "course_assistant/student_plan_acquisition.py": "445a31c57221a2b8adf13eee1aaec59313da9248d35f4ad3430fb2d7a8e1fb73",
+    "course_assistant/student_source_client.py": "36a52c04bb34a9cc2cf07351fecb4b1d32f71fa02e6c196aa903406045d1e5e0",
+    "course_assistant/student_source_parsers.py": "0486922311b281ed671bc9461fac32e47fdb38bbc419cd4a7722f7f061f3ec3b",
+    "course_assistant/student_sources.py": "69ac7526efa176c58382d0c6ff761bdef12ea79eadb783bce21618acf5644432",
+    "web/app.js": "4ba3a146473a2aafc09b9cd87780c031e80de80a76159817a24d84d65590c735",
+    "web/index.html": "6824f973b7a3b03bdc393701e93ada4b72b9c7d0427060e6ce3eacd6874b2bce",
+    "web/styles.css": "f759229460d83de464b5aa09ab56735a75bd3d6f0ed5207a1f5ab11fb3ad8a5e"
+  },
+  "real_phases": [
+    {
+      "phase": "initial_grades",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 5.6,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 1,
+          "model_tools": [
+            "query_my_records"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 188,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 2,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            }
+          ],
+          "plan": null
+        },
+        {
+          "turn": 2,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 9.81,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 2,
+          "model_tools": [
+            "query_my_records"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1
+          },
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 172,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 16
+            }
+          ],
+          "citation_count": 15,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            }
+          ],
+          "plan": null
+        },
+        {
+          "turn": 3,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 5.86,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 2,
+          "model_tools": [
+            "lookup_academic_terms"
+          ],
+          "logical_school_reads": {},
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 170,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 3
+            }
+          ],
+          "citation_count": 2,
+          "citation_checks": [],
+          "plan": null
+        }
+      ],
+      "totals": {
+        "turns": 3,
+        "completed_runs": 3,
+        "failed_runs": 0,
+        "flash_responses": 8,
+        "format_repairs": 2,
+        "nonempty_reasoning_responses": 5,
+        "logical_school_reads": {
+          "major_academic": 2
+        },
+        "raw_snapshots_audited": 2,
+        "pdf_versions_audited": 0
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "10aded67402dbfcc4dd939e5895923c35663d3949a803fd4c656bfe2fae35995",
+      "audit_sha256": "66fc0237f01717759ea1ec6b799bde304fc87e15aff7bc96d53e75f6882b9826"
+    },
+    {
+      "phase": "initial_courses",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 30.03,
+          "model_calls": 5,
+          "nonempty_reasoning_responses": 4,
+          "model_tools": [
+            "query_my_records",
+            "search_my_curriculum",
+            "search_current_term_courses",
+            "query_my_records",
+            "query_my_records",
+            "generate_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 377,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 19
+            }
+          ],
+          "citation_count": 7,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            }
+          ],
+          "plan": {
+            "action": "generate",
+            "revision": 0,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 0,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "6.0",
+                "friday_meeting_count": 1,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 17.23,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 3,
+          "model_tools": [
+            "get_current_term_plan",
+            "update_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 155,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 7
+            }
+          ],
+          "citation_count": 1,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "revise",
+            "revision": 1,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 1,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "6.0",
+                "friday_meeting_count": 1,
+                "class_count": 3
+              }
+            ]
+          }
+        }
+      ],
+      "totals": {
+        "turns": 2,
+        "completed_runs": 2,
+        "failed_runs": 0,
+        "flash_responses": 9,
+        "format_repairs": 2,
+        "nonempty_reasoning_responses": 7,
+        "logical_school_reads": {
+          "major_academic": 2,
+          "curriculum": 2
+        },
+        "raw_snapshots_audited": 2,
+        "pdf_versions_audited": 2
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "ca28b16f9140b130be3a9a0325a785e13381a0b585cdd3241fdd9c6dd6f1be48",
+      "audit_sha256": "313c4af2fa1036f023182c58bc1b2ee82de023bec82ed41fc8f2a09ae94e4b03"
+    },
+    {
+      "phase": "revised_grades",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 5.6,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 1,
+          "model_tools": [
+            "query_my_records"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 171,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 2,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            }
+          ],
+          "plan": null
+        },
+        {
+          "turn": 2,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 10.33,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 3,
+          "model_tools": [
+            "query_my_records",
+            "query_my_records"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1
+          },
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 264,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 21
+            }
+          ],
+          "citation_count": 12,
+          "citation_checks": [
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            }
+          ],
+          "plan": null
+        },
+        {
+          "turn": 3,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 3.75,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 1,
+          "model_tools": [
+            "lookup_academic_terms"
+          ],
+          "logical_school_reads": {},
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 132,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 2,
+          "citation_checks": [],
+          "plan": null
+        }
+      ],
+      "totals": {
+        "turns": 3,
+        "completed_runs": 3,
+        "failed_runs": 0,
+        "flash_responses": 7,
+        "format_repairs": 1,
+        "nonempty_reasoning_responses": 5,
+        "logical_school_reads": {
+          "major_academic": 2
+        },
+        "raw_snapshots_audited": 2,
+        "pdf_versions_audited": 0
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "85887a869ee621b884ed816c117cb4510d71d8dd5866b1b832d0cfee0d73c4bc",
+      "audit_sha256": "cc4635e7b20f418e64f315a0c5aecf898ed602bcadbd904c312da431aef67fe8"
+    },
+    {
+      "phase": "reference_failure",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "failed",
+          "thinking": true,
+          "duration_seconds": 29.72,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 3,
+          "model_tools": [
+            "search_my_curriculum",
+            "search_current_term_courses",
+            "query_my_records",
+            "query_my_records",
+            "generate_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "curriculum": 1,
+            "major_academic": 1
+          },
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "failed",
+          "reply_chars": 45,
+          "error_code": "unverified_personal_answer",
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 23
+            },
+            {
+              "error_code": "unverified_personal_answer",
+              "failure_detail": "evidence_not_current",
+              "attempt": 1,
+              "evidence_count": 23
+            }
+          ],
+          "citation_count": 23,
+          "citation_checks": [
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "generate",
+            "revision": 0,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 0,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        }
+      ],
+      "totals": {
+        "turns": 1,
+        "completed_runs": 0,
+        "failed_runs": 1,
+        "flash_responses": 4,
+        "format_repairs": 1,
+        "nonempty_reasoning_responses": 3,
+        "logical_school_reads": {
+          "curriculum": 1,
+          "major_academic": 1
+        },
+        "raw_snapshots_audited": 1,
+        "pdf_versions_audited": 1
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "4ceb38571e047ab2f4090c3aaea2aba66ac18de6784ec0cc8b5f33bcba19e58b",
+      "audit_sha256": "7c73d5c4d325cbe960b74338b7dadfafab065d7aaa5a43d33366e40178219ce4"
+    },
+    {
+      "phase": "retained_lock_failure",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 22.87,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 3,
+          "model_tools": [
+            "search_my_curriculum",
+            "search_current_term_courses",
+            "query_my_records",
+            "query_my_records",
+            "generate_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "curriculum": 1,
+            "major_academic": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 313,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 5,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "record",
+              "exact_current_projection": true,
+              "matching_source_rows": 1
+            },
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            }
+          ],
+          "plan": {
+            "action": "generate",
+            "revision": 0,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 0,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 18.35,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 2,
+          "model_tools": [
+            "get_current_term_plan",
+            "update_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 183,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 7
+            }
+          ],
+          "citation_count": 1,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "revise",
+            "revision": 1,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 1,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "task_status": "blocked",
+          "thinking": true,
+          "duration_seconds": 16.85,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 2,
+          "model_tools": [
+            "update_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 153,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 1,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "revise",
+            "revision": 1,
+            "status": null,
+            "reason": "hard_preferences_unresolved",
+            "minimum_credits": null,
+            "maximum_credits": null,
+            "course_count": null,
+            "friday_free": null,
+            "locked_count": 1,
+            "options": []
+          }
+        }
+      ],
+      "totals": {
+        "turns": 3,
+        "completed_runs": 3,
+        "failed_runs": 0,
+        "flash_responses": 10,
+        "format_repairs": 1,
+        "nonempty_reasoning_responses": 7,
+        "logical_school_reads": {
+          "curriculum": 3,
+          "major_academic": 3
+        },
+        "raw_snapshots_audited": 3,
+        "pdf_versions_audited": 3
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "a530edb1dd82bbbd226628946293c925877eacd92b6c19b9fe4d76c79e648f8c",
+      "audit_sha256": "a32d396e003d3adb96af096fa751d168d51231b4b7ee6eb4731529a630739e10"
+    },
+    {
+      "phase": "negative_guarantee_failure",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "failed",
+          "thinking": true,
+          "duration_seconds": 18.39,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 2,
+          "model_tools": [
+            "query_my_records",
+            "search_my_curriculum",
+            "search_current_term_courses",
+            "generate_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "failed",
+          "reply_chars": 45,
+          "error_code": "unsupported_personal_claim",
+          "validation_diagnostics": [],
+          "citation_count": 9,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "generate",
+            "revision": 0,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 0,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        }
+      ],
+      "totals": {
+        "turns": 1,
+        "completed_runs": 0,
+        "failed_runs": 1,
+        "flash_responses": 3,
+        "format_repairs": 0,
+        "nonempty_reasoning_responses": 2,
+        "logical_school_reads": {
+          "major_academic": 1,
+          "curriculum": 1
+        },
+        "raw_snapshots_audited": 1,
+        "pdf_versions_audited": 1
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "cb82fb6a3114344b8d1b818aa8d53ceb86d0e5e6c260ce6172c4bc15b7886e08",
+      "audit_sha256": "27ae2dd30e7c8874af38b5de6f52273c04d630fde090c067b0487200cb0e3574"
+    },
+    {
+      "phase": "delivery_courses",
+      "rounds": [
+        {
+          "turn": 1,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 21.5,
+          "model_calls": 4,
+          "nonempty_reasoning_responses": 4,
+          "model_tools": [
+            "query_my_records",
+            "search_my_curriculum",
+            "search_current_term_courses",
+            "query_my_records",
+            "generate_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "curriculum": 1,
+            "major_academic": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 365,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 4,
+          "citation_checks": [
+            {
+              "kind": "summary",
+              "raw_bound_counts_and_decimal_mean": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "generate",
+            "revision": 0,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 0,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 2,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 15.13,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 3,
+          "model_tools": [
+            "get_current_term_plan",
+            "update_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 228,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 1,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "revise",
+            "revision": 1,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "soft",
+            "locked_count": 1,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 3,
+          "task_status": "partial",
+          "thinking": true,
+          "duration_seconds": 12.94,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 1,
+          "model_tools": [
+            "update_current_term_plan"
+          ],
+          "logical_school_reads": {
+            "major_academic": 1,
+            "curriculum": 1
+          },
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 196,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 2,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            },
+            {
+              "kind": "curriculum",
+              "current_pdf_span": true,
+              "formal_identity_applicability_verified": false
+            }
+          ],
+          "plan": {
+            "action": "revise",
+            "revision": 2,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": "hard",
+            "locked_count": 1,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 4,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 4.71,
+          "model_calls": 2,
+          "nonempty_reasoning_responses": 2,
+          "model_tools": [
+            "get_current_term_plan"
+          ],
+          "logical_school_reads": {},
+          "format_repairs": 0,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 203,
+          "error_code": null,
+          "validation_diagnostics": [],
+          "citation_count": 1,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "inspect",
+            "revision": 2,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": null,
+            "locked_count": 1,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        },
+        {
+          "turn": 5,
+          "task_status": "completed",
+          "thinking": true,
+          "duration_seconds": 7.97,
+          "model_calls": 3,
+          "nonempty_reasoning_responses": 3,
+          "model_tools": [
+            "get_current_term_plan"
+          ],
+          "logical_school_reads": {},
+          "format_repairs": 1,
+          "argument_corrections": 0,
+          "task_corrections": 0,
+          "run_status": "completed",
+          "reply_chars": 260,
+          "error_code": null,
+          "validation_diagnostics": [
+            {
+              "error_code": "invalid_final_answer",
+              "failure_detail": "invalid_json",
+              "attempt": 0,
+              "evidence_count": 2
+            }
+          ],
+          "citation_count": 1,
+          "citation_checks": [
+            {
+              "kind": "course_data_plan",
+              "actual_tool_result": true
+            }
+          ],
+          "plan": {
+            "action": "inspect",
+            "revision": 2,
+            "status": null,
+            "reason": null,
+            "minimum_credits": "6",
+            "maximum_credits": null,
+            "course_count": 3,
+            "friday_free": null,
+            "locked_count": 1,
+            "options": [
+              {
+                "label": "A",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "B",
+                "credits": "7.0",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              },
+              {
+                "label": "C",
+                "credits": "7.5",
+                "friday_meeting_count": 0,
+                "class_count": 3
+              }
+            ]
+          }
+        }
+      ],
+      "totals": {
+        "turns": 5,
+        "completed_runs": 5,
+        "failed_runs": 0,
+        "flash_responses": 14,
+        "format_repairs": 1,
+        "nonempty_reasoning_responses": 13,
+        "logical_school_reads": {
+          "curriculum": 3,
+          "major_academic": 3
+        },
+        "raw_snapshots_audited": 3,
+        "pdf_versions_audited": 3
+      },
+      "bounded_source_checks_passed": true,
+      "capture_sha256": "fcca07a60c459ed522659ba2c8ffea2cb33044ffc1cc241a50f7c8b97ef13def",
+      "audit_sha256": "1a59be2ede699a126a61a9f8c6e4ccba9f1d371e5f430e8755a6b0eb36ed19c0"
+    }
+  ],
+  "all_real_totals": {
+    "turns": 18,
+    "completed_runs": 16,
+    "failed_runs": 2,
+    "flash_responses": 55,
+    "format_repairs": 8,
+    "nonempty_reasoning_responses": 42,
+    "raw_snapshots_audited": 14,
+    "pdf_versions_audited": 10,
+    "logical_school_reads": {
+      "major_academic": 14,
+      "curriculum": 10
+    }
+  },
+  "output_only_flash_replays": [
+    {
+      "case": "replay_initial/generate-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 5.09,
+      "validation_at_run": "passed",
+      "independent_recheck": null,
+      "sha256": "bea948580cd388fc9d56ce81bba981198e3c572524bd58adb9fe5e9023c08fb6"
+    },
+    {
+      "case": "replay_initial/inspect-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 2.31,
+      "validation_at_run": null,
+      "independent_recheck": null,
+      "sha256": "437a3cd97daf167117cd8c637c05a517e095d0dfe1d0a70750ba155351436235"
+    },
+    {
+      "case": "replay_tools_only/generate-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 3.69,
+      "validation_at_run": "passed",
+      "independent_recheck": null,
+      "sha256": "18e90ec8e3874321e1bb0151085d15da89c73879d5b4060bee928b7a334e8c60"
+    },
+    {
+      "case": "replay_tools_only/inspect-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 1.87,
+      "validation_at_run": "passed",
+      "independent_recheck": null,
+      "sha256": "7cf568670e65825b18f146d07240920dd7c017af362f7aabf598bc9e8904713b"
+    },
+    {
+      "case": "replay_tools_only/grade-detail-late-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 2.36,
+      "validation_at_run": "passed",
+      "independent_recheck": null,
+      "sha256": "b85ca90dda7d77a8176683d9b95cc47c7831b256c6d894e0b5a5177ca74ead2e"
+    },
+    {
+      "case": "replay_tools_only/grade-terms-late-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 1.54,
+      "validation_at_run": null,
+      "independent_recheck": null,
+      "sha256": "f3ae95884f771cc70e989e5d67a3c28f39d133052877c3b0eb8442aa430a5741"
+    },
+    {
+      "case": "grade-detail-late-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 2.81,
+      "validation_at_run": "passed",
+      "independent_recheck": null,
+      "sha256": "f2e9cd723cf468a0ee6e1174b15100f1102ab0a0234149fd5ff08b7acc9bf7d9"
+    },
+    {
+      "case": "grade-terms-late-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 1.38,
+      "validation_at_run": "unverified_personal_answer",
+      "independent_recheck": "passed",
+      "sha256": "e19aba0524069c2284101611ff97af48a15547750cf586595b456435617c8d5e"
+    },
+    {
+      "case": "failed-repair-replay.json",
+      "frozen_inputs_only": true,
+      "elapsed_seconds": 2.5,
+      "validation_at_run": "passed",
+      "independent_recheck": null,
+      "sha256": "59b0eceb9180b491ce44eb972caa9547a4302773d6d0bda407710073fa0c03c4"
+    }
+  ],
+  "delivery_checks": {
+    "five_turn_execution_completed": true,
+    "revision_sequence": [
+      0,
+      1,
+      2,
+      2,
+      2
+    ],
+    "course_count": 3,
+    "minimum_credits": "6",
+    "maximum_credits": null,
+    "locked_count_after_first_update": 1,
+    "friday_sequence_for_mutations": [
+      "soft",
+      "soft",
+      "hard"
+    ],
+    "original_candidate_pool_preserved": true,
+    "read_only_last_two_turns": {
+      "school_reads": 0,
+      "searches": 0,
+      "solver_calls": 0,
+      "returned_options_match_saved_computation": true,
+      "revision_and_data_version_unchanged": true,
+      "locked_count": 1
+    },
+    "final_credit_values": [
+      "7.0",
+      "7.0",
+      "7.5"
+    ],
+    "semantic_review": {
+      "grade_overview_units_and_unknown_meaning_supported": true,
+      "comparison_returned_courses_credits_and_periods_supported": true,
+      "first_course_answer_claims_absence_without_course_record_query": true,
+      "last_explanation_exceeds_returned_options_scope_and_exact_target_not_recorded": true,
+      "prose_length_and_repetition_not_fully_resolved": true,
+      "overall_semantics_passed": false
+    }
+  },
+  "ui": {
+    "dialogue_overflow": false,
+    "draft_visible": true,
+    "model": "deepseek-flash",
+    "page_overflow": false,
+    "removed_entries": [],
+    "thinking": true,
+    "viewport": {
+      "height": 1440,
+      "width": 2560
+    },
+    "thinking_state_source": "aria-pressed",
+    "mobile_tested_this_turn": false,
+    "screenshot_sha256": "e67a7473c35c891257ef336737ef04acb43f4c198ed72c50633aac83a6082461",
+    "screenshot_private_only": true
+  },
+  "remaining_limits": [
+    "模型首次组合说明仍可能过长或重复方案。",
+    "成绩明细仍可能正文列举与来源表重复。",
+    "首次组合回答未查询课程成绩明细，却概括未见特定课程记录；最后解释把返回方案扩大为全部组合且未记录精确6学分搜索结论。",
+    "培养片段适用、课程内容与选择取舍仍可能推断过强；完整语义未验收。",
+    "格式修复仍出现，不保证任何请求首次交付或整体提速。",
+    "历史课程观察不证明当前开课、余量、资格、完整课表或考试冲突。"
+  ],
+  "acceptance": {
+    "bounded_source_projection": true,
+    "full_semantics": false,
+    "formal_curriculum_applicability": false,
+    "formal_recommendation": false,
+    "user_acceptance": false
+  },
+  "delivery": {
+    "committed": false,
+    "pushed": false,
+    "external_deployment": false,
+    "inputs_preserved": true,
+    "existing_uncommitted_work_preserved": true,
+    "new_school_endpoints_or_years": false,
+    "enrollment_actions": false,
+    "credentials_persisted": false
+  }
+}

@@ -90,6 +90,19 @@ class CurrentTermRecommendationTests(unittest.TestCase):
             current_term=kwargs.pop("current_term", "2026-2027-AW"), authorize=kwargs.pop("authorize", lambda: self.enabled),
             allowed_course_codes=kwargs.pop("allowed_course_codes", ["SYN-A", "SYN-B", "SYN-C"]), **kwargs)
 
+    def test_requested_count_filters_credit_sufficient_subsets_and_survives_revision(self):
+        engine = self.service()
+        constraints = engine.new_constraints(6, friday_free="soft", course_count=3)
+        result = engine.recommend(constraints)
+        self.assertTrue(result["options"])
+        self.assertTrue(all(len(option["course_codes"]) == 3 for option in result["options"]))
+        two = engine.validate(["obs-SYN-A", "obs-SYN-B"], constraints)
+        self.assertEqual(two["observed_slot_validation"]["result"], "fail")
+        revised = engine.revise(constraints, {"expected_revision": 0, "friday_free": "hard"})
+        self.assertEqual(revised["constraints"]["course_count"], 3)
+        self.assertEqual(revised["options"], [])
+        self.assertEqual(revised["constraints"]["target_credits"], "6")
+
     def test_exact_colisted_code_passes_both_search_layers_without_identity_promotion(self):
         from course_assistant.current_term_recommendation import search_delivery_courses
         self.data["courses"][0]["definitions"][0]["fields"]["display_code"] = {

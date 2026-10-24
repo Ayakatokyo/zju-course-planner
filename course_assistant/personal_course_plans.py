@@ -71,16 +71,16 @@ def course_plan_tool_schemas():
         "properties": {"field": string(enum=["friday_free", "target_credits", "max_credits", "unlock_class_refs", "lock_class_refs", "exclude_class_refs"]),
             "quote": string(minLength=1, maxLength=200), "class_refs": refs}, "required": ["field", "quote"]}}
     schemas = [
-        {"name": NAMES[0], "description": "按名称或精确代码检索已授权本学期课程观察；支持来源标题明确并列的另一代码，返回observed关系，不证明课程等价或培养适用。仅为历史课程数据测试候选。",
+        {"name": NAMES[0], "description": "按名称或精确代码检索已授权本学期课程观察；支持来源标题明确并列的另一代码，返回observed关系，不证明课程等价或培养适用。observation_summary给出与计算器相同的历史观察筛查、周五空闲候选与节次；不是当前余量或本人可选结论。",
          "properties": {"query": string(minLength=1, maxLength=100), "target_term": string(enum=[CURRENT_TERM]),
                         "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, "required": ["query", "target_term"]},
-        {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；须先准备本轮主修、培养，排课另需本人完整课表。自动执行prepare_recommendation_inputs已核用户hard_preferences中任意星期的明确节次禁排，无需额外时间参数；下午等未明确节次须先澄清。courses仅课程组合，timetable另避开本人课表。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。",
+        {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；执行层保留用户在任意星期的明确节次禁排；下午等未明确节次须先澄清。courses仅课程组合，timetable另避开本人课表。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。",
          "properties": {"recommendation_kind": string(enum=["courses", "timetable"]), "target_term": string(enum=[CURRENT_TERM]),
              "course_codes": codes, "target_credits": decimal, "max_credits": decimal,
              "friday_free": string(enum=["none", "soft", "hard"]),
              "required_course_codes": {**codes, "minItems": 0}, "change_evidence": evidence},
          "required": ["recommendation_kind", "target_term", "course_codes", "target_credits", "friday_free"]},
-        {"name": NAMES[2], "description": "比较当前版本方案，或显式锁定/解锁/排除班次并重新计算；不保存、不选课。自动编译并继承prepare_recommendation_inputs已核hard_preferences中任意星期的明确节次禁排，无需额外时间参数；未明确节次先澄清。保持已有锁、本人课表固定项和数据版本。",
+        {"name": NAMES[2], "description": "比较当前版本方案，或显式锁定/解锁/排除班次并重新计算；不保存、不选课。默认继承已有学分、锁定及任意星期的明确节次禁排，只提交本轮明确修改；未明确节次先澄清。保持已有锁、本人课表固定项和数据版本。",
          "properties": {"plan_ref": string(pattern="^PLN-[a-f0-9]{48}$"), "action": string(enum=["compare", "revise"]),
              "expected_revision": {"type": "integer", "minimum": 0},
              "option_labels": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": True, "items": string(enum=["A", "B", "C"])},
@@ -359,7 +359,7 @@ class PersonalCoursePlanService:
             "hard_preferences": [], "soft_preferences": [], "request_basis": "current_message", "check_exam_conflicts": False}
 
     @staticmethod
-    def _computation_summary(state, labels):
+    def _computation_summary(state, labels, detailed_labels):
         """Explain owned computation metadata without refreshing or recomputing.
 
         Missing historical records stay unknown. Search counts describe returned
@@ -384,9 +384,13 @@ class PersonalCoursePlanService:
                 "soft_meeting_count": evaluation["violation_count"] if evaluation else None,
                 "friday_meeting_count": row["friday_meeting_count"],
                 "locked_class_count": sum(item["locked"] for item in row["classes"])})
+            if row["label"] in detailed_labels:
+                options[-1]["classes"] = [{key: deepcopy(item[key]) for key in
+                    ("class_ref", "course_code", "course_name", "weekday_period_text")} for item in row["classes"]]
         return {"origin": "owned_last_computation", "solver_executed_this_call": False,
             "current_sources_read": False,
             "credit_target": {"minimum": constraints["target_credits"], "maximum": constraints["max_credits"]},
+            **({"course_count": constraints["course_count"]} if "course_count" in constraints else {}),
             "scope": {"input_course_count": len(scope_codes),
                 "returned_search_count": len(returned) if returned is not None else None,
                 "omitted_count": len(set(returned) - scope_codes) if returned is not None else None,
@@ -443,7 +447,7 @@ class PersonalCoursePlanService:
                     "locked_classes": locked_classes, "selection_only": True, "fresh_sources_required": True}, actions=["compare", "revise"])
             if state.get("policy"):
                 result["policy_status"] = self._policy_status(state["policy"])
-            result["computation_summary"] = self._computation_summary(state, labels)
+            result["computation_summary"] = self._computation_summary(state, labels, {row["label"] for row in hint_options})
             return self._wrap(result)
         state = (self._plans.get(args["plan_ref"]) if name == NAMES[2] else self._plans.get(active_ref) if policy_on and name == NAMES[1] else None)
         if name == NAMES[1] and policy_on and active_ref is not None and state is None:
@@ -467,7 +471,8 @@ class PersonalCoursePlanService:
                 "matching_course_count": found["matching_course_count"], "truncated": found["truncated"]},
                 courses=[{"course_code": r["course_code"], "course_name": r["course_name"], "credits": r["nominal_credits"],
                           "observed_section_count": r["section_count"], "observation_count": r["observation_count"],
-                          "observed_code_links": r["observed_code_links"]} for r in found["courses"]], actions=["generate"])
+                          "observed_code_links": r["observed_code_links"],
+                          "observation_summary": deepcopy(r["observation_summary"])} for r in found["courses"]], actions=["generate"])
             if turn_identity is not None:
                 previous = self._search_admission
                 same_turn = previous and previous["turn"] is turn_identity and previous["version"] == found["dataset_version"]
@@ -531,6 +536,26 @@ class PersonalCoursePlanService:
             policy = compile_hard_constraints(policy_context["user_message"], policy_context["hard_preferences"],
                 inherited_policy=inherited_policy, overrides=overrides,
                 soft_preferences=policy_context.get("soft_preferences", []), consumed_expressions=consumed_expressions)
+            if state is None and policy["status"] == "ready":
+                # Explicit human bounds are the initial target, not a floor
+                # that the model may silently tighten. Options may exceed the
+                # minimum without rewriting the student's requested minimum.
+                args = {**args, **{field: value for field, value in policy["engine_patch"].items()
+                    if field in {"target_credits", "max_credits"}}}
+                if "max_credits" not in policy["engine_patch"]:
+                    # An optional model value cannot invent a human ceiling.
+                    args.pop("max_credits", None)
+                # Bind an explicit first preference to the human request, just
+                # like credit bounds. A mistaken model level must not turn a
+                # soft request into a hard constraint or require another call.
+                # Unknown, quoted and partial-day requests still pass through
+                # the original evidence guard below; no default is invented.
+                human_level = policy["engine_patch"].get("friday_free")
+                if human_level in {"soft", "hard"} and any(
+                        authorize_changes(message, {"friday_free": human_level},
+                            prior_constraints={"friday_free": "none"}, class_metadata={})["status"] == "ready"
+                        for message in [policy_context["user_message"], *policy_context.get("pending_messages", [])]):
+                    args = {**args, "friday_free": human_level}
             if state is None and args["friday_free"] != "none":
                 # The required tool field is not authority to invent a first
                 # preference. A verified explicit period scope is also not
@@ -634,7 +659,7 @@ class PersonalCoursePlanService:
                 maximum = policy["engine_patch"]["max_credits"] if maximum is None else min(_number(maximum), _number(policy["engine_patch"]["max_credits"]))
             constraints = engine.new_constraints(credit_target, friday_free=policy["engine_patch"].get("friday_free", "off" if args["friday_free"] == "none" else args["friday_free"]),
                 required_course_codes=args.get("required_course_codes", []), max_credits=maximum, fixed_meetings=fixed,
-                soft_free_slots=policy["soft_free_slots"])
+                soft_free_slots=policy["soft_free_slots"], course_count=policy["engine_patch"].get("course_count"))
             output = engine.recommend(constraints, limit=3)
             options, search = output["options"], output["search"]
             labels = list("ABC"[:len(options)])
@@ -680,6 +705,7 @@ class PersonalCoursePlanService:
             constraints={"target_credits": constraints["target_credits"], "max_credits": constraints["max_credits"],
                 "friday_free": "none" if constraints["friday_free"] == "off" else constraints["friday_free"],
                 "required_course_codes": constraints["required_course_codes"],
+                **({"course_count": constraints["course_count"]} if "course_count" in constraints else {}),
                 "soft_free_slots": sorted(([row for row in constraints.get("soft_free_slots", []) if row["weekday"] != 5]
                     + [{"weekday": 5, "periods": None}]) if constraints["friday_free"] == "soft"
                     else deepcopy(constraints.get("soft_free_slots", [])), key=lambda row: row["weekday"])},
@@ -707,8 +733,10 @@ def valid_computation_summary(summary):
               "options", "ranking", "rejections", "exact_target"}
     credit = lambda v: type(v) is str and len(v) <= 32 and (n := _number(v)) is not None and n <= 1200
     count = lambda v, maximum=1000000: type(v) is int and 0 <= v <= maximum
-    if (type(summary) is not dict or set(summary) != fields or summary["origin"] != "owned_last_computation"
+    if (type(summary) is not dict or set(summary) - {"course_count"} != fields or summary["origin"] != "owned_last_computation"
             or summary["solver_executed_this_call"] is not False or summary["current_sources_read"] is not False):
+        return False
+    if "course_count" in summary and (type(summary["course_count"]) is not int or not 1 <= summary["course_count"] <= 12):
         return False
     target, scope, ranking = summary["credit_target"], summary["scope"], summary["ranking"]
     if (type(target) is not dict or set(target) != {"minimum", "maximum"} or not credit(target["minimum"])
@@ -736,7 +764,7 @@ def valid_computation_summary(summary):
         return False
     labels = set()
     for row in summary["options"]:
-        if (type(row) is not dict or set(row) != {"label", "total_credits", "excess_above_minimum",
+        if (type(row) is not dict or set(row) - {"classes"} != {"label", "total_credits", "excess_above_minimum",
                 "soft_meeting_count", "friday_meeting_count", "locked_class_count"}
                 or type(row["label"]) is not str or row["label"] not in {"A", "B", "C"} or row["label"] in labels
                 or row["total_credits"] is not None and not credit(row["total_credits"])
@@ -745,6 +773,20 @@ def valid_computation_summary(summary):
                 or row["soft_meeting_count"] is not None and not count(row["soft_meeting_count"], 10000)
                 or not count(row["friday_meeting_count"], 10000) or not count(row["locked_class_count"], 12)):
             return False
+        if "classes" in row:
+            if type(row["classes"]) is not list or not 1 <= len(row["classes"]) <= 12:
+                return False
+            refs = set()
+            for item in row["classes"]:
+                if (type(item) is not dict or set(item) != {"class_ref", "course_code", "course_name", "weekday_period_text"}
+                        or type(item["class_ref"]) is not str or not _REFS["class"].fullmatch(item["class_ref"])
+                        or item["class_ref"] in refs or type(item["course_code"]) is not str or not _CODE.fullmatch(item["course_code"])
+                        or item["course_name"] is not None and (type(item["course_name"]) is not str or len(item["course_name"]) > 600)
+                        or type(item["weekday_period_text"]) is not list or not 1 <= len(item["weekday_period_text"]) <= 60
+                        or any(type(slot) is not str or not re.fullmatch(r"周[一二三四五六日]第[0-9]+(?:、[0-9]+)*节", slot)
+                               for slot in item["weekday_period_text"])):
+                    return False
+                refs.add(item["class_ref"])
         if row["total_credits"] is not None and _number(row["excess_above_minimum"]) != max(
                 Decimal(0), _add(_number(row["total_credits"]), _number(target["minimum"]).copy_negate())):
             return False
@@ -807,21 +849,39 @@ def _project_course_plan_result(payload):
         bad()
     for row in r["courses"]:
         required_course = {"course_code", "course_name", "credits", "observed_section_count", "observation_count"}
-        if (type(row) is not dict or not required_course <= set(row) or set(row) - required_course - {"observed_code_links"}
+        if (type(row) is not dict or not required_course <= set(row) or set(row) - required_course - {"observed_code_links", "observation_summary"}
                 or type(row["course_code"]) is not str or not _CODE.fullmatch(row["course_code"]) or not safe_text(row["course_name"])
                 or not credit(row["credits"]) or any(type(row[k]) is not int or row[k] < 0 for k in ("observed_section_count", "observation_count"))):
             bad()
         if "observed_code_links" in row and not valid_observed_code_links(row["observed_code_links"], row["course_code"]):
             bad()
+        if "observation_summary" in row:
+            summary = row["observation_summary"]
+            if (type(summary) is not dict or set(summary) != {"usable_section_count", "friday_free_section_count",
+                    "weekday_period_text", "blocking_reasons", "current_availability_verified"}
+                    or any(type(summary[k]) is not int for k in ("usable_section_count", "friday_free_section_count"))
+                    or not 0 <= summary["friday_free_section_count"] <= summary["usable_section_count"] <= row["observed_section_count"]
+                    or summary["current_availability_verified"] is not False
+                    or type(summary["weekday_period_text"]) is not list or len(summary["weekday_period_text"]) > 12
+                    or any(type(t) is not str or not re.fullmatch(r"周[一二三四五六日]第[0-9、]+节", t) or len(t) > 200 for t in summary["weekday_period_text"])
+                    or type(summary["blocking_reasons"]) is not list
+                    or len(summary["blocking_reasons"]) > 4
+                    or len(set(summary["blocking_reasons"])) != len(summary["blocking_reasons"])
+                    or any(reason not in {"observation_order_unknown_requires_explicit_lock",
+                        "simultaneous_observations_require_explicit_lock", "excluded_or_unknown_weekday_period",
+                        "historical_nonpositive_capacity"} for reason in summary["blocking_reasons"])):
+                bad()
     if r["search"] is not None and (type(r["search"]) is not dict or set(r["search"]) != {"query", "matching_course_count", "truncated"}
             or not safe_text(r["search"]["query"]) or type(r["search"]["matching_course_count"]) is not int or r["search"]["matching_course_count"] < 0 or type(r["search"]["truncated"]) is not bool):
         bad()
     if r["constraints"] is not None:
         c = r["constraints"]
         if (type(c) is not dict or not {"target_credits", "max_credits", "friday_free", "required_course_codes"} <= set(c)
-                or set(c) - {"target_credits", "max_credits", "friday_free", "required_course_codes", "soft_free_slots"}
+                or set(c) - {"target_credits", "max_credits", "friday_free", "required_course_codes", "soft_free_slots", "course_count"}
                 or not credit(c["target_credits"]) or c["target_credits"] is None or not credit(c["max_credits"])
                 or c["friday_free"] not in {"none", "soft", "hard"} or not _strings(c["required_course_codes"], limit=12, pattern=_CODE)):
+            bad()
+        if "course_count" in c and (type(c["course_count"]) is not int or not 1 <= c["course_count"] <= 12):
             bad()
         if "soft_free_slots" in c and not _valid_soft_scopes(c["soft_free_slots"]):
             bad()
@@ -875,6 +935,11 @@ def _project_course_plan_result(payload):
             if row["label"] in hint_options and row["locked_class_count"] != sum(
                     item["locked"] for item in hint_options[row["label"]]["classes"]):
                 bad()
+            if "classes" in row:
+                if (row["label"] not in hint_options or
+                        [{k: item[k] for k in ("class_ref", "course_code", "course_name")} for item in row["classes"]] !=
+                        [{k: item[k] for k in ("class_ref", "course_code", "course_name")} for item in hint_options[row["label"]]["classes"]]):
+                    bad()
     labels = set()
     class_definitions = {}
     for option in r["options"]:

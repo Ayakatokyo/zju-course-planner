@@ -17,7 +17,7 @@ from .chat_runs import tool_event_fields
 from .personal_acquisition import prepare_recommendation_sources
 from .personal_tasks import PREPARE_RECOMMENDATION_TOOL, validate_recommendation_task
 
-VERSION = "academic-harness-v1"
+VERSION = "academic-harness-v2"
 COMPUTE_TOOLS = frozenset({"generate_current_term_plan", "update_current_term_plan"})
 
 
@@ -51,7 +51,9 @@ class AcademicHarness:
         self.clarification_context = deepcopy(clarification_context)
         self.policy_context = {"user_message": user_message, "hard_preferences": [], "soft_preferences": [],
             "active_plan_ref": active_plan_ref, "pending_messages": []}
-        for task in (task_context or {}).get("tasks", []):
+        # An owned plan already carries canonical constraints. Do not replay
+        # an older model-authored preparation summary over that state.
+        for task in (task_context or {}).get("tasks", []) if active_plan_ref is None else []:
             if task.get("tool") == PREPARE_RECOMMENDATION_TOOL:
                 self.policy_context["hard_preferences"] = deepcopy(task["hard_preferences"])
                 self.policy_context["soft_preferences"] = deepcopy(task.get("soft_preferences", []))

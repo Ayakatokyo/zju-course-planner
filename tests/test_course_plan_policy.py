@@ -5,6 +5,57 @@ from course_assistant.course_plan_policy import compile_hard_constraints, author
 
 
 class CoursePlanPolicyTests(unittest.TestCase):
+    def test_nested_course_name_does_not_create_false_lock_ambiguity(self):
+        metadata = {
+            "long": {"course_code": "SYN-L", "course_name": "应用合成统计", "option_positions": {"A": 1}},
+            "short": {"course_code": "SYN-S", "course_name": "合成统计", "option_positions": {"A": 2}},
+        }
+        message = "锁定A方案里的应用合成统计，周五改为必须空，其余条件保持"
+        proof = authorize_changes(message, {"lock_class_refs": ["long"], "friday_free": "hard"},
+            prior_constraints={"friday_free": "soft"}, class_metadata=metadata)
+        self.assertEqual(proof["status"], "ready")
+        consumed = [text for row in proof["verified_changes"].values() for text in row.get("consumed_expressions", [])]
+        self.assertIn("锁定A方案里的应用合成统计", consumed)
+        compiled = compile_hard_constraints(message, ["锁定A方案里的应用合成统计"], consumed_expressions=consumed)
+        self.assertEqual(compiled["status"], "ready")
+        self.assertEqual(compiled["engine_patch"]["friday_free"], "hard")
+        self.assertEqual(authorize_changes(message, {"lock_class_refs": ["short"]},
+            prior_constraints={}, class_metadata=metadata)["status"], "needs_clarification")
+        metadata["another"] = {**metadata["long"], "option_positions": {"B": 1}}
+        self.assertEqual(authorize_changes(message, {"lock_class_refs": ["long"]},
+            prior_constraints={}, class_metadata=metadata)["status"], "needs_clarification")
+
+    def test_preserved_count_in_compound_request_is_enforced_not_unknown_or_discarded(self):
+        initial = compile_hard_constraints('选3门课程，至少6学分。', [])
+        result = compile_hard_constraints('把周五设为必须空。其他课程范围、3门课和至少6学分的条件都保留。', [], inherited_policy=initial)
+        self.assertEqual(result['status'], 'ready', result)
+        self.assertEqual(result['engine_patch']['course_count'], 3)
+        self.assertEqual(result['engine_patch']['target_credits'], '6')
+        self.assertEqual(result['engine_patch']['friday_free'], 'hard')
+        conflict = compile_hard_constraints('其他课程范围、2门课和至少6学分的条件都保留。', [], inherited_policy=initial)
+        self.assertIn('conflicting_course_count', str(conflict['unresolved']))
+        unknown = compile_hard_constraints('其他课程范围、3门课和必须同校区的条件都保留。', [], inherited_policy=initial)
+        self.assertNotEqual(unknown['status'], 'ready')
+        retained = compile_hard_constraints('现在把周五改成必须空，课程范围、锁定、3门课和至少6学分都保留。',
+            ['锁定'], inherited_policy=initial)
+        self.assertEqual(retained['status'], 'ready', retained)
+        self.assertEqual(retained['engine_patch'], result['engine_patch'])
+        for clause in ('锁定新课程', '新增锁定', '锁定那门课'):
+            pending = compile_hard_constraints('课程范围、' + clause + '、3门课和至少6学分都保留。', [], inherited_policy=initial)
+            self.assertNotEqual(pending['status'], 'ready', clause)
+
+    def test_explicit_course_count_is_bound_inherited_and_only_changed_by_request(self):
+        initial = compile_hard_constraints("选3门数据分析相关课程，至少6学分，周五尽量空", [])
+        self.assertEqual(initial["status"], "ready")
+        self.assertEqual(initial["engine_patch"]["course_count"], 3)
+        for message in ("锁定第一门，其他条件保持", "不要改成2门", "如果改成2门会怎样？"):
+            with self.subTest(message=message):
+                self.assertEqual(compile_hard_constraints(message, [], inherited_policy=initial)["engine_patch"]["course_count"], 3)
+        changed = compile_hard_constraints("改为两门，其他条件保持", [], inherited_policy=initial)
+        self.assertEqual(changed["engine_patch"]["course_count"], 2)
+        self.assertEqual(changed["engine_patch"]["target_credits"], "6")
+        self.assertEqual(compile_hard_constraints("选3门，必须选4门", [])["status"], "needs_clarification")
+
     def test_missing_grade_instruction_does_not_block_or_hide_schedule_constraints(self):
         phrase = "不能把未见成绩当作没学过"
         result = compile_hard_constraints("至少6学分，尽量周五空闲；" + phrase, [])
@@ -19,6 +70,15 @@ class CoursePlanPolicyTests(unittest.TestCase):
                 self.assertEqual(result["blocked_slots"][0]["periods"], [6, 7, 8])
         self.assertEqual(compile_hard_constraints(phrase + "且必须同校区", [])["status"], "needs_clarification")
         self.assertEqual(compile_hard_constraints(phrase + "且周三下午必须空", [])["status"], "needs_clarification")
+
+    def test_execution_and_preservation_prose_does_not_accumulate_in_plan_state(self):
+        original = compile_hard_constraints("至少6学分，周五必须空闲", [])
+        current = original
+        for text in ["其他条件保留", "必须实际计算", "必须说明来源和未知项"] * 10:
+            current = compile_hard_constraints(text, [], inherited_policy=current)
+        self.assertEqual(current["requirements"], original["requirements"])
+        self.assertEqual(current["engine_patch"], original["engine_patch"])
+        self.assertEqual(current["status"], "ready")
 
     def metadata(self):
         return {"class-one": {"course_code": "SYN-ONE", "course_name": "合成一", "locked": True, "option_positions": {"A": 1}},

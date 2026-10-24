@@ -40,6 +40,39 @@ class PersonalCoursePlanTests(unittest.TestCase):
     def search(self, turn=None):
         return self.service.execute(NAMES[0], {"query": "Synthetic", "target_term": CURRENT_TERM}, turn_identity=self.turn if turn is None else turn)
 
+    def test_human_course_count_reaches_solver_projection_inspect_and_revision(self):
+        self.search()
+        context = {"user_message": "选3门课程，至少6学分，周五尽量空", "hard_preferences": [], "active_plan_ref": None}
+        first = self.service.execute(NAMES[1], {"recommendation_kind": "courses", "target_term": CURRENT_TERM,
+            "course_codes": ["SYN-A", "SYN-B", "SYN-C"], "target_credits": 7, "max_credits": 8, "friday_free": "soft"},
+            sources=sources(), turn_identity=self.turn, policy_context=context, enforce_policy=True)
+        plan = project_course_plan_result(first)["result"]
+        self.assertEqual(plan["constraints"]["course_count"], 3)
+        self.assertEqual(plan["constraints"]["target_credits"], "6")
+        self.assertIsNone(plan["constraints"]["max_credits"])
+        self.assertTrue(plan["options"])
+        self.assertTrue(all(len(option["classes"]) == 3 for option in plan["options"]))
+        context.update(active_plan_ref=plan["plan_ref"], user_message="只解释保存方案")
+        inspected = self.service.execute(NAMES[3], {}, policy_context=context, enforce_policy=True)
+        self.assertEqual(project_course_plan_result(inspected)["result"]["computation_summary"]["course_count"], 3)
+        context["user_message"] = "锁定A第一门，其他条件都照旧。"
+        locked_ref = plan["options"][0]["classes"][0]["class_ref"]
+        locked = self.service.execute(NAMES[2], {"plan_ref": plan["plan_ref"], "expected_revision": 0,
+            "action": "revise", "lock_class_refs": [locked_ref]}, sources=sources(), turn_identity=[],
+            policy_context=context, enforce_policy=True)
+        self.assertEqual(locked["result"]["locked_class_refs"], [locked_ref])
+        context["user_message"] = "现在把周五改成必须空，课程范围、锁定、3门课和至少6学分都保留。"
+        revised = self.service.execute(NAMES[2], {"plan_ref": plan["plan_ref"], "expected_revision": 1,
+            "action": "revise", "friday_free": "hard"}, sources=sources(), turn_identity=[],
+            policy_context=context, enforce_policy=True)
+        result = project_course_plan_result(revised)["result"]
+        self.assertEqual(result["constraints"]["course_count"], 3)
+        self.assertEqual(result["constraints"]["target_credits"], "6")
+        self.assertEqual(result["constraints"]["friday_free"], "hard")
+        self.assertEqual(result["locked_class_refs"], [locked_ref])
+        self.assertIsNone(result["constraints"]["max_credits"])
+        self.assertEqual(result["options"], [])
+
     def test_colisted_code_projects_observation_and_admits_only_canonical_candidate(self):
         data = fixture()
         data["courses"][0]["definitions"][0]["fields"]["display_code"] = {"state": "known", "value": "SYN-A(99123450)"}
@@ -562,7 +595,7 @@ class PersonalCoursePlanTests(unittest.TestCase):
         base = {"recommendation_kind": "courses", "target_term": CURRENT_TERM,
             "course_codes": ["SYN-A", "SYN-B", "SYN-C"], "target_credits": 5}
         for message, level in (("推荐五学分", "soft"), ("推荐五学分", "hard"),
-                ("推荐五学分，周五尽量空", "hard"), ("如果周五尽量空会怎样", "soft"),
+                ("如果周五尽量空会怎样", "soft"),
                 ("不是要求周五必须空", "hard"), ("原文说‘周五尽量空’", "soft")):
             with self.subTest(message=message, level=level):
                 args = {**base, "friday_free": level}
@@ -578,6 +611,21 @@ class PersonalCoursePlanTests(unittest.TestCase):
             policy_context=self.policy("推荐五学分，周五尽量空"))["result"]
         self.assertTrue(allowed["options"])
         self.assertEqual(allowed["constraints"]["friday_free"], "soft")
+
+    def test_initial_friday_uses_explicit_human_level_in_one_calculation(self):
+        self.search()
+        for phrase, expected in (("周五尽量空", "soft"), ("周五必须空", "hard")):
+            for proposed in ("none", "soft", "hard"):
+                with self.subTest(phrase=phrase, proposed=proposed):
+                    args = {"recommendation_kind": "courses", "target_term": CURRENT_TERM,
+                        "course_codes": ["SYN-A", "SYN-B", "SYN-C"], "target_credits": 5, "friday_free": proposed}
+                    original = deepcopy(args)
+                    result = self.service.execute(NAMES[1], args, sources=sources(), turn_identity=self.turn,
+                        policy_context=self.policy("推荐五学分，" + phrase))["result"]
+                    self.assertTrue(result["options"])
+                    self.assertIsNone(result["reason"])
+                    self.assertEqual(result["constraints"]["friday_free"], expected)
+                    self.assertEqual(args, original)
 
     def test_initial_friday_period_scope_is_not_silently_widened_to_a_whole_day(self):
         self.search()

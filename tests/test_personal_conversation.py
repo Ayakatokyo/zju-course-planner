@@ -3,7 +3,7 @@ import json
 import unittest
 
 from course_assistant.personal_chat import PersonalChatService
-from course_assistant.personal_dialogue import PersonalDialogueService, _course_plan_claim
+from course_assistant.personal_dialogue import PersonalDialogueService
 from tests import test_live_source_dialogue as live_fixtures
 from tests.test_personal_dialogue import ScriptedModel, call, final
 
@@ -21,9 +21,8 @@ class PersonalConversationTests(unittest.TestCase):
 
     @staticmethod
     def explain(messages, tools):
-        result = json.loads(messages[-1]["content"])
-        return final({"kind": "answer", "claims": [{"text": item["text"], "evidence_ids": [item["evidence_id"]]}
-                                                  for item in result["entries"]]})
+        result = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+        return final({'kind': 'answer', 'text': '\n\n'.join([item['text'] for item in result['entries']]), 'evidence_ids': (sum([[item['evidence_id']] for item in result['entries']], []))})
 
     def test_explanation_keeps_previous_answer_but_never_replays_school_facts(self):
         state = {"turns": [{"message": "查成绩概况", "reply": "合成测试：成绩未知3条。",
@@ -42,26 +41,12 @@ class PersonalConversationTests(unittest.TestCase):
         self.assertNotIn("THINKING-NOT-TRANSMITTED", wire)
         self.assertEqual(response["citations"][0]["kind"], "academic_term")
 
-    def test_irrelevant_capabilities_answer_gets_one_tool_enabled_correction(self):
-        response, model = self.run_dialogue("未知成绩是什么意思", [
-            final({"kind": "general_chat", "intent": "capabilities"}),
-            call("lookup_academic_terms", {"topics": ["unknown_grade", "completion_status"]}), self.explain])
-        self.assertEqual(response["status"], "completed")
-        self.assertEqual(len(model.calls), 3)
-        self.assertIn("lookup_academic_terms", [t["function"]["name"] for t in model.calls[1][1]])
-        self.assertNotIn("我可以查询你的成绩", response["reply"])
-        self.assertEqual(len(self.sources.executed), 1)
 
-    def test_repeated_irrelevant_answer_is_failed_not_completed(self):
-        wrong = final({"kind": "general_chat", "intent": "capabilities"})
-        response, model = self.run_dialogue("未知成绩是什么意思", [wrong, wrong])
-        self.assertEqual(response["status"], "failed")
-        self.assertEqual(len(model.calls), 2)
 
     def test_all_terms_cannot_be_finished_with_major_history_summary(self):
         response, model = self.run_dialogue("每个学期的成绩都需要", [
             call("query_my_records", {"operation": "major_academic", "mode": "summary"}),
-            final({"kind": "clarify", "question": "需要从哪个学年学期查到哪个学年学期？"})])
+            final({'kind': "clarify", 'text': "需要从哪个学年学期查到哪个学年学期？"})])
         self.assertEqual(response["model_decision"]["kind"], "clarify")
         self.assertEqual(len(model.calls), 2)
         self.assertEqual([name for name, _ in self.sources.executed], ["get_my_context"])
@@ -80,12 +65,3 @@ class PersonalConversationTests(unittest.TestCase):
         response, _ = self.run_dialogue("解释成绩", [call("lookup_academic_terms", {"topics": ["unknown_grade", "invented_policy"]})])
         self.assertEqual(response["status"], "failed")
         self.assertFalse(any(item["kind"] == "academic_term" for item in response["citations"]))
-
-    def test_search_evidence_after_calculation_does_not_request_generation_again(self):
-        proofs = {"search": {"kind": "course_data_plan", "tool_index": 1,
-            "course_data_plan": {"action": "search", "target_term": "2026-2027-AW", "courses": []}}}
-        claim = {"kind": "course_data_plan", "evidence_id": "search"}
-        self.assertIn("可以继续", _course_plan_claim(claim, proofs)[0])
-        proofs["generated"] = {"kind": "course_data_plan", "tool_index": 2,
-            "course_data_plan": {"action": "generate", "target_term": "2026-2027-AW"}}
-        self.assertNotIn("可以继续", _course_plan_claim(claim, proofs)[0])

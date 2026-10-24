@@ -93,8 +93,7 @@ class PreparedContextDialogueTests(unittest.TestCase):
     @classmethod
     def prepared_answer(cls, messages, tools):
         prepared = next(row for row in reversed(cls.tool_values(messages)) if "prepared_sources" in row)
-        return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-            "evidence_id": prepared["evidence_id"], "sections": ["sources", "next_step"]}]})
+        return final({'kind': 'answer', 'text': '正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', 'evidence_ids': ([prepared['evidence_id']])})
 
     def test_prepare_exposes_current_bounded_facts_with_usable_citations_and_no_raw_private_fields(self):
         def answer(messages, tools):
@@ -107,12 +106,7 @@ class PreparedContextDialogueTests(unittest.TestCase):
             self.assertEqual(len(children[2]["result"]["records"]), 3)
             self.assertFalse(prepared["readiness"]["can_generate"])
             self.assertEqual(prepared["readiness"]["sources"][3]["status"], "partial")
-            return final({"kind": "answer", "claims": [
-                {"kind": "recommendation_readiness", "evidence_id": prepared["evidence_id"], "sections": ["sources"]},
-                {"kind": "source_summary", "evidence_id": summary["evidence_id"], "sections": ["counts"]},
-                {"text": "合成培养片段仍需核对适用与完整规则。",
-                 "evidence_ids": [children[1]["result"]["matches"][0]["evidence_id"]]},
-                {"text": "已取得本轮课表记录。", "evidence_ids": [children[2]["result"]["records"][0]["evidence_id"]]}]})
+            return final({'kind': 'answer', 'text': '\n\n'.join(['正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', '本次匹配4条记录，纯数字成绩2条，成绩未知1条；简单均值85.00，不是GPA。', '合成培养片段仍需核对适用与完整规则。', '已取得本轮课表记录。']), 'evidence_ids': ([prepared['evidence_id']]) + ([summary['evidence_id']]) + ([children[1]['result']['matches'][0]['evidence_id']]) + ([children[2]['result']['records'][0]['evidence_id']])})
         response, messages, model = self.run_dialogue([call("prepare_recommendation_inputs", TASK), answer])
         self.assertEqual(response["status"], "completed", response)
         self.assertEqual(response["task_progress"]["status"], "blocked")
@@ -143,10 +137,10 @@ class PreparedContextDialogueTests(unittest.TestCase):
                     self.assertEqual(values[-1]["code"], "invalid_tool_result")
                     context_id = self.context_value(messages)["evidence_id"]
                     stale = "S" + context_id[1:].rsplit("-", 1)[0] + "-3"
-                    return final({"kind": "answer", "claims": [{"text": "此引用必须被回滚。", "evidence_ids": [stale]}]})
+                    return final({'kind': 'answer', 'text': "此引用必须被回滚。", 'evidence_ids': [stale]})
                 def context_answer(messages, tools):
                     reference = self.context_value(messages)["evidence_id"]
-                    return final({"kind": "answer", "claims": [{"text": "本轮仅确认了可查询范围。", "evidence_ids": [reference]}]})
+                    return final({'kind': 'answer', 'text': "本轮仅确认了可查询范围。", 'evidence_ids': [reference]})
                 response, _, model = self.run_dialogue([call("prepare_recommendation_inputs", TASK), stale_claim, context_answer])
                 self.assertEqual(response["status"], "completed", response)
                 self.assertEqual(response["validation_diagnostics"][0]["failure_detail"], "evidence_not_current")
@@ -157,10 +151,8 @@ class PreparedContextDialogueTests(unittest.TestCase):
         def finish(messages, tools):
             prepared = next(row for row in self.tool_values(messages) if "prepared_sources" in row)
             latest = self.tool_values(messages)[-1]
-            self.assertEqual({row["function"]["name"] for row in tools}, {"query_my_records"})
-            return final({"kind": "answer", "claims": [
-                {"kind": "recommendation_readiness", "evidence_id": prepared["evidence_id"], "sections": ["next_step"]},
-                {"text": "已核对本轮取得的一条课表记录。", "evidence_ids": [latest["records"][0]["evidence_id"]]}]})
+            self.assertEqual({row["function"]["name"] for row in tools}, {"query_my_records", "finish_answer"})
+            return final({'kind': 'answer', 'text': '\n\n'.join(['正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', '已核对本轮取得的一条课表记录。']), 'evidence_ids': ([prepared['evidence_id']]) + ([latest['records'][0]['evidence_id']])})
         response, _, _ = self.run_dialogue([call("prepare_recommendation_inputs", TASK),
             call("query_my_records", {"operation": "timetable", "target_term": TERM, "limit": 1}, "diagnose"), finish])
         self.assertEqual(response["status"], "completed", response)
@@ -188,7 +180,7 @@ class PreparedContextDialogueTests(unittest.TestCase):
         self.assertEqual(response["repair_attempts"], 1)
         self.assertEqual([name for name, _ in self.executed],
                          ["get_my_context", "prepare_recommendation_inputs", "query_my_records", "query_my_records"])
-        self.assertEqual(model.calls[-2][1], [])
+        self.assertEqual([tool["function"]["name"] for tool in model.calls[-2][1]], ["finish_answer"])
 
     def test_previous_preparation_is_historical_and_needs_no_school_read(self):
         readiness = self.wrapper(TASK)["readiness"]
@@ -199,8 +191,7 @@ class PreparedContextDialogueTests(unittest.TestCase):
         def answer(messages, tools):
             value = self.tool_values(messages)[-1]["previous_preparation"]
             self.assertTrue(value["historical_only"])
-            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-                "evidence_id": value["evidence_id"], "sections": ["next_step"]}]})
+            return final({'kind': 'answer', 'text': '上一轮准备检查中，接口未声明总数；本轮未重新读取教务资料。', 'evidence_ids': ([value['evidence_id']])})
         response, _, _ = self.run_dialogue([call("get_my_run_diagnostics", {}), answer], execution_context=diagnostic)
         self.assertEqual(response["status"], "completed", response)
         self.assertIn("上一轮准备检查", response["reply"])

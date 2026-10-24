@@ -60,7 +60,7 @@ class RecommendationDialogueTests(unittest.TestCase):
     @staticmethod
     def typed_last(messages, tools):
         evidence = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
-        return final({"kind": "answer", "claims": [{"kind": "course_data_plan", "evidence_id": evidence}]})
+        return final({'kind': 'answer', 'text': '本轮返回了课程条件测试资料，请按实际方案核对。', 'evidence_ids': ([evidence])})
 
     def test_complete_local_workflow_uses_prepared_sources_actual_search_and_solver(self):
         response, messages, model = self.run_dialogue([
@@ -96,24 +96,19 @@ class RecommendationDialogueTests(unittest.TestCase):
 
         def explain(messages, tools):
             evidence = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
-            return final({"kind": "answer", "claims": [{"kind": "course_data_plan", "evidence_id": evidence,
-                "sections": ["credit_target", "observed_tradeoff", "scope_limits"]}]})
+            return final({'kind': 'answer', 'text': '不少于6学分是下限；A比下限多1学分。本轮没有重新选课或修改条件。', 'evidence_ids': ([evidence])})
 
-        def untyped(messages, tools):
-            evidence = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
-            return final({"kind": "answer", "claims": [{"text": "已经完成课表推荐。", "evidence_ids": [evidence]}]})
-
-        model = ScriptedModel([call("get_current_term_plan", {}), untyped, explain])
+        model = ScriptedModel([call("get_current_term_plan", {}), explain])
         response, _ = PersonalDialogueService(model, self.authorize, self.execute).run(
             "为什么目标6学分给了7学分？只解释已有计算，不改变条件或另找课程。", data_use="personal_retrieval")
         self.assertEqual(response["status"], "completed", response)
         self.assertIn("不少于6学分", response["reply"])
         self.assertIn("比下限多1学分", response["reply"])
-        self.assertIn("计算细节见依据", response["reply"])
+        self.assertNotIn("见依据", response["reply"])
+        self.assertIn("没有重新选课或修改条件", response["reply"])
         self.assertNotIn("软空闲时段占用", response["reply"])
         self.assertLess(len(response["reply"]), 240)
-        self.assertEqual(response["repair_attempts"], 1)
-        self.assertEqual(response["validation_diagnostics"][0]["failure_detail"], "course_plan_requires_structured_claim")
+        self.assertEqual(response["repair_attempts"], 0)
         self.assertNotIn("已经完成课表推荐", response["reply"])
         self.assertEqual([name for name, _ in self.executed], ["get_my_context", "get_current_term_plan"])
         self.assertEqual(self.plan._plans, saved)
@@ -133,10 +128,9 @@ class RecommendationDialogueTests(unittest.TestCase):
 
     @staticmethod
     def prepared_source_answer(messages, tools):
-        assert {row["function"]["name"] for row in tools} <= {"query_my_records"}
+        assert {row["function"]["name"] for row in tools} <= {"query_my_records", "finish_answer"}
         value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
-        return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-            "evidence_id": value["evidence_id"], "sections": ["sources"]}]})
+        return final({'kind': 'answer', 'text': '正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', 'evidence_ids': ([value['evidence_id']])})
 
     def test_actual_partial_timetable_prepare_ends_with_evidence_without_candidate_loop(self):
         self.timetable_prepare_receipt("partial")
@@ -169,8 +163,8 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.assertEqual(result["repair_attempts"], 1)
         self.assertEqual(len(model.calls), 3)
         self.assertEqual([name for name, _ in self.executed], ["get_my_context", "prepare_recommendation_inputs"])
-        self.assertEqual([row["function"]["name"] for row in model.calls[1][1]], ["query_my_records"])
-        self.assertEqual(model.calls[2][1], [])
+        self.assertEqual([row["function"]["name"] for row in model.calls[1][1]], ["query_my_records", "finish_answer"])
+        self.assertEqual([tool["function"]["name"] for tool in model.calls[2][1]], ["finish_answer"])
 
     def test_available_timetable_keeps_tools_available(self):
         self.timetable_prepare_receipt("available")
@@ -187,7 +181,7 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.sources["timetable"] = {"status": "available", "verified": True,
             "records": [{"field_states": {"meetings": "unknown"}}]}
         def final_result(messages, tools):
-            self.assertEqual([row["function"]["name"] for row in tools], ["query_my_records"])
+            self.assertEqual([row["function"]["name"] for row in tools], ["query_my_records", "finish_answer"])
             return self.typed_last(messages, tools)
         result, _, _ = self.run_dialogue([
             call("prepare_recommendation_inputs", {**TASK, "recommendation_kind": "timetable"}),
@@ -226,9 +220,8 @@ class RecommendationDialogueTests(unittest.TestCase):
 
     def test_check_only_does_not_imply_preparation_or_recommendation_completion(self):
         def typed_check(messages, tools):
-            evidence = json.loads(messages[-1]["content"])["evidence_id"]
-            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness", "evidence_id": evidence,
-                "sections": ["sources"]}]})
+            evidence = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
+            return final({'kind': 'answer', 'text': '正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', 'evidence_ids': ([evidence])})
         response, _, _ = self.run_dialogue([call("check_recommendation_inputs", {"recommendation_kind": "courses", "target_term": TERM}), typed_check])
         self.assertEqual(response["status"], "completed")
         self.assertNotIn("task_progress", response)
@@ -239,10 +232,7 @@ class RecommendationDialogueTests(unittest.TestCase):
         def typed_plan_and_preparation(messages, tools):
             returned = [json.loads(row["content"]) for row in messages if row["role"] == "tool"]
             prepared = next(row for row in returned if "readiness" in row)
-            return final({"kind": "answer", "claims": [
-                {"kind": "course_data_plan", "evidence_id": returned[-1]["evidence_id"]},
-                {"kind": "recommendation_readiness", "evidence_id": prepared["evidence_id"],
-                    "sections": ["next_step"]}]})
+            return final({'kind': 'answer', 'text': '\n\n'.join(['本轮返回了课程条件测试资料，请按实际方案核对。', '正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。']), 'evidence_ids': ([returned[-1]['evidence_id']]) + ([prepared['evidence_id']])})
 
         response, _, _ = self.run_dialogue([
             call("prepare_recommendation_inputs", TASK),
@@ -263,7 +253,6 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.assertFalse(readiness["can_save_or_export"])
         self.assertIn("条件测试", response["reply"])
         self.assertIn("正式推荐尚未就绪", response["reply"])
-        self.assertIn("正式方案生成、保存和导出尚未开放", response["reply"])
         self.assertNotIn("，方案生成、保存和导出均未开放", response["reply"])
 
     def test_prepare_not_declared_without_dynamic_source_capabilities(self):
@@ -280,7 +269,7 @@ class RecommendationDialogueTests(unittest.TestCase):
             "authorization_granted": False, "facts_reusable": False, "fresh_sources_required": True}
         for context, expected in ((None, ["current_message"]),
                 (pending, ["current_message", "pending_task"]), (None, ["current_message"])):
-            _, _, model = self.run_dialogue([final({"kind": "not_ready", "reason": "insufficient_evidence"})],
+            _, _, model = self.run_dialogue([final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []})],
                 clarification_context=context)
             declared = next(t for t in model.calls[0][1] if t["function"]["name"] == "prepare_recommendation_inputs")
             self.assertEqual(declared["function"]["parameters"]["properties"]["request_basis"]["enum"], expected)
@@ -289,7 +278,9 @@ class RecommendationDialogueTests(unittest.TestCase):
 
     def test_missing_pending_basis_returns_actionable_diagnostic_before_source_dispatch(self):
         def correct_basis(messages, tools):
-            diagnostic = json.loads(messages[-1]["content"])
+            diagnostic = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            self.assertEqual(diagnostic.pop("execution_budget")["remaining_tool_calls"], 8)
+            self.assertIn("待补请求", diagnostic.pop("next_step"))
             self.assertEqual(diagnostic, {"status": "not_ready", "code": "clarification_context_missing",
                 "unknown": ["no_evidence_returned"], "query_executed": False,
                 "allowed_request_basis": ["current_message"], "pending_task_available": False})
@@ -297,9 +288,8 @@ class RecommendationDialogueTests(unittest.TestCase):
             return call("prepare_recommendation_inputs", {**TASK, "request_basis": "current_message"}, "corrected")
 
         def typed_preparation(messages, tools):
-            proof = json.loads(messages[-1]["content"])["evidence_id"]
-            return final({"kind": "answer", "claims": [{"kind": "recommendation_readiness",
-                "evidence_id": proof, "sections": ["sources"]}]})
+            proof = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
+            return final({'kind': 'answer', 'text': '正式推荐尚未就绪；接口未声明总数，文本缺失不等于没有课时。', 'evidence_ids': ([proof])})
 
         response, _, _ = self.run_dialogue([
             call("prepare_recommendation_inputs", {**TASK, "request_basis": "pending_task"}),
@@ -321,12 +311,12 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.execute = rejected
 
         def inspect_diagnostic(messages, tools):
-            diagnostic = json.loads(messages[-1]["content"])
+            diagnostic = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
             self.assertEqual(diagnostic["code"], "clarification_context_missing")
             self.assertEqual(diagnostic["allowed_request_basis"], ["current_message"])
             self.assertFalse(diagnostic["query_executed"])
             self.assertNotIn("NEVER-SEND", json.dumps(messages))
-            return final({"kind": "not_ready", "reason": "insufficient_evidence"})
+            return final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []})
 
         response, _, _ = self.run_dialogue([call("prepare_recommendation_inputs", TASK), inspect_diagnostic])
         self.assertEqual(response["status"], "completed")
@@ -338,7 +328,7 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.assertEqual(response["code"], "invalid_tool_arguments")
         self.assertEqual(len(self.executed), 1)
 
-    def test_plan_proof_cannot_be_rewritten_as_free_form_success(self):
+    def test_answer_cannot_change_blocked_computation_to_feasible(self):
         r = _base("generate")
         r["reason"] = "source_preparation_required"
         def execute(name, args):
@@ -346,21 +336,21 @@ class RecommendationDialogueTests(unittest.TestCase):
                 return deepcopy(self.context)
             return {"status": "not_ready", "data_kind": "course_data_test", "result": r}
         def unsupported(messages, tools):
-            ref = json.loads(messages[-1]["content"])["evidence_id"]
-            return final({"kind": "answer", "claims": [{"text": "这是一个任意编写的结论。", "evidence_ids": [ref]}]})
+            ref = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["evidence_id"]
+            return final({'kind': 'answer', 'text': "这是一个任意编写的结论。", 'evidence_ids': [ref]})
         model = ScriptedModel([call("generate_current_term_plan", {"recommendation_kind": "courses", "target_term": TERM,
             "course_codes": ["SYN-A"], "target_credits": 3, "friday_free": "none"}), unsupported,
-            final({"kind": "not_ready", "reason": "insufficient_evidence"})])
+            final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []})])
         response, _ = PersonalDialogueService(model, self.authorize, execute).run("合成测试", data_use="personal_retrieval")
-        self.assertEqual(response["repair_attempts"], 1)
-        self.assertEqual(response["validation_diagnostics"][0]["failure_detail"], "course_plan_requires_structured_claim")
-        self.assertNotIn("recommendation_result", response)
+        self.assertEqual(response["repair_attempts"], 0)
+        self.assertEqual(response["recommendation_result"]["reason"], "source_preparation_required")
+        self.assertEqual(response["recommendation_result"]["options"], [])
 
     def test_answer_cannot_hide_actual_plan_result_behind_context_citation(self):
         def context_only(messages, tools):
             marker = "服务器已完成本轮本机范围检查（service_preflight get_my_context）：\n"
             context = json.loads(messages[0]["content"].split(marker)[1])
-            return final({"kind": "answer", "claims": [{"text": "当前已有条件测试方案。", "evidence_ids": [context["evidence_id"]]}]})
+            return final({'kind': 'answer', 'text': "当前已有条件测试方案。", 'evidence_ids': [context["evidence_id"]]})
         response, _, _ = self.run_dialogue([
             call("search_current_term_courses", {"query": "Synthetic", "target_term": TERM}),
             call("generate_current_term_plan", {"recommendation_kind": "courses", "target_term": TERM,
@@ -383,7 +373,7 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.assertEqual(response["repair_attempts"], 1)
         self.assertTrue(response["recommendation_result"]["options"])
         self.assertEqual(response["task_progress"]["status"], "limited_result")
-        self.assertEqual(model.calls[-1][1], [])
+        self.assertEqual([tool["function"]["name"] for tool in model.calls[-1][1]], ["finish_answer"])
         self.assertEqual([name for name, _ in self.executed], ["get_my_context", "prepare_recommendation_inputs",
             "search_current_term_courses", "generate_current_term_plan"])
         self.assertNotIn("undeclared_formatter", json.dumps(messages))
@@ -412,12 +402,12 @@ class RecommendationDialogueTests(unittest.TestCase):
     def test_branch_schema_retry_preserves_actual_lock_hard_condition_and_plan_version(self):
         held = {}
         def lock(messages, tools):
-            plan = json.loads(messages[-1]["content"])["result"]
+            plan = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["result"]
             ref = plan["options"][0]["classes"][0]["class_ref"]
             return call("update_current_term_plan", {"plan_ref": plan["plan_ref"], "action": "revise",
                 "expected_revision": plan["revision"], "lock_class_refs": [ref]}, "lock")
         def invalid_branch(messages, tools):
-            plan = json.loads(messages[-1]["content"])["result"]
+            plan = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))["result"]
             held.update(plan=plan, state=deepcopy(self.plan._plans))
             return call("update_current_term_plan", {"plan_ref": plan["plan_ref"], "action": "revise",
                 "expected_revision": plan["revision"], "option_labels": ["A"]}, "bad-branch")
@@ -446,8 +436,7 @@ class RecommendationDialogueTests(unittest.TestCase):
         def omit_plan(messages, tools):
             marker = "服务器已完成本轮本机范围检查（service_preflight get_my_context）：\n"
             context = json.loads(messages[0]["content"].split(marker)[1])
-            return final({"kind": "answer", "claims": [{"text": "当前有课程参考资料。",
-                "evidence_ids": [context["evidence_id"]]}]})
+            return final({'kind': 'answer', 'text': "当前有课程参考资料。", 'evidence_ids': [context["evidence_id"]]})
         response, messages, model = self.run_dialogue([
             call("search_current_term_courses", {"query": "Synthetic", "target_term": TERM}),
             call("generate_current_term_plan", {"recommendation_kind": "courses", "target_term": TERM,
@@ -456,7 +445,7 @@ class RecommendationDialogueTests(unittest.TestCase):
         self.assertEqual(response["code"], "unverified_personal_answer")
         self.assertEqual(response["repair_attempts"], 1)
         self.assertEqual(response["validation_diagnostics"][-1]["failure_detail"], "latest_course_plan_evidence_required")
-        self.assertEqual(model.calls[-1][1], [])
+        self.assertEqual([tool["function"]["name"] for tool in model.calls[-1][1]], ["finish_answer"])
         self.assertNotIn("recommendation_result", response)
         self.assertEqual(messages, [])
 

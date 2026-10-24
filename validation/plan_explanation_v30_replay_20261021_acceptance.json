@@ -1,0 +1,116 @@
+{
+  "recorded_at_utc": "2026-10-21T11:10:36.644064+00:00",
+  "git_base": "e3f304ba4e9c671b4636c83ffffacde41236b45b",
+  "scope": "real deepseek-flash output replay on frozen authorized historical evidence; original tool choices fixed; followup inspect reconstructed only from saved result; not live school workflow",
+  "provider_requests": 6,
+  "returned_model_responses": 4,
+  "successful_final_explanations": 2,
+  "final_protocol_validation": [
+    true,
+    true
+  ],
+  "stages": [
+    {
+      "name": "replay_reference_setup_failure",
+      "requests": 1,
+      "product_result": false,
+      "reason": "substring remapping corrupted longer evidence reference; actual v30 projection was not inserted"
+    },
+    {
+      "name": "initial_frozen_replay",
+      "requests": 1,
+      "final_valid": true,
+      "format_repairs": 0
+    },
+    {
+      "name": "followup_protocol_setup_failure",
+      "requests": 1,
+      "product_result": false,
+      "reason": "request lacked assistant reasoning_content; provider request failed, exact status not retained"
+    },
+    {
+      "name": "followup_frozen_replay",
+      "requests": 1,
+      "final_valid": false,
+      "reason": "analysis returned as string with evidence_ids at claim level"
+    },
+    {
+      "name": "followup_format_repair_transport_failure",
+      "requests": 1,
+      "final_valid": false,
+      "reason": "model_unavailable"
+    },
+    {
+      "name": "single_transport_retry_of_format_repair",
+      "requests": 1,
+      "final_valid": true,
+      "format_repairs": 1
+    }
+  ],
+  "model": "deepseek-flash",
+  "thinking": true,
+  "school_calls": 0,
+  "new_solver_runs_in_real_replay": 0,
+  "source_scope_expanded": false,
+  "initial": {
+    "explanation_chars_without_citation_markers_before": 829,
+    "explanation_chars_without_citation_markers_after": 509,
+    "lead_is_plan_decision_after_assembly": true,
+    "reasoning_facts_transmitted": true,
+    "retained_minimum": "6",
+    "retained_maximum": null,
+    "retained_friday_free": "soft",
+    "options_unchanged_from_recorded_result": true,
+    "unsupported_half_day_not_repeated": true,
+    "per_course_exclusion_prose_triggered": false
+  },
+  "followup": {
+    "reasoning_facts_transmitted": true,
+    "exact_replacement_and_shared_courses_supported": true,
+    "observed_friday_periods_supported": true,
+    "credit_condition_supported": true,
+    "raw_reply_chars": 295,
+    "format_repair_required": true,
+    "transport_retry_required": true,
+    "full_semantics_verified": false
+  },
+  "remaining_issues": [
+    "followup still labels Friday periods as morning without verified period-to-clock mapping",
+    "initial prose still overstates recorded course/grade implications",
+    "supporting prose partially repeats plan analysis"
+  ],
+  "runtime": {
+    "port": 18875,
+    "pid": 29363,
+    "activated_version": "v29",
+    "v30_activated": false,
+    "restarted": false,
+    "active_runs_at_check": 0,
+    "page_observed_logged_in": true,
+    "school_session_freshness_not_probed": true
+  },
+  "new_ui_source_changes": false,
+  "new_page_acceptance": false,
+  "formal_curriculum_applicability_verified": false,
+  "official_recommendation_verified": false,
+  "user_acceptance": false,
+  "committed": false,
+  "pushed": false,
+  "private_evidence_sha256": {
+    "initial-input.json": "e1f89265def478a17f4a2e0da4658d6daea305065833449df7736ac6138ac137",
+    "initial-provider.json": "e1fa269d1fd48b4e63a05ab9e5b75df54d533ab730b008d95704f3f2ba3dcf04",
+    "initial-reordered-result.json": "b3cf4409352621e6200071235e364deae63a01a837c97b79d9a315226e32e57b",
+    "followup-input.json": "ad20512a533d35923661fe3b901d1264d259f892b06f701a8a3d7d1c61bae0e1",
+    "followup-provider.json": "c2ac34f744bf966ae4bbd8b815baf70bee9c2fd4aff6026ea335944e55686a65",
+    "followup-repair-input.json": "7ae831f074c9710ec211648d97250896542dd45439f64cbdc00b7c3ed059a8a6",
+    "followup-retry-provider.json": "955780795d2334a31fa2fca42c257dcf21cb84b5c8f862cbad90f990fb1f48da",
+    "followup-repaired-result.json": "e22703d21d4546f3d8f26911de05d2f0b171ea22f3088f32710a9bf5296fec5c"
+  },
+  "engineering_receipt": "plan_explanation_v30_20261021_validation.json",
+  "delivery_decision": {
+    "user_chose": "preserve_current_login_deliver_code_only",
+    "v30_activation_authorized": false,
+    "v30_activated": false,
+    "runtime_restart_performed": false
+  }
+}

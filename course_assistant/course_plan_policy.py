@@ -14,7 +14,7 @@ import re
 from .planner import _number
 
 
-VERSION = "course-plan-policy/1"
+VERSION = "course-plan-policy/3"
 _DAY = re.compile(r"(?:周|星期)([一二三四五六日天1-7])")
 _PERIOD_TOKEN = r"第?\s*[0-9]+\s*节?"
 _PERIOD_CONNECTOR = r"(?:到|至|[-—–~～、,，]|和|及)"
@@ -28,6 +28,8 @@ _REPORTED = re.compile(r"如果|假如|假设|要是|比如|例如|示例|引用
 _NEGATED_CHANGE = re.compile(r"(?:不要|别|不能|不得|不许|不想|不希望)(?:给我|帮我|去|再|把.{0,20})?(?:解除|解锁|取消|放宽|收紧|调整|变更|降低|调低|去掉|改|设为|设置为|解开|锁定|固定住|保留|排除|禁用)")
 _DENIED_INTENT = re.compile(r"不是|并非|(?:没有|没|未曾|从未)(?:说|要求|希望|打算|同意|授权|让|想)|不(?:需要|打算|准备|希望|想要|想|愿意|同意).*(?:解除|解锁|取消|放宽|收紧|调整|变更|改|设为|设置为|锁定|保留|排除)|不接受|不行")
 _NUMBER = r"(?:[0-9]+(?:\.[0-9]+)?|[一二三四五六七八九十百]+)"
+_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要)(" + _NUMBER + r"|两)门")
+_COURSE_COUNT_LITERAL = re.compile(r"(?:" + _NUMBER + r"|两)门(?:课程|课)?\Z")
 _PROCESS_ITEM = r"(?:来源|依据|证据|引用|未知项|未知部分|未确认项|未确认部分|未确认内容|未核实项|不确定项|不确定性|限制|边界|哪些(?:尚未|还未|没有|未)(?:确认|核实))"
 _PROCESS_ITEMS = _PROCESS_ITEM + r"(?:(?:以及|和|及|与|、)" + _PROCESS_ITEM + r")*"
 _PROCESS_OBLIGATION = re.compile(
@@ -46,7 +48,7 @@ _PRESERVE_REFERENCE = (r"(?:(?:其他|其余|其它|剩余|原有|原来|之前|
     r"|(?:(?:其他|其余|其它|剩余|原有|原来|之前|此前|已有|既有|原先|上轮|先前|刚才|当前|原)(?:的)?)?"
     r"(?:课程范围|课程池|学分条件|学分要求|目标学分|最低学分|最高学分|学分上限|学分下限)"
     r"|(?:之前|此前|原有|已有|既有|原来|原先|上轮|先前|刚才|当前|原)(?:的)?(?:锁定(?:项|条件|班次)?|锁|固定项|固定安排|固定课程)"
-    r"|固定项|固定安排|既有锁定|已锁定的?(?:班次|课程|项)?|已固定的?(?:安排|课程))")
+    r"|锁定(?:项|条件|班次)?|固定项|固定安排|既有锁定|已锁定的?(?:班次|课程|项)?|已固定的?(?:安排|课程))")
 _PRESERVE_NOUN = re.compile(_PRESERVE_REFERENCE + r"\Z")
 _PRESERVE_SUFFIX = r"(?:都|均|全部|继续|仍然)?(?:保留|不变|不动|照旧|保持(?:不变|原样)?|维持(?:不变|原样)?)"
 _PRESERVE_END = re.compile(_PRESERVE_SUFFIX + r"[。.!！]?\Z")
@@ -188,6 +190,21 @@ def _period_scope(text):
     return {"raw": raw, "periods": sorted(set(values))}, None
 
 
+def _course_count_records(text):
+    normalized = _norm(text)
+    if re.search(r"(?:至少|最多|不少于|不超过)(?:选)?" + _NUMBER + r"门", normalized):
+        return [{"text": text, "kind": "unresolved", "code": "course_count_range_requires_review"}]
+    records = []
+    for match in _COURSE_COUNT.finditer(normalized):
+        value = _number_text(match[1].replace("两", "二"))
+        number = _number(value) if value is not None else None
+        if number is None or number != int(number) or not 1 <= number <= 12:
+            records.append({"text": text, "kind": "unresolved", "code": "unsupported_course_count"})
+        else:
+            records.append({"text": text, "kind": "course_count", "value": int(number)})
+    return records
+
+
 def _parse_hard(text):
     normalized = _norm(text)
     if _PROCESS_OBLIGATION.fullmatch(normalized):
@@ -213,7 +230,12 @@ def _parse_hard(text):
             ([{"text": part, "kind": "boundary", "value": "already_enforced"}] if index in shared_controls else _parse_hard(part))]
     if re.search(r"不(?:自动|执行|进行)?(?:选退课|选课操作|退课操作|保存|导出|发布|扩采)|不伪造|不补(?:造|演示)", normalized):
         return [{"text": text, "kind": "boundary", "value": "already_enforced"}]
-    records = []
+    records = _course_count_records(text)
+    if not records and _COURSE_COUNT_LITERAL.fullmatch(normalized):
+        # A conjunct such as '课程范围、3门课和至少6学分都保留'
+        # restates the count. Retain inherited requirements so a different
+        # number conflicts instead of silently changing the saved count.
+        records = [{**record, "text": text} for record in _course_count_records("选" + normalized)]
     for prefix, kind in ((r"至少|最低|不少于|下限", "target_credits"), (r"最多|最高|不超过|上限", "max_credits"),
                          (r"正好|恰好|刚好", "exact_credits")):
         match = re.search(r"(?:" + prefix + r")(?:学分)?(?:改为|调整为|设为|为|是|到)?(" + _NUMBER + r")(?:个)?学分", normalized)
@@ -444,6 +466,14 @@ def compile_hard_constraints(user_message, hard_preferences, *, inherited_policy
                  ]
     current = [r for clause in extracted for r in (_parse_hard(clause) if _asserted_request(clause) else
                [{"text": clause, "kind": "unresolved", "code": "non_asserted_hard_condition"}])]
+    # A concrete request to select N courses is a count constraint even without
+    # the word 'must'. Quoted, hypothetical and negated changes are not requests.
+    counts = [record for clause in _clauses(user_message, preserve_conjunctions=True)
+              if _asserted_request(clause) and not _SOFT.search(clause)
+              for record in _course_count_records(clause)]
+    current.extend(counts)
+    if any(record["kind"] == "course_count" for record in counts):
+        inherited = [record for record in inherited if record["kind"] != "course_count"]
     records = inherited + current
     for preference in hard_preferences:
         original_preference = preference
@@ -453,11 +483,10 @@ def compile_hard_constraints(user_message, hard_preferences, *, inherited_policy
         if _SOFT.search(preference) and not _strong_hard(preference):
             continue
         parsed = _parse_hard(preference)
-        if (_PRESERVE_NOUN.fullmatch(_norm(preference)) and any(record["kind"] == "boundary"
-                and _norm(record["text"]) == _norm(preference) for record in current + inherited)):
-            # A model may repeat one noun from a shared "all retained"
-            # construction; only actual user control evidence admits it.
-            parsed = [{"text": preference, "kind": "boundary", "value": "already_enforced"}]
+        if inherited_policy is not None and _PRESERVE_NOUN.fullmatch(_norm(preference)):
+            # A reference to an existing control proposes no new value.
+            # Inheritance already preserves it; do not require prose history.
+            continue
         if preference not in user_message and all(record["kind"] in overrides for record in parsed):
             continue
         if original_preference in user_message:
@@ -502,7 +531,9 @@ def compile_hard_constraints(user_message, hard_preferences, *, inherited_policy
             records.append({**resolved, "text": unscoped[0]["text"] + "；" + user_message.strip()})
     unique = []
     for record in records:
-        if record not in unique:
+        # Preservation and execution instructions are already enforced by the
+        # service. They are not persistent scheduling constraints or budget items.
+        if record["kind"] != "boundary" and record not in unique:
             unique.append(record)
     # Verified changes remove only their exact old-to-new expression. Any
     # separate, asserted request for the opposite level is still a conflict.
@@ -530,6 +561,10 @@ def compile_hard_constraints(user_message, hard_preferences, *, inherited_policy
             patch[kind] = record["value"] if old is None else format(max(old, value) if kind == "target_credits" else min(old, value), "f")
         elif kind == "friday_free":
             patch[kind] = "hard"
+        elif kind == "course_count":
+            if kind in patch and patch[kind] != record["value"]:
+                unresolved.append({"text": "课程门数要求互相矛盾", "code": "conflicting_course_count"})
+            patch[kind] = record["value"]
     if "target_credits" in patch and "max_credits" in patch and _number(patch["target_credits"]) > _number(patch["max_credits"]):
         unresolved.append({"text": "学分上下限互相矛盾", "code": "conflicting_credit_bounds"})
     if len(busy) > 20 or len(unique) > 20:
@@ -569,15 +604,29 @@ def _target_matches(text, refs, metadata, *, unlocking=False):
         return set(refs) == locked and bool(locked)
     if unlocking and len(locked) == 1 and set(refs) == locked and re.search(r"(?:刚才|刚刚|那个|这(?:个|一)|之前|原来|我加的).*(?:锁|锁定)|(?:解除|解开|取消|解锁)(?:我)?(?:的)?锁(?:定)?", normalized):
         return True
+    # Match complete known aliases first. A short course name contained in a
+    # longer named course is not a second user-selected target. Identical names
+    # on different classes remain ambiguous and still need an option position.
+    aliases = {}
+    for ref, row in metadata.items():
+        if unlocking and row.get("locked") is not True:
+            continue
+        for alias in (row.get("course_code"), row.get("course_name")):
+            if type(alias) is str and alias:
+                aliases.setdefault(_norm(alias), set()).add(ref)
+    named = set()
+    if aliases:
+        pattern = "|".join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True))
+        for match in re.finditer(pattern, normalized):
+            named.update(aliases[match[0]])
     for ref in refs:
         row = metadata.get(ref, {})
-        aliases = [row.get("course_code"), row.get("course_name")]
-        direct = any(type(alias) is str and alias and _norm(alias) in normalized for alias in aliases)
+        direct = ref in named
         positioned = any(re.search(r"(?:方案)?" + re.escape(label.casefold()) + r"(?:中|里|的)?(?:第?(?:" + str(position) + "|" + "一二三四五六七八九十"[position-1] + r")(?:门|个)|首(?:门|个))", normalized)
                          for label, position in row.get("option_positions", {}).items() if 1 <= position <= 10)
         if not direct and not positioned:
             return False
-        if direct and sum(any(type(alias) is str and alias and _norm(alias) in normalized for alias in (other.get("course_code"), other.get("course_name"))) for other in metadata.values() if not unlocking or other.get("locked") is True) > 1:
+        if direct and len(named) > 1:
             # Naming one course cannot silently choose one of its ambiguous
             # classes. An option position remains an explicit disambiguator.
             if not positioned:
@@ -604,7 +653,10 @@ def _consumed_class_expressions(clause, field, refs, metadata):
         expressions.extend(match[0] for match in re.finditer(pattern, clause))
     for ref in refs:
         row = metadata[ref]
-        targets = [re.escape(value) for value in (row.get("course_code"), row.get("course_name")) if type(value) is str and value]
+        qualifiers = [r"(?:方案" + re.escape(label) + "|" + re.escape(label) + r"方案)(?:里的?|中的?|的)?"
+                      for label in row.get("option_positions", {})]
+        qualifier = "(?:" + "|".join(qualifiers) + ")?" if qualifiers else ""
+        targets = [qualifier + re.escape(value) for value in (row.get("course_code"), row.get("course_name")) if type(value) is str and value]
         targets += [r"(?:方案)?" + re.escape(label) + r"(?:中|里|的)?(?:第?(?:" + str(position) + "|" + "一二三四五六七八九十"[position-1] + r")(?:门|个)|首(?:门|个))"
                     for label, position in row.get("option_positions", {}).items() if 1 <= position <= 10]
         for target in targets:

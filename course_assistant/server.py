@@ -25,7 +25,7 @@ from .model_client import ModelClient, read_config, strict_json
 class Application:
     def __init__(self, db_path=None, *, mock_enabled=False, clock=None, model=None, recommendation_demo=False, recommendation_case='default',
                  school_enabled=False, school_client_factory=None, school_root=None, personal_pdf_extractor=None):
-        self.source = read_sources()
+        self.source, self.fixture, self.chat = None, None, None
         self.school_enabled = bool(school_enabled or school_client_factory is not None)
         default_db = ROOT / ('private/school_app/planning.sqlite3' if self.school_enabled else 'runtime/planning.sqlite3')
         database = Path(db_path or default_db).expanduser().resolve()
@@ -55,6 +55,16 @@ class Application:
                 school_client_factory = SchoolHTTPClient
             self.school = SchoolAccountService(self.auth, school_client_factory, root=school_root,
                                                 personal_pdf_extractor=personal_pdf_extractor, **options)
+        self.lock = threading.RLock()
+        shared_model = model if model is not None else ModelClient()
+        from .personal_chat import PersonalChatService
+        self.personal_chat = PersonalChatService(self, shared_model)
+        if mock_enabled:
+            self._initialize_demo(shared_model, recommendation_demo, recommendation_case)
+
+    def _initialize_demo(self, model, recommendation_demo, recommendation_case):
+        """Synthetic resources are loaded only for the explicitly enabled entry."""
+        self.source = read_sources()
         fixture_name = 'recommendation_bundle.json' if recommendation_demo else 'bundle.json'
         self.fixture = validate_demo(load_json(ROOT / 'demo' / fixture_name), self.source)
         require(recommendation_case in {'default', 'unknown', 'locked_friday'}, '未登记的合成推荐场景')
@@ -73,11 +83,14 @@ class Application:
         if recommendation_demo:
             self.fixture['recommendation']['fixture_case'] = recommendation_case
         self.fixture = validate_demo(self.fixture, self.source)
-        self.lock = threading.RLock()
         from .chat import ChatService
-        self.chat = ChatService(self, model if model is not None else ModelClient())
-        from .personal_chat import PersonalChatService
-        self.personal_chat = PersonalChatService(self, self.chat.model)
+        self.chat = ChatService(self, model)
+
+    def require_demo_chat(self, context):
+        self.auth.require_context(context)
+        if self.chat is None:
+            raise AccessError('合成演示未开启', 403, 'mock_auth_disabled')
+        return self.chat
 
     def auth_status(self, context=None):
         status = {'authenticated': False, 'mock_enabled': self.auth.mock_enabled,
@@ -291,10 +304,10 @@ class Application:
             if (set(query) - {'limit'} or len(query.get('limit', ['50'])) != 1
                     or not re.fullmatch(r'[1-9][0-9]{0,2}', query.get('limit', ['50'])[0])):
                 raise AccessError('历史列表只接受单个 limit 数量', 400, 'invalid_chat_limit')
-            return self.chat.conversations(context, limit=int(query.get('limit', ['50'])[0]))
+            return self.require_demo_chat(context).conversations(context, limit=int(query.get('limit', ['50'])[0]))
         require(not parsed.query, '接口不接受查询身份或资源范围')
         if path == '/api/chat/status':
-            return self.chat.status(context)
+            return self.require_demo_chat(context).status(context)
         workspace = self.workspace(context)
         if path == '/api/bootstrap':
             demo = copy.deepcopy(workspace['demo'])
@@ -343,9 +356,9 @@ class Application:
         # The HTTP handler deliberately invokes these outside the global lock.
         # ChatService authorizes each short database/tool phase independently.
         if path == '/api/chat/turn':
-            return self.chat.turn(body, context)
+            return self.require_demo_chat(context).turn(body, context)
         if path == '/api/chat/history':
-            return self.chat.history(body, context)
+            return self.require_demo_chat(context).history(body, context)
         if path in {'/api/chat/save-option', '/api/chat/export-option'}:
             from .recommendation_dialogue import option_action
             with self.lock:

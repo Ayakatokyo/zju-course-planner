@@ -205,6 +205,52 @@ class CurrentTermCourseDataTest:
         return cls(components, version, current_term=current_term,
                    authorize=authorize, allowed_course_codes=allowed_course_codes)
 
+    def _select_section_observations(self, rows, locked=()):
+        demanded = [row for row in rows if row["observation_id"] in locked]
+        if demanded:
+            return demanded, None
+        times = [self.catalog._observed_time(row)[0] for row in rows]
+        if float("-inf") in times:
+            return [], "observation_order_unknown_requires_explicit_lock"
+        latest = max(times)
+        selected = [row for row, timestamp in zip(rows, times) if timestamp == latest]
+        if len(selected) != 1:
+            return [], "simultaneous_observations_require_explicit_lock"
+        return selected, None
+
+    @staticmethod
+    def _observation_blocker(row):
+        if not row["meetings"] or not all(_slot_known(m) for m in row["meetings"]):
+            return "excluded_or_unknown_weekday_period"
+        remaining = row["capacity"]["remaining"]
+        if remaining is not None and remaining <= 0:
+            return "historical_nonpositive_capacity"
+        return None
+
+    def _observation_summary(self, rows):
+        """Same baseline selection as the solver, before personal constraints."""
+        grouped, usable, reasons, times = {}, [], set(), []
+        for row in rows:
+            grouped.setdefault(row["section_id"], []).append(row)
+        for group in grouped.values():
+            selected, reason = self._select_section_observations(group)
+            if reason:
+                reasons.add(reason)
+            for row in selected:
+                reason = self._observation_blocker(row)
+                if reason:
+                    reasons.add(reason)
+                    continue
+                usable.append(row)
+                for meeting in row["meetings"]:
+                    label = "周" + "一二三四五六日"[meeting["weekday"] - 1] + "第" + "、".join(map(str, meeting["periods"])) + "节"
+                    if label not in times:
+                        times.append(label)
+        return {"usable_section_count": len(usable),
+            "friday_free_section_count": sum(not any(m["weekday"] == 5 for m in row["meetings"]) for row in usable),
+            "weekday_period_text": times[:12], "blocking_reasons": sorted(reasons),
+            "current_availability_verified": False}
+
     def search_courses(self, query, *, limit=10):
         self.catalog._authorize()
         if (not isinstance(query, str) or not query.strip() or len(query) > 100
@@ -220,6 +266,7 @@ class CurrentTermCourseDataTest:
                     "nominal_credits": course["credits"], "observation_count": len(rows),
                     "section_count": len({r["section_id"] for r in rows}),
                     "observed_code_links": links,
+                    "observation_summary": self._observation_summary(rows),
                     "identity_scope": "source_observed_exact_code_only"})
         results.sort(key=lambda row: _course_query_priority(row["course_code"], row["observed_code_links"], query))
         self.catalog._authorize()
@@ -245,13 +292,15 @@ class CurrentTermCourseDataTest:
 
     def new_constraints(self, target_credits, *, friday_free="soft", required_course_codes=None,
                         locked_observation_ids=None, excluded_observation_ids=None, fixed_meetings=None, max_credits=None,
-                        soft_free_slots=None):
+                        soft_free_slots=None, course_count=None):
         result = {"revision": 0, "input_version_refs": deepcopy(self.version_refs), "target_credits": target_credits,
                   "max_credits": max_credits, "friday_free": friday_free,
                   "required_course_codes": list(required_course_codes or []),
                   "locked_observation_ids": list(locked_observation_ids or []),
                   "excluded_observation_ids": list(excluded_observation_ids or []),
                   "fixed_meetings": deepcopy(fixed_meetings or []), "soft_free_slots": deepcopy(soft_free_slots or [])}
+        if course_count is not None:
+            result["course_count"] = course_count
         return self._constraints(result)
 
     def _constraints(self, value):
@@ -260,7 +309,7 @@ class CurrentTermCourseDataTest:
                     "required_course_codes", "locked_observation_ids", "excluded_observation_ids", "fixed_meetings"}
         history = {"previous_revision", "previous_constraints_fingerprint", "validation_required",
                    "revision_actions", "revision_warnings"}
-        if not isinstance(value, dict) or not required <= set(value) or set(value) - required - history - {"soft_free_slots"}:
+        if not isinstance(value, dict) or not required <= set(value) or set(value) - required - history - {"soft_free_slots", "course_count"}:
             _error("invalid_test_constraints", "课程数据测试条件必须使用完整的已声明字段")
         result = deepcopy(value)
         if value["input_version_refs"] != self.version_refs:
@@ -272,6 +321,8 @@ class CurrentTermCourseDataTest:
             _error("invalid_test_constraints", "测试目标须为正学分，最高学分不得小于目标")
         result["target_credits"] = format(target, "f")
         result["max_credits"] = format(maximum, "f") if maximum is not None else None
+        if "course_count" in value and (type(value["course_count"]) is not int or not 1 <= value["course_count"] <= 12):
+            _error("invalid_test_constraints", "课程门数须为1至12的整数")
         if not isinstance(value["friday_free"], str) or value["friday_free"] not in {"off", "soft", "hard"}:
             _error("invalid_test_constraints", "周五条件须明确为off、soft或hard")
         soft = value.get("soft_free_slots", [])
@@ -312,6 +363,8 @@ class CurrentTermCourseDataTest:
         if len(ids) != len(set(ids)):
             check("duplicate_observation", "fail", ids)
         codes = [r["course_code"] for r in rows]
+        if "course_count" in constraints:
+            check("requested_course_count", "pass" if len(set(codes)) == constraints["course_count"] else "fail", ids)
         if len(codes) != len(set(codes)):
             check("same_course_multiple_observations", "fail", ids)
         for oid in constraints["locked_observation_ids"]:
@@ -432,32 +485,18 @@ class CurrentTermCourseDataTest:
         locked = set(constraints["locked_observation_ids"])
         locked_codes = {self._pool[oid]["course_code"] for oid in locked}
         for rows in grouped.values():
-            demanded = [r for r in rows if r["observation_id"] in locked]
-            times = [self.catalog._observed_time(r)[0] for r in rows]
-            if demanded:
-                selected = demanded
-            elif float("-inf") in times:
-                # Unknown order cannot justify replacing one observation with
-                # another. Such a section needs explicit source selection.
-                diagnose("observation_order_unknown_requires_explicit_lock")
+            selected, reason = self._select_section_observations(rows, locked)
+            if reason:
+                diagnose(reason)
                 continue
-            else:
-                latest = max(times)
-                selected = [r for r, timestamp in zip(rows, times) if timestamp == latest]
-                if len(selected) != 1:
-                    diagnose("simultaneous_observations_require_explicit_lock")
-                    continue
             for row in selected:
                 oid = row["observation_id"]
                 if row["course_code"] in locked_codes and oid not in locked:
                     continue
-                if (oid in constraints["excluded_observation_ids"] or not row["meetings"]
-                        or not all(_slot_known(m) for m in row["meetings"])):
-                    diagnose("excluded_or_unknown_weekday_period", oid)
-                    continue
-                seats = row["capacity"]["remaining"]
-                if seats is not None and seats <= 0:
-                    diagnose("historical_nonpositive_capacity", oid)
+                reason = ("excluded_or_unknown_weekday_period" if oid in constraints["excluded_observation_ids"]
+                          else self._observation_blocker(row))
+                if reason:
+                    diagnose(reason, oid)
                     continue
                 if constraints["friday_free"] == "hard" and any(m["weekday"] == 5 for m in row["meetings"]):
                     diagnose("hard_friday", oid)
@@ -475,6 +514,9 @@ class CurrentTermCourseDataTest:
         def visit(position, ids):
             nonlocal rejected
             if not budget.spend("course_section_subset_search"):
+                return
+            count = constraints.get("course_count")
+            if count is not None and (len(ids) > count or len(ids) + len(codes) - position < count):
                 return
             if budget.nodes_visited % 128 == 0:
                 self.catalog._authorize()
@@ -530,7 +572,7 @@ class CurrentTermCourseDataTest:
     def revise(self, constraints, patch, *, limit=3, node_limit=10000):
         old = self._constraints(constraints)
         allowed = {"target_credits", "max_credits", "friday_free", "required_course_codes", "locked_observation_ids",
-                   "excluded_observation_ids", "fixed_meetings", "unlock_observation_ids", "expected_revision", "soft_free_slots"}
+                   "excluded_observation_ids", "fixed_meetings", "unlock_observation_ids", "expected_revision", "soft_free_slots", "course_count"}
         if not isinstance(patch, dict) or set(patch) - allowed:
             _error("invalid_revision", "仅可修改声明的测试偏好；不能替换数据或学期")
         if "unlock_observation_ids" in patch and (not isinstance(patch["unlock_observation_ids"], list)

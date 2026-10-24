@@ -13,6 +13,18 @@ from course_assistant.personal_observations import PersonalObservationStore, Per
 
 
 class PersonalObservationTests(unittest.TestCase):
+    def test_overlapping_queries_keep_original_positions_including_identical_rows(self):
+        repeated = self.record(course_name_raw="合成数据分析")
+        self.register(self.result(records=[self.record(course_name_raw="无关课程"), repeated, deepcopy(repeated)]))
+        first = self.store.query({"operation": "major_academic", "query": "数据", "limit": 1})
+        second = self.store.query({"operation": "major_academic", "cursor": first["next_cursor"]})
+        overlapping = self.store.query({"operation": "major_academic", "query": "分析"})
+        self.assertEqual(first["source_record_indices"], [1])
+        self.assertEqual(second["source_record_indices"], [2])
+        self.assertEqual(overlapping["source_record_indices"], [1, 2])
+        self.assertEqual(overlapping["records"], [repeated, repeated])
+        self.assertEqual(self.store.query({"operation": "major_academic", "mode": "summary"})["source_record_indices"], [])
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

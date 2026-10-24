@@ -1,0 +1,559 @@
+{
+  "recorded_at_utc": "2026-10-21T12:54:41.224915+00:00",
+  "git_base": "e3f304ba4e9c671b4636c83ffffacde41236b45b",
+  "version": "v31-code-only",
+  "model": "deepseek-flash",
+  "implementation": {
+    "final_protocol": "kind/text/evidence_ids",
+    "school_prepare_declared_to_model": false,
+    "dependencies": "AcademicHarness internal execution",
+    "condition_policy": "inherit owned canonical state; retain existing authorization parser",
+    "demo_initialization": "mock_enabled only",
+    "provider_json_mode_enabled": false
+  },
+  "engineering": {
+    "full_suite": {
+      "ran": 1475,
+      "passed": 1470,
+      "skipped": 5,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 63.496,
+      "log_sha256": "51e4fd6eacd4f1326e97734619641c2c776782e876e0e70af8b30475d030c427",
+      "scope": "before final provider JSON-mode rollback and direct-answer single-newline paragraph change"
+    },
+    "after_json_mode_rollback": {
+      "ran": 39,
+      "passed": 39,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 0.042,
+      "log_sha256": "2535ba1fd51cdf21a5e5e9248957822be3162bda3832a46fcbfccbbac8e9fc7f",
+      "modules": [
+        "tests.test_model_client",
+        "tests.test_personal_answer_protocol"
+      ]
+    },
+    "after_final_paragraph_change": {
+      "ran": 104,
+      "passed": 104,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 4.944,
+      "log_sha256": "290c5dc7d1ad189321d098b8cbdc7ed854abdd9ec59e29aa00497b92ad6d5e2d",
+      "modules": [
+        "tests.test_personal_course_plan_web",
+        "tests.test_web_contract"
+      ]
+    },
+    "post_checks_cleanup": "unused local test function and trailing blank line removed; test logic unchanged",
+    "full_suite_rerun_after_last_two_changes": false,
+    "retired_tests": [
+      {
+        "file": "tests/test_personal_dialogue_recovery.py",
+        "test": "test_typed_summary_rejects_free_text_fields_and_non_summary_evidence",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_dialogue_recovery.py",
+        "test": "test_summary_sections_must_be_supported_and_unique",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_dialogue_recovery.py",
+        "test": "test_readiness_claim_rejects_extra_capabilities_text_and_invalid_sections",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_dialogue_recovery.py",
+        "test": "test_typed_readiness_can_mix_with_ordinary_record_and_curriculum_claims",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_dialogue_recovery.py",
+        "test": "test_readiness_claim_cannot_relabel_other_evidence_kind",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_conversation.py",
+        "test": "test_irrelevant_capabilities_answer_gets_one_tool_enabled_correction",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_conversation.py",
+        "test": "test_repeated_irrelevant_answer_is_failed_not_completed",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_conversation.py",
+        "test": "test_search_evidence_after_calculation_does_not_request_generation_again",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_personal_dialogue.py",
+        "test": "test_model_selects_finite_general_guidance_without_uncited_personal_text",
+        "reason": "retired source-specific final template / enum; unified answer and projection coverage retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_selected_next_step_keeps_gate_and_scope_without_dumping_other_sections",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_sources_use_only_fixed_names_and_actual_safe_availability",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_partial_timetable_does_not_repeat_read_advice_or_invent_missing_rows",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_failed_timetable_is_not_empty_or_old_fallback",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_other_source_partial_cannot_mask_current_timetable_state",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_dependencies_keep_course_and_timetable_requirements_distinct",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_invalid_sections_do_not_create_a_default_full_dump",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      },
+      {
+        "file": "tests/test_recommendation_readiness.py",
+        "test": "test_raw_text_extra_fields_or_opened_gates_cannot_enter_renderer",
+        "reason": "retired unused source-specific prose renderer; projection/authentication tests retained"
+      }
+    ],
+    "failed_intermediate_runs_preserved": true,
+    "git_diff_check": true,
+    "javascript_syntax": true,
+    "inputs_unchanged": true,
+    "source_integrity": {
+      "result": "pass",
+      "files_checked": 17,
+      "expanded_zip_identical": true,
+      "source_refs_valid": true,
+      "manifest_sha256": "9a259f2c2a54a7ad22373d52f12f5e71f9efd190d7e1021a64244a47ae8ac2a0",
+      "note": "只验证交接资料完整性，不代表官方规则审核或学生适用性。"
+    }
+  },
+  "provider_validation": {
+    "total_requests": 15,
+    "recorded_successful_provider_outputs": 11,
+    "empty_output_failures": 4,
+    "thinking": true,
+    "school_calls": 0,
+    "solver_calls": 0,
+    "live_database_mutated": false,
+    "stages": [
+      {
+        "stage": "default-request frozen final answers",
+        "requests": 4,
+        "completed_answers": 2,
+        "format_repairs": 2,
+        "tool_selection_frozen": true,
+        "first_answer_chars": 679
+      },
+      {
+        "stage": "experimental JSON mode, ultimately removed",
+        "requests": 8,
+        "empty_output_failures": 4,
+        "frozen_initial_answer": "completed",
+        "synthetic_actual_tool_loop": {
+          "generations": 2,
+          "format_repairs": 0,
+          "status": "completed"
+        },
+        "saved_plan_actual_tool_loop": {
+          "generations": 2,
+          "status": "failed"
+        },
+        "diagnosis": "HTTP 200; ValueError empty stream answer; provider internal cause not established"
+      },
+      {
+        "stage": "final default-request saved-plan loop",
+        "requests": 3,
+        "status": "completed",
+        "format_repairs": 1,
+        "executed": [
+          "get_my_context",
+          "get_current_term_plan"
+        ],
+        "model_selected_tool": true,
+        "inspect_from_frozen_result": true,
+        "current_authenticated_session_used": false,
+        "verified": [
+          "shared and replaced courses",
+          "Friday period numbers",
+          "minimum credits retained",
+          "no source refresh or computation"
+        ]
+      }
+    ],
+    "remaining_semantic_issues": [
+      "initial answer repeats plan details and limitations",
+      "initial answer overstates completion from grade records",
+      "course content complementarity inferred too strongly from titles",
+      "experimental JSON initial answer omitted one provided time segment"
+    ],
+    "full_semantic_acceptance": false,
+    "fresh_school_journey": false,
+    "user_acceptance": false
+  },
+  "ui": {
+    "desktop": {
+      "chatOverflow": false,
+      "firstAnswerParagraphs": 3,
+      "followupVisibleInDOM": true,
+      "inputVisible": true,
+      "pageOverflow": false,
+      "planCards": 3,
+      "removedEntries": [],
+      "viewport": [
+        1890,
+        889
+      ]
+    },
+    "mobile": {
+      "chatOverflow": false,
+      "inputVisible": true,
+      "pageOverflow": false,
+      "planCards": 3,
+      "removedEntries": [],
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    "environment": "isolated read-only frozen replay",
+    "live_backend_unchanged": true,
+    "temporary_preview_closed": true
+  },
+  "mermaid": {
+    "architecture_v31_20261021": {
+      "source_sha256": "2d4167bdb0a798380d72c5ae63336d3370829cfdff6c1d4a56b76490303f76fb",
+      "svg_sha256": "b968eee5fd8ff02fe46c4e7867dff2137dd87bfb1e366238c5cd94a27a494770",
+      "rendered": true,
+      "visually_reviewed": true
+    },
+    "request_v31_20261021": {
+      "source_sha256": "6a1d28493cb4ed00aaad84426bbe522d00f6e568acced4429d44c1cd83c55bb7",
+      "svg_sha256": "651d01726c97c123ab0664e7b96314a74969d91f6cd31cc467227cf1f7c134f5",
+      "rendered": true,
+      "visually_reviewed": true
+    }
+  },
+  "metrics": {
+    "basis": "start-of-turn v30 snapshot; line counts include comments and whitespace",
+    "system_chars_before": 10439,
+    "system_chars_after": 1622,
+    "business_lines_before": 20403,
+    "business_lines_after": 19937
+  },
+  "changed_since_v30_snapshot": {
+    "course_assistant/academic_harness.py": {
+      "before_sha256": "14428a8b1a7587fa9e870d8fc13fd24911928d536028a68ca905fe4b7a89a639",
+      "after_sha256": "f7196ec92783e37b3f741ccfd325b3a20a9f39ea901842aa9dde3798928132ed",
+      "before_lines": 125,
+      "after_lines": 127
+    },
+    "course_assistant/course_plan_policy.py": {
+      "before_sha256": "fa8ea920a1e7ddb9e8ae6964979b8af8c034bb1c2c563c3960bf9940da6710e0",
+      "after_sha256": "347166627e3f3eef90ab7d990d78f5ec34d5dbcb894846bb26eb850dd9173698",
+      "before_lines": 733,
+      "after_lines": 734
+    },
+    "course_assistant/personal_chat.py": {
+      "before_sha256": "450396b64459fca148e1d2128b3ae456d5533220f19d3d95b8470a5aa65c3777",
+      "after_sha256": "61e727ddf3f886640df6d4b3bb658a67b9b3f5cdada275fd34ec17e7e3a4554d",
+      "before_lines": 657,
+      "after_lines": 657
+    },
+    "course_assistant/personal_course_plans.py": {
+      "before_sha256": "16fbd8f2552c5af6d09a67d5056d8afe41d0adb72b0736d8320b074ba5e3ea54",
+      "after_sha256": "ca02c0cb43fa936a825c02085dc75e993ca2cbd5965a44725e2f5932ef37aeb7",
+      "before_lines": 987,
+      "after_lines": 987
+    },
+    "course_assistant/personal_dialogue.py": {
+      "before_sha256": "25fd9130d6ecd226e6f540ab0b80d0c0d92dab3372127eeda0458af78e421b76",
+      "after_sha256": "6cf1a7e05bea53b1c19b1184fec968798e2a26aba5678ea1f0718a40c3a374f4",
+      "before_lines": 1985,
+      "after_lines": 1668
+    },
+    "course_assistant/personal_plan_explanation.py": {
+      "before_sha256": "7e9ab1eecd6b3342c4980b25118c1807f154afeb376c1be6529e189e02e7f6d4",
+      "after_sha256": "04c9e94c74ab57def07ace4cea526ec9062dc18a84f43325f997d6631197562e",
+      "before_lines": 134,
+      "after_lines": 65
+    },
+    "course_assistant/recommendation_readiness.py": {
+      "before_sha256": "e15043820bdfe96aac166f26b1d7da3225e0c1c9ad80db0354bb1353f23d9439",
+      "after_sha256": "601740d5ef683f2093c68371fcb3e078a564aa427ac470efb847c7eda0063097",
+      "before_lines": 402,
+      "after_lines": 306
+    },
+    "course_assistant/server.py": {
+      "before_sha256": "5309c3d3fab1032e92e57dd38492bb02f4b47bab33ac3549533b5b79687c2b71",
+      "after_sha256": "5b8593d092a319bfeee23072ee7888b02e863d5c7cabd83106e63c87921957f4",
+      "before_lines": 631,
+      "after_lines": 644
+    },
+    "tests/test_academic_harness.py": {
+      "before_sha256": "7fdf13be21c6c3728ea2115af019c4af876dbc82d177110ada09d5f1e8e807a5",
+      "after_sha256": "bd93d6bc433fa073320597345e1c34d42671f9d48473a1ae1d2cd855ccc873fd",
+      "before_lines": 200,
+      "after_lines": 212
+    },
+    "tests/test_application.py": {
+      "before_sha256": "f95635f9af14c12f253fec2698c76c32e83eb8468b3510fbd7d9624d9a5be1db",
+      "after_sha256": "ebf2c41602b941b415720806411c6a5b25aecea08f04675a625fa401f7b1c175",
+      "before_lines": 119,
+      "after_lines": 140
+    },
+    "tests/test_candidate_reasoning.py": {
+      "before_sha256": "f76710367e8840d253ad843fad8e169d053729c1732d6c91f1a2fd87c8a9ac3d",
+      "after_sha256": "6b7a7cb49849784082e4680ac12009070b85024f7595f3958337e585a5ee6fe4",
+      "before_lines": 330,
+      "after_lines": 321
+    },
+    "tests/test_course_plan_policy.py": {
+      "before_sha256": "26b1e12f313721367f9caf4129f0f93c39503f8a18762e8c025fe858c8b8e440",
+      "after_sha256": "66a8eaf3c97d579e25216569e9eddd8f486a59c2e263b81a0bd4daad1638201d",
+      "before_lines": 588,
+      "after_lines": 597
+    },
+    "tests/test_live_source_dialogue.py": {
+      "before_sha256": "3a1c91defcf4029a34b2b6d400de231e69a2bc25374635812c97798ce3a42ac7",
+      "after_sha256": "0e6fa7b119a9b302559ebd499fd203d2dbd673991b7c84b62e2c032f99e3637e",
+      "before_lines": 375,
+      "after_lines": 374
+    },
+    "tests/test_personal_chat.py": {
+      "before_sha256": "26c8d78eed6aa58c9626cd7dd9d41f54cbfca859f2ee97ceeec3ec112c1a291c",
+      "after_sha256": "6fd084b10db87ccae036562a95047c0d68022e05659c6b5ec8b96f92ef23d554",
+      "before_lines": 835,
+      "after_lines": 832
+    },
+    "tests/test_personal_conversation.py": {
+      "before_sha256": "884d88fd2aa2c40e89e7b792cbd57c28f508d00ee03dae84d99bee0595875f39",
+      "after_sha256": "713c097743ef3f508fc2ac2cfafda3e93104f2bc27a5572fbcf91cbf673fc4be",
+      "before_lines": 91,
+      "after_lines": 67
+    },
+    "tests/test_personal_course_plan_web.py": {
+      "before_sha256": "357c0f8818fab9de81e3f4c7066cd1353e0bac80d1b26be33ef0c065f885d78a",
+      "after_sha256": "9bde300fda145d457739899f5391bd998de3c93091ddc09905ec652f7448a62b",
+      "before_lines": 232,
+      "after_lines": 245
+    },
+    "tests/test_personal_dialogue.py": {
+      "before_sha256": "d4282ec415550524a744909f5f8d33adc224f16c36773bb57388409b9327ef4f",
+      "after_sha256": "98ae8a3ddded8f53f59aa5f6a4b35c54229901e1f7ca240b474d244a1cf1143f",
+      "before_lines": 548,
+      "after_lines": 526
+    },
+    "tests/test_personal_dialogue_recovery.py": {
+      "before_sha256": "8d43c99bcf8a4b1bb8966bc45fcfafde47560c5c973cc4228bec4d406127a1d1",
+      "after_sha256": "ac03183a9ecb60e7a450869222efe04c2af70a7d1df6c112b9dc524585ecb5fb",
+      "before_lines": 870,
+      "after_lines": 751
+    },
+    "tests/test_personal_recommendation_dialogue.py": {
+      "before_sha256": "767cfc5f4a387edc9f22a23e9a2de53d2bdb4c4a9b921d8567d42a41233530c7",
+      "after_sha256": "7e647557bcf7850a164487b965fd0f5f498f40f78c5ca3e8992db2f242d223b2",
+      "before_lines": 467,
+      "after_lines": 454
+    },
+    "tests/test_personal_retrieval_progress.py": {
+      "before_sha256": "60f91ef9da867c87f2f7cfb11d29fb2b68b63898023e222587329817261b747a",
+      "after_sha256": "df46300b28959ca66dbf1651926de970b3e4efa88d2e8f7974976999b48b8070",
+      "before_lines": 307,
+      "after_lines": 307
+    },
+    "tests/test_personal_task_journey.py": {
+      "before_sha256": "ee57f60aacf5fed86ee6fcdc94fcff66979b530570f62a2480f1c0f417ea76f8",
+      "after_sha256": "32734f40ed39bbd74ea8214e3c4fab92471653322e80fedeb38a61fdfab24ec2",
+      "before_lines": 168,
+      "after_lines": 167
+    },
+    "tests/test_prepared_context_dialogue.py": {
+      "before_sha256": "af3ee34ea29b9d5521b9f7c96a15724e6d4bf25bd32e17e8690f71c48c54c82c",
+      "after_sha256": "f767d4a01e15e64a137766c0b9ea3866e2f1ae8190ec5868d9305ac6e8c8f7b5",
+      "before_lines": 212,
+      "after_lines": 203
+    },
+    "tests/test_recommendation_readiness.py": {
+      "before_sha256": "14f08a5ddaea67f9fb67d82c153dd12854cbdce9ef73fd43066db96c7d309512",
+      "after_sha256": "f1cd77a628994b685eeed34b429d721358bd0238bb7be72b2892b728fc2f9b64",
+      "before_lines": 403,
+      "after_lines": 317
+    },
+    "tests/test_web_contract.py": {
+      "before_sha256": "63cb5268042df923baa7d719e9c05b398c72ba746e2a922a91a10644e47874ee",
+      "after_sha256": "cc7e1ac9d0d755f9fb751eed06c5493f1542b326231315c6eac620a39f390f67",
+      "before_lines": 895,
+      "after_lines": 896
+    },
+    "validation/run_personal_ui_fixture.py": {
+      "before_sha256": "9f1f13250a3bd0ee059b64133eb4e130bc5d7d51834ff148313156251dd991ad",
+      "after_sha256": "3f99a80dbc38b1c2c29b25568c76973eac5b1bb7b4d94fab293195076c3a9bb2",
+      "before_lines": 230,
+      "after_lines": 225
+    },
+    "web/app.js": {
+      "before_sha256": "e5f77e2754d81edc07374a09df3872c632e3ab1798beebc683c953e5e086acbe",
+      "after_sha256": "fe0497980f340249f9dc54ef9d0758c360d145fa5dc26150d6ddbfb8b7950499",
+      "before_lines": 1761,
+      "after_lines": 1763
+    }
+  },
+  "new_source_files": [
+    "tests/test_personal_answer_protocol.py"
+  ],
+  "final_source_sha256": {
+    "course_assistant/__init__.py": "ff2f483d58a167befe72703ab1ff0bb3f6825477b000faa9be2e9b25a2c1f9b7",
+    "course_assistant/academic_harness.py": "f7196ec92783e37b3f741ccfd325b3a20a9f39ea901842aa9dde3798928132ed",
+    "course_assistant/academic_terms.py": "f4735396c5febcc9b01dffcb3bb445e884d5e0639646330f8d702f9edc996065",
+    "course_assistant/audit.py": "16037312aecbac88cd2811d9f8983deac3b8cbcc6b94728d1aa6e74f8e607781",
+    "course_assistant/auth.py": "f4b2e51bdd3953c436febe6de190dc638b03299de1aa03bf6b4888fcf04af371",
+    "course_assistant/chat.py": "f84529e7af1e9c4f1badf85bf84fa6af3e02235a788802d8f4c04c5bb84de5f4",
+    "course_assistant/chat_model_settings.py": "3517bc218934ade342b01c547d0cbdd852ac86371b7df6fd047705115d5a3572",
+    "course_assistant/chat_progress.py": "e47b4a1a5a43978e4fd909cc43c1ac4d42a882c8c63974d5a0bf8455b8ace56c",
+    "course_assistant/chat_runs.py": "a4a7b79be86c8995b7c18bc0a00109b52c9bbe826d884c8f83f3afb345ebc462",
+    "course_assistant/course_catalog.py": "3b615467eacef315fe8dcb4823d7c5c9ec5113a55f26f01fae19d9125f8aa4ed",
+    "course_assistant/course_code_links.py": "d230a043ffd8f673403bdb489951cfbdb9a3fa996814254239f2e01b6542f64d",
+    "course_assistant/course_plan_policy.py": "347166627e3f3eef90ab7d990d78f5ec34d5dbcb894846bb26eb850dd9173698",
+    "course_assistant/current_term_recommendation.py": "2dce2d31fc55a0e23ffa167e34bde8c0d33a1753ef167953b482e2fa7318bb7e",
+    "course_assistant/exporter.py": "14175eab4d1f6bd05a220104b791eff2f39e60d89493e899d535f476e8d7568e",
+    "course_assistant/importer.py": "88fad9b76733f48df256fbb0677d986227402073a1f4472e8c8d84fb473005ee",
+    "course_assistant/local_reference.py": "21bc5ccc7c00c80f1a39dc7e773f366432f60642c27861b7c4dfc95c7469ca5d",
+    "course_assistant/local_reference_observations.py": "a1fee3605e5b7d539e65eed3dab27e3d23723a34214b14fd44fcca2cf4c74065",
+    "course_assistant/model_client.py": "adc57059094cccfc5315e76449247df4232ce4f7dbdc31d0616dff0030c34fb3",
+    "course_assistant/personal_acquisition.py": "953ad965e5180cc068afa54f183be5ae03716499f88bcc402d71bf7db5a090a4",
+    "course_assistant/personal_chat.py": "61e727ddf3f886640df6d4b3bb658a67b9b3f5cdada275fd34ec17e7e3a4554d",
+    "course_assistant/personal_course_plans.py": "ca02c0cb43fa936a825c02085dc75e993ca2cbd5965a44725e2f5932ef37aeb7",
+    "course_assistant/personal_dialogue.py": "6cf1a7e05bea53b1c19b1184fec968798e2a26aba5678ea1f0718a40c3a374f4",
+    "course_assistant/personal_drafts.py": "93d6321aae07035757d366c7d2f911f07d44413257f9191b7f5158dcc6360417",
+    "course_assistant/personal_evidence.py": "b1e64ee6ab4e4f97d750879590bcdaabdb2890f2f1c21ce690ea6c44cc56093c",
+    "course_assistant/personal_observations.py": "5f1d5d0e4aadcde35ca0633331f96619227f8fb75693a49766b0b93d554f6aa5",
+    "course_assistant/personal_plan_explanation.py": "04c9e94c74ab57def07ace4cea526ec9062dc18a84f43325f997d6631197562e",
+    "course_assistant/personal_tasks.py": "44d3f44cf91170ce8be225260ea1d0e3f0fbce36a9d8a7880c173b8680d6d684",
+    "course_assistant/planner.py": "68f394966e304ff18b4cc86252d4fcd57388cce1b0774d6fe39b4baf60f56ca2",
+    "course_assistant/recommendation.py": "ac1b2ee1f3278bffc0fc6636cf0368ee6e61853a61bd7c98d9cf6e04d331a1d1",
+    "course_assistant/recommendation_dialogue.py": "59c70940df0c381242df5190aeed9153a24a5a6243b93f279b92cf72b3b11784",
+    "course_assistant/recommendation_readiness.py": "601740d5ef683f2093c68371fcb3e078a564aa427ac470efb847c7eda0063097",
+    "course_assistant/reference_retrieval.py": "a81977de0ef09293054b905173806df585a8c41f59fe59aa2657e137ec71cb12",
+    "course_assistant/school_accounts.py": "4b77d307e569c2cc81a77693108b40cfe76c51ae0c008f5a40939d7940b68a47",
+    "course_assistant/school_http.py": "91a3071caa02ae7ae4a244b696d23dfab93d459d6f77edc7d9aa4f78e4720bc1",
+    "course_assistant/school_period_times.py": "17cb3b2ba484e99b0c74eac11638a2b12708b72577d81278e2f793db27d9d71d",
+    "course_assistant/semantic_retrieval.py": "87354ecc34ae575a2ac144922a54c20fddf057b18857a1648d88ee400033e1da",
+    "course_assistant/server.py": "5b8593d092a319bfeee23072ee7888b02e863d5c7cabd83106e63c87921957f4",
+    "course_assistant/storage.py": "7c999bbffce3b4148b088890d6f23ab52799f063abcd2064aac767a066f7f624",
+    "course_assistant/student_plan_acquisition.py": "445a31c57221a2b8adf13eee1aaec59313da9248d35f4ad3430fb2d7a8e1fb73",
+    "course_assistant/student_source_client.py": "36a52c04bb34a9cc2cf07351fecb4b1d32f71fa02e6c196aa903406045d1e5e0",
+    "course_assistant/student_source_parsers.py": "0486922311b281ed671bc9461fac32e47fdb38bbc419cd4a7722f7f061f3ec3b",
+    "course_assistant/student_sources.py": "69ac7526efa176c58382d0c6ff761bdef12ea79eadb783bce21618acf5644432",
+    "tests/test_academic_harness.py": "bd93d6bc433fa073320597345e1c34d42671f9d48473a1ae1d2cd855ccc873fd",
+    "tests/test_application.py": "ebf2c41602b941b415720806411c6a5b25aecea08f04675a625fa401f7b1c175",
+    "tests/test_audit.py": "7b89e433ec7e9b8966c5d471c8acda5fe7f59829fe22c6b9947099a61eead324",
+    "tests/test_auth.py": "8661ac377649daeddcfe5d0d98900871b4535ea21a770446b2577062897e079e",
+    "tests/test_candidate_reasoning.py": "6b7a7cb49849784082e4680ac12009070b85024f7595f3958337e585a5ee6fe4",
+    "tests/test_chat.py": "606a23e4a487182059ec9c0ed1c95929c300cd831e19b35079b1559ce2199a39",
+    "tests/test_chat_history.py": "6e7e7684cd695fc7f221fa0ecf767cbc7eca4b2019958e432f90d405e92b2c16",
+    "tests/test_chat_http.py": "cff5e90dfff1a7570d1b66eac1c2c423ca0cb5c21efa33e21e0916d4b3181ec0",
+    "tests/test_chat_inspection_http.py": "80809ca2444e178701802e14b342708ec0df04a02ac25ea72bce2b9b9152be03",
+    "tests/test_chat_progress.py": "22c4a6def1c02db781fec359bd8e7debb50cbda590d29fb1cd459258afb7b4c6",
+    "tests/test_chat_runs.py": "5702d108b1ac03c11e54ed736b8f07b8eded1ad6e96a04377e5b3f4e9281756f",
+    "tests/test_course_catalog.py": "7c17c2c12d5517094f4b90691f74d9b8ce2d7a65f43a485b2f57ffc7d08a006c",
+    "tests/test_course_code_links.py": "078ef479d13c00852790f785168a538532090c93500dbd315de0d27e8d40697a",
+    "tests/test_course_dedup.py": "a35ebbae8c94ff3e577fff685ed8177134bcc2d99398fead5d277bba3d1f3595",
+    "tests/test_course_plan_policy.py": "66a8eaf3c97d579e25216569e9eddd8f486a59c2e263b81a0bd4daad1638201d",
+    "tests/test_course_source_adapters.py": "7c690ef1f00d85f1a66368162a8876b8d3e687d9dcc54cd7d25bcf158a149536",
+    "tests/test_current_term_recommendation.py": "e6b48def7669f3e395eff1384f9e680e05fe9a6f6f6622d018683439ce599c29",
+    "tests/test_exporter.py": "21184709ad4d18111e1d2e7233f536d8b782ccb420d453546c47b9cb28dfba0e",
+    "tests/test_importer.py": "6e9e88c82d296e08d978dff796186dbdd1790ca7606cde538407759ebb243743",
+    "tests/test_live_chat_acceptance.py": "489d0c1d4ea652c2dba363e7766f6c1c781995e896af2e45442aafebe970230b",
+    "tests/test_live_source_coordinator.py": "08d232ae8b662d8a917f15c74dd82e4ce21763128a0e6e02a1cc32b337643e00",
+    "tests/test_live_source_dialogue.py": "0e6fa7b119a9b302559ebd499fd203d2dbd673991b7c84b62e2c032f99e3637e",
+    "tests/test_local_reference.py": "f1ff43913dd1cb6a88a1555fa59e7fb09ea75dc19c2fa3951f10f490f9846204",
+    "tests/test_local_reference_observations.py": "55b689a403d4ac391872b7e619a8af317280846d1fff3e0cd9031ee19855bf85",
+    "tests/test_model_client.py": "b70adf9ebaf688c04caf878d613999967814c2587a1c0b99d9c0104dd3e8d660",
+    "tests/test_personal_acquisition.py": "fa83dbc480cc9053ae6c5d89c8d84797c8ebb3ae68a2774a3a006c911c2ec9ec",
+    "tests/test_personal_answer_protocol.py": "720d7317b08f22726a48e145ff64b89cf0456aec66bff726fb423e5692422f50",
+    "tests/test_personal_chat.py": "6fd084b10db87ccae036562a95047c0d68022e05659c6b5ec8b96f92ef23d554",
+    "tests/test_personal_chat_http.py": "8b637a651750ded66051194d18f49eb8f6a3bcb7fb5805242e96ef54cd1a1197",
+    "tests/test_personal_conversation.py": "713c097743ef3f508fc2ac2cfafda3e93104f2bc27a5572fbcf91cbf673fc4be",
+    "tests/test_personal_course_plan_web.py": "9bde300fda145d457739899f5391bd998de3c93091ddc09905ec652f7448a62b",
+    "tests/test_personal_course_plans.py": "3071e6bedf580769208bb21d75c6b5dbdfb1fb59cfe0c95dffa7af312d37ff7c",
+    "tests/test_personal_dialogue.py": "98ae8a3ddded8f53f59aa5f6a4b35c54229901e1f7ca240b474d244a1cf1143f",
+    "tests/test_personal_dialogue_recovery.py": "ac03183a9ecb60e7a450869222efe04c2af70a7d1df6c112b9dc524585ecb5fb",
+    "tests/test_personal_draft_http.py": "a2d37f7a9423827eaa715a569a95d32a9167f3de3d28bc5b573b5e1a32d9aeb0",
+    "tests/test_personal_draft_web.py": "1ff9893eb8de815958219569d8de507a714c04f26b9b471448f7e63add9e552a",
+    "tests/test_personal_drafts.py": "98589a3d2c83558382c9e98e81a30199c94f8aeeeec6211c4e464b2f819928be",
+    "tests/test_personal_evidence.py": "a4642af55141b9b1806478ff6a3943133a50f4c3765716c9d1dd121496a25924",
+    "tests/test_personal_http.py": "c114152d02c51ee2144bfc7eaa3a02daac50f011aee56db138415ca1d52b61a6",
+    "tests/test_personal_observations.py": "363bb66a89e2c11cc32fd869a5103c31eb4b854d72fe4de2e8314260728c4dbd",
+    "tests/test_personal_progress_web.py": "a3c00ee5a8b5afef3ec36909209da3bb0b554c9c38db6210f3729b40c3e43e0b",
+    "tests/test_personal_recommendation_dialogue.py": "7e647557bcf7850a164487b965fd0f5f498f40f78c5ca3e8992db2f242d223b2",
+    "tests/test_personal_retrieval_progress.py": "df46300b28959ca66dbf1651926de970b3e4efa88d2e8f7974976999b48b8070",
+    "tests/test_personal_task_journey.py": "32734f40ed39bbd74ea8214e3c4fab92471653322e80fedeb38a61fdfab24ec2",
+    "tests/test_personal_tasks.py": "62240b795e5886b9567455c92bf100a5ba1b59fdc59be84a3d91740b8c49e0e2",
+    "tests/test_plan_requirements_audit.py": "f06e8dd14fbb2e2d29c44db8099d21a2d07e4313e252873d74765123bc43aa91",
+    "tests/test_planner.py": "8ea5eb10b72f349688ea7085d79aa123805ba5636fa58d5e7e643c34d26bb87c",
+    "tests/test_prepared_context_dialogue.py": "f767d4a01e15e64a137766c0b9ea3866e2f1ae8190ec5868d9305ac6e8c8f7b5",
+    "tests/test_recommendation.py": "7a52c9f2ece2eb5c21a87656fd519c26ef309f1f42cff69684e415499391589a",
+    "tests/test_recommendation_dialogue.py": "6820cea01ae5be63f4a9656f33fbf720de4dc9df8f7d98a1781d4d558a8f21a6",
+    "tests/test_recommendation_readiness.py": "f1cd77a628994b685eeed34b429d721358bd0238bb7be72b2892b728fc2f9b64",
+    "tests/test_recommendation_storage.py": "43eed1785e18ea0e2c3ab7c902de3f83b5de24ba335622c7e2c682d86e115447",
+    "tests/test_reference_retrieval.py": "e6b2634c90b858a65eb313320e35e5d61889c7cbdb1877048d2507fbafeda1ed",
+    "tests/test_school_accounts.py": "e057d6c1a29a5be332050b551c996af5dde78b1ef0133ea3909a7964c0ce7604",
+    "tests/test_school_http.py": "4d7c378c25eeeb38b7c81ca8500bab149d6b68972a434b6d73c040a2903e4b09",
+    "tests/test_school_http_app.py": "7df1c9060025c22d3fed5a4c5af543536ff9ee541c50ce95c2eb74b86c1c2d05",
+    "tests/test_school_period_times.py": "87d36f09f7cabe05c1b1fc1b7ae786b119d2db538497fa5a9386e2fa19d88648",
+    "tests/test_school_timetable_web.py": "c93383fe4ccd879a246c5ea2a5ee0eb063a73f0e8b6b588e6275bab27bd67f5c",
+    "tests/test_semantic_retrieval.py": "e3ae26a87cb41795551f303bf8e6631ddcc0fcd8f7fcef10439e7f4d0932b670",
+    "tests/test_student_plan_acquisition.py": "796e1e95c38166f1791e7525487ef5fb606a0e4f9a4ffa9728e54102fcc0ed4a",
+    "tests/test_student_source_client.py": "57dced717066de10add0fe02fa3ec014bd621be8878ecaf4cfbb4ea1762c5824",
+    "tests/test_student_source_parsers.py": "b577bd1439da51e52ccb685052bf3b15841d1c2c94eee0862f3e72b87f9ee0ad",
+    "tests/test_student_sources.py": "78eef37feaab19734e7033a1f0328c99ad5225ed04f6715e2ec88ed6f116eef6",
+    "tests/test_web_contract.py": "cc7e1ac9d0d755f9fb751eed06c5493f1542b326231315c6eac620a39f390f67",
+    "validation/run_personal_ui_fixture.py": "3f99a80dbc38b1c2c29b25568c76973eac5b1bb7b4d94fab293195076c3a9bb2",
+    "web/app.js": "fe0497980f340249f9dc54ef9d0758c360d145fa5dc26150d6ddbfb8b7950499",
+    "web/index.html": "6824f973b7a3b03bdc393701e93ada4b72b9c7d0427060e6ce3eacd6874b2bce",
+    "web/styles.css": "f759229460d83de464b5aa09ab56735a75bd3d6f0ed5207a1f5ab11fb3ad8a5e"
+  },
+  "runtime": {
+    "port": 18875,
+    "original_pid_still_listening": 29363,
+    "backend_version": "v29",
+    "restarted": false,
+    "relogged_in": false,
+    "school_session_freshness_rechecked": false,
+    "v31_backend_activated": false
+  },
+  "delivery": {
+    "previous_work_preserved": true,
+    "staged": false,
+    "committed": false,
+    "pushed": false,
+    "published": false,
+    "credentials_saved": false,
+    "school_scope_expanded": false,
+    "course_enrollment_executed": false,
+    "formal_recommendation_accepted": false
+  }
+}

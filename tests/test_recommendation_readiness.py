@@ -4,7 +4,7 @@ import json
 import unittest
 
 from course_assistant.recommendation_readiness import (assess_recommendation_readiness, project_readiness_result,
-    render_recommendation_readiness, source_receipt_diagnostics, project_source_diagnostics)
+    source_receipt_diagnostics, project_source_diagnostics)
 from course_assistant.student_source_parsers import parse_payload
 
 
@@ -47,11 +47,8 @@ class SourceReadDiagnosticTests(unittest.TestCase):
         self.assertEqual(read, before)
         value = assess_recommendation_readiness(context(receipt("timetable", "2023-2024-AW",
             status="partial_acquisition", diagnostics=diagnostics)), recommendation_kind="timetable", target_term="2023-2024-AW")
-        rendered = render_recommendation_readiness(value, ["sources", "next_step"])
-        self.assertIn("取得3条记录，接口未声明总数，覆盖无法确认", rendered)
-        self.assertIn("2条未提供可用上课时间文本，3条保留结构化时间字段", rendered)
-        self.assertIn("文本缺失不等于没有课时", rendered)
-        self.assertNotIn("缺少2条课时", rendered)
+        source = next(row for row in value["sources"] if row["id"] == "existing_timetable")
+        self.assertEqual(source["diagnostics"], diagnostics)
         self.assertFalse(value["can_generate"])
         self.assertTrue(all(row["status"] == "required_dependency_unverified" for row in value["dependencies"]))
 
@@ -314,89 +311,6 @@ class ReadinessProjectionTests(unittest.TestCase):
         wrapper = {"status": "available", "data_kind": "personal_source", "check_executed": True,
                    "readiness": assess_recommendation_readiness({}, **args)}
         self.assertIsNone(project_readiness_result(wrapper, args)["target_term"])
-
-
-class ReadinessRenderingTests(unittest.TestCase):
-    def setUp(self):
-        self.value = assess_recommendation_readiness(context(receipt("major_academic", "ALL-HISTORY", status="partial_acquisition")),
-            recommendation_kind="timetable", target_term="2023-2024-AW")
-
-    def test_selected_next_step_keeps_gate_and_scope_without_dumping_other_sections(self):
-        before = deepcopy(self.value)
-        rendered = render_recommendation_readiness(self.value, ["next_step"])
-        self.assertIn("2023-2024学年秋冬学期", rendered)
-        self.assertIn("正式推荐尚未就绪", rendered)
-        self.assertIn("正式方案生成、保存和导出尚未开放", rendered)
-        self.assertIn("接下来：", rendered)
-        self.assertNotIn("来源准备：", rendered)
-        self.assertNotIn("仍需核实：", rendered)
-        self.assertNotIn("can_generate", rendered)
-        self.assertEqual(self.value, before)
-
-    def test_sources_use_only_fixed_names_and_actual_safe_availability(self):
-        rendered = render_recommendation_readiness(self.value, ["sources"])
-        self.assertIn("本地课程名称与代码：可用", rendered)
-        self.assertIn("主修成绩来源：部分取得", rendered)
-        self.assertIn("主修来源不代表完整修读历史", rendered)
-        self.assertIn("不代表可选班次清单", rendered)
-        self.assertNotIn("接下来：", rendered)
-
-    def test_partial_timetable_does_not_repeat_read_advice_or_invent_missing_rows(self):
-        value = assess_recommendation_readiness(context(receipt("timetable", "2023-2024-AW",
-            status="partial_acquisition")), recommendation_kind="timetable", target_term="2023-2024-AW")
-        self.assertIn("部分取得或读取失败时说明受阻", value["next_step"])
-        self.assertIn("考试仅在明确要求核对时读取", value["next_step"])
-        rendered = render_recommendation_readiness(value, ["next_step"])
-        self.assertIn("本轮已读取本人课表", rendered)
-        self.assertIn("来源覆盖和时间字段还需分别核对", rendered)
-        self.assertIn("不表示课表为空", rendered)
-        self.assertNotIn("可先查询", rendered)
-        self.assertNotIn("缺行", rendered)
-        self.assertNotIn("重新读取", rendered)
-
-    def test_failed_timetable_is_not_empty_or_old_fallback(self):
-        value = assess_recommendation_readiness(context(receipt("timetable", "2023-2024-AW",
-            status="failed", ready=False)), recommendation_kind="timetable", target_term="2023-2024-AW")
-        rendered = render_recommendation_readiness(value, ["next_step"])
-        self.assertIn("读取未完成", rendered)
-        self.assertIn("待来源恢复后重新读取", rendered)
-        self.assertIn("不以旧课表或空闲代替", rendered)
-        self.assertNotIn("本轮已读取本人课表", rendered)
-
-    def test_other_source_partial_cannot_mask_current_timetable_state(self):
-        for timetable_receipt, expected in (([], "可先读取目标学期本人课表"),
-                ([receipt("timetable", "2023-2024-AW")], "本轮已取得本人课表")):
-            value = assess_recommendation_readiness(context(
-                receipt("major_academic", "ALL-HISTORY", status="partial_acquisition"), *timetable_receipt),
-                recommendation_kind="timetable", target_term="2023-2024-AW")
-            rendered = render_recommendation_readiness(value, ["next_step"])
-            self.assertIn(expected, rendered)
-            self.assertIn("考试仅在明确要求核对时读取", rendered)
-            self.assertNotIn("取得状态为部分", rendered)
-
-    def test_dependencies_keep_course_and_timetable_requirements_distinct(self):
-        course = assess_recommendation_readiness({}, recommendation_kind="courses")
-        short = render_recommendation_readiness(course, ["dependencies"])
-        timetable = render_recommendation_readiness(self.value, ["dependencies"])
-        self.assertIn("目标学期尚未明确", short)
-        self.assertIn("课程与修读身份", short)
-        self.assertNotIn("完整上课周次", short)
-        self.assertIn("完整上课周次", timetable)
-        self.assertIn("真实方案的保存与导出契约仍待接通", timetable)
-
-    def test_invalid_sections_do_not_create_a_default_full_dump(self):
-        for sections in (None, [], ["sources", "sources"], ["all"], ["next_step", 1],
-                         ["sources", "dependencies", "next_step", "extra"]):
-            with self.subTest(sections=sections), self.assertRaisesRegex(ValueError, "^invalid_readiness_sections$"):
-                render_recommendation_readiness(self.value, sections)
-
-    def test_raw_text_extra_fields_or_opened_gates_cannot_enter_renderer(self):
-        for field, replacement in (("next_step", "<script>PRIVATE</script>"), ("can_generate", True),
-                                   ("can_save_or_export", True), ("owner_student_id", "PRIVATE")):
-            value = deepcopy(self.value)
-            value[field] = replacement
-            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "^invalid_readiness_result$"):
-                render_recommendation_readiness(value, ["next_step"])
 
 
 if __name__ == "__main__":

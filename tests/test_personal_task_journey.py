@@ -82,12 +82,12 @@ class PersonalTaskJourneyTests(unittest.TestCase):
 
         def ask_year(messages, tools):
             self.assertIsNone(self.pending_in_wire(messages))
-            return final({"kind": "clarify", "question": "需要查询哪个学年？", "request_basis": "current_message"})
+            return final({'kind': "clarify", 'text': "需要查询哪个学年？", 'request_basis': "current_message"})
 
         def ask_season(messages, tools):
             self.assert_pending_wire(messages, request="查一下课表", supplements=[], question="需要查询哪个学年？")
             self.assertEqual([row["content"] for row in messages if row["role"] == "user"], ["2024-2025"])
-            return final({"kind": "clarify", "question": "查询秋冬还是春夏？", "request_basis": "pending_task"})
+            return final({'kind': "clarify", 'text': "查询秋冬还是春夏？", 'request_basis': "pending_task"})
 
         def query_fresh(messages, tools):
             self.assert_pending_wire(messages, request="查一下课表", supplements=["2024-2025"], question="查询秋冬还是春夏？")
@@ -100,8 +100,7 @@ class PersonalTaskJourneyTests(unittest.TestCase):
             self.assertEqual((result["operation"], result["target_term"]), ("timetable", "2024-2025-SS"))
             record = result["records"][0]
             self.assertEqual(record["course_name_raw"], "本轮合成课表课程")
-            return final({"kind": "answer", "claims": [{"text": "本轮春夏课表记录包含本轮合成课表课程。",
-                                                          "evidence_ids": [record["evidence_id"]]}]})
+            return final({'kind': 'answer', 'text': "本轮春夏课表记录包含本轮合成课表课程。", 'evidence_ids': [record["evidence_id"]]})
 
         self.model.responses.extend([ask_year, ask_season, query_fresh, answer_current])
         first = self.turn("查一下课表")
@@ -130,13 +129,13 @@ class PersonalTaskJourneyTests(unittest.TestCase):
     def test_topic_switch_ends_pending_and_later_fragment_does_not_resurrect_it(self):
         def changed_topic(messages, tools):
             self.assert_pending_wire(messages, request="查一下课表", supplements=[], question="需要查询哪个学年？")
-            return final({"kind": "general_chat", "intent": "capabilities"})
+            return final({'kind': 'answer', 'text': '你好，我可以根据已开放的教务资料回答问题。', 'evidence_ids': []})
 
         def fresh_clarification(messages, tools):
             self.assertIsNone(self.pending_in_wire(messages))
-            return final({"kind": "clarify", "question": "需要核对哪类信息？", "request_basis": "current_message"})
+            return final({'kind': "clarify", 'text': "需要核对哪类信息？", 'request_basis': "current_message"})
 
-        self.model.responses.extend([final({"kind": "clarify", "question": "需要查询哪个学年？"}),
+        self.model.responses.extend([final({'kind': "clarify", 'text': "需要查询哪个学年？"}),
                                      changed_topic, fresh_clarification])
         first = self.turn("查一下课表")
         second = self.turn("换个话题，介绍下你的能力", first)
@@ -150,9 +149,9 @@ class PersonalTaskJourneyTests(unittest.TestCase):
     def test_failed_supplement_ends_pending_and_later_fragment_starts_a_new_request(self):
         def new_request(messages, tools):
             self.assertIsNone(self.pending_in_wire(messages))
-            return final({"kind": "clarify", "question": "需要核对哪类信息？", "request_basis": "current_message"})
+            return final({'kind': "clarify", 'text': "需要核对哪类信息？", 'request_basis': "current_message"})
 
-        self.model.responses.extend([final({"kind": "clarify", "question": "需要查询哪个学年？"}),
+        self.model.responses.extend([final({'kind': "clarify", 'text': "需要查询哪个学年？"}),
                                      ModelError("model_timeout", "合成模型超时"), new_request])
         first = self.turn("查一下课表")
         second = self.turn("2024-2025", first)

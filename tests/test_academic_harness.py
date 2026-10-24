@@ -89,7 +89,7 @@ class AcademicHarnessTests(unittest.TestCase):
     @staticmethod
     def answer(messages, tools):
         last = json.loads(next(m["content"] for m in reversed(messages) if m["role"] == "tool"))
-        return final({"kind": "answer", "claims": [last["answer_claim"]]})
+        return final({'kind': 'answer', 'text': '本轮返回了课程条件测试资料，请按实际方案核对。', 'evidence_ids': ([last['evidence_id']])})
 
     def dialogue(self, harness, responses, message):
         model = ScriptedModel(responses)
@@ -101,8 +101,11 @@ class AcademicHarnessTests(unittest.TestCase):
 
     def test_three_turn_generation_revision_and_explanation_without_prepare(self):
         first = self.harness()
-        result, _ = self.dialogue(first, [call(NAMES[0], {"query": "Synthetic", "target_term": CURRENT_TERM}),
+        result, first_model = self.dialogue(first, [call(NAMES[0], {"query": "Synthetic", "target_term": CURRENT_TERM}),
             call(NAMES[1], self.args(), "compute"), self.answer], "推荐合成课程5学分")
+        declared = {tool["function"]["name"] for tool in first_model.calls[0][1]}
+        self.assertNotIn("prepare_recommendation_inputs", declared)
+        self.assertIn("check_recommendation_inputs", declared)
         plan = result["recommendation_result"]
         self.assertTrue(plan["options"])
         self.assertEqual([n for n, _ in self.school.calls], ["get_my_context", NAMES[0], "query_my_records", "search_my_curriculum", NAMES[1]])
@@ -169,7 +172,7 @@ class AcademicHarnessTests(unittest.TestCase):
             call(NAMES[1], self.args("timetable"), "compute"), self.answer], "用合成课程排5学分的课表")
         self.assertEqual(result["recommendation_result"]["reason"], "timetable_not_complete")
         self.assertEqual(result["task_progress"]["status"], "blocked")
-        self.assertEqual([t["function"]["name"] for t in model.calls[-1][1]], ["query_my_records"])
+        self.assertEqual([t["function"]["name"] for t in model.calls[-1][1]], ["query_my_records", "finish_answer"])
 
     def test_auto_child_projection_rejects_extra_or_cross_scope_payload(self):
         runtime = self.harness()
@@ -185,6 +188,15 @@ class AcademicHarnessTests(unittest.TestCase):
                 wrong["dependency_task"]["target_term"] = "2025-2026-AW"
             with self.subTest(alter=alter), self.assertRaises(PersonalDialogueError):
                 PersonalDialogueService._project(NAMES[1], wrong, self.args(), "abc", {}, 1, [0, 0, {}], set())
+
+    def test_owned_plan_uses_canonical_policy_instead_of_old_preparation_prose(self):
+        previous = {"tasks": [{"tool": "prepare_recommendation_inputs", "hard_preferences": ["周五必须空闲"],
+            "soft_preferences": ["尽量周四空闲"]}]}
+        harness = AcademicHarness(self.school, None, authorize=self.authorize,
+            generation_authorize=self.authorize, adopt=lambda _: None, emit=lambda *_: None,
+            user_message="解释已有方案", active_plan_ref="PLN-" + "a" * 48, task_context=previous)
+        self.assertEqual(harness.policy_context["hard_preferences"], [])
+        self.assertEqual(harness.policy_context["soft_preferences"], [])
 
     def test_catalog_describes_available_routes_without_identity_or_old_facts(self):
         context = {**self.school.context, "password": "PRIVATE-RAW", "old_records": ["PRIVATE-RAW"]}

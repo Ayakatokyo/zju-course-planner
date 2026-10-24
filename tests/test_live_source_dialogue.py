@@ -72,12 +72,11 @@ class LiveSourceDialogueTests(unittest.TestCase):
 
     @staticmethod
     def answer(text, proof):
-        return final({"kind": "answer", "claims": [{"text": text, "evidence_ids": [proof]}]})
+        return final({'kind': 'answer', 'text': text, 'evidence_ids': [proof]})
 
     @staticmethod
-    def summary_answer(proof, sections=("counts", "numeric_grades")):
-        return final({"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": proof,
-                                                    "sections": list(sections)}]})
+    def summary_answer(proof):
+        return final({'kind': 'answer', 'text': '本次匹配40条记录，简单不加权均值为80.00，不是GPA。', 'evidence_ids': ([proof])})
 
     def test_summary_mode_answers_with_full_aggregate_and_no_record_page(self):
         args = {"operation": "major_academic", "mode": "summary", "query": "", "limit": 1}
@@ -169,7 +168,7 @@ class LiveSourceDialogueTests(unittest.TestCase):
                 def invalid(messages, tools):
                     return call("query_my_records", {**args, **patch, "page_token": self.last_tool(messages)["next_page_token"]}, "changed-page")
                 response, messages, _ = self.run_protocol([call("query_my_records", args), invalid,
-                    final({"kind": "not_ready", "reason": "insufficient_evidence"})])
+                    final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []})])
                 self.assertEqual(sum(name == "query_my_records" for name, _ in self.executed), 1)
                 self.assertTrue(response["tool_results"][-1]["error"])
                 self.assertEqual(response["tool_results"][-1]["result"]["status"], "unavailable")
@@ -193,7 +192,7 @@ class LiveSourceDialogueTests(unittest.TestCase):
         args = {"operation": "major_academic", "mode": "records", "query": "", "limit": 15,
                 "page_token": "PAGE-1234abcd-999"}
         response, messages, _ = self.run_protocol([call("query_my_records", args),
-            final({"kind": "not_ready", "reason": "insufficient_evidence"})])
+            final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []})])
         self.assertEqual([name for name, _ in self.executed], ["get_my_context"])
         self.assertTrue(response["tool_results"][-1]["error"])
         self.assertNotIn(self.raw_cursor, json.dumps(messages, ensure_ascii=False))
@@ -202,11 +201,11 @@ class LiveSourceDialogueTests(unittest.TestCase):
         args = {"operation": "academic", "target_term": "2098-2099-SS", "mode": "summary"}
         def respond(messages, tools):
             remote = self.last_tool(messages)
-            return self.summary_answer(remote["source_grade_summary"]["evidence_id"], ("counts",))
+            return self.summary_answer(remote["source_grade_summary"]["evidence_id"])
         response, _, _ = self.run_protocol([call("query_my_records", args), respond])
         self.assertEqual(response["status"], "completed", response)
         self.assertEqual(self.executed[-1][1]["target_term"], "2098-2099-SS")
-        self.assertIn("2098-2099学年春夏学期成绩来源", response["reply"])
+        self.assertEqual(response["citations"][0]["record_source"]["label"], "2098-2099学年春夏学期成绩来源")
         self.context["api_operations"] = []
         self.executed = []
         rejected, _, _ = self.run_protocol([call("query_my_records", args)])
@@ -216,7 +215,7 @@ class LiveSourceDialogueTests(unittest.TestCase):
         self.context["capabilities"]["live_record_query"] = False
         self.executed = []
         blocked, _, _ = self.run_protocol([call("query_my_records", args),
-            final({"kind": "not_ready", "reason": "insufficient_evidence"})])
+            final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []})])
         self.assertEqual([name for name, _ in self.executed], ["get_my_context"])
         self.assertEqual((blocked["status"], blocked["code"]), ("failed", "invalid_tool_arguments"))
 
@@ -312,7 +311,7 @@ class LiveSourceDialogueTests(unittest.TestCase):
         previous = [{"role": "user", "content": "之前查询合成成绩"},
                     {"role": "user", "content": "之后查询合成培养要求"}]
         current = "现在只查询本地课程目录"
-        model = ScriptedModel([final({"kind": "general_chat", "intent": "capabilities"})])
+        model = ScriptedModel([final({'kind': 'answer', 'text': '你好，我可以根据已开放的教务资料回答问题。', 'evidence_ids': []})])
         service = PersonalDialogueService(model, lambda: {"scope_key": "SYNTHETIC-SCOPE"}, self.execute)
         response, persisted = service.run(current, data_use="personal_retrieval", history=previous)
         self.assertEqual(response["status"], "completed", response)
@@ -336,13 +335,13 @@ class LiveSourceDialogueTests(unittest.TestCase):
         response, _ = service.run("本地课程目录里有合成算法吗", data_use="personal_retrieval", execution_context=diagnostic)
         self.assertEqual(response["status"], "completed", response)
         self.assertEqual({tool["function"]["name"] for tool in model.calls[0][1]},
-                         {"get_my_context", "search_course_catalog", "get_my_run_diagnostics"})
+                         {"get_my_context", "search_course_catalog", "get_my_run_diagnostics", "finish_answer"})
         self.assertEqual([name for name, _ in self.executed], ["get_my_context", "search_course_catalog"])
 
     def test_catalog_only_turn_rejects_model_attempts_to_read_personal_sources(self):
         for name, args in (("query_my_records", {"operation": "major_academic", "mode": "summary"}),
                            ("search_my_curriculum", {"query": "专业选修"})):
-            for repair, succeeds in ((final({"kind": "not_ready", "reason": "insufficient_evidence"}), True),
+            for repair, succeeds in ((final({'kind': 'not_ready', 'text': '现有资料不足以支持该结论，还需核对相应来源与适用条件。', 'evidence_ids': []}), True),
                                      (call(name, args), False)):
                 with self.subTest(tool=name, repair_succeeds=succeeds):
                     self.executed = []
@@ -357,12 +356,12 @@ class LiveSourceDialogueTests(unittest.TestCase):
                         self.assertEqual(history, [])
                     self.assertEqual(response["repair_attempts"], 1)
                     self.assertEqual(len(model.calls), 2)
-                    self.assertEqual(model.calls[-1][1], [])
+                    self.assertEqual([tool["function"]["name"] for tool in model.calls[-1][1]], ["finish_answer"])
                     self.assertEqual([tool_name for tool_name, _ in self.executed], ["get_my_context"])
                     self.assertEqual([row["name"] for row in response["tool_results"]], ["get_my_context"])
                     self.assertTrue(all(c["kind"] == "context" for c in response["citations"]))
                     self.assertEqual({tool["function"]["name"] for tool in model.calls[0][1]},
-                                     {"get_my_context", "search_course_catalog"})
+                                     {"get_my_context", "search_course_catalog", "finish_answer"})
                     self.assertEqual(response["validation_diagnostics"][0]["failure_detail"], "undeclared_tool_call")
                     retained = json.dumps([model.calls[-1][0], history, response["validation_diagnostics"]],
                         ensure_ascii=False)

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from course_assistant.importer import ImportErrorDetail, digest, read_sources, validate_demo
 from course_assistant.server import Application
@@ -27,6 +28,26 @@ class ApplicationTests(unittest.TestCase):
 
     def generation(self):
         return self.post("/api/generate", {"constraints": {"friday_free": "soft"}})
+
+    def test_school_only_start_does_not_load_demo_sources_fixture_or_chat(self):
+        from tests.test_school_http_app import SyntheticSchool
+        from tests.test_personal_dialogue import ScriptedModel
+        model = ScriptedModel([])
+        with patch("course_assistant.server.read_sources", side_effect=AssertionError("demo source read")), \
+                patch("course_assistant.server.load_json", side_effect=AssertionError("demo fixture read")), \
+                patch("course_assistant.chat.ChatService", side_effect=AssertionError("demo chat initialized")):
+            app = Application(Path(self.temp.name) / "school-only.sqlite3", model=model,
+                school_client_factory=SyntheticSchool, school_root=Path(self.temp.name).resolve() / "private" / "school")
+            self.addCleanup(app.close)
+            self.assertIs(app.personal_chat.model, model)
+            self.assertIsNone(app.chat)
+            self.assertIsNone(app.fixture)
+            self.assertIsNone(app.source)
+            self.assertTrue(app.get("/api/health")["school_client_enabled"])
+            self.assertFalse(app.auth.mock_enabled)
+        self.assertIsNotNone(self.app.chat)
+        self.assertIsNotNone(self.app.fixture)
+        self.assertIs(self.app.personal_chat.model, self.app.chat.model)
 
     def test_source_integrity_and_counts(self):
         source = read_sources()

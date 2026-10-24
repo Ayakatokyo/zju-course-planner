@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-24",
+  "version": "v35",
+  "phase": "implemented_and_activated_final_live_validation_pending",
+  "renamed_threads": 3,
+  "changes": [
+    "Enter sends; Shift+Enter newline; IME and repeat guards",
+    "Grade source table survives supporting context/catalog citations",
+    "Summary-only meaning and grade-detail presentation guidance"
+  ],
+  "engineering": [
+    {
+      "phase": "baseline",
+      "ran": 1487,
+      "passed": 1482,
+      "skipped": 5
+    },
+    {
+      "phase": "targeted",
+      "ran": 180,
+      "passed": 180,
+      "skipped": 0
+    },
+    {
+      "phase": "final",
+      "ran": 1489,
+      "passed": 1484,
+      "skipped": 5
+    }
+  ],
+  "baseline_live": [
+    {
+      "status": "completed",
+      "reply_chars": 173,
+      "model_calls": 2,
+      "repairs": 0,
+      "tools": [
+        "get_my_context",
+        "query_my_records"
+      ]
+    },
+    {
+      "status": "completed",
+      "reply_chars": 478,
+      "model_calls": 2,
+      "repairs": 0,
+      "tools": [
+        "get_my_context",
+        "query_my_records",
+        "search_course_catalog"
+      ]
+    },
+    {
+      "status": "completed",
+      "reply_chars": 181,
+      "model_calls": 2,
+      "repairs": 0,
+      "tools": [
+        "get_my_context",
+        "lookup_academic_terms"
+      ]
+    }
+  ],
+  "frozen_replay": {
+    "calls": 3,
+    "initial_outputs_rejected": 2,
+    "single_repair_passed": true,
+    "new_school_reads": 0,
+    "full_semantics_accepted": false
+  },
+  "ui": {
+    "native_chrome_shift_enter_newline": true,
+    "native_chrome_enter_sent_one_turn": true,
+    "actual_grade_table_with_catalog_citation_visible": true,
+    "ime_engineering_only": true,
+    "desktop_screenshot_checked": true,
+    "new_mobile_check": false
+  },
+  "runtime": {
+    "pid": 46309,
+    "port": 18875,
+    "healthy": true,
+    "active_runs": 0,
+    "extra_capture_enabled": false,
+    "new_login_verified": false
+  },
+  "blocker": "Computer Use session ended because the current browser URL is not allowed. Final updated-backend live checks require returning to the assistant and logging in.",
+  "remaining": [
+    "Updated-backend grade detail live test",
+    "Course generation, locked adjustment and read-only explanation live test",
+    "Complete semantics and formal recommendation remain unaccepted"
+  ],
+  "git": {
+    "committed": false,
+    "pushed": false
+  },
+  "source_sha256": {
+    "course_assistant/personal_dialogue.py": "94b6a11a90188ed519b1c7128cadc20d971e03c6e14306cb7c3db3b2daeaae99",
+    "web/app.js": "1ee7889594e57194f85423c117d2223f014ee28467115e52c4036e8b2ff2ac84",
+    "tests/test_web_contract.py": "1cfcad209f29fcb6b777a4fc6c78db57dcaafcb3fbd37d85a3bd2834281564ee",
+    "tests/test_personal_answer_protocol.py": "fc0df92a452cf4308c72fcca3644cbda1a45a34cd380478d1e6f767ae8d41118",
+    "tests/test_personal_progress_web.py": "40960cd5b5760845fe268cb2190e21b4089ac4c7c6be6f8fb63378bf93955dca"
+  },
+  "continuation_audit": {
+    "renamed_titles_read_back": true,
+    "validated_source_hashes_match": true,
+    "served_app_js_matches_disk": true,
+    "new_runs_since_activation": 0,
+    "successful_login_request_seen_since_activation": false,
+    "active_runs": 0,
+    "restarted": false,
+    "browser_restriction_bypassed": false
+  },
+  "superseded_by": "validation/dialogue_v35_real_20261024_acceptance.json",
+  "historical_phase_preserved": true
+}

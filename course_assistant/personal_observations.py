@@ -538,7 +538,9 @@ class PersonalObservationStore:
             if cursor and cursor["snapshot_sha256"] != snapshot_hash:
                 _fail("invalid_observation_cursor")
             records = snapshot["result"]["records"]
-            filtered = [record for record in records if self._matches(record, query, year, snapshot["result"]["target_term"])]
+            positions = [index for index, record in enumerate(records)
+                         if self._matches(record, query, year, snapshot["result"]["target_term"])]
+            filtered = [records[index] for index in positions]
             offset = cursor["offset"] if cursor else 0
             if offset > len(filtered):
                 _fail("invalid_observation_cursor")
@@ -547,6 +549,7 @@ class PersonalObservationStore:
                 "snapshot_sha256": snapshot_hash, "operation": operation, "query": query,
                 "academic_year": year, "limit": limit, "offset": offset + limit}) if mode == "records" and offset + limit < len(filtered) else None
             result = {**self._summary(snapshot), "records": selected, "total_records": len(records),
+                "source_record_indices": positions[offset:offset + limit] if mode == "records" else [],
                 "matched_records": len(filtered), "returned_records": len(selected), "next_cursor": next_cursor,
                 "query": query, "academic_year": year, "offset": offset, "mode": mode,
                 "issues": deepcopy(snapshot["result"].get("issues")),
