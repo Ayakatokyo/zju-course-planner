@@ -213,7 +213,7 @@ class PersonalRetrievalProgressHTTPTests(unittest.TestCase):
         code, result, _ = self.request("POST", "/api/chat/turn", self.body("你是谁"))
         self.assertEqual(code, 200, result)
         self.assertEqual(result["status"], "completed", result)
-        self.assertEqual(result["reply_origin"], "model_selected_service_guidance")
+        self.assertEqual(result["reply_origin"], "personal_model_answer")
         self.assertEqual(self.clients[0].calls, [])
         self.assertEqual(len(self.model.shared["calls"]), 1)
 

@@ -104,9 +104,9 @@ class ScriptedPersonalModel:
                 "type": "function", "function": {"name": name, "arguments": json.dumps(arguments)}}]}
         normalized = "".join(question.split()).strip("?!？！。")
         if normalized in {"你是谁", "你是什么", "你是做什么的"}:
-            return {"role": "assistant", "content": json.dumps({"kind": "general_chat", "intent": "identity"})}
+            return {"role": "assistant", "content": json.dumps({"kind": "answer", "text": "我是浙大教务助手；这是明确标记的合成协议测试。", "evidence_ids": []})}
         if normalized in {"你好", "hello", "hi"}:
-            return {"role": "assistant", "content": json.dumps({"kind": "general_chat", "intent": "greeting"})}
+            return {"role": "assistant", "content": json.dumps({"kind": "answer", "text": "你好，这是合成协议测试。", "evidence_ids": []})}
         marker = "服务器已完成本轮本机范围检查（service_preflight get_my_context）：\n"
         context = {}
         for item in messages:
@@ -122,7 +122,7 @@ class ScriptedPersonalModel:
             if scope is None and context.get("capabilities", {}).get("live_record_query"):
                 scope = {"operation": "major_academic", "target_term": "ALL-HISTORY"}
             if scope is None:
-                return {"role": "assistant", "content": json.dumps({"kind": "not_ready", "reason": "insufficient_evidence"})}
+                return {"role": "assistant", "content": json.dumps({"kind": "not_ready", "text": "本轮合成来源尚未就绪。", "evidence_ids": []})}
             return call("query_my_records", {"operation": scope["operation"], "target_term": scope["target_term"],
                                               "query": "SYNTHETIC-PE-REPEAT" if "SYNTHETIC-PE-REPEAT" in question else "", "limit": 15})
         result = current[0]
@@ -131,16 +131,11 @@ class ScriptedPersonalModel:
         summary_id = summary.get("evidence_id")
         ids = ([summary_id] if summary_id else []) + [row["evidence_id"] for row in rows if row.get("evidence_id")]
         if summary_id:
-            fallback_sections = ["counts", "numeric_grades"] + (["completion_status"]
-                if isinstance(summary.get("completion_status_counts"), dict) else [])
-            sections = [section for section in ("counts", "numeric_grades", "completion_status")
-                        if section in summary.get("available_sections", fallback_sections)]
-            decision = {"kind": "answer", "claims": [{"kind": "source_summary", "evidence_id": summary_id,
-                "sections": sections}]}
+            decision = {"kind": "answer", "text": "合成协议验证：本次匹配" + str(summary["matched_records"]) + "条记录，数字成绩均值为" + str(summary.get("numeric_mean_unweighted")) + "；不是GPA，也不代表完整学业或认定。",
+                "evidence_ids": [summary_id]}
         else:
-            decision = ({"kind": "answer", "claims": [{"text": "合成协议验证：以下片段仅来自当前已读范围，内容及适用仍待核验。",
-                                                         "evidence_ids": ids[:3]}]}
-                        if ids else {"kind": "not_ready", "reason": "insufficient_evidence"})
+            decision = ({"kind": "answer", "text": "合成协议验证：以下片段仅来自当前已读范围，内容及适用仍待核验。", "evidence_ids": ids[:3]}
+                        if ids else {"kind": "not_ready", "text": "本轮合成来源尚未就绪。", "evidence_ids": []})
         return {"role": "assistant", "content": json.dumps(decision, ensure_ascii=False)}
 
 

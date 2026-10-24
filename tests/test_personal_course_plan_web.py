@@ -15,6 +15,19 @@ from tests import test_web_contract as web_contract
 
 @unittest.skipUnless(web_contract.NODE, "Node is needed for Web contracts")
 class PersonalCoursePlanWebTests(unittest.TestCase):
+    def test_unified_model_answer_stays_visible_once_above_canonical_plan(self):
+        self.run_js(r"""
+evaluate("state.agentTurns=[{status:'completed',message:'说明取舍',reply:'合成直接答案：**优先A**，周五更空闲。\\n仍需核对正式适用。<script>unsafe</script>',model_decision:{kind:'answer',answer_protocol:'text-v1'},recommendation_result:plan,tool_results:[],citations:[]}];renderAssistant()");
+const html=element('#panel-assistant').innerHTML;
+assert.equal((html.match(/合成直接答案/g)||[]).length,1);
+assert.match(html,/<strong>优先A<\/strong>/);
+assert.match(html,/周五更空闲。<\/p><p>仍需核对正式适用。/);
+assert.ok(html.indexOf('合成直接答案')<html.indexOf('personal-plan-option'));
+assert.match(html,/&lt;script&gt;unsafe&lt;\/script&gt;/);
+assert.equal((html.match(/class="personal-plan-option"/g)||[]).length,2);
+assert.doesNotMatch(html,/agent-plan-analysis|查看依据|处理过程|条件与核验范围|运行记录/);
+""")
+
     def run_js(self, assertions):
         fixture = r"""
 context.plan={schema_version:'personal-course-data-test/1',action:'generate',mode:'current_term_course_data_test',target_term:'2026-2027-AW',data_version:'SYNTHETIC-DATA-v1',reference_mode:'historical_course_observations',revision:0,plan_ref:'PLN-SYNTHETIC-NOT-USER-FACING',source_preparation:{major_academic:'available',curriculum:'available',timetable:'available',exams:'not_requested'},search:null,courses:[],options:[{label:'A',total_credits:'6',observed_slot_result:'pass',full_semantics:'unverified',classes:[{class_ref:'CLS-SYNTHETIC-LOCKED',course_name:'合成体育',course_code:'SYN-PE',credits:'3',weekday_period_text:['周一第1、2节'],locked:true},{class_ref:'CLS-SYNTHETIC-MATH',course_name:'合成数学',course_code:'SYN-MATH',credits:'3',weekday_period_text:['周二第3、4节'],locked:false}],compared_meeting_pair_count:1,friday_meeting_count:0},{label:'B',total_credits:'5',observed_slot_result:'unknown',full_semantics:'unverified',classes:[{class_ref:'CLS-SYNTHETIC-UNKNOWN',course_name:'合成数据分析',course_code:'SYN-DATA',credits:'2',weekday_period_text:[],locked:false}],compared_meeting_pair_count:0,friday_meeting_count:1}],locked_class_refs:['CLS-SYNTHETIC-LOCKED'],fixed_arrangement_count:2,constraints:{target_credits:'6',max_credits:'8',friday_free:'soft',required_course_codes:['SYN-PE']},validation_scope:'observed_weekday_periods_conservative_overlap_policy',limitations:[],actions:['compare','revise'],reason:null,search_status:{limit_reached:true,complete_within_observed_scope:false,school_offerings_coverage_complete:false},selection_hint:null};

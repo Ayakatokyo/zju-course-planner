@@ -1,0 +1,87 @@
+{
+  "date": "2026-10-23",
+  "scope": "frontend_layout_only",
+  "backend_restarted": false,
+  "listener_pid": 2878,
+  "changes": [
+    "对话主区最大宽度1000改为1400",
+    "页头80改为64，侧栏256改为216",
+    "新对话标题与输入框居中，已有及待回复消息输入框置底",
+    "白色正文、浅色侧栏、较轻的导航和方案卡片、段落间距"
+  ],
+  "source_sha256": {
+    "web/app.js": "5afe64dd764aaeeed41f39d22be8df7ffd5683a6d566f44c45ac5267115b0641",
+    "web/styles.css": "a4c15a5da38a3b4d5a74c5a1438fdb36fbb33f3d5d7094aef5e6f9bfccbc3857"
+  },
+  "served_static_matches_disk": {
+    "web/app.js": true,
+    "web/styles.css": true
+  },
+  "checks": {
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed",
+    "existing_tests": {
+      "command": "python3 -m unittest tests.test_web_contract tests.test_personal_progress_web tests.test_personal_course_plan_web -q",
+      "run": 132,
+      "failed": 0,
+      "errors": 0
+    },
+    "offline_render_state_check": [
+      "draft_centered",
+      "pending_bottom",
+      "completed_bottom",
+      "new_conversation_centered",
+      "pending_history_bottom"
+    ]
+  },
+  "browser": {
+    "type": "actual Chrome page",
+    "viewports": [
+      {
+        "width": 1920,
+        "height": 873,
+        "empty_composer_width": 880,
+        "conversation_width": 1352,
+        "dialogue_height": 608.75,
+        "composer_height": 128.25,
+        "composer_bottom": 861,
+        "horizontal_overflow": false
+      },
+      {
+        "width": 1280,
+        "height": 800,
+        "conversation_width": 1016,
+        "dialogue_height": 535.75,
+        "composer_bottom": 788,
+        "horizontal_overflow": false
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "conversation_width": 358,
+        "dialogue_height": 435,
+        "empty_composer_top": 515.3125,
+        "conversation_composer_bottom": 832,
+        "horizontal_overflow": false
+      }
+    ],
+    "page_up_changed_scroll": true,
+    "return_to_latest_reached_bottom": true,
+    "typed_unsent_draft_remained_centered": true,
+    "test_draft_cleared": true,
+    "temporary_viewport_override_reset": true,
+    "final_view": "new_conversation",
+    "screenshots_private_only": true
+  },
+  "boundaries": {
+    "new_model_calls": 0,
+    "new_school_source_calls": 0,
+    "new_real_question_sent": false,
+    "full_backend_suite_run": false,
+    "mobile_software_keyboard_tested": false,
+    "user_visual_acceptance": "pending",
+    "business_semantic_acceptance": "unchanged",
+    "committed": false,
+    "pushed": false
+  }
+}

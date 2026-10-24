@@ -11,6 +11,24 @@ NODE = shutil.which("node")
 
 @unittest.skipUnless(NODE, "Node is needed only for Web contract verification")
 class WebContractTests(unittest.TestCase):
+    def test_composer_enter_sends_shift_enter_and_ime_do_not(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true};state.boot={};state.agentStatus={configured:true,remote:false};state.agentDraft='合成测试问题';renderAssistant()");
+let sends=0,prevented=0;context.sendAgentTurn=()=>{sends++;};
+const draft=element('#agent-draft'),key=extra=>({key:'Enter',preventDefault(){prevented++;},...extra});
+draft.listeners.keydown(key({shiftKey:true}));
+draft.listeners.keydown(key({isComposing:true}));
+draft.listeners.keydown(key({keyCode:229}));
+draft.listeners.compositionstart();draft.listeners.keydown(key());draft.listeners.compositionend();
+assert.equal(sends,0);assert.equal(prevented,0);
+draft.listeners.keydown(key());assert.equal(sends,1);assert.equal(prevented,1);
+draft.listeners.keydown(key({repeat:true}));assert.equal(sends,1);
+evaluate("state.agentBusy=true");draft.listeners.keydown(key());assert.equal(sends,1);
+evaluate("state.agentBusy=false;state.agentDraft='  '");draft.listeners.keydown(key());assert.equal(sends,1);
+evaluate("state.agentDraft='合成追问';state.agentHistoryPending=true");draft.listeners.keydown(key());assert.equal(sends,1);
+assert.equal(evaluate('state.agentDraft'),'合成追问');
+""")
+
     def run_js(self, assertions):
         setup = r"""
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
@@ -859,11 +877,12 @@ const css=fs.readFileSync(process.argv[1].replace(/app\.js$/,'styles.css'),'utf8
         exact = model.complete(messages[:-1] + [{"role": "user", "content": "查询 SYNTHETIC-PE-REPEAT"}], [])
         self.assertEqual(json.loads(exact["tool_calls"][0]["function"]["arguments"])["query"], "SYNTHETIC-PE-REPEAT")
         identity = model.complete([{"role": "user", "content": "你是谁？"}], [])
-        self.assertEqual(json.loads(identity["content"]), {"kind": "general_chat", "intent": "identity"})
+        self.assertEqual(json.loads(identity["content"])["kind"], "answer")
+        self.assertIn("浙大教务助手", json.loads(identity["content"])["text"])
         summary_reply = model.complete(messages + [first, {"role": "tool", "tool_call_id": "synthetic-summary",
-            "content": json.dumps({"source_grade_summary": {"evidence_id": "S-FIXTURE", "available_sections": ["counts"]}})}], [])
-        self.assertEqual(json.loads(summary_reply["content"]), {"kind": "answer", "claims": [
-            {"kind": "source_summary", "evidence_id": "S-FIXTURE", "sections": ["counts"]}]})
+            "content": json.dumps({"source_grade_summary": {"evidence_id": "S-FIXTURE", "matched_records": 3, "numeric_mean_unweighted": "80.00"}})}], [])
+        self.assertEqual(json.loads(summary_reply["content"])["evidence_ids"], ["S-FIXTURE"])
+        self.assertIn("3条记录", json.loads(summary_reply["content"])["text"])
         deltas, observed = [], []
         model.stream_delay = 0.3
         with patch("validation.run_personal_ui_fixture.time.sleep") as delay:

@@ -6,6 +6,21 @@ from tests import test_web_contract as web_contract
 
 @unittest.skipUnless(web_contract.NODE, "Node is needed only for Web progress contracts")
 class PersonalProgressWebTests(unittest.TestCase):
+    def test_grade_table_merges_overlapping_source_rows_but_keeps_distinct_attempts(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
+const record={course_name_raw:'合成数据课',course_code_raw:'SYN-A',grade_raw:'88',academic_year_raw:'2099-2100',term_raw:'1'};
+const citation={kind:'record',operation:'major_academic',observation_id:'OBS-synthetic',source_record_index:3,record};
+context.turn={status:'completed',message:'列出成绩明细',reply:'见来源表。',model_decision:{answer_protocol:'text-v1'},citations:[citation,{...citation,evidence_id:'second-query'},{...citation,source_record_index:8}]};
+const original=JSON.stringify(context.turn);evaluate('state.agentTurns=[turn]');let html=evaluate('renderAgentTurns()');
+assert.equal((html.match(/SYN-A/g)||[]).length,2);assert.match(html,/本答复展示 2 条/);assert.match(html,/2099-2100 · 学期 1/);assert.equal(JSON.stringify(context.turn),original);
+// Historical entries without stable positions and different snapshots stay separate.
+delete context.turn.citations[1].source_record_index;
+assert.equal((evaluate('renderAgentTurns()').match(/SYN-A/g)||[]).length,3);
+context.turn.citations[1]={...citation,observation_id:'OBS-another'};
+assert.equal((evaluate('renderAgentTurns()').match(/SYN-A/g)||[]).length,3);
+""")
+
     def run_js(self, assertions):
         web_contract.WebContractTests.run_js(self, assertions)
 
@@ -36,6 +51,28 @@ assert.match(html,/2025-2026 春夏 · 成绩明细/);assert.match(html,/本答�
 assert.equal((html.match(/SAME/g)||[]).length,2);assert.equal(context.turn.citations.length,2);assert.equal(calls,0);
 context.turn.status='failed';assert.equal(evaluate('personalGradeAnswer(turn)'),null);
 context.turn.status='completed';context.turn.message='为什么这门课有两条成绩';assert.equal(evaluate('personalGradeAnswer(turn)'),null);
+""")
+
+    def test_direct_grade_prose_replaces_only_bound_duplicate_table_and_keeps_explanation(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
+const row={course_name_raw:'合成数据课',course_code_raw:'SYN-A',grade_raw:'88',grade_points_raw:null,nominal_credits:'2'};
+context.turn={status:'completed',message:'把相关课程成绩列出来',model_decision:{answer_protocol:'text-v1'},
+reply:'这些是按课程名筛选的记录。\n| 课程 | 成绩 | 绩点 | 学分 |\n|---|---|---|---|\n| **合成数据课** | 99 | 4.8 | 2 |\n\n未知不等于未通过。<script>unsafe</script>',
+citations:[{kind:'record',operation:'major_academic',record:row},{kind:'record',operation:'major_academic',record:{...row,grade_raw:null}}]};
+const before=JSON.stringify(context.turn);evaluate('state.agentTurns=[turn]');let html=evaluate('renderAgentTurns()');
+assert.equal((html.match(/<table/g)||[]).length,1);assert.doesNotMatch(html,/\|---|\| 99|4\.8|<script>/);
+assert.match(html,/>88</);assert.match(html,/未知不等于未通过/);assert.match(html,/这些是按课程名筛选/);assert.match(html,/待确认/);
+assert.equal((html.match(/SYN-A/g)||[]).length,2);assert.equal(JSON.stringify(context.turn),before);
+// A supporting catalog/context citation must not suppress the source table.
+context.turn.citations.push({kind:'course_reference',course:{course_name:'合成数据课'}},{kind:'context'});
+html=evaluate('renderAgentTurns()');assert.equal((html.match(/<table/g)||[]).length,1);
+assert.match(html,/>88</);assert.doesNotMatch(html,/\| 99/);
+// Other tables, uncited courses, and questions with no source table are kept.
+context.turn.reply='| 课程 | 成绩 |\n|---|---|\n| 未引用课程 | 99 |';
+assert.match(evaluate('renderAgentTurns()'),/未引用课程/);
+context.turn.reply='| 方案 | 学分 |\n|---|---|\n| A | 6 |';assert.match(evaluate('renderAgentTurns()'),/\| A \| 6 \|/);
+context.turn.message='解释成绩';assert.equal(evaluate('personalGradeAnswer(turn)'),null);
 """)
 
     def test_enabled_thinking_without_text_is_distinct_from_normal_mode(self):

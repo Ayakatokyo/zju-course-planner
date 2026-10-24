@@ -367,13 +367,34 @@ function personalGradeAnswer(turn){
   const groups=new Map();
   for(const item of records){
     const scope=JSON.stringify([item.operation,item.target_term,item.observation_id,item.historical_only,item.data_source]);
-    if(!groups.has(scope))groups.set(scope,{...item,records:[],citation_numbers:[]});
-    groups.get(scope).records.push(item.record);groups.get(scope).citation_numbers.push(item.citation_number);
+    if(!groups.has(scope))groups.set(scope,{...item,records:[],citation_numbers:[],seen:new Set()});
+    const group=groups.get(scope);
+    // Deduplicate only the same immutable source row returned by overlapping
+    // queries. Equal course codes or even equal grades are not row identity.
+    const rowKey=typeof item.observation_id==='string'&&Number.isSafeInteger(item.source_record_index)&&item.source_record_index>=0?JSON.stringify([item.source_record_index,item.record]):null;
+    if(rowKey!==null&&group.seen.has(rowKey))continue;
+    if(rowKey!==null)group.seen.add(rowKey);
+    group.records.push(item.record);group.citation_numbers.push(item.citation_number);
   }
-  const listing=/(明细|列出|列一下|课程成绩|每门.*成绩|成绩.*表格)/.test(turn.message||'')&&!/(为什么|解释|建议|比较|怎么算)/.test(turn.message||'')&&citations.every(item=>['record','summary'].includes(item.kind)&&['academic','major_academic'].includes(item.operation));
+  const listing=/(明细|列出|列一下|课程成绩|每门.*成绩|成绩.*表格)/.test(turn.message||'')&&!/(为什么|解释|建议|比较|怎么算)/.test(turn.message||'')&&citations.every(item=>['context','course_reference'].includes(item.kind)||['record','summary'].includes(item.kind)&&['academic','major_academic'].includes(item.operation));
   if(!listing)return null;
   const html=[...groups.values()].map(group=>`<section class="agent-grade-answer"><h4>${esc(personalTermLabel(group.target_term))} · 成绩明细</h4><p class="field-help">${esc(personalSourceKind(group))} · ${esc(schoolCoverageText(group))} · 本答复展示 ${group.records.length} 条</p>${personalRecordTable({...group,citation_numbers:[],compact:true})}<p class="field-help">表内绩点与学分均为来源字段，未作 GPA 或已获学分认定。</p></section>`).join('');
-  return {html,listing};
+  return {html,listing,records:records.map(item=>item.record)};
+}
+function personalGradeProse(text,grades){
+  if(!grades?.listing)return text;
+  const plain=value=>value.replace(/[*_`]/g,'').trim();
+  const names=new Set(grades.records.map(row=>plain(String(row.course_name_raw||''))).filter(Boolean));
+  const cells=line=>line.trim().replace(/^\||\|$/g,'').split('|').map(plain);
+  // Only replace an echoed grade table whose courses are present in the
+  // authoritative table below. Keep surrounding explanations and other tables.
+  return String(text).replace(/^[ \t]*\|[^\n]*\|[ \t]*\n[ \t]*\|(?:[ \t]*:?-{3,}:?[ \t]*\|)+[ \t]*\n(?:[ \t]*\|[^\n]*\|[ \t]*(?:\n|$))+/gm,table=>{
+    const rows=table.trim().split('\n').map(cells),header=rows[0];
+    const courseIndex=header.findIndex(value=>['课程','课程名称','课程名'].includes(value));
+    if(courseIndex<0||!header.some(value=>/成绩|绩点|学分/.test(value))||
+      !rows.slice(2).every(row=>row.length===header.length&&names.has(row[courseIndex])))return table;
+    return '具体成绩、绩点和学分见下方来源表。\n';
+  }).trim();
 }
 function agentDetail(key,title,body,className='agent-secondary-detail',defaultOpen=false){
   const choice='detail:'+key,open=Object.hasOwn(state.agentEvidenceOpen,choice)?state.agentEvidenceOpen[choice]===true:defaultOpen;
@@ -439,15 +460,17 @@ function renderAgentTurns(){
     const grades=isSchoolIdentity()?personalGradeAnswer(turn):null;
     const verifiedPlan=completed&&!turn.error&&isSchoolIdentity()?personalCoursePlanValue(turn.recommendation_result):null;
     const planBrief=verifiedPlan&&!verifiedPlan.reason&&['generate','revise','compare'].includes(verifiedPlan.action)&&verifiedPlan.options?.length>0?`已${verifiedPlan.action==='revise'?'调整并重新计算':verifiedPlan.action==='compare'?'比较':'生成'} ${Math.min(3,verifiedPlan.options.length)} 套条件参考方案，课程与保留条件见下方。`:'';
-    const planAnalysis=planBrief&&typeof turn.model_decision?.evidence_analysis==='string'?personalAnswerText(turn,turn.model_decision.evidence_analysis):'';
-    const reply=grades?.listing?'成绩明细见下表，按本轮引用的来源记录展示。':planBrief?'':originalReply;
+    const directAnswer=turn.model_decision?.answer_protocol==='text-v1';
+    const planAnalysis=!directAnswer&&planBrief&&typeof turn.model_decision?.evidence_analysis==='string'?personalAnswerText(turn,turn.model_decision.evidence_analysis):'';
+    const reply=directAnswer?personalGradeProse(originalReply,grades):grades?.listing?'成绩明细见下表，按本轮引用的来源记录展示。':planBrief?'':originalReply;
     const key=turn.request_id||turn.run_id||`turn-${turn.turn_id??index}`;
     const failedEvents=[...(agentTurnProgress(turn)?.events||[])].map(agentEventData).reverse();
     const failure=!completed&&isSchoolIdentity()?agentFailureText(failedEvents.find(event=>event.kind==='answer.rejected')||failedEvents.find(event=>event.kind==='error')||{code:turn.code}):'';
     const evidence=isSchoolIdentity()?'':`${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}`;
     const plans=isSchoolIdentity()?renderPersonalCoursePlans(turn.recommendation_result,turn.is_stale===true):'';
     const analysis=planAnalysis?`<section class="agent-plan-analysis"><h3>选择依据</h3>${planAnalysis.split(/\n\s*\n/).filter(text=>text.trim()).map(text=>`<p>${esc(text)}</p>`).join('')}</section>`:'';
-    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':planBrief?'浙大教务助手':label}</strong>${reply?`<p>${esc(reply)}</p>`:''}${grades?.html||''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${!isSchoolIdentity()&&turn.partial_tools_completed?'<p>本轮已完成的工具结果如下。</p>':''}${plans}${analysis}${evidence}</div>`;
+    const body=directAnswer?String(reply).split(/\n+/).filter(text=>text.trim()).map(text=>`<p>${esc(text).replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>')}</p>`).join(''):(reply?`<p>${esc(reply)}</p>`:'');
+    const answer=turn.pending?'':`<div class="agent-answer" data-answer-key="${esc(key)}" data-scroll-anchor="${esc(key)}:answer"><strong>${turn.error?'请求未完成':planBrief?'浙大教务助手':label}</strong>${body}${grades?.html||''}${failure?`<p class="agent-run-error">${esc(failure)}</p>`:''}${!isSchoolIdentity()&&turn.partial_tools_completed?'<p>本轮已完成的工具结果如下。</p>':''}${plans}${analysis}${evidence}</div>`;
     const progress=turn.pending?agentTurnProgress(turn):null;
     const pending=turn.pending?`<p class="agent-pending" role="status">${esc(progress?agentProcessStage(progress):'正在回复…')}</p>`:'';
     return `<article class="agent-turn" data-turn-key="${esc(key)}"><div class="agent-message user" data-scroll-anchor="${esc(key)}:question"><p>${esc(turn.message)}</p></div><div class="agent-message ${completed&&!turn.error||turn.pending?'assistant':'system'}">${pending}${answer}</div></article>`;
@@ -540,10 +563,11 @@ function personalPlanHeadline(result,options){
   const known=options.map(option=>amount(option.total_credits));
   const meets=minimum!==null&&known.every(value=>value!==null&&value>=minimum&&(maximum===null||value<=maximum));
   const credit=meets?`均满足至少 ${personalText(result.constraints.target_credits)} 学分${maximum===null?'':'、不超过 '+personalText(result.constraints.max_credits)+' 学分'}的要求。`:'学分与条件见各方案。';
+  const requiredCount=result.constraints?.course_count,countText=Number.isSafeInteger(requiredCount)&&requiredCount>0&&options.every(option=>option.classes?.length===requiredCount)?`每套 ${requiredCount} 门。`:'';
   const friday=options.map(option=>option.friday_meeting_count),valid=friday.every(value=>Number.isSafeInteger(value)&&value>=0);
   const preference=['soft','hard'].includes(result.constraints?.friday_free);
   const time=preference&&valid?(friday.every(value=>value>0)?'本次方案周五都有占用，尚未实现周五空闲。':friday.every(value=>value===0)?'按已有节次，周五均未见占用。':'各方案的周五占用不同，可按下方时间比较。'):preference?'周五占用仍待核对。':'';
-  return `<p class="personal-plan-conclusion">${esc(credit)}${time?` <strong>${esc(time)}</strong>`:''}</p>`;
+  return `<p class="personal-plan-conclusion">${esc(countText+credit)}${time?` <strong>${esc(time)}</strong>`:''}</p>`;
 }
 function renderPersonalCoursePlans(value,stale=false){
   const result=personalCoursePlanValue(value);if(!result||!['generate','revise','compare'].includes(result.action))return '';
@@ -604,13 +628,19 @@ function personalGradeSummary(value,source={}){
   const numbers=value.numeric_grade_count===0?'<p class="field-help">当前匹配范围没有可用于数字统计的来源成绩。</p>':`<dl class="personal-citation-context"><div><dt>最低数字成绩</dt><dd>${decimal(value.numeric_min)}</dd></div><div><dt>最高数字成绩</dt><dd>${decimal(value.numeric_max)}</dd></div><div><dt>简单不加权平均</dt><dd>${decimal(value.numeric_mean_unweighted)}</dd></div></dl>`;
   return `<section class="agent-source-summary"><p class="field-help">${esc(personalSourceKind(source))} · ${esc(personalTermLabel(source.target_term))} · ${esc(schoolCoverageText({coverage}))}</p><dl class="personal-citation-context">${counts.map(([key,label])=>`<div><dt>${label}</dt><dd>${count(value[key])}</dd></div>`).join('')}</dl>${numbers}<p class="field-help">统计基于当前快照的全部匹配行，不受展示条数限制；数字来源成绩仅作简单不加权平均，不是 GPA、绩点、已获学分或修读认定。</p></section>`;
 }
+function personalRecordTermMarkup(record){
+  const parts=[];
+  if(schoolKnownField(record,'academic_year_raw'))parts.push(personalText(record.academic_year_raw,''));
+  if(schoolKnownField(record,'term_raw'))parts.push('学期 '+personalText(record.term_raw,''));
+  return parts.length?`<small>${esc(parts.join(' · '))}</small>`:'';
+}
 function personalRecordTable(result){
   const operation=result.operation;
   const records=Array.isArray(result.records)?result.records:[];if(!records.length)return '<p class="inline-empty">本次已读范围中没有匹配记录。可修改查询词，或前往“我的教务”正常读取所需范围。</p>';
   const academic=['academic','major_academic'].includes(operation);
   const fields=academic?[['grade_raw','成绩'],['grade_points_raw','绩点'],['nominal_credits','学分'],['academic_year_raw','学年'],['term_raw','学期'],['completion_status_raw','修读状态']]:operation==='exams'?[['final_exam_time_raw','期末考试时间'],['final_exam_place_raw','期末考试地点'],['midterm_exam_time_raw','期中考试时间'],['midterm_exam_place_raw','期中考试地点'],['exam_time_raw','考试时间'],['exam_date','考试日期'],['start_time','开始时间'],['end_time','结束时间'],['place_raw','考试地点']]:[['time_raw','上课时间'],['place_raw','上课地点'],['academic_year_raw','学年'],['term_raw','学期']];
   const available=result.compact&&academic?fields.slice(0,3).map(([key,label])=>[key,key==='grade_points_raw'?'来源绩点':key==='nominal_credits'?'名义学分':label]):fields.filter(([key])=>records.some(record=>record&&schoolKnownField(record,key)&&personalText(record[key],'')!==''));
-  return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程名称</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map((record,index)=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${personalCitationNumber({citation_number:result.citation_numbers?.[index]})}${esc(name)}${code?`<small>${esc(code)}</small>`:''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table personal-record-table"><caption class="sr-only">本机已读记录，保留相同课程的多条来源记录</caption><thead><tr><th scope="col">课程名称</th>${available.map(([,label])=>`<th scope="col">${label}</th>`).join('')}</tr></thead><tbody>${records.map((record,index)=>{const item=record&&typeof record==='object'?record:{};const name=schoolKnownField(item,'course_name_raw')?personalText(item.course_name_raw,'未命名课程'):'课程名称待确认';const code=schoolKnownField(item,'course_code_raw')?personalText(item.course_code_raw,''):'';return `<tr><td>${personalCitationNumber({citation_number:result.citation_numbers?.[index]})}${esc(name)}${code?`<small>${esc(code)}</small>`:''}${result.compact&&academic?personalRecordTermMarkup(item):''}</td>${available.map(([key])=>`<td>${schoolKnownField(item,key)?esc(personalText(key==='completion_status_raw'?schoolCompletionStatusText(item[key]):item[key],'—')).replace(/\n/g,'<br>'):'<span class="muted">待确认</span>'}</td>`).join('')}</tr>`;}).join('')}</tbody></table></div>`;
 }
 function stopAgentProgress(session=state.agentProgressPoll){
   if(!session)return;session.stopped=true;if(session.timer!==undefined&&typeof clearTimeout==='function')clearTimeout(session.timer);if(state.agentProgressPoll===session)state.agentProgressPoll=null;
@@ -845,9 +875,20 @@ function renderAssistant() {
   const personal=school&&personalChatReady();
   const consent=configured&&status.remote&&!school?`<label class="checkbox-line agent-consent"><input type="checkbox" id="agent-remote-consent" ${state.agentConsent?'checked':''} ${busy?'disabled':''}><span>允许向 ${esc(status.provider||'远程模型')} 发送合成测试需求${status.allow_reference_text?'和参考片段':''}</span></label>`:configured?'':`<span class="badge warning">${school&&!personalChatReady()?'本人资料对话待接入':school&&status?.configured?'本人资料暂不可用':'模型未配置'}</span>`;
   const modelError=personal&&state.agentModelsError?`<p class="agent-settings-error" role="status">${esc(state.agentModelsError)}</p>`:'';
-  panel.innerHTML=`<div class="assistant-workspace"><section id="agent-dialogue-scroll" class="agent-dialogue" tabindex="0" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section>${renderAgentScrollControls()}<section class="dialogue-composer"><form id="agent-draft-form" autocomplete="off"><label for="agent-draft" class="sr-only">${school?'向浙大教务助手提问':'选课需求'}</label><textarea id="agent-draft" rows="2" maxlength="2000" placeholder="${school?'询问教务信息，或提出选课与排课需求…':'告诉我你的修读目标和时间偏好…'}" ${busy?'disabled':''}></textarea>${agentDraftSupported()?'<p id="agent-draft-status" class="field-help" role="status" aria-live="polite"></p>':''}${modelError}<div class="agent-compose-footer"><div class="agent-compose-context">${personal?renderAgentThinking():''}${consent}</div><div class="agent-compose-actions">${personal?renderAgentModelControls():''}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></div></form></section></div>`;
+  panel.innerHTML=`<div class="assistant-workspace${!state.agentTurns.length&&!state.agentHistoryPending?' is-empty':''}"><section id="agent-dialogue-scroll" class="agent-dialogue" tabindex="0" aria-label="对话历史" aria-live="polite" aria-busy="${state.agentBusy}">${renderAgentTurns()}${state.agentHistoryPending?notice('这段对话仍在处理。')+'<button class="button small" data-action="load-agent-conversation" data-conversation-id="'+esc(state.agentConversationId)+'">重新加载</button>':''}</section>${renderAgentScrollControls()}<section class="dialogue-composer"><form id="agent-draft-form" autocomplete="off"><label for="agent-draft" class="sr-only">${school?'向浙大教务助手提问':'选课需求'}</label><textarea id="agent-draft" rows="2" maxlength="2000" placeholder="${school?'询问教务信息，或提出选课与排课需求…':'告诉我你的修读目标和时间偏好…'}" ${busy?'disabled':''}></textarea>${agentDraftSupported()?'<p id="agent-draft-status" class="field-help" role="status" aria-live="polite"></p>':''}${modelError}<div class="agent-compose-footer"><div class="agent-compose-context">${personal?renderAgentThinking():''}${consent}</div><div class="agent-compose-actions">${personal?renderAgentModelControls():''}<button id="agent-send" type="submit" class="button primary" ${agentCanSend()?'':'disabled'} aria-disabled="${!agentCanSend()}">${state.agentBusy?'发送中…':'发送'}</button></div></div></form></section></div>`;
   $('#agent-draft').value=state.agentDraft;
+  $('#agent-draft').setAttribute('title','Enter 发送，Shift+Enter 换行');
+  $('#agent-draft').setAttribute('aria-description','Enter 发送，Shift+Enter 换行；输入法选字时不会发送。');
   $('#agent-draft').addEventListener('input',event=>{state.agentDraft=event.target.value;queueAgentDraftSave();updateAgentSend();});
+  let composing=false;
+  $('#agent-draft').addEventListener('compositionstart',()=>{composing=true;});
+  $('#agent-draft').addEventListener('compositionend',()=>{composing=false;});
+  $('#agent-draft').addEventListener('keydown',event=>{
+    // Enter confirms an IME candidate while composing; it must never send it.
+    if(event.key!=='Enter'||event.shiftKey||composing||event.isComposing||event.keyCode===229)return;
+    event.preventDefault();
+    if(!event.repeat&&agentCanSend())void sendAgentTurn();
+  });
   $('#agent-remote-consent')?.addEventListener('change',event=>{state.agentConsent=event.target.checked;updateAgentSend();});
   $('#agent-draft-form').addEventListener('submit',event=>{event.preventDefault();sendAgentTurn();});
   $('#agent-model')?.addEventListener('change',event=>{if(event.target.value==='@refresh')refreshAgentModels(true);else saveAgentSettings();});
