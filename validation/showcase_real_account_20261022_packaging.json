@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "purpose": "real_account_showcase_package",
+  "user_authorization": "真实账号录制；现在重试一下",
+  "runtime": {
+    "version": "v34",
+    "port": 18875,
+    "pid": 2878,
+    "restarted_because_listener_absent": true,
+    "business_source_changed": false,
+    "model": "deepseek-flash",
+    "thinking_enabled": true,
+    "activation_hashes_matched": 45,
+    "authenticated_real_account": true,
+    "extra_model_io_capture": false
+  },
+  "real_ui_capture": {
+    "screenshots": 10,
+    "user_model_turns": 4,
+    "flows": [
+      "school_grades",
+      "school_timetable",
+      "school_exams",
+      "curriculum_entry",
+      "grade_question",
+      "generate_combinations",
+      "lock_and_hard_friday",
+      "compare_saved_plans"
+    ],
+    "semantic_acceptance": "not_claimed",
+    "credential_entry_recorded": false,
+    "final_login_input_lengths": [
+      0,
+      0
+    ]
+  },
+  "media": {
+    "original_frames": 384,
+    "included_frames": 368,
+    "removed_uniform_capture_frames": 16,
+    "source_seconds": 298.165,
+    "video_duration_seconds": 61.5,
+    "video_dimensions": [
+      780,
+      1280
+    ],
+    "audio": false,
+    "synthetic_display_media": false,
+    "editing": "idle compression and four result pauses; no alteration of rendered business content",
+    "contains_authorized_real_academic_data": true
+  },
+  "checks": {
+    "python_ast_files": 124,
+    "original_manifest_hashes": 17,
+    "original_manifest_all_match": true,
+    "zip_crc_and_member_sha256": "passed",
+    "forbidden_runtime_or_secret_paths": 0,
+    "fake_key_test_literals": 4,
+    "full_suite_rerun": false,
+    "media_decodes": true,
+    "one_second_blank_frame_scan": "passed",
+    "visual_result_spot_checks": "passed",
+    "preview_images_loaded": 10
+  },
+  "package": {
+    "archive": "exports/浙大教务助手_展示制作包_20261022.zip",
+    "scope": "working-tree source/docs/tests/original inputs plus real authorized showcase assets",
+    "excluded_historical_images": 66,
+    "private_runtime_and_restricted_catalog_excluded": true,
+    "file_inventory_inside": "03_核对清单/文件SHA256清单.json",
+    "final_archive_digest_outside": "exports/浙大教务助手_展示制作包_20261022_校验.json"
+  },
+  "git": {
+    "head": "e3f304ba4e9c671b4636c83ffffacde41236b45b",
+    "existing_dirty_changes_preserved": true,
+    "staged": false,
+    "committed": false,
+    "pushed": false
+  },
+  "uploaded_or_published": false
+}

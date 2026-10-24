@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-23",
+  "scope": "latest UI recording and engineering roadmap packaging",
+  "runtime": "v34 backend; latest section101 frontend",
+  "backend_restarted": false,
+  "business_code_modified": false,
+  "browser": "Google Chrome",
+  "zoom_percent": 100,
+  "viewport_css": [
+    1512,
+    711
+  ],
+  "screenshots": [
+    {
+      "file": "01_真实界面_登录页.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "690ab30480e2d4b2c5fe6ad6b4b488803eb13ff207ad050ecad36d74b290f3d8",
+      "original_bytes_match": true
+    },
+    {
+      "file": "02_真实账号_登录后首页.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "fdf3372ee890ccfab1aa58f9a0203dd69d536f377d62cea74c6dd74739932273",
+      "original_bytes_match": true
+    },
+    {
+      "file": "03_真实账号_主修成绩.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "0581c3814a505d22f80bff1600d1a51f87690ec1bb5eed5118742d3dfce3802b",
+      "original_bytes_match": true
+    },
+    {
+      "file": "04_真实账号_本学期课表.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "7f2785093a4136e09286faf8659b0a03ba7e4a0f3c3b1dfcd5b0d01ebb946fab",
+      "original_bytes_match": true
+    },
+    {
+      "file": "05_真实账号_考试安排.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "360e1d71a9c747233ca5d5925e58bfd315d8040875717f0fae14e1224b18e509",
+      "original_bytes_match": true
+    },
+    {
+      "file": "06_真实账号_培养方案入口.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "a6a9b244586016b003d41589699a04c598b9e40bceee3e628f1161c47be544d4",
+      "original_bytes_match": true
+    },
+    {
+      "file": "07_真实账号_Agent成绩问答.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "a1dc4d9bbda7a3ab7a6bfe488599a6110c7c2dae17628aa9ed8edafc8d48f2c0",
+      "original_bytes_match": true
+    },
+    {
+      "file": "08a_真实账号_课表不完整时停止计算.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "37bf6dd67c225b1cc92fa35efd38b12a132a07c0860c27cb63323527a6f73b51",
+      "original_bytes_match": true
+    },
+    {
+      "file": "08_真实账号_三套课程组合.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "1ffdb2f54609fd8058a309693a0aa9e773ef8fb9ad053e79d7241cee8938d4c2",
+      "original_bytes_match": true
+    },
+    {
+      "file": "09_真实账号_锁课与硬条件.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "c5f4c31b3b7488e6a1ceb7be74fce957475d2905413be002541c9f3d9b0e6766",
+      "original_bytes_match": true
+    },
+    {
+      "file": "10_真实账号_连续追问比较.png",
+      "pixels": [
+        3024,
+        1422
+      ],
+      "sha256": "d3598fefecb9bda8d2713055bad627ce185f821956142390bbc6e1b3a6c04865",
+      "original_bytes_match": true
+    }
+  ],
+  "static_files": [
+    {
+      "path": "web/app.js",
+      "sha256": "5afe64dd764aaeeed41f39d22be8df7ffd5683a6d566f44c45ac5267115b0641",
+      "served_matches_disk": true
+    },
+    {
+      "path": "web/styles.css",
+      "sha256": "a4c15a5da38a3b4d5a74c5a1438fdb36fbb33f3d5d7094aef5e6f9bfccbc3857",
+      "served_matches_disk": true
+    }
+  ],
+  "video": {
+    "pixels": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "duration_seconds": 214.8,
+    "sha256": "481529d031eaf5ab7ec45fa618906a3e93b6e004673ac29227845fb0cff94b33",
+    "decode_check": "passed",
+    "login_included": true,
+    "student_id_redacted": false,
+    "password_hidden": true
+  },
+  "user_dialogue_turns": 5,
+  "initial_course_request": "blocked by incomplete personal schedule; retained in video and screenshot",
+  "following_scope": "explicit historical-only combination test; generated, locked, compared",
+  "full_test_suite_rerun": false,
+  "full_semantic_acceptance": false,
+  "published": false,
+  "committed": false,
+  "pushed": false,
+  "engineering_plans_implemented": false,
+  "original_inputs_unchanged": true,
+  "browser_playback_check": {
+    "allImagesLoaded": true,
+    "currentTime": 27.157862,
+    "duration": 214.8,
+    "error": null,
+    "height": 1080,
+    "imageCount": 11,
+    "paused": false,
+    "readyState": 4,
+    "width": 1920
+  }
+}

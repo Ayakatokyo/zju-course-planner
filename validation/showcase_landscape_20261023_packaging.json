@@ -1,0 +1,235 @@
+{
+  "date": "2026-10-23",
+  "scope": "Chrome 100 percent landscape media recapture and packaging; no application code changes",
+  "browser": "Google Chrome",
+  "zoom_percent": 100,
+  "temporary_viewport_override": "cleared",
+  "composer_visibility": {
+    "viewport_css": [
+      1920,
+      873
+    ],
+    "textarea_bottom_css": 785.25,
+    "visible": true,
+    "reported_issue_cause": "capture viewport override exceeded physical window content area; cleared and actual window geometry verified"
+  },
+  "real_login": "user entered credentials; typing, submit and success captured",
+  "raw_frames": 962,
+  "uniform_raw_frames": 0,
+  "video": {
+    "kind": "real_account_chrome_screencast",
+    "date": "2026-10-23",
+    "browser_zoom_percent": 100,
+    "page_capture_pixels": [
+      1920,
+      873
+    ],
+    "video_pixels": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "captured_frames": 962,
+    "included_frames": 962,
+    "uniform_frames_removed": [],
+    "one_frame_padding": [
+      {
+        "index": 336,
+        "original_size": [
+          1905,
+          873
+        ],
+        "operation": "right padding only"
+      }
+    ],
+    "source_elapsed_seconds": 311.821,
+    "edited_duration_seconds_approx": 169.43,
+    "login_process_included": true,
+    "login_account_field_redacted_frames": [
+      0,
+      59
+    ],
+    "password_display": "original masked password input",
+    "screenshots": "PNG original capture bytes; no resize, JPEG conversion, or quality reduction",
+    "edits": [
+      "原顺序保留填写、点击登录、登录后查询及四轮实际问答",
+      "账号输入框字符区域遮挡；密码仍为原界面圆点",
+      "静止等待缩短至最多2秒；关键结果停留3至6秒",
+      "仅增加上下留边与操作字幕，页面像素不拉伸",
+      "MP4采用高质量H.264编码，并非无损视频"
+    ],
+    "synthetic_media_included": false,
+    "contains_real_personal_academic_data": true,
+    "decode_check": "passed",
+    "bytes": 3130167,
+    "sha256": "2bc7344814f73db67804ac498a42eb02830cbe1f805d2a3baccb8c2220cc77b6",
+    "chapters": [
+      {
+        "start_seconds": 0.0,
+        "title": "Chrome 100% · 填写账号、密码并登录（学号已遮挡，密码保持隐藏）"
+      },
+      {
+        "start_seconds": 16.769,
+        "title": "真实账号登录后首页 · 自然语言是主要入口"
+      },
+      {
+        "start_seconds": 19.673,
+        "title": "我的教务 → 主修历史成绩（真实学校查询）"
+      },
+      {
+        "start_seconds": 28.705,
+        "title": "本学期课表 · 本次覆盖范围待确认"
+      },
+      {
+        "start_seconds": 42.337,
+        "title": "考试安排 · 来源未返回考试时间、地点"
+      },
+      {
+        "start_seconds": 50.538,
+        "title": "获取本人培养方案 · 内容与适用范围仍待核验"
+      },
+      {
+        "start_seconds": 61.511,
+        "title": "自然语言成绩查询 → DeepSeek Flash 实际答复"
+      },
+      {
+        "start_seconds": 80.8,
+        "title": "提出课程需求：3门、至少6学分、周五尽量空"
+      },
+      {
+        "start_seconds": 115.445,
+        "title": "展示三套历史课程参考组合 · 不等于正式可选"
+      },
+      {
+        "start_seconds": 124.479,
+        "title": "继续调整：锁定课程，周五改为必须空"
+      },
+      {
+        "start_seconds": 148.704,
+        "title": "保留3门、至少6学分和原范围 · 已保留1项锁定"
+      },
+      {
+        "start_seconds": 155.721,
+        "title": "连续追问：比较现有 A / B，不重新找课或计算"
+      },
+      {
+        "start_seconds": 163.43,
+        "title": "查看共同课程、替换课程与节次差别"
+      }
+    ],
+    "encoded_duration_seconds": 171.4,
+    "browser_playback_check": {
+      "ready_state": 4,
+      "paused": false,
+      "width": 1920,
+      "height": 1080,
+      "error": null
+    },
+    "one_second_samples_checked": 171,
+    "uniform_encoded_samples": []
+  },
+  "screenshots": [
+    {
+      "file": "01_真实界面_登录页.png",
+      "pixels": [
+        1920,
+        873
+      ],
+      "sha256": "cf822a8f61c0c120c9a2dfafc7c19ad34b39e6aa5206e90c8b90b87ec2c5a81d",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "02_真实账号_登录后首页.png",
+      "pixels": [
+        1920,
+        873
+      ],
+      "sha256": "b21c3a2ab959ed1f49ff98014eb2fb0e20e7e8991aa0f3dfe1ea2fd5e71db092",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "03_真实账号_主修成绩.png",
+      "pixels": [
+        1920,
+        873
+      ],
+      "sha256": "33b1ea72584b356ff1ee66f7c55ce845fcfbcfd2c09e824d3099fd62f2622fda",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "04_真实账号_本学期课表.png",
+      "pixels": [
+        3840,
+        1746
+      ],
+      "sha256": "9d67920099497fba03d8e08cc8ffeec27d92cb81596dac5c1a0b947053edba37",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "05_真实账号_考试安排.png",
+      "pixels": [
+        3840,
+        1746
+      ],
+      "sha256": "52d61b8888853086afceae2d01152f78f4a2efe149f0fa1b30a4ff07a7a136a0",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "06_真实账号_培养方案入口.png",
+      "pixels": [
+        3840,
+        1746
+      ],
+      "sha256": "1c90c64a0947dc61f7607a5c2dfc21cab7159327028c997c5ad037d2beea55c7",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "07_真实账号_Agent成绩问答.png",
+      "pixels": [
+        3840,
+        1746
+      ],
+      "sha256": "e6245073476b73f92762c1dbc85ee3805a6b6d8d4dd9aec5a17d97b8c913c0fa",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "08_真实账号_三套课程组合.png",
+      "pixels": [
+        1920,
+        873
+      ],
+      "sha256": "c15429638054951438d2565b549d39d8150a7aa3d0b5e60e530e7cd7963da503",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "09_真实账号_锁课与硬条件.png",
+      "pixels": [
+        1920,
+        873
+      ],
+      "sha256": "da2766979875c0d6f1e36c7a698dca339429531e561f8c831a6ec90fb1a2189a",
+      "capture_bytes_unchanged": true
+    },
+    {
+      "file": "10_真实账号_连续追问比较.png",
+      "pixels": [
+        1920,
+        873
+      ],
+      "sha256": "1c5bd8b5e40bd3955bb609c571339263cac1b0943aab841a514284f60e9bd720",
+      "capture_bytes_unchanged": true
+    }
+  ],
+  "business_files_unchanged": 45,
+  "business_tests": "not rerun; no application code changes",
+  "model_and_school_activity": "4 new real user question turns plus explicitly recorded academic queries; limited showcase evidence only",
+  "semantic_acceptance": "not upgraded; formal recommendation and curriculum applicability remain unaccepted",
+  "sensitive_material": "delivered login account field redacted; password stays masked; no cookies tokens raw account inputs runtime databases or private frame files packaged",
+  "original_package_preserved": true,
+  "source_history_and_roadmap": "retained",
+  "git": "existing dirty work preserved; not staged committed or pushed",
+  "publication": "not uploaded or deployed",
+  "zip_integrity": "checked by build script; final SHA256 in external export receipt",
+  "image_browser_loading": "all 10 loaded; final lazy image opened directly",
+  "login_mask_pixel_check": "all 60 pre-login video frames have a fully opaque account field region"
+}

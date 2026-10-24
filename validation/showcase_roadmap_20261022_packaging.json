@@ -1,0 +1,49 @@
+{
+  "kind": "showcase_roadmap_update",
+  "date": "2026-10-22",
+  "change_scope": "planning_documents_and_package_only",
+  "planning_not_implementation": true,
+  "checks": {
+    "local_markdown_links": 56,
+    "broken_local_markdown_links": 0,
+    "preview_resource_links": 26,
+    "unchanged_original_media_files": 13,
+    "unchanged_business_source_files": 45,
+    "zip_crc": "passed",
+    "zip_member_sha256": "passed_by_builder",
+    "original_inputs_manifest_entries": 17,
+    "original_inputs_match": true,
+    "forbidden_runtime_or_secret_paths": 0,
+    "builder_python_ast": "passed",
+    "full_suite_run": false,
+    "new_model_or_school_calls": 0
+  },
+  "topics": [
+    "development_timeline",
+    "answer_accuracy_and_brevity",
+    "constraint_and_version_integrity",
+    "failure_recovery",
+    "latency_and_cost",
+    "retrieval_and_candidate_quality",
+    "plan_persistence_and_export",
+    "mobile_and_accessibility",
+    "evaluation_and_maintenance",
+    "redis_cache_rate_limit_queue",
+    "database_and_capacity_validation",
+    "public_showcase_site",
+    "authorized_online_service",
+    "observability_backup_rollback"
+  ],
+  "side_effects": {
+    "business_code_changed": false,
+    "service_restarted": false,
+    "redis_installed": false,
+    "deployed": false,
+    "uploaded": false,
+    "committed": false,
+    "pushed": false
+  },
+  "original_archive_backup": "private_only_not_in_package",
+  "final_archive": "exports/浙大教务助手_展示制作包_20261022.zip",
+  "final_digest_record": "exports/浙大教务助手_展示制作包_20261022_校验.json"
+}
