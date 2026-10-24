@@ -1,0 +1,65 @@
+{
+  "recorded_at": "2026-10-21T19:39:47.091189+08:00",
+  "scope": "read-only source architecture review and local documentation/diagram authoring",
+  "git_base": "e3f304ba4e9c671b4636c83ffffacde41236b45b",
+  "business_code_changed": false,
+  "baseline_receipt": "plan_explanation_v30_20261021_validation.json",
+  "baseline_source_hashes_checked": 108,
+  "source_mismatches": [],
+  "metrics": {
+    "python_module_count": 42,
+    "python_physical_lines_including_comments_and_blanks": 20403,
+    "academic_harness_lines": 125,
+    "personal_dialogue_lines": 1985,
+    "course_plan_policy_lines": 733,
+    "base_system_prompt_characters": 10439
+  },
+  "diagrams": [
+    {
+      "name": "current_architecture_20261021",
+      "mermaid_matches_document": true,
+      "svg_xml_valid": true,
+      "svg_viewbox": "0 0 1755.3046875 1117",
+      "mmd_sha256": "295f77d8c100e32415f538f2b65e235b4a41cd89d92f0125ff963f7d39c0852e",
+      "svg_sha256": "9745e56de422eb93d79b5dbbbeebc79c5ab3c0447ed2560b510e9afa48efee5d"
+    },
+    {
+      "name": "request_flow_20261021",
+      "mermaid_matches_document": true,
+      "svg_xml_valid": true,
+      "svg_viewbox": "-20 -10 1773 1771",
+      "mmd_sha256": "f221b35ffa723891ddc57c086cf2cb0411e285114e348a3349430d373b9e9e4a",
+      "svg_sha256": "6b5efef34915e34c0b04ba85e188c6672445b981febeac5db976d1e2ae831f8c"
+    },
+    {
+      "name": "simplified_architecture_20261021",
+      "mermaid_matches_document": true,
+      "svg_xml_valid": true,
+      "svg_viewbox": "0 0 631.25 1064",
+      "mmd_sha256": "e32ca084056bb95250068d640db7e0922d86e3c9307effcccc39fcc592172148",
+      "svg_sha256": "9ef87289582847e549a2b6f3b857d13c109b54ad55432ce30802f0adf5959747"
+    }
+  ],
+  "diagram_rendering": "existing local Mermaid CLI; no package installation",
+  "visual_preview_checked": true,
+  "relative_document_links_valid": true,
+  "git_diff_check": true,
+  "business_tests_run": false,
+  "model_calls": 0,
+  "school_calls": 0,
+  "runtime": {
+    "port": 18875,
+    "listener_pid": 29363,
+    "prior_activation_version": "v29",
+    "disk_version": "v30",
+    "restart_performed": false,
+    "login_credentials_used": false,
+    "school_session_freshness_probed": false
+  },
+  "simplification_implemented": false,
+  "new_ui_acceptance": false,
+  "new_semantic_acceptance": false,
+  "staged": false,
+  "committed": false,
+  "pushed": false
+}

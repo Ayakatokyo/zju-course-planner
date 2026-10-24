@@ -1,0 +1,41 @@
+sequenceDiagram
+    actor U as 用户
+    participant W as 网页
+    participant S as 会话服务
+    participant L as 模型循环
+    participant M as DeepSeek Flash
+    participant H as Harness
+    participant D as 数据与计算工具
+
+    U->>W: 当前问题或追问
+    W->>S: POST /api/chat/turn
+    S->>S: 本人授权、请求去重、历史和当前方案
+    S->>L: 问题、近期问答、任务/澄清上下文
+    L->>H: 本机 get_my_context 预检
+    H->>D: 检查当前连接和可用能力
+    D-->>L: 可用资源目录，尚未新取业务数据
+
+    loop 在本轮工具、时间和上下文预算内
+        L->>M: 问题 + 历史 + 当前工具结果 + 工具定义
+        alt 模型需要数据或计算
+            M-->>L: 工具名与业务参数
+            L->>H: 校验参数后执行
+            H->>D: 当前本人范围内取数或计算
+            Note over H,D: 计算时补必要来源<br/>同轮同范围复用
+            D-->>H: 数据、范围、覆盖、未知或计算结果
+            H-->>L: 实际工具结果
+            L->>L: 白名单投影、绑定引用、控制上下文大小
+        else 模型准备回答
+            M-->>L: 当前协议要求的结构化JSON
+            L->>L: 结论类型、引用和版本检查，组装正文
+            opt 输出协议不合格且仍可修复
+                L->>M: 有界纠正说明，复用当前证据
+                M-->>L: 修复后的最终表示
+            end
+        end
+    end
+
+    L-->>S: 答复、引用、方案、任务状态
+    S->>S: 保存会话与实际运行记录
+    S-->>W: 最终响应
+    W-->>U: 简洁答案、成绩表或方案卡片

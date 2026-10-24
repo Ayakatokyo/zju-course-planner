@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor U as 用户
+    participant W as 网页
+    participant S as 本人会话
+    participant L as 模型循环
+    participant M as DeepSeek Flash
+    participant H as AcademicHarness
+    participant D as 数据 / 计算工具
+
+    U->>W: 当前问题或追问
+    W->>S: POST /api/chat/turn
+    S->>S: 认证、归属、去重；准备近期历史与当前方案
+    S->>L: 当前问题 + 必要上下文
+    L->>H: 本机get_my_context预检
+    H-->>L: 可用能力与资源目录，不代表已取到事实
+
+    loop 在轮次、工具、时间和上下文预算内
+        L->>M: 问题 + 近期问答 + 本轮结果 + 可用工具
+        alt 需要数据或计算
+            M-->>L: 工具名与参数
+            L->>H: 执行已声明的工具
+            H->>H: 校验本人范围，继承条件，必要时补计算依赖
+            H->>D: 按需读取或计算
+            D-->>H: 数据 / 结果 / 缺项
+            H-->>L: 实际工具结果
+            L->>L: 白名单投影、引用、覆盖与预算
+        else 已能回答或需要澄清
+            M-->>L: kind + text + evidence_ids
+            L->>L: 校验结构、敏感信息、引用和方案版本
+            opt 格式不合格且仍有预算
+                L->>M: 一次通用格式修复，复用证据
+                M-->>L: 最终回答
+            end
+        end
+    end
+
+    L-->>S: 模型正文 + 实际表格 / 方案 + 内部记录
+    S->>S: 保存本人会话与运行结果
+    S-->>W: 最终响应
+    W-->>U: 简洁答案与必要表格 / 方案卡片

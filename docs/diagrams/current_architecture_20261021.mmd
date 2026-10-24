@@ -1,0 +1,31 @@
+flowchart TD
+    U["用户：登录与自然语言问题"] --> Web["原生网页<br/>web/app.js"]
+    Web --> Entry["HTTP入口、本人认证、会话与历史<br/>server.py · auth.py · personal_chat.py"]
+    Entry --> Loop["模型循环<br/>personal_dialogue.py"]
+    Loop <-->|"问题、上下文、工具调用或回答"| Model["DeepSeek Flash<br/>经model_client.py调用"]
+    Loop --> Exec["执行层AcademicHarness<br/>授权检查、工具执行、计算依赖补齐"]
+
+    subgraph Tools["按问题使用的工具能力"]
+        Records["本人记录查询<br/>成绩 / 课表 / 考试"]
+        Knowledge["培养资料检索<br/>PDF分块、词法与可用的本地Embedding"]
+        Catalog["课程查询<br/>名称代码、获准学期历史班次"]
+        Compute["方案计算与只读回查<br/>条件保持、学分、观察节次冲突"]
+    end
+    Exec --> Tools
+    Tools --> Context["返回工具结果并整理上下文<br/>白名单、来源、未知、覆盖、引用与预算"]
+    Context --> Loop
+    Records --> School["已获准的学校本人接口"]
+    Knowledge --> School
+    Catalog --> Local["本地课程参考与历史班次"]
+    Compute --> Local
+    Loop --> Output["当前最终输出协议<br/>多类claims校验、模板与正文组装"]
+    Output --> Answer["回到网页<br/>简洁答复、成绩表、方案卡片"]
+    Entry <-. "状态读写" .-> Storage["SQLite：会话、结果、日志<br/>private：快照、PDF、派生索引<br/>内存：学校连接、草稿、当前方案"]
+    Entry -. "独立的演示请求分支" .-> Demo["synthetic演示链路<br/>chat.py等；共享部分planner计算函数"]
+
+    classDef model fill:#e8f0fe,stroke:#4169a1,color:#182d48;
+    classDef data fill:#edf7ef,stroke:#668971,color:#244c31;
+    classDef control fill:#fff4e0,stroke:#ad8740,color:#594018;
+    class Model model;
+    class Records,Knowledge,Catalog,Compute,School,Local data;
+    class Loop,Exec,Context,Output control;

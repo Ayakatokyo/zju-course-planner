@@ -1,0 +1,45 @@
+flowchart TD
+    User["用户：问题与连续追问"] --> Web["原生网页<br/>web/app.js"]
+    Web --> Session["HTTP与本人会话<br/>server.py · personal_chat.py<br/>认证、历史、请求去重、取消"]
+
+    subgraph Runtime["本机Harness运行时"]
+        Loop["模型循环 personal_dialogue.py<br/>问题、历史、当前方案、工具结果"]
+        Execute["AcademicHarness.execute<br/>授权复核、当轮来源复用、计算依赖补齐"]
+        Project["整理工具结果<br/>允许字段、来源、覆盖、未知、引用、预算"]
+        Check["统一最终回答检查<br/>finish_answer参数<br/>敏感信息、引用与方案版本"]
+        Loop --> Execute
+        Project --> Loop
+        Loop --> Check
+    end
+
+    Session --> Loop
+    Loop <-->|"业务工具或finish_answer；模型侧SSE"| Flash["DeepSeek Flash<br/>model_client.py<br/>理解、选择、推理、表达"]
+
+    subgraph Tools["现有受控工具，按问题调用"]
+        Records["成绩 / 课表 / 考试<br/>query_my_records"]
+        Curriculum["培养原文检索<br/>search_my_curriculum"]
+        Catalog["课程名称与历史班次搜索"]
+        Plans["生成 / 调整 / 查看方案<br/>条件继承、门数与确定性计算"]
+    end
+    Execute --> Tools
+    Tools --> Project
+    Records --> School["学校本人连接<br/>仅已授权注册接口"]
+    Curriculum --> School
+    Curriculum --> Index["本地派生检索索引<br/>PDF解析、分块、词法 / 可用Embedding"]
+    Catalog --> Local["本地课程参考<br/>获准学期历史观察"]
+    Plans --> Local
+
+    Check --> Answer["模型正文直接显示<br/>表格与方案卡片取实际工具结果"]
+    Answer --> Web
+    Session <-. "状态读写" .-> State["SQLite：会话、答复、运行记录<br/>private：来源证据与派生缓存<br/>内存：学校连接、当前方案、草稿"]
+    Web -. "教务辅助页面，无需模型" .-> SchoolAPI["/api/school/*"]
+    SchoolAPI --> School
+    Demo["显式开启mock时才初始化<br/>synthetic演示与ChatService"] -. "共享部分计算函数" .-> Planner["planner.py"]
+    Plans --> Planner
+
+    classDef model fill:#e8f0fe,stroke:#4169a1,color:#182d48;
+    classDef data fill:#edf7ef,stroke:#668971,color:#244c31;
+    classDef control fill:#fff4e0,stroke:#ad8740,color:#594018;
+    class Flash model;
+    class Records,Curriculum,Catalog,Plans,School,Local,Index data;
+    class Loop,Execute,Project,Check control;
