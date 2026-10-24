@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-24",
+  "status": "offline_scenarios_generated_and_checked",
+  "programs": [
+    {
+      "program": "BUSINESS",
+      "source_course_rows": 69,
+      "study_years": [
+        1,
+        2,
+        3
+      ],
+      "completed_records": [
+        7,
+        23,
+        44
+      ],
+      "completed_nominal_credits": [
+        "21.0",
+        "62.0",
+        "113.5"
+      ]
+    },
+    {
+      "program": "STATISTICS",
+      "source_course_rows": 52,
+      "study_years": [
+        1,
+        2,
+        3
+      ],
+      "completed_records": [
+        7,
+        17,
+        30
+      ],
+      "completed_nominal_credits": [
+        "21.0",
+        "57.0",
+        "95.0"
+      ]
+    }
+  ],
+  "students": 6,
+  "source_rows": 121,
+  "catalog_pages_visually_reviewed": 8,
+  "additional_summary_page_reviewed": 1,
+  "targeted_tests": {
+    "ran": 12,
+    "passed": 12
+  },
+  "deterministic_reproduction_files": 9,
+  "served_bytes_match": true,
+  "actual_ui_all_six_profiles_checked": true,
+  "source_layout_scope": "reviewed_course_setting_tables_only",
+  "raw_input_modified": false,
+  "source_and_synthetic_data_git_ignored": true,
+  "school_service_restarted": false,
+  "school_calls": 0,
+  "model_calls": 0,
+  "agent_integration": false,
+  "complete_curriculum_rules_verified": false,
+  "formal_applicability_verified": false,
+  "actual_school_offerings_generated": false,
+  "committed": false,
+  "pushed": false,
+  "artifact_manifest_sha256": "b033e1b80fc21902d5852fcc813ee784c591407c9e6f4d8941c28ba66d97bfb7",
+  "code_sha256": {
+    "scripts/build_curriculum_scenarios.py": "900d5cbbb61de97aa48c8b9fea3e9caa53b2333f1d3fb1e0f745ec456147cf22",
+    "tests/test_curriculum_scenarios.py": "2ffd0938571ea8fda3cbbce2d43d14249f01ce07f9767706b89318ae225a8ec2"
+  }
+}
