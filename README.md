@@ -86,6 +86,8 @@ python3 -m course_assistant.server --enable-school --port 18875
 
 ### 没有学校账号，先体验合成演示
 
+已有培养方案样本时，也可使用[模拟学生账号入口](http://127.0.0.1:18880/)：商务大数据分析和统计学各覆盖大一至大三，登录后以对应模拟成绩和培养资料进行真实 DeepSeek 问答，沿用原有界面设计。账号创建、启动与数据边界见[模拟学生使用说明](docs/培养方案约束的模拟学生数据_20261024.md#登录后使用真实-agent第107节)。它与学校账号隔离，目前没有实际教学班或课表求解。
+
 ```sh
 python3 -m course_assistant.server --enable-mock --recommendation-demo --port 18865 --db runtime/recommendation_demo.sqlite3
 ```

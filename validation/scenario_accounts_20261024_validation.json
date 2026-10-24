@@ -1,0 +1,174 @@
+{
+  "date": "2026-10-24",
+  "kind": "isolated_synthetic_accounts_real_flash",
+  "engineering": {
+    "account_data_dialogue_harness": {
+      "run": 70,
+      "passed": 70
+    },
+    "personal_chat_web_answer_protocol": {
+      "run": 141,
+      "passed": 141
+    },
+    "full_suite_run": false
+  },
+  "real_model": {
+    "initial": {
+      "turns": 3,
+      "generations": 6,
+      "completed": 2,
+      "failed": 1,
+      "failure_code": "invalid_tool_arguments",
+      "raw_failed_model_response_saved": false
+    },
+    "final": {
+      "turns": 8,
+      "generations": 16,
+      "completed": 8,
+      "failed": 0,
+      "final_repairs": 1,
+      "model": "deepseek-flash",
+      "accounts": 6,
+      "stage_counts_credits_matched": true,
+      "business_y2_next_term_course_codes_names_matched": 9,
+      "unsupported_timetable_not_generated": true,
+      "all_semantics_verified": false
+    },
+    "runs": [
+      {
+        "student": "SYN-BUSINESS-Y2",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "67104c40e45563ce24b99da5283112bdfdc21892892c7a446351ec2787864021"
+      },
+      {
+        "student": "SYN-BUSINESS-Y2",
+        "status": "completed",
+        "generations": 3,
+        "repair_attempts": 1,
+        "code": null,
+        "evidence_sha256": "f880c730b4b6aad96dda5af0ec80111b3cc02b339c09697a53c2d41a191817ed"
+      },
+      {
+        "student": "SYN-BUSINESS-Y2",
+        "status": "failed",
+        "generations": 1,
+        "repair_attempts": 0,
+        "code": "invalid_tool_arguments",
+        "evidence_sha256": "4d57dcd672400f88b873e0d2e96ee05303c63af88478d3165090ba297d663813"
+      },
+      {
+        "student": "SYN-BUSINESS-Y1",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "76823254e7d84fd4bfc94f6722131415bdf07d3cf0ea5c11e970f5eab0810097"
+      },
+      {
+        "student": "SYN-BUSINESS-Y2",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "b64f106b466797df269f792dc895eaa5e285d144d834d937be9a241747317023"
+      },
+      {
+        "student": "SYN-BUSINESS-Y3",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "16570fe15ce4df602d6d811c4c65000a3c3f3bca4c75d95da468554c98f0eec7"
+      },
+      {
+        "student": "SYN-STATISTICS-Y1",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "9376d94810d889ebb0613531491574dd3d7469fa161674bb4c18112089e91e58"
+      },
+      {
+        "student": "SYN-STATISTICS-Y2",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "3a9a97feb7940291c6a979561b33b55d4266ba25092a1da93e678804e60e41d5"
+      },
+      {
+        "student": "SYN-STATISTICS-Y3",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "3c009d6291ce087d53640f21e93505737670235f2d6a1d49438d739743df5df9"
+      },
+      {
+        "student": "SYN-BUSINESS-Y2",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 0,
+        "code": null,
+        "evidence_sha256": "eafbbc043c4ea230acc6e426f1d198c1dd7d036efbc1370fb80139fa2f5dccf5"
+      },
+      {
+        "student": "SYN-BUSINESS-Y2",
+        "status": "completed",
+        "generations": 2,
+        "repair_attempts": 1,
+        "code": null,
+        "evidence_sha256": "c746e8c43f69f6c455cf93cfed8090601ef7d988b4750a2f43c3799fef555a2c"
+      }
+    ]
+  },
+  "ui": {
+    "shared_original_index_except_script": true,
+    "css_identical_to_18875_and_source": true,
+    "separate_theme_removed": true,
+    "enter_send": true,
+    "shift_enter_newline": true,
+    "refresh_preserves_current_session_turns": true,
+    "logout_clears_chat": true,
+    "switch_business2_to_stats3": true,
+    "stats3_records": 30,
+    "stats3_nominal_credits": "95.0",
+    "final_account": "business2",
+    "no_horizontal_overflow": true,
+    "mobile_tested": false,
+    "user_acceptance": false
+  },
+  "runtime": {
+    "school_port": 18875,
+    "school_pid_unchanged": 47662,
+    "scenario_port": 18880,
+    "scenario_pid": 49758,
+    "school_restarted": false,
+    "school_calls": 0,
+    "credentials_or_real_db_copied": false,
+    "separate_cookie": true
+  },
+  "limits": [
+    "partial_curriculum_path",
+    "no_offerings_timetable_exam_data",
+    "no_official_recognition",
+    "session_memory_only",
+    "remaining_answer_scope_wording"
+  ],
+  "git": {
+    "committed": false,
+    "pushed": false
+  },
+  "source_sha256": {
+    "course_assistant/scenario_accounts.py": "02680e3128ab172d6e8abc40c1d83aea4820ef27e1f4d6eb53f1ba68fdfb59cc",
+    "course_assistant/personal_dialogue.py": "aebb8e657f2f6856b09238485713587496c2f378f94532dd025de53513ad97e8",
+    "course_assistant/academic_harness.py": "f7196ec92783e37b3f741ccfd325b3a20a9f39ea901842aa9dde3798928132ed",
+    "web/index.html": "6824f973b7a3b03bdc393701e93ada4b72b9c7d0427060e6ce3eacd6874b2bce",
+    "web/styles.css": "a4c15a5da38a3b4d5a74c5a1438fdb36fbb33f3d5d7094aef5e6f9bfccbc3857",
+    "web/scenario.js": "32a5b0c299dd0226e76e6232c6283c455070a05b397ce26c608d636363e368be",
+    "tests/test_scenario_accounts.py": "50385f0c8084514fbe2634ee4c4d0bf8bc8d38d06bcbcee6ced75c51a8bc58f0"
+  }
+}
