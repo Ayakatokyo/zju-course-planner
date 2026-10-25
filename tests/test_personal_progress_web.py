@@ -239,7 +239,7 @@ for(const tool of ['query_my_records','search_my_curriculum','prepare_recommenda
 assert.match(evaluate("agentProcessStage({status:'running',events:[{kind:'tool.end',tool_name:'query_my_records',status:'not_ready'}]})"),/资料尚未就绪/);
 context.onlyCourses=context.mixedEvents.filter(event=>courseTools.includes(event.tool_name));const only=evaluate("agentProcessDescription({status:'running',events:onlyCourses})");assert.match(only,/收到 4 次本机工具返回（4 次课程条件测试受阻）/);assert.doesNotMatch(only,/资料未就绪/);
 evaluate("state.agentRunDetails['RUN-SYN']={run:{run_id:'RUN-SYN',status:'completed'},events:mixedEvents}");
-for(const html of [evaluate("renderAgentRunContent('RUN-SYN')"),evaluate("agentDiagnosticMarkup({status:'completed',events:mixedEvents})")]){assert.equal((html.match(/课程条件测试受阻，待核对/g)||[]).length,4);assert.equal((html.match(/资料未就绪/g)||[]).length,2);assert.match(html,/受限资料工具/);assert.doesNotMatch(html,/PRIVATE-UNKNOWN|无解|方案已生成/);}
+for(const html of [evaluate("agentDiagnosticMarkup({status:'completed',events:mixedEvents})")]){assert.equal((html.match(/课程条件测试受阻，待核对/g)||[]).length,4);assert.equal((html.match(/资料未就绪/g)||[]).length,2);assert.match(html,/受限资料工具/);assert.doesNotMatch(html,/PRIVATE-UNKNOWN|无解|方案已生成/);}
 assert.equal(JSON.stringify(context.mixedEvents),before);
 """)
 

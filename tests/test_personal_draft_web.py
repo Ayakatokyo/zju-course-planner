@@ -18,7 +18,7 @@ const settle=async()=>{for(let n=0;n<30;n++)await Promise.resolve();};
     def test_restore_unsubmitted_text_without_sending_it_or_reading_school_sources(self):
         self.run_js(r"""
 const calls=[];context.fetch=async(path,options)=>{calls.push(path);assert.equal(options.cache,'no-store');return ok(envelope('尚未发送的合成问题',null,2));};
-await evaluate('restoreAgentDraft()');assert.deepEqual(calls,['/api/chat/draft']);assert.equal(evaluate('state.agentDraft'),'尚未发送的合成问题');assert.equal(element('#agent-draft').value,'尚未发送的合成问题');assert.equal(evaluate('state.agentTurns.length'),0);assert.match(element('#agent-draft-status').textContent,/草稿已在本机暂存/);assert.equal(element('#agent-send').disabled,false);assert.equal(element('#agent-send').getAttribute('aria-disabled'),'false');
+await evaluate('restoreAgentDraft()');assert.deepEqual(calls,['/api/chat/draft']);assert.equal(evaluate('state.agentDraft'),'尚未发送的合成问题');assert.equal(element('#agent-draft').value,'尚未发送的合成问题');assert.equal(evaluate('state.agentTurns.length'),0);assert.equal(evaluate('state.agentDraftSync.savedText'),'尚未发送的合成问题');assert.doesNotMatch(element('#panel-assistant').innerHTML,/agent-draft-status|草稿已在本机暂存/);assert.equal(element('#agent-send').disabled,false);assert.equal(element('#agent-send').getAttribute('aria-disabled'),'false');
 """)
 
     def test_restore_target_history_before_its_followup_and_keep_history_failure_safe(self):
@@ -28,7 +28,7 @@ context.fetch=async(path)=>{calls.push(path);if(path==='/api/chat/draft')return 
 await evaluate('restoreAgentDraft()');assert.deepEqual(calls,['/api/chat/draft','/api/chat/history']);assert.equal(evaluate('state.agentConversationId'),id);assert.equal(evaluate('state.agentDraft'),'接着比较已有方案');assert.equal(evaluate('state.agentTurnId'),2);
 evaluate("resetAgentDraftSync();state.agentConversationId=null;state.agentTurns=[];state.agentDraft=''");
 context.fetch=async(path)=>path==='/api/chat/draft'?ok(envelope('原草稿',id,4)):{ok:false,status:503,text:async()=>JSON.stringify({error:'history temporarily unavailable'})};
-await evaluate('restoreAgentDraft()');assert.equal(evaluate('state.agentDraft'),'');assert.equal(evaluate('state.agentConversationId'),null);assert.match(element('#agent-draft-status').textContent,/草稿暂未恢复/);
+await evaluate('restoreAgentDraft()');assert.equal(evaluate('state.agentDraft'),'');assert.equal(evaluate('state.agentConversationId'),null);assert.match(evaluate('state.agentDraftSync.error'),/草稿暂未恢复/);
 """)
 
     def test_late_restore_cannot_replace_new_input_and_only_new_input_is_saved(self):
@@ -41,7 +41,7 @@ const restoring=evaluate('restoreAgentDraft()');evaluate("state.agentDraft='新�
         self.run_js(r"""
 let release;const calls=[];context.fetch=async(path)=>{calls.push(path);return new Promise(resolve=>release=resolve);};
 const restoring=evaluate('restoreAgentDraft()');evaluate("state.agentDraft='恢复期间输入的问题';queueAgentDraftSave();updateAgentSend()");assert.equal(element('#agent-send').disabled,true);
-release({ok:false,status:503,text:async()=>JSON.stringify({error:'draft temporarily unavailable'})});await restoring;await settle();assert.equal(evaluate('state.agentDraft'),'恢复期间输入的问题');assert.equal(evaluate('agentCanSend()'),true);assert.equal(element('#agent-send').disabled,false);assert.equal(element('#agent-send').getAttribute('aria-disabled'),'false');assert.match(element('#agent-draft-status').textContent,/草稿暂未恢复/);assert.deepEqual(calls,['/api/chat/draft']);
+release({ok:false,status:503,text:async()=>JSON.stringify({error:'draft temporarily unavailable'})});await restoring;await settle();assert.equal(evaluate('state.agentDraft'),'恢复期间输入的问题');assert.equal(evaluate('agentCanSend()'),true);assert.equal(element('#agent-send').disabled,false);assert.equal(element('#agent-send').getAttribute('aria-disabled'),'false');assert.match(evaluate('state.agentDraftSync.error'),/草稿暂未恢复/);assert.deepEqual(calls,['/api/chat/draft']);
 """)
 
     def test_serial_writes_keep_latest_text_without_overlapping_or_saving_on_render(self):
@@ -55,7 +55,8 @@ releases.shift()();await settle();assert.equal(bodies.length,2);assert.equal(bod
     def test_conflict_preserves_current_input_and_never_retries_it_without_new_edit(self):
         self.run_js(r"""
 const calls=[];context.fetch=async(path,options)=>{calls.push(options.method||'GET');return options.method?{ok:false,status:409,text:async()=>JSON.stringify({code:'personal_draft_revision_conflict',error:'conflict'})}:ok(envelope('另一页面草稿',null,9));};
-evaluate("state.agentDraftSync.enabled=true;state.agentDraftSync.revision=2;state.agentDraft='当前输入';queueAgentDraftSave(true)");await settle();assert.deepEqual(calls,['POST','GET']);assert.equal(evaluate('state.agentDraft'),'当前输入');assert.equal(evaluate('state.agentDraftSync.revision'),9);assert.match(element('#agent-draft-status').textContent,/其他页面已更新/);
+evaluate("state.agentDraftSync.enabled=true;state.agentDraftSync.revision=2;state.agentDraft='当前输入';queueAgentDraftSave(true)");await settle();assert.deepEqual(calls,['POST','GET']);assert.equal(evaluate('state.agentDraft'),'当前输入');assert.equal(evaluate('state.agentDraftSync.revision'),9);assert.match(evaluate('state.agentDraftSync.error'),/其他页面已更新/);
+evaluate('renderAssistant()');assert.doesNotMatch(element('#panel-assistant').innerHTML,/agent-draft-status|其他页面已更新草稿|尚未暂存/);
 await evaluate('saveAgentDraft()');await settle();assert.deepEqual(calls,['POST','GET']);
 """)
 

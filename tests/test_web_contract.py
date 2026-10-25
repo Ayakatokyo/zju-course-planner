@@ -11,6 +11,33 @@ NODE = shutil.which("node")
 
 @unittest.skipUnless(NODE, "Node is needed only for Web contract verification")
 class WebContractTests(unittest.TestCase):
+
+    def test_workspace_pages_reuse_current_results_and_preserve_draft_without_fetch(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYNTHETIC',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.schoolProfile={};state.agentDraft='未发送的需求'");
+let calls=0;context.fetch=()=>{calls++;throw Error('unexpected fetch');};
+for(const page of ['academic','timetable','exams','profile']){evaluate(`openWorkspacePage('${page}')`);assert.equal(evaluate('state.tab'),'school');assert.equal(evaluate('state.schoolOperation'),page);assert.match(element('#workspace-navigation').innerHTML,new RegExp('data-page="'+page+'" aria-current="page"'));}
+evaluate("openWorkspacePage('plans')");assert.match(element('#panel-plans').innerHTML,/先聊聊你的选课目标/);assert.equal(evaluate('state.agentDraft'),'未发送的需求');assert.equal(calls,0);
+context.fixture={schema_version:'personal-course-data-test/1',mode:'current_term_course_data_test',reference_mode:'historical_course_observations',validation_scope:'observed_weekday_periods_conservative_overlap_policy',action:'generate',options:[{label:'A',credits:7,classes:[{course_name:'合成课'}]}]};
+evaluate("state.agentTurns=[{status:'completed',recommendation_result:fixture}];renderWorkspacePlans()");assert.match(element('#panel-plans').innerHTML,/合成课/);
+evaluate("state.agentTurns.push({recommendation_result:{...fixture,action:'inspect',options:[]}});renderWorkspacePlans()");assert.match(element('#panel-plans').innerHTML,/合成课/);
+evaluate("state.agentTurns.push({recommendation_result:{...fixture,action:'revise',options:[],reason:'no_observed_option_within_scope'}});renderWorkspacePlans()");assert.doesNotMatch(element('#panel-plans').innerHTML,/合成课/);assert.match(element('#panel-plans').innerHTML,/尚未找到符合条件/);assert.equal(calls,0);
+evaluate("clearWorkspace();state.auth={authenticated:false};renderWorkspacePlans()");assert.equal(element('#panel-plans').innerHTML,'');assert.equal(evaluate('state.agentTurns.length'),0);
+""")
+
+    def test_select_enter_opens_picker_without_submitting_parent_form(self):
+        self.run_js(r"""
+let prevented=0,opened=0;const select={disabled:false,matches:()=>false,showPicker(){opened++;}};
+const key=(extra={})=>({key:'Enter',target:{closest:()=>select},preventDefault(){prevented++;},...extra});
+const handler=element('.app-shell').listeners.keydown;
+handler(key());assert.equal(prevented,1);assert.equal(opened,1);
+handler(key({repeat:true}));assert.equal(prevented,2);assert.equal(opened,1);
+select.matches=()=>true;handler(key());assert.equal(prevented,2);
+select.matches=()=>false;select.disabled=true;handler(key());assert.equal(prevented,2);
+handler(key({key:'ArrowDown'}));assert.equal(prevented,2);
+handler(key({target:{closest:()=>null}}));assert.equal(prevented,2);
+""")
+
     def test_composer_enter_sends_shift_enter_and_ime_do_not(self):
         self.run_js(r"""
 evaluate("state.auth={authenticated:true};state.boot={};state.agentStatus={configured:true,remote:false};state.agentDraft='合成测试问题';renderAssistant()");
@@ -47,6 +74,32 @@ context.reply='| 名称 | 说明 |\n|---|---|\n| <img src=x onerror=alert(1)> | 
 const markup=evaluate('agentAnswerMarkup(reply)');
 assert.doesNotMatch(markup,/<img/);assert.match(markup,/&lt;img/);assert.match(markup,/<strong>重点<\/strong> 与 A\|B/);
 assert.match(markup,/<p>普通 A\|B<\/p>/);assert.match(markup,/<p>\| 非表格 \| 原文 \|<\/p>/);
+""")
+
+    def test_answer_lists_starters_copy_and_history_are_local(self):
+        self.run_js(r"""
+context.reply='## 结论\n- **保留**课程\n- <script>bad()</script>\n1. 核对时间\n2. 再确认\n普通正文';
+let markup=evaluate('agentAnswerMarkup(reply)');assert.match(markup,/<h3>结论<\/h3>/);assert.match(markup,/<ul><li><strong>保留/);assert.match(markup,/<ol><li>核对时间/);assert.doesNotMatch(markup,/<script>/);
+evaluate("state.auth={authenticated:true};state.boot={};state.agentStatus={configured:true};state.agentDraft='已有草稿';fillAgentDraft(agentStarterQuestions[0])");assert.match(evaluate('state.agentDraft'),/^已有草稿\n帮我看看/);assert.equal(evaluate('state.agentTurns.length'),0);
+evaluate("state.agentBusy=true;fillAgentDraft('不应填入')");assert.doesNotMatch(evaluate('state.agentDraft'),/不应填入/);
+const feedback={textContent:''};let copied='';context.navigator={clipboard:{writeText:async text=>{copied=text;}}};context.copyButton={closest:()=>({querySelector:()=>({innerText:'回答正文'})}),parentElement:{querySelector:()=>feedback}};
+await evaluate('copyAgentAnswer(copyButton)');assert.equal(copied,'回答正文');assert.equal(feedback.textContent,'已复制');context.navigator.clipboard.writeText=async()=>{throw Error('denied');};await evaluate('copyAgentAnswer(copyButton)');assert.match(feedback.textContent,/请选中文字/);
+evaluate("state.agentHistory=[{title:'课程组合 <img>',conversation_id:'a',updated_at:Date.now()/1000},{title:'成绩记录',conversation_id:'b',updated_at:(Date.now()-86400000)/1000}];state.agentHistorySearch='组合';renderAgentHistory()");markup=element('#conversation-list').innerHTML;assert.match(markup,/今天/);assert.match(markup,/课程组合 &lt;img&gt;/);assert.doesNotMatch(markup,/成绩记录|<img>/);
+evaluate("state.agentHistorySearch='不存在';renderAgentHistory()");assert.match(element('#conversation-list').innerHTML,/没有匹配标题/);
+evaluate("clearWorkspace()");assert.equal(evaluate('state.agentHistorySearch'),'');
+""")
+
+    def test_plan_comparison_aligns_codes_preserves_unknowns_and_does_not_mutate(self):
+        self.run_js(r"""
+context.options=[{label:'A',total_credits:5,friday_meeting_count:0,classes:[{course_name:'同名课程',course_code:'X',class_ref:'a',credits:3,locked:true,weekday_period_text:['周一第1节']},{course_name:'无代码',credits:2}]},{label:'B',total_credits:6,classes:[{course_name:'同名课程',course_code:'X',class_ref:'b',credits:3,weekday_period_text:['周二第1节']},{course_name:'同名课程',course_code:'Y',credits:3}]}];const original=JSON.stringify(context.options);
+const markup=evaluate('renderPlanComparison({},options)');assert.match(markup,/总学分/);assert.match(markup,/0 段/);assert.match(markup,/待确认/);assert.match(markup,/已锁定/);assert.match(markup,/X · 有差异/);assert.match(markup,/Y · 有差异/);assert.match(markup,/课程标识待确认/);assert.match(markup,/本方案未列出/);assert.match(markup,/周一第1节/);assert.match(markup,/周二第1节/);assert.equal(JSON.stringify(context.options),original);
+""")
+
+    def test_grade_sort_keeps_unknown_and_qualitative_values_last_without_mutating(self):
+        self.run_js(r"""
+context.result={records:[{course_code_raw:'zero',grade_raw:'0'},{course_code_raw:'missing',grade_raw:null},{course_code_raw:'pass',grade_raw:'合格'},{course_code_raw:'high',grade_raw:'95'},{course_code_raw:'conflict',grade_raw:'99',field_states:{grade_raw:'conflicting'}}]};const original=JSON.stringify(context.result);
+evaluate("state.schoolGradeSort='grade'");assert.equal(JSON.stringify(evaluate('schoolGradeRows(result).map(row=>row.course_code_raw)')),JSON.stringify(['high','zero','missing','pass','conflict']));assert.equal(JSON.stringify(context.result),original);
+evaluate("state.schoolGradeSort='source'");assert.equal(evaluate('schoolGradeRows(result)[0].course_code_raw'),'zero');
 """)
 
     def run_js(self, assertions):
@@ -148,8 +201,10 @@ assert.deepEqual([...demoSummary.matchAll(/<dd class="numeric">(.*?)<span>/g)].m
 assert.equal(evaluate('state.tab'),'assistant');
 const html=fs.readFileSync(process.argv[1].replace(/app\\.js$/,'index.html'),'utf8');
 assert.match(html,/id="tab-assistant" class="nav-tab active"/);
-assert.deepEqual([...html.matchAll(/data-tab="([^"]+)"/g)].map(match=>match[1]),['assistant','saved','school']);
-assert.match(html,/id="tab-school"[^>]*hidden/);
+assert.deepEqual([...html.matchAll(/data-tab="([^"]+)"/g)].map(match=>match[1]),['assistant','plans','saved']);
+assert.doesNotMatch(html,/tab-school|tab-overview|panel-overview/);
+assert.doesNotMatch(html.match(/<header[\s\S]*?<\/header>/)[0],/data-tab=/);
+assert.match(html.match(/<aside[\s\S]*?<\/aside>/)[0],/id="tab-assistant"/);
 evaluate("state.boot={demo:{courses:[],constraints:{revision:1,friday_free:'soft'}}};state.constraints={revision:1,friday_free:'soft'};renderAssistant()");
 const markup=element('#panel-assistant').innerHTML;
 assert.match(markup,/<button[^>]*type="submit"[^>]*disabled[^>]*>发送/);
@@ -511,7 +566,7 @@ assert.doesNotMatch(fs.readFileSync(process.argv[1],'utf8'),/localStorage|sessio
         self.run_js("""
 const identity={student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client',data_kind:'personal_source'};
 const paths=[];context.fetch=async(path)=>{paths.push(path);if(path==='/api/auth/session')return {ok:true,json:async()=>({authenticated:true,school_client_enabled:true,identity,csrf_token:'memory-only'})};if(path==='/api/bootstrap')return {ok:true,json:async()=>({identity,school:{status:'ready'},chat:{configured:false,reason:'real_recommendation_not_ready'}})};if(path==='/api/chat/status')return {ok:true,json:async()=>({configured:false,reason:'real_recommendation_not_ready'})};throw Error('unexpected '+path);};
-await evaluate('bootstrap()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap']);assert.equal(evaluate('state.tab'),'assistant');assert.equal(element('#tab-school').hidden,false);assert.equal(element('#tab-saved').hidden,true);assert.equal(element('#conversation-sidebar').hidden,true);assert.equal(element('#mode-badge').textContent,'本人教务');assert.match(element('#panel-assistant').innerHTML,/本人资料对话待接入/);
+await evaluate('bootstrap()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap']);assert.equal(evaluate('state.tab'),'assistant');assert.equal(element('#tab-saved').hidden,true);assert.equal(element('#conversation-sidebar').hidden,false);assert.equal(element('#mode-badge').textContent,'本人教务');assert.match(element('#panel-assistant').innerHTML,/本人资料对话待接入/);
 evaluate("state.agentStatus={configured:true,remote:true};state.agentDraft='private fixture';state.agentConsent=true");assert.equal(evaluate('agentCanSend()'),false);await evaluate('sendAgentTurn()');await evaluate('refreshAgentStatus()');await evaluate('refreshAgentHistory()');await evaluate('refreshSaved()');assert.deepEqual(paths,['/api/auth/session','/api/bootstrap','/api/chat/status']);
 evaluate("switchTab('saved')");assert.equal(evaluate('state.tab'),'assistant');
 """)
@@ -604,7 +659,7 @@ evaluate("state.auth={authenticated:false,academic_login_enabled:true,school_cli
 assert.match(element('#auth-panel').innerHTML,/登录教务助手/);assert.doesNotMatch(element('#auth-panel').innerHTML,/登录模拟账号|profile-id/);
 evaluate("state.auth={authenticated:true,identity:{student_id:'SYN-FIXTURE',auth_mode:'synthetic_account',security_realm:'curriculum_synthetic_accounts'}};state.agentStatus={configured:true,available:true,data_kind:'synthetic',personal_data_use:{version:'test'}}");
 assert.equal(evaluate('isAcademicIdentity()'),true);assert.equal(evaluate('personalChatReady()'),true);assert.equal(evaluate('agentDataKind()'),'synthetic');
-evaluate("renderSchool()");assert.match(element('#panel-school').innerHTML,/查看当前账号的教务资料/);assert.match(element('#panel-school').innerHTML,/查询资料/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
+evaluate("renderSchool()");assert.match(element('#panel-school').innerHTML,/按学期查看成绩/);assert.match(element('#panel-school').innerHTML,/查询资料/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
 evaluate("state.agentStatus.data_kind='personal_source'");assert.equal(evaluate('personalChatReady()'),false);
 """)
 
@@ -675,12 +730,16 @@ assert.match(markup,/合成仅课程/);assert.match(markup,/SYNTHETIC-A/);assert
 assert.equal((markup.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g)||[]).length,2);
 """)
 
-    def test_school_exam_columns_only_show_available_independent_fields(self):
+    def test_school_exam_agenda_preserves_independent_missing_fields_and_escapes(self):
         self.run_js(r"""
-context.result={operation:'exams',records:[{course_name_raw:'合成考试甲',final_exam_time_raw:'合成期末时间',final_exam_place_raw:null,midterm_exam_time_raw:'',midterm_exam_place_raw:null},{course_name_raw:'<img src=x onerror=bad()>',final_exam_time_raw:null,final_exam_place_raw:'合成期末地点',midterm_exam_time_raw:null,midterm_exam_place_raw:null}]};
-const markup=evaluate('schoolRecordTable(result)'),header=markup.match(/<thead>([\s\S]*?)<\/thead>/)[1];assert.match(header,/期末考试时间/);assert.match(header,/期末考试地点/);assert.doesNotMatch(header,/期中/);assert.match(markup,/合成期末时间/);assert.match(markup,/合成期末地点/);assert.match(markup,/muted">—/);
-assert.doesNotMatch(markup,/待确认|没有考试|无考试|<img/);assert.match(markup,/&lt;img/);
-context.result={operation:'exams',records:[{course_name_raw:'合成未知考试',final_exam_time_raw:null,final_exam_place_raw:'',midterm_exam_time_raw:null,midterm_exam_place_raw:null}]};const empty=evaluate('schoolRecordTable(result)');assert.equal((empty.match(/<thead>[\s\S]*?<\/thead>/)[0].match(/<th /g)||[]).length,1);assert.match(empty,/合成未知考试/);assert.doesNotMatch(empty,/期末考试时间|期末考试地点|期中考试时间|期中考试地点|无考试|待确认/);
+context.result={operation:'exams',records:[{course_name_raw:'合成考试甲',final_exam_time_raw:'合成期末时间',final_exam_place_raw:null},{course_name_raw:'<img src=x onerror=bad()>',final_exam_place_raw:'合成期末地点'}]};
+const markup=evaluate('schoolRecordTable(result)');assert.match(markup,/合成期末时间/);assert.match(markup,/合成期末地点/);assert.match(markup,/来源未提供时间/);assert.match(markup,/来源未提供地点/);assert.doesNotMatch(markup,/期中|没有考试|无考试|<img/);assert.match(markup,/&lt;img/);
+context.result={operation:'exams',records:[{course_name_raw:'合成未知考试',final_exam_time_raw:null,final_exam_place_raw:''}]};const empty=evaluate('schoolRecordTable(result)');assert.match(empty,/合成未知考试/);assert.match(empty,/日期未明确/);assert.match(empty,/来源未提供考试时间与地点/);assert.doesNotMatch(empty,/无考试/);
+context.examRows=[{course_name_raw:'后期',final_exam_time_raw:'2026-11-02 14:00',midterm_exam_time_raw:'2026年10月26日 09:00'},{course_name_raw:'未知',final_exam_time_raw:'10月25日'},{course_name_raw:'冲突',final_exam_time_raw:'2026-10-25',field_states:{final_exam_time_raw:'conflicting'}}];
+const grouped=evaluate('schoolExamAgenda(examRows)');assert.ok(grouped.indexOf('<h3>2026-10-26')<grouped.indexOf('<h3>2026-11-02'));assert.ok(grouped.indexOf('<h3>2026-11-02')<grouped.indexOf('<h3>日期未明确'));assert.match(grouped,/期中考试/);assert.match(grouped,/期末考试/);assert.doesNotMatch(grouped,/2026-10-25/);
+for(const value of ['2026-02-30','10月25日','2026-10-25 至 2026-10-26']){context.dateValue=value;assert.equal(evaluate('schoolExamDate(dateValue)'),null);}
+assert.match(evaluate("schoolEmptyResult({status:'partial',records:[]})"),/不能据此判断没有课程或考试/);
+assert.match(evaluate("schoolEmptyResult({status:'complete',coverage:{complete_within_scope:true},records:[]})"),/当前查询范围内没有返回记录/);
 """)
 
     def test_school_profile_omits_empty_conflicting_and_unverified_fields(self):
@@ -747,7 +806,7 @@ evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',a
 element('#school-year').value='2024-2025';element('#school-season').value='SS';evaluate("selectSchoolSection('exams')");assert.equal(evaluate('state.schoolYear'),'2024-2025');assert.equal(evaluate('state.schoolSeason'),'S');assert.doesNotMatch(element('#panel-school').innerHTML,/<option value="AW"/);
 element('#school-year').value='2024-2025';element('#school-season').value='SU';evaluate("selectSchoolSection('profile')");assert.match(element('#panel-school').innerHTML,/下载培养方案 PDF/);assert.match(element('#panel-school').innerHTML,/<select id="school-year"[^>]*disabled/);
 element('#school-year').value='2024-2025';element('#school-season').value='SS';evaluate("selectSchoolSection('academic')");assert.equal(evaluate('state.schoolYear'),'2024-2025');assert.equal(evaluate('state.schoolSeason'),'SS');
-evaluate('state.schoolReauth=true;renderSchool()');assert.match(element('#panel-school').innerHTML,/<summary>需要重新验证<\/summary>/);assert.doesNotMatch(element('#panel-school').innerHTML,/<summary>会话有效<\/summary>/);
+evaluate('state.schoolReauth=true;renderSchool()');assert.match(element('#panel-school').innerHTML,/<h2>重新登录教务<\/h2>/);assert.doesNotMatch(element('#panel-school').innerHTML,/school-session|school-status|检查会话|会话有效/);
 """)
 
     def test_source_field_evidence_distinguishes_projection_loss_and_cache(self):
@@ -861,18 +920,9 @@ release({ok:true,json:async()=>({configured:true,available:true,remote:true,prov
 element('#agent-thinking').setAttribute('aria-pressed','true');const failed=element('#agent-thinking').listeners.click({preventDefault(){}});assert.deepEqual(calls[1],{path:'/api/chat/settings',body:{model:'real-a',thinking:false}});release({ok:false,status:503,text:async()=>JSON.stringify({error:'synthetic settings failure'})});await failed;for(let i=0;i<20&&evaluate('state.agentSettingsBusy');i++)await Promise.resolve();assert.equal(evaluate('state.agentSettingsBusy'),false);assert.equal(evaluate('state.agentStatus.thinking'),true);assert.match(buttonMarkup(),/aria-pressed="true"/);assert.ok(evaluate('state.agentModelsError'));assert.equal(evaluate('state.agentDraft'),'保留未发送问题');
 """)
 
-    def test_run_details_show_actual_event_timeline_usage_and_visible_provider_reasoning(self):
-        self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}");
-const calls=[];context.fetch=async(path,options)=>{calls.push({path,body:options.body?JSON.parse(options.body):null});if(path==='/api/chat/runs?limit=20')return {ok:true,json:async()=>({runs:[{run_id:'RUN-1',status:'failed',model:'real-a',started_at:1792022400}],has_more:false})};return {ok:true,json:async()=>({run:{run_id:'RUN-1',status:'failed',model:'real-a',thinking:true},reasoning_notice:'供应商实际返回文本，不代表完整内部思考。',events:[{kind:'model.start',at:1792022400,sequence:1,model:'real-a'},{kind:'tool.end',tool_name:'query_my_records',elapsed_ms:10,status:'completed'},{kind:'model.end',usage:{prompt_tokens:123,completion_tokens:45,total_tokens:168},reasoning_content:'供应商可见推理 <script>bad()</script>',prompt:{private:'DO-NOT-RENDER'}},{kind:'error',code:'model_timeout',error:{message:'稍后重试<img src=x>'}}]})};};
-await evaluate('refreshAgentRuns()');assert.equal(evaluate('state.agentRuns.length'),1);await evaluate("toggleAgentRun('RUN-1')");const markup=evaluate("renderAgentRunContent('RUN-1')");assert.match(markup,/模型请求/);assert.match(markup,/调用返回/);assert.match(markup,/本人教务记录/);assert.match(markup,/输入 123 tokens/);assert.match(markup,/输出 45 tokens/);assert.match(markup,/合计 168 tokens/);assert.match(markup,/model_timeout/);assert.match(markup,/供应商实际返回文本，不代表完整内部思考/);assert.match(markup,/&lt;script&gt;/);assert.doesNotMatch(markup,/<script>|<img|DO-NOT-RENDER|"private"/);assert.deepEqual(calls,[{path:'/api/chat/runs?limit=20',body:null},{path:'/api/chat/run',body:{run_id:'RUN-1'}}]);
-evaluate("state.agentRunDetails['RUN-EMPTY']={run:{run_id:'RUN-EMPTY'},events:[]}");assert.match(evaluate("renderAgentRunContent('RUN-EMPTY')"),/未提供供应商可见推理文本/);
-""")
-
     def test_delayed_model_and_run_metadata_never_repopulate_another_owner(self):
         self.run_js(r"""
 const seed=owner=>evaluate(`clearWorkspace();state.auth={authenticated:true,identity:{student_id:'${owner}',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}}`);seed('PERSONAL-A');let release;context.fetch=()=>new Promise(resolve=>{release=resolve;});const directory=evaluate('refreshAgentModels(false)');seed('PERSONAL-B');release({ok:true,json:async()=>({models:[{id:'A-private-model'}]})});await directory;assert.equal(evaluate('state.agentModels.length'),0);
-const detail=evaluate("toggleAgentRun('A-run')");seed('PERSONAL-C');release({ok:true,json:async()=>({run:{run_id:'A-run'},events:[{kind:'model.end',reasoning_content:'A private reasoning'}]})});await detail;assert.equal(evaluate('Object.keys(state.agentRunDetails).length'),0);assert.doesNotMatch(element('#panel-assistant').innerHTML,/A private reasoning/);
 evaluate("state.agentRunDetails.secret={events:[{reasoning_content:'secret'}]};state.agentModels=[{id:'secret-model'}]");evaluate('clearSchoolWorkspace()');assert.equal(evaluate('Object.keys(state.agentRunDetails).length'),0);assert.equal(evaluate('state.agentModels.length'),0);
 """)
 
@@ -880,11 +930,11 @@ evaluate("state.agentRunDetails.secret={events:[{reasoning_content:'secret'}]};s
         self.run_js(r"""
 const scroll=element('#agent-dialogue-scroll');let top=0;scroll.scrollHeight=2000;scroll.clientHeight=400;Object.defineProperty(scroll,'scrollTop',{get:()=>top,set:value=>{top=Math.max(0,Math.min(value,scroll.scrollHeight-scroll.clientHeight));},configurable:true});
 evaluate("state.boot={};state.auth={authenticated:true};renderAssistant()");assert.equal(top,1600);scroll.scrollTop=300;scroll.listeners.scroll();assert.equal(evaluate('state.agentScroll.nearBottom'),false);
-evaluate("state.agentTurns=[{status:'completed',message:'新问题',reply:'新回答',tool_results:[],citations:[]}]");scroll.scrollHeight=2500;evaluate('renderAssistant()');assert.equal(top,300);assert.equal(evaluate('state.agentScroll.newMessages'),true);assert.match(element('#agent-latest').textContent,/有新回复/);
+evaluate("state.agentTurns=[{status:'completed',message:'新问题',reply:'新回答',tool_results:[],citations:[]}]");scroll.scrollHeight=2500;evaluate('renderAssistant()');assert.equal(top,300);assert.equal(evaluate('state.agentScroll.newMessages'),true);assert.doesNotMatch(element('#panel-assistant').innerHTML,/上翻一页|下翻一页|回到最新|agent-scroll-controls/);
 evaluate('scrollAgentDialogue(1)');assert.equal(top,640);evaluate('scrollAgentDialogue(-1)');assert.equal(top,300);evaluate("scrollAgentDialogue('latest')");assert.equal(top,2100);assert.equal(evaluate('state.agentScroll.newMessages'),false);
 scroll.scrollTop=150;scroll.listeners.scroll();evaluate('renderAssistant()');assert.equal(top,150);evaluate('state.agentScroll.forceLatest=true;renderAssistant()');assert.equal(top,2100);
 scroll.scrollHeight=2900;evaluate("state.agentTurns.push({pending:true,message:'本人新发的问题'});state.agentScroll.forceLatest=true;renderAssistant()");assert.equal(top,2500);
-const css=fs.readFileSync(process.argv[1].replace(/app\.js$/,'styles.css'),'utf8');assert.match(css,/body:has\(#panel-assistant:not\(\[hidden\]\)\)[^}]*height: 100svh[^}]*overflow: hidden/);assert.match(css,/\.agent-dialogue[^}]*min-height: 0[^}]*overflow: auto/);assert.match(css,/\.agent-run-content[^}]*max-height: 340px[^}]*overflow: auto/);assert.match(element('#panel-assistant').innerHTML,/对话上下翻页/);
+const css=fs.readFileSync(process.argv[1].replace(/app\.js$/,'styles.css'),'utf8');assert.match(css,/body:has\(#panel-assistant:not\(\[hidden\]\)\)[^}]*height: 100svh[^}]*overflow: hidden/);assert.match(css,/\.agent-dialogue[^}]*min-height: 0[^}]*overflow: auto/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/对话上下翻页/);
 """)
 
     def test_scripted_personal_fixture_uses_preflight_and_preserves_streaming_overrides(self):

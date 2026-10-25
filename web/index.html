@@ -12,18 +12,21 @@
   <a class="skip-link" href="#main">跳到主要内容</a>
   <header class="app-header">
     <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4m8-4v4M4 10h16M8 14h2m4 0h2m-8 3h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="brand-copy"><strong>浙大教务助手</strong><span>浙江大学 · 本机工作区</span></span><span id="mode-badge" class="badge synthetic">合成演示</span></div>
-    <nav class="nav-tabs top-nav" role="tablist" aria-label="教务工作区" hidden>
-      <button id="tab-assistant" class="nav-tab active" role="tab" aria-selected="true" aria-controls="panel-assistant" data-tab="assistant">对话</button>
-      <button id="tab-saved" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-saved" data-tab="saved">已保存</button>
-      <button id="tab-school" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-school" data-tab="school" hidden>我的教务</button>
-    </nav>
     <div id="session-control" class="session-control" hidden><button id="logout" class="button small">退出</button></div>
   </header>
   <div class="app-shell">
-    <aside id="conversation-sidebar" class="conversation-sidebar" aria-label="对话导航" hidden>
+    <aside id="conversation-sidebar" class="conversation-sidebar" aria-label="工作区导航" hidden>
       <button id="new-agent-conversation" class="button" data-action="new-agent-conversation"><span aria-hidden="true">＋</span>新对话</button>
+      <nav class="nav-tabs side-nav" role="tablist" aria-label="工作区" aria-orientation="vertical" hidden>
+        <button id="tab-assistant" class="nav-tab active" role="tab" aria-selected="true" aria-controls="panel-assistant" data-tab="assistant"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 4h16v12H9l-5 4z"/></svg>对话</button>
+        <button id="tab-plans" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-plans" data-tab="plans" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5m-18 5 9 5 9-5"/></svg>本轮方案</button>
+        <button id="tab-saved" class="nav-tab" role="tab" aria-selected="false" aria-controls="panel-saved" data-tab="saved">已保存</button>
+      </nav>
+      <nav id="workspace-navigation" class="workspace-navigation" aria-label="教务功能" hidden></nav>
       <details id="conversation-history" class="conversation-history" open>
         <summary>历史对话</summary>
+        <label class="sr-only" for="agent-history-search">搜索已加载对话</label>
+        <input id="agent-history-search" class="history-search" type="search" maxlength="100" placeholder="搜索对话标题" autocomplete="off">
         <div id="conversation-list" aria-live="polite"></div>
       </details>
     </aside>
@@ -33,11 +36,12 @@
       <div id="loading" class="loading-screen" aria-label="正在读取数据"><div class="skeleton wide"></div><div class="skeleton"></div><div class="skeleton block"></div></div>
       <section id="auth-panel" class="auth-panel" aria-label="登录与开发演示" hidden></section>
       <section id="panel-assistant" class="tab-panel" role="tabpanel" aria-labelledby="tab-assistant" hidden></section>
+      <section id="panel-plans" class="tab-panel" role="tabpanel" aria-labelledby="tab-plans" hidden></section>
       <section id="panel-planning" class="tab-panel" aria-label="条件与课表" hidden></section>
       <section id="panel-audit" class="tab-panel" aria-label="学业账本" hidden></section>
       <section id="panel-sources" class="tab-panel" aria-label="资料与审核" hidden></section>
       <section id="panel-saved" class="tab-panel" role="tabpanel" aria-labelledby="tab-saved" hidden></section>
-      <section id="panel-school" class="tab-panel" role="tabpanel" aria-labelledby="tab-school" hidden></section>
+      <section id="panel-school" class="tab-panel" role="tabpanel" aria-label="教务资料" hidden></section>
     </main>
   </div>
 </body>
