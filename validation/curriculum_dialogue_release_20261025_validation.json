@@ -1,0 +1,143 @@
+{
+  "date": "2026-10-25",
+  "code_commit": "63d1089",
+  "real_school_session": true,
+  "model": "deepseek-flash",
+  "rounds": [
+    {
+      "round": 1,
+      "status": "completed",
+      "duration_ms": 6938,
+      "model_requests": 2,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum"
+      ],
+      "semantic_retrieval": [
+        {
+          "status": "unavailable",
+          "reason": "vector_store_unavailable",
+          "dense_used": false,
+          "ranking_version": "rrf60-dual-quota-v2",
+          "candidate_count": 5,
+          "encoded_count": 0,
+          "token_truncated_count": 0
+        }
+      ],
+      "citation_pages": [
+        5
+      ]
+    },
+    {
+      "round": 2,
+      "status": "completed",
+      "duration_ms": 10882,
+      "model_requests": 2,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum",
+        "search_my_curriculum",
+        "search_my_curriculum"
+      ],
+      "semantic_retrieval": [
+        {
+          "status": "available",
+          "reason": null,
+          "dense_used": true,
+          "ranking_version": "rrf60-dual-quota-v2",
+          "candidate_count": 156,
+          "encoded_count": 0,
+          "token_truncated_count": 1
+        },
+        {
+          "status": "available",
+          "reason": null,
+          "dense_used": true,
+          "ranking_version": "rrf60-dual-quota-v2",
+          "candidate_count": 156,
+          "encoded_count": 0,
+          "token_truncated_count": 1
+        }
+      ],
+      "citation_pages": [
+        1,
+        5
+      ]
+    },
+    {
+      "round": 3,
+      "status": "completed",
+      "duration_ms": 8134,
+      "model_requests": 2,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum",
+        "search_my_curriculum"
+      ],
+      "semantic_retrieval": [
+        {
+          "status": "available",
+          "reason": null,
+          "dense_used": true,
+          "ranking_version": "rrf60-dual-quota-v2",
+          "candidate_count": 156,
+          "encoded_count": 0,
+          "token_truncated_count": 1
+        },
+        {
+          "status": "available",
+          "reason": null,
+          "dense_used": true,
+          "ranking_version": "rrf60-dual-quota-v2",
+          "candidate_count": 5,
+          "encoded_count": 0,
+          "token_truncated_count": 0
+        }
+      ],
+      "citation_pages": [
+        5
+      ]
+    },
+    {
+      "round": 4,
+      "status": "completed",
+      "duration_ms": 6817,
+      "model_requests": 2,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum"
+      ],
+      "semantic_retrieval": [
+        {
+          "status": "available",
+          "reason": null,
+          "dense_used": true,
+          "ranking_version": "rrf60-dual-quota-v2",
+          "candidate_count": 5,
+          "encoded_count": 0,
+          "token_truncated_count": 0
+        }
+      ],
+      "citation_pages": [
+        5
+      ]
+    }
+  ],
+  "content_checks": {
+    "practice_credits_9": true,
+    "three_courses_credits_2_4_3": true,
+    "suggested_terms_match_source": true,
+    "thesis_credits_8": true,
+    "requirements_not_earned_credits": true
+  },
+  "initial_qdrant_outage": true,
+  "qdrant_restarted_without_app_restart": true,
+  "initial_failure_preserved": true,
+  "last_citation_navigation": "page=5&view=FitH,633",
+  "pdf_viewport_visually_verified": false,
+  "scope": "limited_curriculum_dialogue_not_full_acceptance"
+}
