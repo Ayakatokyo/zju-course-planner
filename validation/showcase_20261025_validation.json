@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-25",
+  "business_commit": "7004122",
+  "prior_time_window_commits": [
+    "7671f5d",
+    "7004122"
+  ],
+  "new_business_code": false,
+  "app_restarted": false,
+  "dialogue_turns": 8,
+  "first_dialogue_turns": 5,
+  "second_dialogue_turns": 3,
+  "findings": [
+    "numeric contradiction in sourced curriculum answer",
+    "clarification did not inherit Friday preference",
+    "withdrawn unresolved constraints still block calculation"
+  ],
+  "successful_standard_flow": [
+    "generate three-course combinations",
+    "lock a course and require Friday free",
+    "compare current A and B"
+  ],
+  "screenshots": {
+    "count": 17,
+    "pixels": [
+      3840,
+      1746
+    ],
+    "lossless_originals": true
+  },
+  "video": {
+    "pixels": [
+      1920,
+      1080
+    ],
+    "fps": 30,
+    "seconds": 164.1,
+    "frames": 375,
+    "segmented": true,
+    "capture_interruption_after_frame": 139,
+    "resumed_as": "actual results review and repeated page queries",
+    "decode": "passed",
+    "browser_playback": "verified",
+    "login_recorded": false,
+    "pdf_viewer_internal_recorded": false
+  },
+  "qdrant": {
+    "chunks": 176915,
+    "cache": 43089,
+    "status": "green"
+  },
+  "previous_engineering_tests": {
+    "total": 1553,
+    "skipped": 11,
+    "rerun_this_turn": false
+  },
+  "publication": false,
+  "private_source_data_in_git": false
+}
