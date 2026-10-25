@@ -590,17 +590,15 @@ def _arguments(name, value, allowed_terms=None):
     return {**value, "query": query, "limit": limit}
 
 
-def _term_correction(value, seen, allowed_terms, declared_names):
-    """Allow one model correction of term encoding, never a scope/authority bypass.
+def _recovery_functions(value, seen):
+    """Validate the shared recovery envelope before inspecting any arguments.
 
-    Validate the whole proposed batch before returning safe feedback. Nothing in
-    a rejected batch is dispatched, retained as fact, or echoed to the model.
-    Other schema errors, PAGE tokens, unknown fields, and undeclared tools stay
-    fatal. The model must choose the replacement; we do not guess a term.
+    Return the whole batch or reject it; callers retain their distinct schema,
+    authority and sensitive-content checks. This never admits execution.
     """
     if not isinstance(value, dict) or not isinstance(value.get("tool_calls"), list):
         return None
-    calls, rejected, identifiers = value["tool_calls"], 0, set(seen)
+    calls, identifiers, functions = value["tool_calls"], set(seen), []
     if not 1 <= len(calls) <= 3:
         return None
     for call in calls:
@@ -611,8 +609,25 @@ def _term_correction(value, seen, allowed_terms, declared_names):
         identifiers.add(call["id"])
         function = call["function"]
         if (not isinstance(function, dict) or set(function) != {"name", "arguments"}
-                or function["name"] not in declared_names or not isinstance(function["arguments"], str)
-                or len(function["arguments"]) > 4000):
+                or not isinstance(function["name"], str)
+                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:-]{0,99}", function["name"])
+                or not isinstance(function["arguments"], str) or len(function["arguments"]) > 4000):
+            return None
+        functions.append(function)
+    return functions
+
+
+def _term_correction(value, seen, allowed_terms, declared_names):
+    """Identify a term-only encoding error; the model must choose its replacement.
+
+    Other errors are left to generic validation, never silently corrected here.
+    """
+    functions = _recovery_functions(value, seen)
+    if functions is None:
+        return None
+    rejected = 0
+    for function in functions:
+        if function["name"] not in declared_names:
             return None
         try:
             arguments = strict_json(function["arguments"])
@@ -634,15 +649,15 @@ def _term_correction(value, seen, allowed_terms, declared_names):
             rejected += 1
         except (ValueError, TypeError, KeyError):
             return None
-    return {"tool_name": "query_my_records", "count": len(calls)} if rejected else None
+    return {"tool_name": "query_my_records", "count": len(functions)} if rejected else None
 
 
 def _undeclared_tool_batch(value, seen, allowed_terms):
     """Admit a bounded safe rejection to final-only repair, never execution."""
     if not isinstance(value, dict) or value.get("role") != "assistant":
         return False
-    calls, identifiers = value.get("tool_calls"), set(seen)
-    if not isinstance(calls, list) or not 1 <= len(calls) <= 3:
+    functions = _recovery_functions(value, seen)
+    if functions is None:
         return False
 
     def safe_arguments(node, depth=0):
@@ -660,18 +675,7 @@ def _undeclared_tool_batch(value, seen, allowed_terms):
         elif isinstance(node, str):
             _guard(node)
 
-    for call in calls:
-        if (not isinstance(call, dict) or set(call) != {"id", "type", "function"}
-                or call.get("type") != "function" or not isinstance(call.get("id"), str)
-                or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", call["id"]) or call["id"] in identifiers):
-            return False
-        identifiers.add(call["id"])
-        function = call["function"]
-        if (not isinstance(function, dict) or set(function) != {"name", "arguments"}
-                or not isinstance(function["name"], str)
-                or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.:-]{0,99}", function["name"])
-                or not isinstance(function["arguments"], str) or len(function["arguments"]) > 4000):
-            return False
+    for function in functions:
         try:
             arguments = strict_json(function["arguments"])
         except (ValueError, TypeError, RecursionError):
@@ -723,11 +727,10 @@ def _schema_issue(value, schema):
 def _argument_correction(value, seen, allowed_terms, declared_tools):
     """One explicit retry of safe declared arguments; never repair authority."""
     schemas = {tool["function"]["name"]: tool["function"]["parameters"] for tool in declared_tools}
-    if not isinstance(value, dict) or not isinstance(value.get("tool_calls"), list):
+    functions = _recovery_functions(value, seen)
+    if functions is None:
         return None
-    calls, identifiers, issues = value["tool_calls"], set(seen), []
-    if not 1 <= len(calls) <= 3:
-        return None
+    issues = []
     forbidden = PRIVATE_KEYS | {"owner", "path", "filepath", "directory", "grant", "realm", "headers", "cursor",
         "session", "sessionid", "auth", "authcontext", "permissions", "accesstoken",
         "userid", "subjectid", "studentname", "studentnumber", "username", "fullname", "principalid", "accountid"}
@@ -752,16 +755,8 @@ def _argument_correction(value, seen, allowed_terms, declared_tools):
             _guard(node)
         return True
 
-    for call in calls:
-        if (not isinstance(call, dict) or set(call) != {"id", "type", "function"}
-                or call.get("type") != "function" or not isinstance(call.get("id"), str)
-                or not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", call["id"]) or call["id"] in identifiers):
-            return None
-        identifiers.add(call["id"])
-        function = call["function"]
-        if (not isinstance(function, dict) or set(function) != {"name", "arguments"}
-                or not isinstance(function["name"], str) or function["name"] not in schemas
-                or not isinstance(function["arguments"], str) or len(function["arguments"]) > 4000):
+    for function in functions:
+        if function["name"] not in schemas:
             return None
         try:
             arguments = strict_json(function["arguments"])
@@ -783,7 +778,7 @@ def _argument_correction(value, seen, allowed_terms, declared_tools):
                 raise
             issues.append({"tool_name": function["name"],
                 "failure_detail": _schema_issue(arguments, schemas[function["name"]]) or "argument_value_invalid"})
-    return {"count": len(calls), "issues": issues, "schemas": {row["tool_name"]: schemas[row["tool_name"]] for row in issues}} if issues else None
+    return {"count": len(functions), "issues": issues, "schemas": {row["tool_name"]: schemas[row["tool_name"]] for row in issues}} if issues else None
 
 
 def _timetable_source_stop(results, proofs):

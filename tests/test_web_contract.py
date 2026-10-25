@@ -350,10 +350,8 @@ const markup=evaluate("agentToolCard({name:'recommend_my_courses',result})");
 assert.match(markup,/3 学分/);assert.match(markup,/相对基准换入 AI 课程/);assert.match(markup,/周五有 1 个上课时段/);assert.match(markup,/秋 · 1、2周 · 周五 · 1、2节/);
 assert.match(markup,/badge warning">待确认/);assert.match(markup,/待确认 学分/);assert.match(markup,/保存这套/);assert.match(markup,/data-action="save-agent-option" data-option-id="option-A" >/);for(const format of ['json','csv','ics'])assert.match(markup,new RegExp('data-action="export-agent-option" data-option-id="option-A" data-format="'+format+'"'));assert.doesNotMatch(markup,/<img/);assert.match(markup,/&lt;img/);
 assert.equal(evaluate("planName({label:'U1'})"),'待确认方案 U1');
-assert.match(evaluate("agentMetricRows({contribution_state:'unknown',goal_contribution:0})"),/目标预计贡献（学分）<\\/dt><dd>待确认/);
 assert.match(evaluate("agentRecommendationScope({search:{course_pool_size:4,limit_reached:true,candidate_retention_clipped:true}})"),/搜索尚未穷尽/);
 
-assert.equal(evaluate("agentEvidenceTexts([{snapshot_id:'DEMO-E'},{snapshot_id:'DEMO-E'}]).length"),1);
 """)
 
     def test_old_runs_and_changed_workspace_disable_reference_actions_but_comparison_keeps_current(self):
@@ -536,7 +534,7 @@ for(const malformed of [{conversation_id:'wrong-conv'},{turn_id:'2'},{turn_id:-1
     def test_failed_history_switch_keeps_current_conversation_draft_and_reading_state(self):
         self.run_js(r"""
 for(const failure of ['network','service','401']){
- evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentConversationId='CURRENT';state.agentTurnId=2;state.agentTurns=[{request_id:'CURRENT-REQUEST',status:'completed',message:'当前问题',reply:'当前答案'}];state.agentDraft='尚未发送的追问';state.agentRetry={request_id:'RETRY-CURRENT'};state.agentProcessOpen={'CURRENT-REQUEST':true};state.agentEvidenceOpen={'CURRENT-REQUEST':true};state.agentReasoningScroll={'CURRENT-REQUEST':{top:80,nearBottom:false}};renderAssistant()");
+ evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentConversationId='CURRENT';state.agentTurnId=2;state.agentTurns=[{request_id:'CURRENT-REQUEST',status:'completed',message:'当前问题',reply:'当前答案'}];state.agentDraft='尚未发送的追问';state.agentRetry={request_id:'RETRY-CURRENT'};renderAssistant()");
  const scroll=element('#agent-dialogue-scroll');scroll.scrollHeight=1600;scroll.clientHeight=400;scroll.scrollTop=300;evaluate('captureAgentScroll()');
  let release;const paths=[];context.fetch=path=>{paths.push(path);return new Promise((resolve,reject)=>{release=failure==='network'?()=>reject(Error('offline')):()=>resolve({ok:false,status:failure==='401'?401:503,text:async()=>JSON.stringify({error:'暂未载入历史'})});});};
  const beforeEpoch=evaluate('state.agentEpoch'),pending=evaluate("loadAgentConversation('REQUESTED')");
@@ -545,7 +543,7 @@ for(const failure of ['network','service','401']){
  if(failure==='401'){
   assert.equal(evaluate('state.auth.authenticated'),false);assert.equal(evaluate('state.agentConversationId'),null);assert.equal(evaluate('state.agentDraft'),'');assert.doesNotMatch(element('#panel-assistant').innerHTML,/当前答案/);continue;
  }
- assert.equal(evaluate('state.agentEpoch'),beforeEpoch);assert.equal(evaluate('state.agentHistoryLoadBusy'),false);assert.equal(evaluate('state.agentConversationId'),'CURRENT');assert.equal(evaluate('state.agentTurnId'),2);assert.equal(evaluate('state.agentTurns[0].reply'),'当前答案');assert.equal(evaluate('state.agentDraft'),'尚未发送的追问');assert.equal(evaluate('state.agentRetry.request_id'),'RETRY-CURRENT');assert.equal(evaluate("state.agentProcessOpen['CURRENT-REQUEST']"),true);assert.equal(evaluate("state.agentEvidenceOpen['CURRENT-REQUEST']"),true);assert.equal(evaluate("state.agentReasoningScroll['CURRENT-REQUEST'].top"),80);assert.equal(scroll.scrollTop,300);assert.equal(evaluate('agentCanSend()'),true);assert.match(element('#global-status').textContent,/无法连接本机服务|暂未载入历史/);
+ assert.equal(evaluate('state.agentEpoch'),beforeEpoch);assert.equal(evaluate('state.agentHistoryLoadBusy'),false);assert.equal(evaluate('state.agentConversationId'),'CURRENT');assert.equal(evaluate('state.agentTurnId'),2);assert.equal(evaluate('state.agentTurns[0].reply'),'当前答案');assert.equal(evaluate('state.agentDraft'),'尚未发送的追问');assert.equal(evaluate('state.agentRetry.request_id'),'RETRY-CURRENT');assert.equal(scroll.scrollTop,300);assert.equal(evaluate('agentCanSend()'),true);assert.match(element('#global-status').textContent,/无法连接本机服务|暂未载入历史/);
 }
 """)
 

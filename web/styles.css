@@ -228,31 +228,7 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .agent-message.system { padding: 12px 16px; border-radius: var(--radius); background: var(--warning-bg); color: var(--warning); }
 .agent-message small { display: block; margin-top: 8px; }
 .agent-pending { margin: 18px 0; color: var(--muted); }
-.agent-process { margin: 0 0 18px; padding: 10px 0; }
-.agent-answer + .agent-process { margin: 0; padding-top: 4px; }
-.agent-process > summary { min-height: 32px; font-size: 0.8125rem; color: var(--muted); }
-.agent-process-body { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; margin-top: 12px; padding: 16px; background: var(--canvas); border-radius: var(--control-radius); }
-.agent-process-body.without-reasoning { grid-template-columns: minmax(0,1fr); }
-.agent-process-body > p { grid-column: 1 / -1; margin: 0; }
-.agent-process-description { font-size: 0.875rem; }
-.agent-process-execution, .agent-process-provider { min-width: 0; padding-top: 10px; border-top: 1px solid var(--line); }
-.agent-process-execution > summary, .agent-process-provider > summary { min-height: 32px; font-size: 0.8125rem; color: var(--muted); }
-.agent-process-body h4 { margin: 0 0 8px; font-size: 0.8125rem; font-weight: 600; }
-.agent-process-trace { max-height: 180px; overflow: auto; overscroll-behavior: contain; margin: 0; padding: 0 8px 0 0; list-style: none; }
-.agent-process-trace .agent-run-event { margin-top: 8px; padding: 8px 0 0; font-size: 0.8125rem; }
-.agent-process-trace .agent-run-event:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .agent-run-event code { font-size: 0.75rem; overflow-wrap: anywhere; }
-.agent-process-trace .agent-run-event p { margin: 3px 0 0; }
-.agent-process-reasoning { max-height: 180px; overflow: auto; overscroll-behavior: contain; padding-right: 8px; }
-.agent-process-reasoning > strong { font-size: 0.875rem; }
-.agent-process-reasoning h4 { margin: 12px 0 4px; color: var(--muted); font-size: 0.8125rem; font-weight: 550; }
-.agent-process-reasoning section:first-child h4 { margin-top: 0; }
-.agent-process-reasoning section > p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.875rem; }
-.agent-process-provider > .field-help { margin-top: 8px; }
-@media (max-width: 700px) {
-  .agent-process-body { grid-template-columns: minmax(0,1fr); gap: 10px; }
-  .agent-process-trace, .agent-process-reasoning { max-height: 128px; }
-}
 .agent-empty { color: var(--muted); }
 .agent-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px 12px 28px; text-align: center; }
 .agent-welcome h1 { font-size: 2rem; letter-spacing: -0.025em; font-weight: 600; }
@@ -301,9 +277,6 @@ main:has(> #panel-assistant:not([hidden])) { display: flex; flex-direction: colu
 .agent-plan-analysis { margin: 24px 0 20px; }
 .agent-plan-analysis h3 { margin-bottom: 12px; font-size: 1rem; }
 .agent-plan-analysis p { margin: 10px 0; font-size: 0.9375rem; line-height: 1.8; }
-.agent-secondary-detail { margin: 8px 0; color: var(--muted); font-size: 0.8125rem; }
-.agent-secondary-detail > summary { min-height: 32px; padding: 4px 0; }
-.agent-secondary-detail > p { margin: 8px 0; }
 details > summary:hover { color: var(--primary); }
 @media (max-width: 700px) { .personal-plan-options { grid-template-columns: minmax(0,1fr); } }
 .agent-tool-card { min-width: 0; margin-top: 20px; }
@@ -366,16 +339,6 @@ details > p, details > .table-wrap { margin-top: 14px; }
 .agent-citations ul { list-style: none; padding: 0; margin: 14px 0 0; }
 .agent-citation { padding: 14px 0; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
 .agent-citation > p { margin-top: 10px; }
-.agent-evidence { margin-top: 20px; }
-.agent-evidence > summary { min-height: 32px; color: var(--muted); font-size: 0.8125rem; }
-.agent-evidence-body { margin-top: 12px; }
-.agent-evidence-section { padding: 14px 0; border-top: 1px solid var(--line); }
-.agent-evidence-section > summary { min-height: 32px; font-size: 0.875rem; }
-.agent-evidence-section[open] > summary { margin-bottom: 10px; }
-.agent-evidence-section > h4 { margin: 0 0 10px; font-size: 0.875rem; }
-.agent-evidence-section > h4:not(:first-child) { margin-top: 18px; }
-.agent-evidence-section > p { margin: 8px 0; }
-.agent-evidence-citations { margin: 0; padding: 0; list-style: none; }
 .personal-evidence-context { margin-top: 12px; }
 .personal-evidence-context h5 { margin: 0 0 6px; font-size: 0.8125rem; }
 pre { max-width: 100%; overflow: auto; padding: 14px; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -585,7 +548,7 @@ main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
   .school-agent-intro h1 { font-size: 1.5rem; }
 }
 
-/* Put cited grade rows in the answer, keeping source metadata in one disclosure. */
+/* Put cited grade rows in the answer without repeating the model table. */
 .agent-grade-answer{margin:20px 0 24px}
 .agent-grade-answer h4{font-size:1rem;margin:0 0 6px}
 .agent-grade-answer .personal-record-table{min-width:0;width:100%;margin-top:10px;table-layout:fixed}
@@ -593,7 +556,6 @@ main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
 .agent-grade-answer .personal-record-table td{overflow-wrap:anywhere;vertical-align:top}
 .agent-grade-answer .personal-record-table th,.agent-grade-answer .personal-record-table td{padding:10px 8px}
 .agent-grade-answer .personal-record-table small{font-size:.75rem}
-.agent-original-answer{white-space:pre-wrap}
 .personal-computation-details p,.personal-computation-details li{line-height:1.7}
 @media(max-width:600px){.agent-grade-answer .personal-record-table{font-size:.8rem}.agent-grade-answer .personal-record-table th:first-child{width:43%}.agent-grade-answer .personal-record-table th,.agent-grade-answer .personal-record-table td{padding:9px 5px}}
 

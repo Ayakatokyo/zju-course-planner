@@ -263,6 +263,32 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertEqual(result["validation_diagnostics"][0]["count"], 2)
         self.assertEqual(self.executed, [("get_my_context", {})])
 
+    def test_recovery_rejects_malformed_tail_after_an_early_recoverable_error(self):
+        # The first error stops normal parsing; recovery must still validate
+        # the entire batch, including IDs/structure of later calls.
+        proposals = [call("query_my_records", {"operation": "major_academic", "target_term": "全部"}),
+            call("search_my_curriculum", {"query": []}), call("unavailable_helper")]
+        for proposal in proposals:
+            for malformed in ("duplicate_id", "function_shape"):
+                with self.subTest(tool=proposal["tool_calls"][0]["function"]["name"], tail=malformed):
+                    self.executed.clear()
+                    batch = deepcopy(proposal)
+                    tail = call("get_my_context", identifier="tail")["tool_calls"][0]
+                    if malformed == "duplicate_id":
+                        tail["id"] = batch["tool_calls"][0]["id"]
+                    else:
+                        tail["function"] = {"UNTRUSTED-FIELD": "UNTRUSTED-VALUE"}
+                    batch["tool_calls"].append(tail)
+                    original = deepcopy(batch)
+                    result, history, model = self.run_model([batch])
+                    self.assertEqual(result["status"], "failed")
+                    self.assertEqual((result["argument_corrections"], result["repair_attempts"]), (0, 0))
+                    self.assertEqual(self.executed, [("get_my_context", {})])
+                    self.assertEqual(len(model.calls), 1)
+                    self.assertEqual(history, [])
+                    self.assertEqual(batch, original)
+                    self.assertNotIn("UNTRUSTED", json.dumps(result["validation_diagnostics"]))
+
     def test_generic_and_term_corrections_share_one_retry_and_original_budgets(self):
         bad = call("query_my_records", {"operation": "major_academic", "limit": 16}, "invalid")
         term = call("query_my_records", {"operation": "major_academic", "target_term": "全部"}, "bad-term")

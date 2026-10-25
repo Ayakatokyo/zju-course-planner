@@ -48,12 +48,12 @@ assert.doesNotMatch(html,/PLN-SYNTHETIC|CLS-SYNTHETIC|SYNTHETIC-DATA-v1|save-age
 evaluate("state.agentDraft='锁定 A 中的合成体育';renderAssistant()");assert.equal(evaluate('agentCanSend()'),true);assert.doesNotMatch(element('#panel-assistant').innerHTML.match(/<textarea[^>]*>/)[0],/disabled/);
 """)
 
-    def test_saved_computation_detail_retains_tradeoffs_inside_evidence(self):
+    def test_saved_computation_projection_retains_tradeoffs(self):
         self.run_js(r"""
 context.summary={origin:'owned_last_computation',credit_target:{minimum:'6',maximum:null},options:[{label:'A',total_credits:'7',excess_above_minimum:'1',soft_meeting_count:0,friday_meeting_count:0,locked_class_count:1}],ranking:{version:'current-term-observed-ranking/1',criteria:['observed_slot_result','soft_meeting_count','known_credits','excess_above_minimum','course_count','stable_observation_order']},exact_target:{status:'unknown'},scope:{input_course_count:3,returned_search_count:3,omitted_count:0,complete_within_input_scope:true}};
 context.plan={...context.plan,action:'inspect',computation_summary:context.summary};
-const html=evaluate("renderPersonalEvidence({tool_results:[{name:'get_current_term_plan',result:{result:plan}}]},'SYNTHETIC')");
-assert.match(html,/已保存的计算记录/);assert.match(html,/上限 未设置/);assert.match(html,/软空闲时段占用 0 段/);assert.match(html,/学分更接近目标/);assert.match(html,/其他组合未记录/);assert.match(html,/输入池 3 门/);assert.match(html,/本次未重新读取/);assert.ok(html.indexOf('已保存的计算记录')>html.indexOf('<summary>查看依据'));
+const html=evaluate("personalCoursePlanEvidence(plan)");
+assert.match(html,/已保存的计算记录/);assert.match(html,/上限 未设置/);assert.match(html,/软空闲时段占用 0 段/);assert.match(html,/学分更接近目标/);assert.match(html,/其他组合未记录/);assert.match(html,/输入池 3 门/);assert.match(html,/本次未重新读取/);
 """)
 
     def test_headline_uses_actual_credits_and_occupancy_without_promoting_unknowns(self):
@@ -166,7 +166,7 @@ for(const mutation of ["plan.courses[0].observed_code_links[0].verification_stat
     def test_selection_inspection_never_replays_old_course_facts_or_refs(self):
         self.run_js(r"""
 evaluate("plan.action='inspect';plan.options=[];plan.selection_hint={plan_ref:plan.plan_ref,revision:0,options:[{label:'A',classes:[{class_ref:'CLS-PRIVATE-OLD',course_name:'PRIVATE-OLD-COURSE',course_code:'PRIVATE-OLD-CODE',locked:true}]}],selection_only:true,fresh_sources_required:true}");
-const evidence=evaluate("renderPersonalEvidence({tool_results:[{name:'get_current_term_plan',result:{status:'available',evidence_id:'T-2',result:plan}}],citations:[{kind:'course_data_plan',evidence_id:'T-2',citation_number:2,course_data_plan:plan}]},'REQUEST-SYN')");
+const evidence=evaluate("agentCitation({kind:'course_data_plan',evidence_id:'T-2',citation_number:2,course_data_plan:plan})");
 assert.match(evidence,/\[2\] 课程数据测试依据/);assert.match(evidence,/已定位上一轮方案的选择信息/);assert.match(evidence,/仍需本轮资料核查/);assert.doesNotMatch(evidence,/PRIVATE-|PLN-|CLS-|本轮可用|方案 A/);assert.equal(evaluate('renderPersonalCoursePlans(plan)'),'');
 """)
 

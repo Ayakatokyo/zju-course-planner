@@ -75,21 +75,6 @@ context.turn.reply='| 方案 | 学分 |\n|---|---|\n| A | 6 |';assert.match(eval
 context.turn.message='解释成绩';assert.equal(evaluate('personalGradeAnswer(turn)'),null);
 """)
 
-    def test_enabled_thinking_without_text_is_distinct_from_normal_mode(self):
-        self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
-const html=evaluate("renderAgentProcess({run_id:'SYNTHETIC-RUN',status:'completed',progress:{status:'completed',confirmed:true,thinking:true,events:[]}})");
-assert.match(html,/已开启深度思考，但本轮未收到/);assert.match(html,/class="agent-process-provider"/);assert.doesNotMatch(html,/普通模式/);
-""")
-
-    def test_folded_process_keeps_a_read_only_retry_when_history_load_failed(self):
-        self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
-const html=evaluate("renderAgentProcess({run_id:'RUN-FAILED-LOAD',status:'completed',progress_error:'本轮运行过程暂未载入',progress:{status:'completed',confirmed:true,thinking:false,events:[]}})");
-assert.match(html,/data-action="agent-process-load" data-run-id="RUN-FAILED-LOAD">重新读取处理记录/);
-assert.doesNotMatch(html,/agent-run-details|agent-process-provider/);
-""")
-
     def test_provider_402_remains_actionable_after_history_load_without_claiming_data_queries(self):
         self.run_js(r"""
 let requests=0;context.fetch=async()=>{requests++;throw Error('render cannot retry');};
@@ -129,7 +114,7 @@ evaluate("startAgentProgress(state.agentTurns[0],'REQUEST-B')");seed('PERSONAL-C
 
     def test_history_load_is_lazy_and_scrolling_tracks_progress_revisions(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentTurns=[{run_id:'HISTORY-RUN',status:'completed',message:'旧问题',reply:'旧回答',tool_results:[],citations:[]}];renderAssistant()");assert.match(element('#panel-assistant').innerHTML,/旧回答/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/处理过程|agent-process-load|运行记录/);context.fetch=async(path,options)=>{assert.equal(path,'/api/chat/run');assert.deepEqual(JSON.parse(options.body),{run_id:'HISTORY-RUN'});return {ok:true,json:async()=>({run:{run_id:'HISTORY-RUN',status:'completed',thinking:false},events:[]})};};await evaluate("loadAgentProcess('HISTORY-RUN')");assert.match(element('#panel-assistant').innerHTML,/旧回答/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/本轮普通模式|处理过程|运行记录/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/class="agent-process-provider"/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentTurns=[{run_id:'HISTORY-RUN',status:'completed',message:'旧问题',reply:'旧回答',tool_results:[],citations:[]}];renderAssistant()");assert.match(element('#panel-assistant').innerHTML,/旧回答/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/处理过程|agent-process-load|运行记录/);context.fetch=async(path,options)=>{assert.equal(path,'/api/chat/run');assert.deepEqual(JSON.parse(options.body),{run_id:'HISTORY-RUN'});return {ok:true,json:async()=>({run:{run_id:'HISTORY-RUN',status:'completed',thinking:false},events:[]})};};await evaluate("hydrateAgentProcess(state.agentTurns[0])");assert.match(element('#panel-assistant').innerHTML,/旧回答/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/本轮普通模式|处理过程|运行记录/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/class="agent-process-provider"/);
 const scroll=element('#agent-dialogue-scroll');let top=0;scroll.scrollHeight=2000;scroll.clientHeight=400;Object.defineProperty(scroll,'scrollTop',{get:()=>top,set:value=>{top=Math.max(0,Math.min(value,scroll.scrollHeight-scroll.clientHeight));}});evaluate("state.agentScroll={initialized:false,forceLatest:true,nearBottom:true,version:''};state.agentTurns=[{pending:true,progress:{status:'running',thinking:true,confirmed:true,events:[],next_sequence:1,active_reasoning:{call:1,text:'片段'}}}];renderAssistant()");assert.equal(top,1600);scroll.scrollTop=300;scroll.listeners.scroll();const before=evaluate('agentScrollVersion()');evaluate("state.agentTurns[0].progress.next_sequence=2;state.agentTurns[0].progress.active_reasoning.text='新的实际片段'");scroll.scrollHeight=2300;evaluate('renderAssistant()');assert.equal(top,300);assert.notEqual(evaluate('agentScrollVersion()'),before);assert.equal(evaluate('state.agentScroll.newMessages'),true);assert.doesNotMatch(element('#panel-assistant').innerHTML,/agent-personal-consent|personal-operation|personal-observation/);
 """)
 
@@ -145,11 +130,6 @@ const unknown=evaluate("agentToolCard({name:'query_my_records',result:{operation
 assert.match(evaluate("agentProcessStage({status:'running',thinking:true,events:[{kind:'tool.start',tool_name:'read_my_major_academic'}]})"),/正在读取主修成绩/);assert.match(evaluate("agentRunEventMarkup({kind:'tool.end',tool_name:'read_my_curriculum'})"),/读取培养资料/);
 """)
 
-    def test_streamed_reasoning_scroll_follows_latest_but_preserves_reader_position(self):
-        self.run_js(r"""
-const reasoning=element('#reasoning-fixture');reasoning.dataset={reasoningKey:'REQUEST-A'};reasoning.clientHeight=120;reasoning.scrollHeight=800;let top=0;Object.defineProperty(reasoning,'scrollTop',{get:()=>top,set:value=>{top=Math.max(0,Math.min(value,reasoning.scrollHeight-reasoning.clientHeight));}});context.document.querySelectorAll=selector=>selector==='.agent-process-reasoning'?[reasoning]:[];
-evaluate('restoreAgentReasoningScroll()');assert.equal(top,680);reasoning.scrollTop=120;reasoning.listeners.scroll();reasoning.scrollHeight=1200;evaluate('restoreAgentReasoningScroll()');assert.equal(top,120);reasoning.scrollTop=1080;reasoning.listeners.scroll();reasoning.scrollHeight=1500;evaluate('restoreAgentReasoningScroll()');assert.equal(top,1380);evaluate('clearAgentConversation()');assert.equal(evaluate('Object.keys(state.agentReasoningScroll).length'),0);
-""")
 
     def test_full_request_trace_preserves_source_preparation_and_controlled_failure_details(self):
         self.run_js(r"""
@@ -171,8 +151,8 @@ const events=[
 context.detail={run:{run_id:'RUN-12345678abcdef',request_id:'12345678-abcd-1234-abcd-123456789012',status:'failed',model:'provider-real',thinking:true,duration_ms:12600},events};
 evaluate("state.agentRunDetails[detail.run.run_id]=detail;state.agentTurns=[{request_id:detail.run.request_id,run_id:detail.run.run_id,status:'failed',message:'查看成绩',reply:'答复尚未完成',tool_results:[],citations:[]}];renderAssistant()");
 const page=element('#panel-assistant').innerHTML;assert.match(page,/答复尚未完成/);assert.doesNotMatch(page,/处理过程|实际处理记录|第一段实际返回|运行记录/);
-const html=evaluate('renderAgentProcess(state.agentTurns[0])');
-assert.match(html,/服务读取来源/);assert.match(html,/read_my_major_academic/);assert.match(html,/已读取 60 \/ 来源报告 104 条/);assert.match(html,/还有未读取内容/);assert.match(html,/匹配 60 条/);assert.match(html,/返回 15 条/);assert.match(html,/本轮已开启深度思考/);assert.match(html,/第 2 次模型调用/);assert.match(html,/修正答复格式与引用/);assert.match(html,/结论条数超出允许范围/);assert.match(html,/9 条结论/);assert.match(html,/invalid_final_answer/);assert.match(html,/运行 12345678 · 请求 12345678 · 12.6 秒/);assert.match(html,/实际处理记录/);assert.match(html,/供应商可见推理 · 2 段/);assert.match(html,/第一段实际返回/);assert.match(html,/第二段实际返回/);assert.doesNotMatch(html,/PRIVATE-QUERY|PRIVATE-FILE|内部思维已展示|运行Python脚本/);
+const html=evaluate('agentDiagnosticMarkup({...detail.run,events:detail.events})');
+assert.match(html,/服务读取来源/);assert.match(html,/read_my_major_academic/);assert.match(html,/已读取 60 \/ 来源报告 104 条/);assert.match(html,/还有未读取内容/);assert.match(html,/匹配 60 条/);assert.match(html,/返回 15 条/);assert.match(html,/第 2 次模型调用/);assert.match(html,/修正答复格式与引用/);assert.match(html,/结论条数超出允许范围/);assert.match(html,/9 条结论/);assert.match(html,/invalid_final_answer/);assert.doesNotMatch(html,/PRIVATE-QUERY|PRIVATE-FILE|内部思维已展示|运行Python脚本/);
 assert.equal(evaluate('state.agentRunDetails[detail.run.run_id].events.length'),13);
 // The HTTP service returns flat fields. Also accept the durable store envelope
 // without confusing it with proof that this is the actual HTTP response shape.
@@ -204,16 +184,9 @@ anchorY+=200;answerY+=200;scroll.scrollHeight+=200;evaluate("state.agentTurns[0]
 evaluate("state.agentScroll={initialized:false,forceLatest:true,nearBottom:true,version:''};restoreAgentScroll()");assert.equal(top,1892);
 """)
 
-    def test_execution_trace_scroll_preserves_manual_reading_across_progress_renders(self):
-        self.run_js(r"""
-const trace=element('#trace-fixture');trace.dataset={traceKey:'REQUEST-A'};trace.clientHeight=128;trace.scrollHeight=800;let top=0;Object.defineProperty(trace,'scrollTop',{get:()=>top,set:value=>{top=Math.max(0,Math.min(value,trace.scrollHeight-trace.clientHeight));}});context.document.querySelectorAll=selector=>selector==='.agent-process-trace'?[trace]:[];
-evaluate('restoreAgentReasoningScroll()');assert.equal(top,672);trace.scrollTop=100;trace.listeners.scroll();trace.scrollHeight=1000;evaluate('captureAgentReasoningScroll();restoreAgentReasoningScroll()');assert.equal(top,100);evaluate('clearAgentConversation()');assert.equal(evaluate('Object.keys(state.agentTraceScroll).length'),0);
-""")
 
     def test_processing_descriptions_distinguish_returned_failed_and_unready_calls(self):
         self.run_js(r"""
-const description=evaluate("agentProcessDescription({status:'running',events:[{kind:'tool.end',tool_name:'get_my_context',status:'completed'},{kind:'tool.end',tool_name:'query_my_records',status:'failed'},{kind:'tool.end',tool_name:'search_my_curriculum',status:'not_ready'},{kind:'model.end',status:'timeout'}]})");
-assert.match(description,/收到 3 次本机工具返回/);assert.match(description,/1 次资料未就绪/);assert.match(description,/1 次未完成/);assert.match(description,/模型调用已结束 1 次（1 次未完成）/);assert.doesNotMatch(description,/已完成 3 次/);
 assert.match(evaluate("agentProcessStage({status:'running',thinking:true,events:[{kind:'model.end',status:'completed'}]})"),/模型已返回/);
 assert.doesNotMatch(evaluate("agentProcessStage({status:'running',thinking:true,events:[{kind:'model.end',status:'completed'}]})"),/正在深度思考/);
 assert.match(evaluate("agentProcessStage({status:'running',thinking:true,events:[{kind:'model.end',status:'timeout'}]})"),/模型服务返回超时/);
@@ -226,8 +199,7 @@ assert.deepEqual(Array.from(evaluate("['not_ready','accepted','rejected','skippe
         self.run_js(r"""
 const courseTools=['search_current_term_courses','generate_current_term_plan','update_current_term_plan','get_current_term_plan'];
 context.mixedEvents=[{kind:'tool.end',tool_name:'read_my_curriculum',status:'completed',captured_rows:9},{kind:'tool.end',tool_name:'get_my_context',status:'completed'},{kind:'tool.end',tool_name:'query_my_records',status:'not_ready'},...courseTools.map(tool_name=>({kind:'tool.end',tool_name,status:'not_ready',reason:'PRIVATE-UNKNOWN-REASON'})),{kind:'tool.end',tool_name:'future_unknown_tool',status:'not_ready',reason:'PRIVATE-UNKNOWN-REASON'},{kind:'model.end',status:'completed'},{kind:'model.end',status:'failed'}];
-const before=JSON.stringify(context.mixedEvents),description=evaluate("agentProcessDescription({status:'running',events:mixedEvents})");
-assert.match(description,/收到 7 次本机工具返回/);assert.match(description,/2 次资料未就绪/);assert.match(description,/4 次课程条件测试受阻/);assert.match(description,/模型调用已结束 2 次（1 次未完成）/);assert.match(description,/读取培养资料已返回，已读取 9 条/);assert.doesNotMatch(description,/6 次资料未就绪|无解|方案已生成|PRIVATE-UNKNOWN/);
+const before=JSON.stringify(context.mixedEvents);
 for(const tool of courseTools){
  context.courseEvent={kind:'tool.end',tool_name:tool,status:'not_ready',reason:'PRIVATE-UNKNOWN-REASON'};
  assert.match(evaluate("agentProcessStage({status:'running',events:[courseEvent]})"),/课程条件测试受阻，待核对/);
@@ -237,7 +209,6 @@ for(const tool of ['query_my_records','search_my_curriculum','prepare_recommenda
  context.sourceEvent={kind:'tool.end',tool_name:tool,status:'not_ready'};assert.match(evaluate('agentRunEventMarkup(sourceEvent)'),/资料未就绪/);assert.doesNotMatch(evaluate('agentRunEventMarkup(sourceEvent)'),/课程条件测试受阻/);
 }
 assert.match(evaluate("agentProcessStage({status:'running',events:[{kind:'tool.end',tool_name:'query_my_records',status:'not_ready'}]})"),/资料尚未就绪/);
-context.onlyCourses=context.mixedEvents.filter(event=>courseTools.includes(event.tool_name));const only=evaluate("agentProcessDescription({status:'running',events:onlyCourses})");assert.match(only,/收到 4 次本机工具返回（4 次课程条件测试受阻）/);assert.doesNotMatch(only,/资料未就绪/);
 evaluate("state.agentRunDetails['RUN-SYN']={run:{run_id:'RUN-SYN',status:'completed'},events:mixedEvents}");
 for(const html of [evaluate("agentDiagnosticMarkup({status:'completed',events:mixedEvents})")]){assert.equal((html.match(/课程条件测试受阻，待核对/g)||[]).length,4);assert.equal((html.match(/资料未就绪/g)||[]).length,2);assert.match(html,/受限资料工具/);assert.doesNotMatch(html,/PRIVATE-UNKNOWN|无解|方案已生成/);}
 assert.equal(JSON.stringify(context.mixedEvents),before);
@@ -250,27 +221,11 @@ const markup=evaluate('agentRunEventMarkup(rejection)');
 assert.match(markup,/本人教务记录 · 工具参数检查/);assert.match(markup,/参数未通过检查，未执行；正在修正/);assert.doesNotMatch(markup,/开始调用|调用返回|PRIVATE-QUERY|运行Python|脚本执行/);
 assert.match(evaluate("agentProcessStage({status:'running',events:[rejection]})"),/参数检查未通过，正在修正/);
 const failed=evaluate("agentRunEventMarkup({...rejection,status:'failed',attempt:2})");assert.match(failed,/参数未通过检查，未执行；本轮未完成/);assert.doesNotMatch(failed,/正在修正/);
-const description=evaluate("agentProcessDescription({status:'running',events:[{kind:'tool.end',tool_name:'get_my_context',status:'completed'},rejection]})");assert.match(description,/收到 1 次本机工具返回/);assert.doesNotMatch(description,/收到 2 次/);
 evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentTurns=[{pending:true,request_id:'REQUEST-A',progress:{status:'running',confirmed:true,events:[rejection]}}];renderAssistant()");
 const process=element('#panel-assistant').innerHTML;assert.match(process,/工具参数检查未通过，正在修正/);assert.match(process,/role="status"/);assert.doesNotMatch(process,/实际处理记录|实际调用记录|PRIVATE-QUERY|处理过程|运行记录/);
 const stored=evaluate("agentRunEventMarkup({kind:'tool.rejected',fields:{tool_name:'query_my_records',error_code:'invalid_tool_arguments',failure_detail:'argument_schema_mismatch',status:'retrying'}})");assert.match(stored,/工具参数检查/);assert.match(stored,/未执行；正在修正/);
 """)
 
-    def test_process_defaults_close_on_completion_and_preserve_only_manual_choices(self):
-        self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentTurns=[{pending:true,request_id:'REQUEST-A',run_id:'RUN-A',progress:{status:'running',confirmed:true,thinking:true,events:[]}}]");
-const opening=()=>evaluate('renderAgentProcess(state.agentTurns[0])').split('>')[0];
-assert.match(opening(),/\sopen\s*$/);assert.equal(evaluate('Object.keys(state.agentProcessOpen).length'),0);
-evaluate("state.agentTurns[0].pending=false;state.agentTurns[0].status='completed';state.agentTurns[0].progress.status='completed'");assert.doesNotMatch(opening(),/\sopen\s*$/);
-// A summary activation is the manual choice. Rendering's native toggle event
-// must not accidentally preserve the initial running default as an override.
-const summary={dataset:{},listeners:{},addEventListener(type,callback){this.listeners[type]=callback;}},details={open:false,querySelector:()=>summary};context.fixtureDetails=details;
-evaluate("bindAgentDisclosureChoice(fixtureDetails,state.agentProcessOpen,'REQUEST-A')");assert.equal(summary.listeners.toggle,undefined);summary.listeners.click();assert.match(opening(),/\sopen\s*$/);
-details.open=true;summary.listeners.click();assert.doesNotMatch(opening(),/\sopen\s*$/);
-evaluate("state.agentTurns[0].pending=true;state.agentTurns[0].progress.status='running'");assert.doesNotMatch(opening(),/\sopen\s*$/);
-details.open=false;summary.listeners.click();evaluate("state.agentTurns[0].pending=false;state.agentTurns[0].progress.status='completed'");assert.match(opening(),/\sopen\s*$/);
-evaluate('clearAgentConversation()');assert.equal(evaluate('Object.keys(state.agentProcessOpen).length'),0);
-""")
 
     def test_personal_clarification_waits_for_input_without_blocking_the_composer(self):
         self.run_js(r"""
@@ -289,7 +244,6 @@ assert.doesNotMatch(evaluate("agentProcessStage({status:'running',events:[{kind:
 
     def test_terminal_turn_overrides_stale_running_progress_when_final_details_fail(self):
         self.run_js(r"""
-for(const choice of ['untouched','open','closed']){
  evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.agentStatus={configured:true,available:true,remote:true,thinking:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentDraft='查课表'");
  let requestId,release;context.fetch=(path,options)=>{
   if(path==='/api/chat/turn'){requestId=JSON.parse(options.body).request_id;return new Promise(resolve=>{release=resolve;});}
@@ -300,16 +254,13 @@ for(const choice of ['untouched','open','closed']){
  };
  const pending=evaluate('sendAgentTurn()');for(let index=0;index<20;index++)await Promise.resolve();
  assert.match(element('#panel-assistant').innerHTML,/role="status"/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/agent-process/);
- if(choice!=='untouched'){context.manualOpen=choice==='open';evaluate('state.agentProcessOpen[state.agentTurns[0].request_id]=manualOpen');}
  release({ok:true,json:async()=>({conversation_id:'CHAT-A',turn_id:1,run_id:'RUN-A',status:'completed',task_status:'awaiting_user',reply_origin:'personal_model_clarification',reply:'需要哪个学年？',tool_results:[],citations:[],data_kind:'personal_source'})});await pending;
  let html=element('#panel-assistant').innerHTML;
  assert.match(html,/需要哪个学年/);assert.doesNotMatch(html,/agent-process|agent-pending|最后收到的推理片段|实际收到但最终详情尚未载入的片段|本轮运行过程暂未载入|正在返回的推理|模型正在深度思考/);
  assert.equal(evaluate('state.agentTurns[0].progress.status'),'running','the raw progress snapshot remains unchanged');assert.equal(evaluate('agentTurnProgress(state.agentTurns[0]).status'),'completed');
- if(choice==='untouched')assert.equal(evaluate('Object.keys(state.agentProcessOpen).length'),0);
  // A delayed running run cache must also yield to the confirmed turn result.
  evaluate("state.agentRunDetails['RUN-A']={run:{run_id:'RUN-A',status:'running'},events:[]};renderAssistant()");html=element('#panel-assistant').innerHTML;assert.match(html,/<strong>待补充信息<\/strong>/);assert.doesNotMatch(html,/agent-process|agent-pending/);
- evaluate("state.agentTurns[0].status='failed'");assert.equal(evaluate('agentTurnProgress(state.agentTurns[0]).status'),'failed');assert.match(evaluate('renderAgentProcess(state.agentTurns[0])'),/本轮处理未完成/);
-}
+ evaluate("state.agentTurns[0].status='failed'");assert.equal(evaluate('agentTurnProgress(state.agentTurns[0]).status'),'failed');assert.match(evaluate('agentProcessStage(agentTurnProgress(state.agentTurns[0]))'),/本轮处理未完成/);
 """)
 
     def test_personal_answer_omits_evidence_panels_without_rewriting_source_records(self):
@@ -320,38 +271,27 @@ context.turn={request_id:'REQUEST-A',run_id:'RUN-A',status:'completed',message:'
 evaluate("state.agentTurns=[turn];state.agentRunDetails['RUN-A']={run:{run_id:'RUN-A',status:'completed',thinking:false,model:'provider-real'},events:[{kind:'model.end',usage:{total_tokens:100}}]}");
 const before=JSON.stringify(context.turn),html=evaluate('renderAgentTurns()'),answer=html.slice(html.indexOf('class="agent-answer"'));
 assert.match(answer,/答案正文/);assert.doesNotMatch(answer,/查看依据|处理过程|条件与核验范围|运行记录|agent-evidence|agent-process|重复课程|成绩概况|personal-record-table|\[1\]|\[2\]|\[3\]/);assert.equal(JSON.stringify(context.turn),before);
-evaluate("state.agentEvidenceOpen['REQUEST-A']=true");assert.match(evaluate("renderPersonalEvidence(turn,'REQUEST-A')").match(/<details[^>]*>/)[0],/\sopen[\s>]/);
-const unknown=evaluate("renderPersonalEvidence({tool_results:[{name:'query_my_records',result:{status:'unknown',operation:'academic',records:[],matched_records:null,coverage:{}}}]},'UNKNOWN')");assert.match(unknown,/条数待确认/);assert.doesNotMatch(unknown,/没有匹配记录/);
 """)
 
-    def test_curriculum_evidence_merges_citations_and_keeps_full_context_collapsed(self):
+    def test_curriculum_evidence_stays_in_data_and_synthetic_citations_remain_visible(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}}");
-context.item={evidence_id:'E-1',title:'培养段落甲',text:'只显示一次的培养原文',page:4,review_status:'unreviewed',required_context:[{title:'表格上下文',text:'只显示一次的上下文',page:4}]};
-const html=evaluate("renderPersonalEvidence({tool_results:[{name:'search_my_curriculum',result:{matches:[item]}}],citations:[{...item,kind:'curriculum',citation_number:1}]},'REQUEST-A')");
-assert.equal((html.match(/<details/g)||[]).length,3);assert.equal((html.match(/只显示一次的培养原文/g)||[]).length,1);assert.equal((html.match(/只显示一次的上下文/g)||[]).length,1);assert.match(html,/\[1\] 培养段落甲/);assert.match(html,/PDF 第 4 页/);assert.match(html,/原文待审核/);assert.match(html,/<details><summary>查看原文上下文/);assert.match(html,/<summary>培养资料依据/);assert.doesNotMatch(html,/其他检索片段/);
-// The original synthetic recommendation interface keeps its own citations.
-evaluate("state.auth={authenticated:true,identity:{student_id:'DEMO-A'}};state.agentTurns=[{status:'completed',message:'合成问题',reply:'合成答案',tool_results:[],citations:[{title:'合成参考',text:'合成材料'}]}]");const synthetic=evaluate('renderAgentTurns()');assert.match(synthetic,/<summary>参考依据/);assert.doesNotMatch(synthetic,/查看依据|agent-process/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
+context.item={evidence_id:'E-1',title:'培养段落甲',text:'培养原文',page:4,required_context:[{text:'完整上下文',page:4}]};
+context.turn={status:'completed',reply:'答案正文',tool_results:[{name:'search_my_curriculum',result:{matches:[context.item]}}],citations:[{...context.item,kind:'curriculum',citation_number:1}]};
+const before=JSON.stringify(context.turn);evaluate('state.agentTurns=[turn];renderAssistant()');
+assert.match(element('#panel-assistant').innerHTML,/答案正文/);assert.doesNotMatch(element('#panel-assistant').innerHTML,/查看依据|培养原文|完整上下文|agent-evidence/);assert.equal(JSON.stringify(context.turn),before);
+evaluate("state.auth={authenticated:true,identity:{student_id:'DEMO-A'}};state.agentTurns=[{status:'completed',message:'合成问题',reply:'合成答案',tool_results:[],citations:[{title:'合成参考',text:'合成材料'}]}]");
+const synthetic=evaluate('renderAgentTurns()');assert.match(synthetic,/<summary>参考依据/);assert.match(synthetic,/合成材料/);assert.doesNotMatch(synthetic,/查看依据|agent-process/);
 """)
 
-    def test_cited_curriculum_precedes_uncited_hits_and_secondary_hits_remain_available(self):
-        self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}}");
-context.noise={evidence_id:'E-NOISE',title:'未引用水印',text:'未引用的首个噪声命中',page:1,required_context:[{text:'噪声完整上下文',page:1}]};context.cited={evidence_id:'E-CITED',title:'实际引用的专业选修',text:'实际引用条款',page:3,required_context:[{text:'引用条款完整上下文',page:3}]};context.extra={evidence_id:'E-EXTRA',title:'其他未引用命中',text:'另一个可核对片段',page:4};
-const html=evaluate("renderPersonalEvidence({tool_results:[{name:'search_my_curriculum',result:{matches:[noise,cited,extra]}}],citations:[{...cited,kind:'curriculum',citation_number:1}]},'REQUEST-A')");
-assert.equal((html.match(/<summary>查看依据/g)||[]).length,1);assert.equal((html.match(/实际引用条款/g)||[]).length,1);assert.ok(html.indexOf('[1] 实际引用的专业选修')<html.indexOf('其他检索片段（2）'));assert.ok(html.indexOf('其他检索片段（2）')<html.indexOf('未引用的首个噪声命中'));
-assert.match(html,/<details class="agent-other-evidence"><summary>其他检索片段（2）/);assert.match(html,/<details><summary>查看原文上下文/);assert.match(html,/引用条款完整上下文/);assert.match(html,/噪声完整上下文/);assert.match(html,/另一个可核对片段/);assert.doesNotMatch(html,/<details[^>]*\sopen[\s>]/);
-const remaining=evaluate("renderPersonalEvidence({tool_results:[],citations:[{...cited,kind:'curriculum',citation_number:1}]},'REQUEST-B')");assert.match(remaining,/<details><summary>查看原文上下文/);assert.match(remaining,/引用条款完整上下文/);assert.doesNotMatch(remaining,/personal-evidence-context/);
-""")
-
-    def test_recommendation_readiness_stays_in_one_evidence_entry_and_never_claims_a_plan(self):
+    def test_recommendation_readiness_projection_never_claims_a_plan(self):
         self.run_js(r"""
 evaluate("state.auth={authenticated:true,identity:{student_id:'PERSONAL-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
 context.readiness={status:'not_ready',can_generate:false,can_save_or_export:false,sources:[{id:'course_reference',status:'available'},{id:'academic_records',status:'partial'},{id:'curriculum',status:'needs_clarification'},{id:'existing_timetable',status:'failed'},{id:'exams',status:'missing'}],dependencies:[{id:'identity_and_study_facts',status:'required_dependency_unverified',missing:['stable_course_and_attempt_identity','completion_recognition_and_repeat_policy']},{id:'current_candidate_pool',status:'required_dependency_unverified',missing:['bounded_current_offerings','personal_eligibility_and_fresh_capacity']}],delivery_dependency:'real_draft_freeze_and_export_contract_not_connected',next_step:'PRIVATE-UNEXPECTED-TEXT'};
 context.readiness.recommendation_kind='timetable';context.readiness.target_term='2024-2025-SS';
 context.readinessResult={evidence_id:'P-SYNTHETIC-1',check_executed:true,readiness:context.readiness};
 context.readinessTurn={tool_results:[{name:'check_recommendation_inputs',result:context.readinessResult}],citations:[{kind:'recommendation_readiness',evidence_id:'P-SYNTHETIC-1',citation_number:2,readiness:context.readiness}]};
-const html=evaluate("renderPersonalEvidence(readinessTurn,'REQUEST-A')");assert.equal((html.match(/<summary>查看依据/g)||[]).length,1);assert.equal((html.match(/推荐准备检查/g)||[]).length,1);assert.match(html,/\[2\] 推荐准备检查/);assert.match(html,/检查已完成，正式推荐尚未就绪/);assert.match(html,/课程名称与代码参考：可用/);assert.match(html,/成绩记录：部分取得/);assert.match(html,/培养资料：需补充查询范围/);assert.match(html,/已有课表：读取未完成/);assert.match(html,/已有考试：尚未具备/);assert.match(html,/稳定课程与修读实例身份/);assert.match(html,/本人资格与最新余量/);assert.match(html,/保存与导出契约仍待接通/);assert.doesNotMatch(html,/<details[^>]*\sopen[\s>]/);assert.doesNotMatch(html,/PRIVATE-UNEXPECTED-TEXT|stable_course_and_attempt_identity|real_recommendation_not_ready|data-action="save-agent-option"|已推荐/);
+const html=evaluate("agentCitation(readinessTurn.citations[0])");assert.equal((html.match(/推荐准备检查/g)||[]).length,1);assert.match(html,/\[2\] 推荐准备检查/);assert.match(html,/检查已完成，正式推荐尚未就绪/);assert.match(html,/课程名称与代码参考：可用/);assert.match(html,/成绩记录：部分取得/);assert.match(html,/培养资料：需补充查询范围/);assert.match(html,/已有课表：读取未完成/);assert.match(html,/已有考试：尚未具备/);assert.match(html,/稳定课程与修读实例身份/);assert.match(html,/本人资格与最新余量/);assert.match(html,/保存与导出契约仍待接通/);assert.doesNotMatch(html,/<details[^>]*\sopen[\s>]/);assert.doesNotMatch(html,/PRIVATE-UNEXPECTED-TEXT|stable_course_and_attempt_identity|real_recommendation_not_ready|data-action="save-agent-option"|已推荐/);
 const citation=evaluate("agentCitation(readinessTurn.citations[0])");assert.match(citation,/\[2\] 推荐准备检查/);assert.doesNotMatch(citation,/来源类型待确认/);
 assert.match(html,/课表推荐 · 2024-2025学年春夏/);
 assert.match(evaluate("agentRunEventMarkup({kind:'tool.end',tool_name:'check_recommendation_inputs',status:'completed'})"),/推荐输入检查/);
