@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-25",
+  "base": "d6327f9",
+  "pushed_code_commits": [
+    "5203a9d",
+    "9e46a9a"
+  ],
+  "branch": "main",
+  "checks": {
+    "full_unittest": {
+      "run": 1566,
+      "skipped": 11,
+      "failures": 0,
+      "errors": 0
+    },
+    "node_syntax": "passed",
+    "diff_check": "passed"
+  },
+  "user_visual_acceptance": "not_passed_user_reports_layout_and_field_alignment_problems",
+  "next_scope": "desktop layout fixes for academic and course arrangement workspaces",
+  "runtime": {
+    "main_loopback_listener": 18875,
+    "qdrant_loopback_listener": 6333,
+    "restarted": false,
+    "school_requests": false,
+    "model_requests": false
+  },
+  "handoff": "docs/交接摘要_20261025_学业情况与课程安排排版.md"
+}
