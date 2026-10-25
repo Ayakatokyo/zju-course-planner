@@ -196,6 +196,7 @@ class StudentPlanAcquisitionTests(unittest.TestCase):
         self.assertEqual(second["version_count"], 2)
         self.assertEqual(old_path.read_bytes(), PDF)
         self.assert_code("historical_document_requires_review", self.service.read_document, first["source_alias"])
+        self.assertEqual(self.service.read_document(first["source_alias"], historical_preview=True), PDF)
 
     def test_failed_force_marks_old_data_history_and_blocks_body(self):
         first = self.service.acquire(self.profile)

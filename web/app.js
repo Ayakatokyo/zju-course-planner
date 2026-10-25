@@ -409,6 +409,8 @@ async function highlightCitationPdf(blob,evidence){
     return {blob:new Blob([await doc.save()],{type:'application/pdf'}),highlighted:true,scrollTop};
   }catch{return {blob,highlighted:false};}
 }
+const citationPreviewUrls=new Set();
+if(typeof window!=='undefined')window.addEventListener?.('pagehide',()=>{for(const url of citationPreviewUrls)URL.revokeObjectURL(url);citationPreviewUrls.clear();});
 let activeCitationPreview=null;
 function closeCitationPreview(){activeCitationPreview?.();activeCitationPreview=null;}
 async function openCitationPdf(button){
@@ -422,24 +424,21 @@ async function openCitationPdf(button){
   const capture=currentSchoolRequest(),dialog=document.createElement('dialog');let url=null,closed=false;
   dialog.className='citation-pdf-dialog';dialog.setAttribute('aria-label','培养方案原文');
   dialog.innerHTML='<header><strong>培养方案原文</strong><button type="button" class="button small">关闭</button></header><p class="citation-pdf-status" role="status">正在核对引用…</p>';
-  const finish=()=>{if(closed)return;closed=true;dialog.remove();if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);else viewer.close();button.focus?.();};
+  const finish=()=>{if(closed)return;closed=true;dialog.remove();if(url)citationPreviewUrls.add(url);else viewer.close();button.focus?.();};
   activeCitationPreview=finish;dialog.querySelector('button').onclick=()=>{finish();if(activeCitationPreview===finish)activeCitationPreview=null;};
   dialog.addEventListener('cancel',event=>{event.preventDefault();finish();});
   document.body.append(dialog);dialog.showModal();
   const current=()=>!closed&&sameSchoolRequest(capture)&&capture.agentEpoch===state.agentEpoch;
   try{
-    const evidence=await api('/api/evidence/resolve',{reference:item.reference},capture.agentEpoch);
+    const receipt=await api('/api/evidence/preview',{reference:item.reference,source_alias:item.source_alias},capture.agentEpoch);
     if(!current())return finish();
-    const page=evidence.locator?.physical_page||evidence.page;
-    if(!Number.isSafeInteger(page)||page<1||!evidence.source_alias)throw Error('missing_location');
-    const response=await request('/api/school/plan-document',{source_alias:evidence.source_alias},capture.agentEpoch),blob=await response.blob();
-    // Recheck the immutable reference after reading the PDF: a changed version must not open as old evidence.
-    await api('/api/evidence/resolve',{reference:item.reference},capture.agentEpoch);
-    if(!current())return finish();
-    if(blob.type!=='application/pdf')throw Error('invalid_pdf');
+    const evidence=receipt.evidence,page=evidence?.locator?.physical_page||evidence?.page;
+    if(!Number.isSafeInteger(page)||page<1||evidence.source_alias!==item.source_alias)throw Error('missing_location');
+    const bytes=Uint8Array.from(atob(receipt.pdf_base64),char=>char.charCodeAt(0));
+    const blob=new Blob([bytes],{type:'application/pdf'});
     const preview=await highlightCitationPdf(blob,evidence);
     if(!current()||viewer.closed)return finish();
-    message(preview.highlighted?'已打开原文，引用句段已标黄。':'已打开原文；该片段暂无可靠坐标，仅定位到引用页。');
+    message((receipt.historical?'已打开该回答当时的历史 PDF。':'')+(preview.highlighted?'已打开原文，引用句段已标黄。':'已打开原文；该片段暂无可靠坐标，仅定位到引用页。'));
     url=URL.createObjectURL(preview.blob);viewer.location.replace(`${url}#page=${page}&view=FitH${preview.highlighted&&Number.isSafeInteger(preview.scrollTop)?','+preview.scrollTop:''}`);finish();
   }catch(error){viewer.close();if(current())dialog.querySelector('.citation-pdf-status').textContent='暂时无法打开该引用。它可能已过期或文档已更新，请重新提问后再试。';else finish();}
 }

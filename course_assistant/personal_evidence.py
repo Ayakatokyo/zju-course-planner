@@ -492,10 +492,11 @@ def _chunks(pages):
 class PersonalEvidenceService:
     """A private registry bound to the current callback authorization generation."""
 
-    def __init__(self, root, authorize, read_document, describe_document, extractor=None, *, cohort=None):
+    def __init__(self, root, authorize, read_document, describe_document, extractor=None, *, cohort=None, read_archived_document=None):
         if not all(callable(fn) for fn in (authorize, read_document, describe_document)) or (extractor is not None and not callable(extractor)):
             _fail("invalid_arguments")
         self._authorize_callback, self._read_callback = authorize, read_document
+        self._read_archived_callback = read_archived_document or read_document
         self._describe_callback, self._extractor = describe_document, extractor or _extract_document
         self._semantic_retriever = LocalSemanticRetriever.from_environment()
         # Cohort is supplied only by the authenticated source provider.
@@ -1021,6 +1022,44 @@ class PersonalEvidenceService:
                 "named_module" if module_matches and matches else "candidate_fragments_unverified" if matches else "no_match",
             "search_candidate_count": len(candidates) if semantic["dense_used"] else len(ranked),
             "named_module_filter_applied": bool(module_matches)}
+
+    @_safe_storage
+    def preview(self, reference, source_alias):
+        """View a signed citation's exact PDF version; never used as current RAG evidence."""
+        if not isinstance(reference, str) or not REFERENCE.fullmatch(reference) or not isinstance(source_alias, str) or not ALIAS.fullmatch(source_alias):
+            _fail("inaccessible_evidence")
+        key = self._authorize()
+        # Private, signed versions belong to one authorization generation. Bound
+        # historical lookup; normal inference resolve() still requires active state.
+        with self._locked():
+            paths = sorted((self.root / "versions").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)[:256]
+            found = None
+            for path in paths:
+                bundle = self._open("bundle", path)
+                if bundle.get("authorization_scope") != key or bundle.get("document", {}).get("source_alias") != source_alias:
+                    continue
+                if _digest(bundle) != path.stem or bundle.get("extraction_version") != self._extraction_version or bundle.get("chunking_version") != CHUNKING:
+                    _fail("stale_input")
+                pages = _pages(bundle["pages"])
+                if pages != bundle["pages"] or _chunks(pages) != bundle["chunks"]:
+                    _fail("stale_input")
+                state = {"index_id": path.stem, "document": bundle["document"]}
+                chunk = next((row for row in bundle["chunks"] if hmac.compare_digest(reference, self._reference(key, state, row))), None)
+                if chunk is not None:
+                    found = (bundle, state, chunk)
+                    break
+            if found is None:
+                _fail("inaccessible_evidence")
+        self._authorize(key)
+        bundle, state, chunk = found
+        body = _pdf(self._read_archived_callback(source_alias))
+        if sha256(body).hexdigest() != bundle["document"]["sha256"]:
+            _fail("stale_input")
+        result = self._view(key, state, bundle, chunk)
+        historical = self._document()["source_alias"] != source_alias
+        self._authorize(key)
+        return {"evidence": result, "pdf_base64": base64.b64encode(body).decode("ascii"),
+                "historical": historical, "purpose": "citation_preview_only"}
 
     @_safe_storage
     def resolve(self, reference):

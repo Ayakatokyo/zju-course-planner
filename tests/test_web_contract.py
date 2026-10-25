@@ -33,11 +33,11 @@ let removed=0,revoked=0;const viewer={document:{body:{}},location:{replace(value
 const dialog={querySelector:node,setAttribute(){},addEventListener(){},showModal(){},remove(){removed++;}};context.document.createElement=()=>dialog;
 context.URL.revokeObjectURL=()=>revoked++;
 evaluate("currentSchoolRequest=()=>({agentEpoch:0});sameSchoolRequest=()=>true;state.agentEpoch=0");
-const calls=[];context.fetch=async(path)=>{calls.push(path);return path.endsWith('resolve')?{ok:true,json:async()=>({page:5,source_alias:'PLAN-test'})}:{ok:true,blob:async()=>new Blob(['synthetic'],{type:'application/pdf'})};};
+const calls=[];context.fetch=async(path)=>{calls.push(path);return {ok:true,json:async()=>({evidence:{page:5,source_alias:'PLAN-test'},pdf_base64:'c3ludGhldGlj',historical:true})};};
 context.button={dataset:{turnIndex:'0',citationIndex:'0'},focus(){}};
-await evaluate('openCitationPdf(button)');assert.deepEqual(calls,['/api/evidence/resolve','/api/school/plan-document','/api/evidence/resolve']);assert.equal(viewer.location.url,'blob:synthetic#page=5&view=FitH');assert.equal(viewer.opener,null);
-evaluate('closeCitationPreview()');assert.equal(removed,1);assert.equal(revoked,1);
-evaluate("highlightCitationPdf=async blob=>({blob,highlighted:true,scrollTop:856})");await evaluate('openCitationPdf(button)');assert.equal(viewer.location.url,'blob:synthetic#page=5&view=FitH,856');
+await evaluate('openCitationPdf(button)');assert.deepEqual(calls,['/api/evidence/preview']);assert.equal(viewer.location.url,'blob:synthetic#page=5&view=FitH');assert.equal(viewer.opener,null);
+evaluate('closeCitationPreview()');assert.equal(removed,1);assert.equal(revoked,0);
+evaluate("highlightCitationPdf=async blob=>({blob,highlighted:true,scrollTop:856})");await evaluate('openCitationPdf(button)');assert.equal(revoked,0);assert.equal(viewer.location.url,'blob:synthetic#page=5&view=FitH,856');
 viewer.location.url='';calls.length=0;context.fetch=async(path)=>{calls.push(path);throw Error('expired');};await evaluate('openCitationPdf(button)');assert.equal(calls.length,1);assert.equal(viewer.location.url,'');assert.equal(viewer.closed,true);assert.match(node('.citation-pdf-status').textContent,/过期/);
 """)
 

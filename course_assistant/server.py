@@ -360,7 +360,7 @@ class Application:
     def post(self, path, body, context=None):
         if context and is_academic_context(context):
             self.auth.require_context(context)
-            if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve'}:
+            if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve', '/api/evidence/preview'}:
                 return self.academic_provider(context).local_query(context, path, body)
             if path == '/api/chat/turn':
                 return self.personal_chat.turn(body, context)
@@ -607,7 +607,7 @@ def make_handler(app):
                     else:
                         self.response(result)
                     return
-                if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve'}:
+                if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve', '/api/evidence/preview'}:
                     context = self.context()
                     if not is_academic_context(context):
                         raise AccessError('请先连接学校账号', 403, 'school_connection_required')

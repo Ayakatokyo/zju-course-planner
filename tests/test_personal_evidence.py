@@ -60,6 +60,32 @@ class PersonalEvidenceTests(unittest.TestCase):
         self.extractions = 0
         self.service = self.make_service()
 
+    def test_preview_keeps_each_signed_version_without_reviving_inference(self):
+        import base64
+        archives = {self.metadata['source_alias']: self.body}
+        self.service = self.make_service(read_archived_document=lambda alias: archives[alias])
+        self.prepare()
+        old_alias = self.metadata['source_alias']
+        old = self.service.search('061B0010')['matches'][0]
+        self.body = self.body.replace(b'SYNTHETIC', b'NEW-SYNTHETIC')
+        self.metadata.update(source_alias='PLAN-'+'b'*24, sha256=sha256(self.body).hexdigest())
+        archives[self.metadata['source_alias']] = self.body
+        self.prepare()
+        new = self.service.search('061B0010')['matches'][0]
+        self.assert_code('inaccessible_evidence', lambda: self.service.resolve(old['reference']))
+        for item, alias, historical in [(old, old_alias, True), (new, self.metadata['source_alias'], False), (old, old_alias, True)]:
+            result = self.service.preview(item['reference'], alias)
+            self.assertEqual(result['historical'], historical)
+            self.assertEqual(base64.b64decode(result['pdf_base64']), archives[alias])
+            self.assertEqual(result['evidence']['reference'], item['reference'])
+        self.assert_code('inaccessible_evidence', lambda: self.service.preview(old['reference'], self.metadata['source_alias']))
+        archives[old_alias] += b'changed'
+        self.assert_code('stale_input', lambda: self.service.preview(old['reference'], old_alias))
+        self.scope += ':different-owner'
+        self.assert_code('inaccessible_evidence', lambda: self.service.preview(old['reference'], old_alias))
+        self.denied = True
+        self.assert_code('grant_revoked', lambda: self.service.preview(new['reference'], self.metadata['source_alias']))
+
     def authorize(self):
         if self.denied:
             raise PersonalEvidenceError("grant_revoked")

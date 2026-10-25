@@ -207,6 +207,8 @@ class ScenarioDataService:
         if path == '/api/personal/records':
             return self.personal_chat_tool(context, 'query_my_records', body)
         services = self._services(context)
+        if path == '/api/evidence/preview' and set(body) == {'reference', 'source_alias'}:
+            return services['evidence'].preview(body['reference'], body['source_alias'])
         services['evidence'].prepare(services['alias'])
         if path == '/api/evidence/search':
             return services['evidence'].search(**body)

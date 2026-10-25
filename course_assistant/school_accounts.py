@@ -537,7 +537,8 @@ class SchoolAccountService:
         evidence = PersonalEvidenceService(directory / "evidence", authorize,
             lambda alias: self.read_plan_document(context, alias), describe_document,
             extractor=self.personal_pdf_extractor,
-            cohort=parse_payload("profile", connection.profile)["records"][0].get("cohort"))
+            cohort=parse_payload("profile", connection.profile)["records"][0].get("cohort"),
+            read_archived_document=lambda alias: self.read_plan_document(context, alias, historical_preview=True))
         connection.personal, connection.personal_epoch = (store, evidence), epoch
         return connection.personal
 
@@ -603,11 +604,13 @@ class SchoolAccountService:
             elif (path == "/api/evidence/search" and set(body) <= {"query", "limit", "mode", "offset"} and "query" in body
                   and type(body.get("limit", 5)) is int and 1 <= body.get("limit", 5) <= 5):
                 result = evidence.search(body["query"], limit=body.get("limit", 5), mode=body.get("mode", "search"), offset=body.get("offset", 0))
+            elif path == "/api/evidence/preview" and set(body) == {"reference", "source_alias"}:
+                result = evidence.preview(body["reference"], body["source_alias"])
             elif path == "/api/evidence/resolve" and set(body) == {"reference"}:
                 result = evidence.resolve(body["reference"])
             else:
                 _error("invalid_school_request")
-            if path.startswith("/api/evidence/"):
+            if path.startswith("/api/evidence/") and path != "/api/evidence/preview":
                 current = evidence.describe()
                 if not current["ready"] or current["versions"] != result.get("versions"):
                     raise PersonalEvidenceError("stale_input")
@@ -1166,11 +1169,11 @@ class SchoolAccountService:
             return {**result, "data_kind": "personal_source", "security_realm": SCHOOL_REALM,
                     "recommendation_status": "input_not_ready_for_recommendation"}
 
-    def read_plan_document(self, context, source_alias):
+    def read_plan_document(self, context, source_alias, *, historical_preview=False):
         connection = self._connection(context)
         with connection.lock:
             try:
-                body = self._plan_service(context, connection).read_document(source_alias)
+                body = self._plan_service(context, connection).read_document(source_alias, historical_preview=historical_preview)
             except StudentPlanAcquisitionError:
                 _error("inaccessible_plan_document", 404)
             self._authorize(context, connection)

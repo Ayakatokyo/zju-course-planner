@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-25",
+  "issue": "earlier PDF citation fails after later answer",
+  "root_cause": "current-only resolution rejects earlier immutable PDF versions",
+  "fix": "authenticated signed historical citation preview; current inference remains current-only",
+  "automated": {
+    "targeted_total": 217,
+    "targeted_skipped": 1,
+    "full_total": 1553,
+    "full_skipped": 11,
+    "full_seconds": 72.042
+  },
+  "live": {
+    "rounds": 2,
+    "click_order": [
+      "old",
+      "new",
+      "old"
+    ],
+    "success_status": [
+      true,
+      true,
+      true
+    ],
+    "page": [
+      5,
+      5,
+      5
+    ],
+    "fit_h_offset": [
+      855,
+      693,
+      855
+    ],
+    "historical_notice": [
+      true,
+      false,
+      true
+    ],
+    "pdf_viewer_internal_visual_check": "unverified: browser blob access restriction"
+  },
+  "boundaries": [
+    "same authorization generation only",
+    "recent 256 signed versions",
+    "not committed or pushed"
+  ]
+}

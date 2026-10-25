@@ -422,13 +422,13 @@ class OnDemandPlanService:
             self._authorize(auth_key)
             return result
 
-    def read_document(self, source_alias):
-        """Read only an active permitted version; failed refreshes block bodies."""
+    def read_document(self, source_alias, *, historical_preview=False):
+        """Read a permitted version; archived access is reserved for citation preview."""
         auth_key = self._authorize()
         with self._locked():
             metadata, body = self._metadata(source_alias, expected_auth=auth_key)
             state = self._load(metadata["cache_key"])
-            if state.get("active_alias") != source_alias:
+            if state.get("active_alias") != source_alias and not historical_preview:
                 _fail("historical_document_requires_review")
             if state.get("failure_status"):
                 _fail(state["failure_status"])
