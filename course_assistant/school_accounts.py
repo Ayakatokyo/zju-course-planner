@@ -331,7 +331,7 @@ class SchoolAccountService:
         return {"school_client_enabled": True, "school_auth_status": "personal_client_authenticated" if connection.state == "connected" else "personal_client_session_unavailable",
                 "project_sso_status": "not_configured", "personal_data_source_status": connection.state,
                 "data_kind": "personal_source", "security_realm": SCHOOL_REALM,
-                "operations": ["profile", "academic", "major_academic", "timetable", "exams", "plan"],
+                "operations": ["profile", "academic", "major_academic", "graduation_audit", "timetable", "exams", "plan"],
                 "query_context": {"cohort": profile["cohort"] if cohort_state == "known" else None,
                                   "cohort_state": cohort_state},
                 "recommendation_status": "input_not_ready_for_recommendation"}
@@ -385,13 +385,26 @@ class SchoolAccountService:
             return {"status": "complete_within_scope", "data_kind": "personal_source", "data_source": "live",
                     "profile": profile, "source_alias": alias, "captured_at": self.clock()}
 
+    def enrollment_preview(self, context, body):
+        if not isinstance(body, dict) or set(body) - {"course_code"}:
+            _error("invalid_school_request")
+        connection = self._connection(context)
+        with connection.lock:
+            result = connection.client.enrollment_preview(body.get("course_code"))
+            self._authorize(context, connection)
+            if result.get("state") != "business":
+                return {"status": result.get("state", "source_unavailable"), "submission_enabled": False}
+            if result.get("source_subject_id") != connection.owner:
+                _error("source_subject_changed", 403)
+            return {"status": "available", **result["preview"], "checked_at": self.clock()}
+
     @staticmethod
     def _request_body(body):
         if (not isinstance(body, dict) or set(body) - {"operation", "target_term", "force_refresh"}
                 or body.get("operation") not in DOMAINS or type(body.get("force_refresh", False)) is not bool
                 or not isinstance(body.get("target_term"), str)):
             _error("invalid_school_request")
-        if body["operation"] == "major_academic":
+        if body["operation"] in {"major_academic", "graduation_audit"}:
             valid_term = body["target_term"] == "ALL-HISTORY"
         else:
             valid_term = bool(re.fullmatch(r"(?:19|20|21)[0-9]{2}-(?:19|20|21)[0-9]{2}-(?:AW|SS|A|W|S|SU)", body["target_term"]))
@@ -889,8 +902,8 @@ class SchoolAccountService:
                     "reference_mode": "historical_course_observations"})
                 result = {"status": "available", "data_kind": "personal_source", "cohort": profile.get("cohort"),
                     "major_name": profile.get("major_name"), "operations": operations,
-                    "api_operations": [{"operation": operation, "target_term_required": operation != "major_academic"}
-                                       for operation in ("academic", "major_academic", "timetable", "exams")],
+                    "api_operations": [{"operation": operation, "target_term_required": operation not in {"major_academic", "graduation_audit"}}
+                                       for operation in ("academic", "major_academic", "graduation_audit", "timetable", "exams")],
                     "capabilities": {"curriculum_available": curriculum, "personal_record_query": True, "live_record_query": True,
                         "curriculum_local_search": True, "read_only_acquisition": True,
                         "course_catalog_search": catalog.get("status") == "ready",
@@ -945,7 +958,7 @@ class SchoolAccountService:
                 operation = args["operation"]
                 term = args.get("target_term")
                 candidates = [receipt for receipt in receipts if receipt.get("operation") == operation]
-                if term is None and operation == "major_academic":
+                if term is None and operation in {"major_academic", "graduation_audit"}:
                     term = "ALL-HISTORY"
                 elif term is None:
                     scopes = {receipt.get("target_term") for receipt in candidates if isinstance(receipt.get("target_term"), str)}

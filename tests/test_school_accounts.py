@@ -650,7 +650,7 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertEqual(result["operations"], [])
         self.assertEqual(len(client.request_calls), before)
         self.assertEqual({item["operation"] for item in result["api_operations"]},
-                         {"academic", "major_academic", "timetable", "exams"})
+                         {"academic", "major_academic", "graduation_audit", "timetable", "exams"})
         self.assertEqual(result["course_catalog"]["data_kind"], "local_course_reference")
         self.assertNotIn(old["observation_id"], json.dumps(result))
 

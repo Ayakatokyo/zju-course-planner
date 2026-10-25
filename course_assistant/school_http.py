@@ -23,6 +23,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlencode, urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
+from .school_enrollment_preview import READ_ROUTES as ENROLLMENT_READ_ROUTES
 from .student_source_parsers import PROFILE_FIELDS
 from .student_source_client import MAX_SOURCE_PAGES, MAX_TIMETABLE_ROWS
 from .school_period_times import TIMETABLE_PAGE, PERIOD_PAGE_LIMIT, parse_period_table, period_source
@@ -42,6 +43,7 @@ MENU = "/jwglxt/xtgl/index_initMenu.html"
 PROFILE_ROUTE = "/jwglxt/xtgl/yhxx_cxYhxx.html"
 PROFILE_MENU_CODE = None
 DATA_ROUTES = {
+    "graduation_audit": ("/jwglxt/bysh/byshck_cxByshzsIndex.html", "N6025"),
     "academic": ("/jwglxt/cxdy/xscjcx_cxXscjIndex.html", "N5083"),
     "major_academic": ("/jwglxt/zycjtj/xszgkc_cxXsZgkcIndex.html", None),
     "timetable": ("/jwglxt/kbcx/xskbcx_cxXsKb.html", "N253508"),
@@ -488,7 +490,7 @@ class SchoolHTTPClient:
         origin = f"{parsed.scheme}://{parsed.netloc}"
         allowed = ({CAS_LOGIN, CAS_KEY, CAS_CAPTCHA_STATUS, CAS_CAPTCHA} if origin == SSO else
                    {SERVICE, MENU, CAPTCHA, PROFILE_ROUTE, PLAN_CATALOGUE, PLAN_DOCUMENT, PLAN_MAJOR_OPTIONS,
-                    TIMETABLE_PAGE} | {route for route, _ in DATA_ROUTES.values()})
+                    TIMETABLE_PAGE} | ENROLLMENT_READ_ROUTES | {route for route, _ in DATA_ROUTES.values()})
         if origin not in {SSO, SCHOOL} or parsed.username or parsed.password or parsed.fragment or parsed.path not in allowed:
             _fail("route_not_confirmed")
         body = urlencode(form).encode("utf-8") if form is not None else None
@@ -828,6 +830,61 @@ class SchoolHTTPClient:
                     self.logout()
                 return self._result(error.code)
 
+    def enrollment_preview(self, course_code=None):
+        """Preview only. Never retry or expose a school mutation operation."""
+        from .school_enrollment_preview import PAGE, COURSES, SECTIONS, CHOSEN, PUBLIC_URL, PreviewPage, project_list
+        if course_code is not None and (not isinstance(course_code, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,40}", course_code)):
+            return self._result("route_not_confirmed")
+        with self._lock:
+            with self._state_lock:
+                if not self._authenticated or self._closed:
+                    return self._result("awaiting_user_login")
+                self._operation_epoch = self._epoch
+            def read_json(route, form):
+                response = self._raw("POST", self._school_url(route, {"gnmkdm": "N253530"}), form)
+                state = _classify(response)
+                if state != "business":
+                    _fail(state)
+                # The official class-list endpoint returns JSON with text/html.
+                # Parse strictly, then validate the bounded list and field schema.
+                value = json.loads(response.body)
+                observed = _subjects(value)
+                if observed and observed != self._profile["source_subject_id"]:
+                    _fail("source_subject_changed")
+                return value
+            def preview():
+                response = self._raw("GET", self._school_url(PAGE, {"gnmkdm": "N253530", "layout": "default"}))
+                state = _classify(response)
+                if state != "business":
+                    _fail(state)
+                page = PreviewPage()
+                page.feed(response.body.decode("utf-8"))
+                page.validated()
+                ctx = page.context
+                form = {key: ctx[key] for key in ("xn", "xq", "nj", "zydm")}
+                form.update(dl="xk_1", lx="bl", xkmc="本类(专业)", kcbs="", jxjhh=ctx["nj"]+ctx["zydm"],
+                            xnxq="("+ctx["xn"]+"-"+ctx["xq"]+")-", kspage="1", jspage="10")
+                courses = project_list(read_json(COURSES, form), {"kcdm", "kcmc", "xskcdm", "kcxx", "kcxzzt", "xkkh"}, 10)
+                selected = project_list(read_json(CHOSEN, {"xn": ctx["xn"], "xq": ctx["xq"]}),
+                    {"kcdm", "kcmc", "xkkh", "jsxm", "xxq", "sksj", "skdd", "sxbj", "xkzy"}, 100)
+                sections = []
+                if course_code is not None:
+                    if course_code not in {row["kcdm"] for row in courses}:
+                        _fail("route_not_confirmed")
+                    course = next(row for row in courses if row["kcdm"] == course_code)
+                    sections = project_list(read_json(SECTIONS, {"dl": "xk_1", "xn": ctx["xn"], "xq": ctx["xq"],
+                        "kcdm": course_code, "xkkh": course.get("xkkh") or "", "ylxs": ctx["ylxs"]}),
+                        {"xkkh", "kcdm", "jsxm", "xxq", "sksj", "skdd", "kssj", "rs", "sfxz"}, 100)
+                return self._result("business", response, preview={"academic_year": ctx["xn"], "season": ctx["xq"],
+                    "courses": courses, "sections": sections, "selected": selected, "submission_enabled": False,
+                    "official_url": PUBLIC_URL, "scope": "本类(专业)前10条课程及页面已选教学班；非全校可选目录"})
+            try:
+                return self._with_refresh(preview)
+            except SchoolHTTPError as error:
+                return self._result(error.code)
+            except (ValueError, UnicodeError):
+                return self._result("schema_changed")
+
     def _spec(self, spec):
         if not isinstance(spec, dict) or set(spec) - {"operation", "target_term", "page", "page_size", "scope", "plan_ref"}:
             _fail("route_not_confirmed")
@@ -846,7 +903,7 @@ class SchoolHTTPClient:
         if operation in DATA_ROUTES:
             if scope or spec.get("plan_ref") is not None:
                 _fail("route_not_confirmed")
-            if operation == "major_academic":
+            if operation in {"major_academic", "graduation_audit"}:
                 if spec.get("target_term") != "ALL-HISTORY":
                     _fail("route_not_confirmed")
             else:
@@ -859,7 +916,7 @@ class SchoolHTTPClient:
         operation = spec["operation"]
         route, menu = DATA_ROUTES[operation]
         year_range = None
-        if operation != "major_academic":
+        if operation not in {"major_academic", "graduation_audit"}:
             year, _, season = _TERM.fullmatch(spec["target_term"]).groups()
             year_range = f"{year}-{int(year) + 1}"
             suffix = {"AW": "1", "SS": "2", "A": "1", "W": "1", "S": "2", "SU": "2"}[season]
@@ -867,7 +924,7 @@ class SchoolHTTPClient:
         query = {} if operation == "timetable" else {"doType": "query"}
         if menu:
             query["gnmkdm"] = menu
-        if operation == "major_academic":
+        if operation in {"major_academic", "graduation_audit"}:
             # Celechron's primary-major transcript endpoint is explicitly an
             # all-history query. Preserve each row's year instead of inventing
             # unobserved year/term request parameters.
@@ -892,6 +949,10 @@ class SchoolHTTPClient:
                     form["captcha_value"] = self._captcha_text
         else:
             form.update({"queryModel.currentPage": str(spec["page"]), "queryModel.showCount": str(spec["page_size"])})
+        if operation == "graduation_audit":
+            if spec["page"] != 1:
+                _fail("route_not_confirmed")
+            form = {"queryModel.currentPage": "1", "queryModel.showCount": "5000"}
         response = self._raw("POST", self._school_url(route, query), form)
         state = _classify(response)
         if state != "business":
@@ -907,6 +968,15 @@ class SchoolHTTPClient:
             payload = json.loads(response.body)
         except (ValueError, UnicodeError):
             _fail("schema_changed")
+        if operation == "graduation_audit":
+            observed = _subjects(payload)
+            if observed and observed != self._profile["source_subject_id"]:
+                _fail("source_subject_changed")
+            from .graduation_audit import project_rows
+            try:
+                payload = project_rows(payload)
+            except ValueError:
+                _fail("schema_changed")
         if not isinstance(payload, dict):
             _fail("schema_changed")
         domain = "academic" if operation == "major_academic" else operation
@@ -917,7 +987,7 @@ class SchoolHTTPClient:
         if operation != "timetable":
             _canonical_pagination(projection)
         containers = [key for key in ("items", "records", "kbList") if key in projection]
-        row_limit = MAX_TIMETABLE_ROWS if operation == "timetable" else spec["page_size"]
+        row_limit = 2000 if operation == "graduation_audit" else MAX_TIMETABLE_ROWS if operation == "timetable" else spec["page_size"]
         if len(containers) != 1 or not isinstance(projection[containers[0]], list) or len(projection[containers[0]]) > row_limit:
             _fail("schema_changed")
         observed = _subjects(payload)
@@ -937,6 +1007,8 @@ class SchoolHTTPClient:
         with self._state_lock:
             self._check_active()
             self._captcha_pending = False
+            if operation == "graduation_audit":
+                return self._result("business", response, content_type="application/json", payload=projection)
             diagnostics = business_field_diagnostics(domain, payload, projection)
             return self._result("business", response, content_type="application/json", payload=projection,
                                 source_field_diagnostics=diagnostics)

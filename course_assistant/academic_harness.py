@@ -25,9 +25,9 @@ def resource_catalog(context):
     capabilities = context.get("capabilities", {})
     resources = []
     for operation in context.get("api_operations", []):
-        if operation in {"academic", "major_academic", "timetable", "exams"}:
+        if operation in {"academic", "major_academic", "graduation_audit", "timetable", "exams"}:
             resources.append({"resource": operation, "tool": "query_my_records",
-                "freshness": "read_on_demand_each_turn", "scope": "ALL-HISTORY" if operation == "major_academic" else "explicit_term"})
+                "freshness": "read_on_demand_each_turn", "scope": "ALL-HISTORY" if operation in {"major_academic", "graduation_audit"} else "explicit_term"})
     if capabilities.get("curriculum_local_search") is True:
         resources.append({"resource": "curriculum", "tool": "search_my_curriculum", "freshness": "read_on_demand_each_turn", "scope": "authenticated_student"})
     if capabilities.get("course_catalog_search") is True:

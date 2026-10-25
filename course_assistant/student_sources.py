@@ -24,7 +24,7 @@ from .school_period_times import validate_period_metadata
 REALM = "restricted_personal_reference"
 SCHEMA = "student-acquisition/1"
 PURPOSE = "local_student_source_review"
-DOMAINS = ("profile", "academic", "timetable", "exams")
+DOMAINS = ("profile", "academic", "timetable", "exams", "graduation_audit")
 STOP_STATES = {"source_session_expired", "source_subject_changed", "permission_denied",
                "captcha_required", "awaiting_user_login", "user_confirmation_required"}
 FAIL_STATES = STOP_STATES | {"source_unavailable", "schema_changed", "incomplete_capture"}

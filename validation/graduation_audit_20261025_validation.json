@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-25",
+  "scope": "graduation self-audit integration and read-only enrollment preview",
+  "authorization": {
+    "real_enroll_drop": false
+  },
+  "engineering": {
+    "full_suite": {
+      "ran": 1559,
+      "skipped": 11,
+      "result": "OK"
+    },
+    "final_focused_suite": {
+      "ran": 236,
+      "result": "OK"
+    },
+    "javascript_syntax": "passed",
+    "diff_whitespace": "passed"
+  },
+  "live": {
+    "audit_raw_nodes": 161,
+    "audit_header_nodes": 23,
+    "audit_business_nodes": 138,
+    "audit_modules": 28,
+    "audit_course_records": 110,
+    "audit_failed_modules": 7,
+    "dialogue_turns": 2,
+    "source_calls_per_turn": [
+      1,
+      1
+    ],
+    "extra_transcript_or_pdf_calls": 0,
+    "dialogue_caveat": "Second response repaired once and still used an unsupported causal phrasing about module attribution; full semantic acceptance pending.",
+    "enrollment_catalog_courses": 5,
+    "selected_sections": 3,
+    "class_detail_checked": 1,
+    "submitted_mutations": 0
+  },
+  "regressions": [
+    "missing status is not an uncompleted required course",
+    "repeated course grades preserved",
+    "composite credits remain raw",
+    "malformed trees fail closed",
+    "subject mismatch before projection",
+    "same-turn reuse and next-turn refresh",
+    "selected list is a separate read endpoint",
+    "class request carries catalogue parent xkkh",
+    "strict JSON parsing also supports text/html JSON responses"
+  ],
+  "boundaries": [
+    "No original source endpoint removed: coverage differs",
+    "Preview restricted to current own-major first ten courses",
+    "No real enrollment or drop submission",
+    "No full semantic or user acceptance",
+    "No commit, push, package update, or public deployment"
+  ]
+}

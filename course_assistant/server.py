@@ -377,6 +377,10 @@ class Application:
                 return self.personal_chat.read_run(body, context)
             if path == '/api/chat/progress':
                 return self.personal_chat.read_progress(body, context)
+            if path == '/api/school/enrollment-preview':
+                preview = getattr(self.academic_provider(context), 'enrollment_preview', None)
+                require(callable(preview), '当前来源不支持学校选退课预览')
+                return preview(context, body)
             if path == '/api/school/sync':
                 return self.academic_provider(context).fetch(context, body)
             if path == '/api/school/captcha':

@@ -19,12 +19,12 @@ from .student_source_parsers import PARSER_VERSION, MAPPING_VERSION, parse_paylo
 from .student_sources import (CREDENTIAL_VALUE, SCHEMA, SUBJECT_FIELDS, StudentSourceError, sanitize_payload,
                              _observed_subjects, validate_business_field_diagnostics)
 
-OPERATIONS = frozenset({"academic", "major_academic", "timetable", "exams", "plan_catalogue", "plan_document"})
+OPERATIONS = frozenset({"academic", "major_academic", "graduation_audit", "timetable", "exams", "plan_catalogue", "plan_document"})
 MAX_SOURCE_PAGES = 50
 # The timetable route returns one bounded list, not a page of this size.
 # This safety cap does not establish that the returned list is complete.
 MAX_TIMETABLE_ROWS = 200
-DOMAINS = {"academic": "academic", "major_academic": "academic", "timetable": "timetable", "exams": "exams"}
+DOMAINS = {"graduation_audit": "graduation_audit", "academic": "academic", "major_academic": "academic", "timetable": "timetable", "exams": "exams"}
 HARD_STOPS = frozenset({"awaiting_user_login", "source_session_expired", "captcha_required",
                         "permission_denied", "source_subject_changed", "user_confirmation_required"})
 FAILURES = HARD_STOPS | {"source_unavailable", "schema_changed", "route_not_confirmed"}
@@ -276,7 +276,7 @@ class StudentSourceClient:
             if not lists or not isinstance(lists[0], list) or any(value != lists[0] for value in lists[1:]):
                 raise SourceClientError("invalid_record_container")
             rows = len(lists[0])
-            row_limit = MAX_TIMETABLE_ROWS if domain == "timetable" else spec["page_size"]
+            row_limit = 2000 if domain == "graduation_audit" else MAX_TIMETABLE_ROWS if domain == "timetable" else spec["page_size"]
             if rows > row_limit:
                 raise SourceClientError("timetable_row_limit_exceeded" if domain == "timetable" else "page_size_exceeded")
             for key in ("pageNo", "currentPage"):

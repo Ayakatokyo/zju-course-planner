@@ -26,7 +26,7 @@ import uuid
 
 
 SCHEMA = "personal-observation/1"
-OPERATIONS = frozenset({"academic", "major_academic", "timetable", "exams"})
+OPERATIONS = frozenset({"academic", "major_academic", "graduation_audit", "timetable", "exams"})
 
 
 def normalize_record_query(query, operation):
@@ -360,7 +360,7 @@ class PersonalObservationStore:
         if result.get("data_kind", "personal_source") != self.data_kind or result.get("security_realm", self._scope["security_realm"]) != self._scope["security_realm"]:
             _fail("invalid_observation_result")
         term = result["target_term"]
-        if result["operation"] == "major_academic":
+        if result["operation"] in {"major_academic", "graduation_audit"}:
             valid = term == "ALL-HISTORY"
         else:
             match = re.fullmatch(r"((?:19|20|21)[0-9]{2})-((?:19|20|21)[0-9]{2})-(AW|SS|A|W|S|SU)", term) if type(term) is str else None
@@ -497,7 +497,8 @@ class PersonalObservationStore:
             code_query = bool(re.fullmatch(r"(?=.*\d)[a-z0-9][a-z0-9_-]{4,39}", needle))
             known = lambda key: isinstance(states, dict) and states.get(key) == "known" and type(record.get(key)) in (str, int)
             code_match = known("course_code_raw") and needle == normalize(record["course_code_raw"])
-            name_match = not code_query and known("course_name_raw") and needle in normalize(record["course_name_raw"])
+            name_match = not code_query and any(known(key) and needle in normalize(record[key])
+                for key in ("course_name_raw", "module_name_raw"))
             if not (code_match or name_match):
                 return False
         if year is not None:
@@ -562,6 +563,9 @@ class PersonalObservationStore:
                 "query": query, "academic_year": year, "offset": offset, "mode": mode,
                 "issues": deepcopy(snapshot["result"].get("issues")),
                 "row_failures": deepcopy(snapshot["result"].get("row_failures")), "failure": snapshot["result"].get("failure")}
+            if operation == "graduation_audit":
+                from .graduation_audit import summary
+                result["graduation_summary"] = summary(snapshot["result"]["records"])
             if operation in {"academic", "major_academic"}:
                 result["source_grade_summary"] = source_grade_summary(filtered, snapshot["result"]["coverage"])
             for key in ("period_times", "period_times_source"):

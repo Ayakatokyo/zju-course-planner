@@ -703,3 +703,7 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .citation-pdf-dialog::backdrop{background:rgba(25,20,35,.4)}
 .citation-pdf-dialog header{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .citation-pdf-status{font-size:13px;color:#696274;margin:12px 0}
+
+.graduation-table th,.graduation-table td{white-space:nowrap;text-align:left;padding:10px 12px}.graduation-table .audit-module{background:#f3f2fa;font-weight:600}.graduation-table .audit-course td:first-child{padding-left:24px}
+
+.enrollment-preview table{width:100%;border-collapse:collapse}.enrollment-preview th,.enrollment-preview td{text-align:left;padding:10px 12px;border-bottom:1px solid #e8e9ef;vertical-align:top}.enrollment-preview th{background:#f3f2fa;white-space:nowrap}.enrollment-preview h3{margin:18px 0 10px}.enrollment-preview .table-wrap{margin:12px 0}.enrollment-preview .button{margin-bottom:6px}

@@ -105,7 +105,10 @@ EXAM_FIELDS = {
 _CONTAINERS = {"items", "records", "kbList", "total", "totalCount", "totalResult",
                "pageNo", "pageSize", "currentPage", "showCount"}
 _WRAPPER_FIELDS = {"value", "raw_value", "state"}
+from .graduation_audit import RAW_FIELDS as AUDIT_FIELDS, FIELDS as AUDIT_MAPPING, parse_row as parse_audit_row
+
 BUSINESS_FIELDS = {
+    "graduation_audit": AUDIT_FIELDS | _CONTAINERS | _WRAPPER_FIELDS,
     "profile": frozenset({a for aliases in PROFILE_FIELDS.values() for a in aliases} | _WRAPPER_FIELDS),
     "academic": frozenset({a for aliases in ACADEMIC_FIELDS.values() for a in aliases} | _CONTAINERS | _WRAPPER_FIELDS),
     "timetable": frozenset({a for aliases in (TIMETABLE_FIELDS | MEETING_FIELDS).values() for a in aliases}
@@ -510,13 +513,15 @@ def parse_payload(domain, payload, scope=None):
         else:
             if domain == "profile":
                 record = _profile(row, index)
+            elif domain == "graduation_audit":
+                record = parse_audit_row(row, index)
             elif domain == "academic":
                 record = _academic(row, index)
             elif domain == "timetable":
                 record = _timetable(row, index)
             else:
                 record = _exams(row, index)
-            mapping = {"profile": PROFILE_FIELDS, "academic": ACADEMIC_FIELDS,
+            mapping = {"graduation_audit": AUDIT_MAPPING, "profile": PROFILE_FIELDS, "academic": ACADEMIC_FIELDS,
                        "timetable": TIMETABLE_FIELDS, "exams": EXAM_FIELDS}[domain]
             if not any(not _unknown(record[field]) and record[field] not in ([], {}) for field in mapping):
                 # An object/container alone is no usable business evidence.
