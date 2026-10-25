@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-25",
+  "scope": "two school workspaces and source-aware presentation",
+  "implementation": [
+    "academic profile and curriculum foldout",
+    "graduation module hierarchy and course filtering",
+    "course display grouping preserves every grade and recognition",
+    "timetable and exam side panel with conservative bidirectional links",
+    "same-term uniquely identified enrollment preview association",
+    "scoped response validation and session invalidation"
+  ],
+  "checks": {
+    "node_check": "passed",
+    "git_diff_check": "passed",
+    "focused_tests": {
+      "run": 125,
+      "failures": 0
+    },
+    "full_suite_initial": {
+      "run": 1566,
+      "failures": 2,
+      "skipped": 11,
+      "failure_causes": [
+        "test fixture global rows name collided with existing function",
+        "old missing-exam-text assertion"
+      ],
+      "resolution": "Both test defects corrected; affected modules rerun in 125 passing checks. Full suite not rerun."
+    }
+  },
+  "live_browser": {
+    "authenticated_session_preserved": true,
+    "academic_audit_and_major_source_read": true,
+    "profile_read": true,
+    "course_multiple_audit_grades_preserved": true,
+    "local_search_and_filter": true,
+    "timetable_and_two_exam_terms_read": true,
+    "exam_reverse_course_selection": true,
+    "enrollment_preview_and_same_term_association": true,
+    "desktop_visual_review": true,
+    "screenshot_storage": "private/data_presentation_20261025"
+  },
+  "boundaries": {
+    "backend_restarted": false,
+    "model_called": false,
+    "real_enrollment_submitted": false,
+    "committed": false,
+    "pushed": false,
+    "user_acceptance": "pending",
+    "unresolved_identity_rows": "kept separate; no name-only or old/new-code mapping"
+  }
+}

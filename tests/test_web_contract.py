@@ -64,7 +64,7 @@ let copied='';context.navigator={clipboard:{writeText:async text=>{copied=text;}
         self.run_js(r"""
 evaluate("state.auth={authenticated:true,identity:{student_id:'SYNTHETIC',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.schoolProfile={};state.agentDraft='未发送的需求'");
 let calls=0;context.fetch=()=>{calls++;throw Error('unexpected fetch');};
-for(const page of ['academic','timetable','exams','profile']){evaluate(`openWorkspacePage('${page}')`);assert.equal(evaluate('state.tab'),'school');assert.equal(evaluate('state.schoolOperation'),page);assert.match(element('#workspace-navigation').innerHTML,new RegExp('data-page="'+page+'" aria-current="page"'));}
+for(const page of ['academic','timetable']){evaluate(`openWorkspacePage('${page}')`);assert.equal(evaluate('state.tab'),'school');assert.equal(evaluate('state.schoolOperation'),page);assert.match(element('#workspace-navigation').innerHTML,new RegExp('data-page="'+page+'" aria-current="page"'));}
 evaluate("openWorkspacePage('plans')");assert.match(element('#panel-plans').innerHTML,/先聊聊你的选课目标/);assert.equal(evaluate('state.agentDraft'),'未发送的需求');assert.equal(calls,0);
 context.fixture={schema_version:'personal-course-data-test/1',mode:'current_term_course_data_test',reference_mode:'historical_course_observations',validation_scope:'observed_weekday_periods_conservative_overlap_policy',action:'generate',options:[{label:'A',credits:7,classes:[{course_name:'合成课'}]}]};
 evaluate("state.agentTurns=[{status:'completed',recommendation_result:fixture}];renderWorkspacePlans()");assert.match(element('#panel-plans').innerHTML,/合成课/);
@@ -626,12 +626,13 @@ element('#school-login-password').value='fresh-password';element('#school-login-
 """)
 
     def test_school_query_preserves_source_values_and_rejects_ambiguous_exam_term(self):
-        self.run_js("""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolOperation='academic'");
-element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';
-let sent;context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');assert.equal(options.headers['X-CSRF-Token'],'memory-only');sent=JSON.parse(options.body);return {ok:true,json:async()=>({operation:'academic',status:'partial',data_source:'live',coverage:'bounded',records:[{course_name_raw:'<unsafe>',grade_raw:'免修',nominal_credits:'2.5',earned_credits:null,completion_status:'unknown'}],issues:[{code:'unknown'}]})};};
-await evaluate('schoolSync()');assert.deepEqual(sent,{operation:'academic',target_term:'2026-2027-AW',force_refresh:true});const markup=element('#panel-school').innerHTML;assert.match(markup,/&lt;unsafe&gt;/);assert.match(markup,/免修/);assert.ok(markup.includes('<th scope="col">学分</th>'));assert.match(markup,/部分读取/);assert.doesNotMatch(markup,/<unsafe>/);
-element('#school-operation').value='exams';element('#school-year').value='2026-2027';element('#school-season').value='AW';sent=null;await evaluate('schoolSync()');assert.equal(sent,null);assert.match(element('#global-status').textContent,/请选择单独分学期/);
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+let sent;context.fetch=async(path,options)=>{sent=JSON.parse(options.body);return {ok:true,json:async()=>({...sent,status:'partial',records:[{course_name_raw:'<unsafe>',grade_raw:'免修',nominal_credits:'2.5'}]})};};
+await evaluate("schoolLoadPresentation('academic')");assert.equal(sent.target_term,'2026-2027-AW');const markup=element('#panel-school').innerHTML;assert.match(markup,/&lt;unsafe&gt;/);assert.match(markup,/免修/);assert.match(markup,/部分读取/);assert.doesNotMatch(markup,/<unsafe>/);
+sent=null;await evaluate("schoolLoadPresentation('exams')");assert.equal(sent,null);
+
 """)
 
     def test_late_school_query_or_401_cannot_publish_or_logout_another_owner(self):
@@ -642,14 +643,13 @@ const pending=evaluate('schoolSync()');evaluate("clearWorkspace();state.auth={au
 element('#school-operation').value='academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';const expired=evaluate('schoolSync()');evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SCHOOL-C',auth_mode:'school_client',security_realm:'personal_school_client'}}");release({ok:false,status:401,text:async()=>JSON.stringify({error:'old app session'})});await expired;assert.equal(evaluate('state.auth.authenticated'),true);assert.equal(evaluate('state.auth.identity.student_id'),'SCHOOL-C');
 """)
 
-    def test_major_grade_query_uses_all_history_and_disables_term_filters(self):
-        self.run_js("""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolOperation='major_academic';state.schoolYear='2026-2027';state.schoolSeason='AW';renderSchool()");
-const form=element('#panel-school').innerHTML;assert.match(form,/主修成绩不按学年或学期筛选，页面仅展示本次取得的记录/);assert.match(form,/<select id="school-year"[^>]*disabled/);assert.match(form,/<select id="school-season"[^>]*disabled/);
-element('#school-operation').value='major_academic';element('#school-year').value='2026-2027';element('#school-season').value='AW';let sent;
-context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');sent=JSON.parse(options.body);return {ok:true,json:async()=>({operation:'major_academic',target_term:'ALL-HISTORY',status:'complete_within_scope',data_source:'live',coverage:'all_history',records:[{course_name_raw:'HISTORY-FIXTURE',academic_year_raw:'2023-2024',grade_raw:'通过'}]})};};
-await evaluate('schoolSync()');assert.deepEqual(sent,{operation:'major_academic',target_term:'ALL-HISTORY',force_refresh:true});assert.match(element('#panel-school').innerHTML,/HISTORY-FIXTURE/);assert.equal(evaluate('state.schoolResult.records[0].academic_year_raw'),'2023-2024');assert.equal(evaluate('state.schoolYear'),'2026-2027');
-element('#school-operation').value='major_academic';element('#school-year').value='';element('#school-season').value='AW';sent=null;await evaluate('schoolSync()');assert.equal(sent.target_term,'ALL-HISTORY');
+    def test_major_grade_query_uses_all_history_without_changing_term(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+let sent;context.fetch=async(path,options)=>{sent=JSON.parse(options.body);return {ok:true,json:async()=>({...sent,status:'complete',records:[{course_name_raw:'HISTORY-FIXTURE',academic_year_raw:'2023-2024',grade_raw:'通过'}]})};};
+await evaluate("schoolLoadPresentation('major_academic')");assert.equal(sent.target_term,'ALL-HISTORY');assert.match(element('#panel-school').innerHTML,/HISTORY-FIXTURE/);assert.equal(evaluate("schoolView('major_academic','ALL-HISTORY').records[0].academic_year_raw"),'2023-2024');assert.equal(evaluate('state.schoolYear'),'2026-2027');assert.match(element('#panel-school').innerHTML,/补充主修记录/);
+
 """)
 
     def test_school_expiry_keeps_app_identity_and_prompts_same_owner_reauthentication(self):
@@ -689,7 +689,7 @@ assert.equal(evaluate('schoolCoverageText({coverage:{captured_rows:1,reported_to
 assert.equal(evaluate('schoolCoverageText({coverage:"unexpected-source-value"})'),'读取条数待确认 · 完整性待确认');
 assert.equal(evaluate('schoolCaptureTime(1791952661)'),evaluate("schoolCaptureTime('2026-10-14T04:37:41Z')"));assert.match(evaluate('schoolCaptureTime(1791952661)'), /2026.*10.*14.*12:37:41/);
 for(const value of [null,undefined,'not-a-date','',Infinity,{}]){context.captureValue=value;assert.equal(evaluate('schoolCaptureTime(captureValue)'),'待确认');}
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolResult={operation:'academic',status:'complete_within_scope',data_source:'live',captured_at:1791952661,coverage:{captured_rows:1,reported_total:1,pages_captured:1,complete_within_scope:true,has_more:false},records:[]};renderSchool()");const markup=element('#panel-school').innerHTML;assert.match(markup,/已完整读取当前查询范围/);assert.match(markup,/读取时间：2026/);assert.doesNotMatch(markup,/captured_rows|reported_total|1791952661|全校|所有课程已读取/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolResult={operation:'academic',status:'complete_within_scope',data_source:'live',captured_at:1791952661,coverage:{captured_rows:1,reported_total:1,pages_captured:1,complete_within_scope:true,has_more:false},records:[]};state.schoolViews={'academic:2026-2027-AW':{...state.schoolResult,target_term:'2026-2027-AW'}};renderSchool()");const markup=element('#panel-school').innerHTML;assert.match(markup,/已完整读取当前查询范围/);assert.match(markup,/读取时间：2026/);assert.doesNotMatch(markup,/captured_rows|reported_total|1791952661|全校|所有课程已读取/);
 """)
 
     def test_prelogin_badge_matches_enabled_school_and_mock_entrypoints(self):
@@ -705,7 +705,7 @@ evaluate("state.auth={authenticated:false,academic_login_enabled:true,school_cli
 assert.match(element('#auth-panel').innerHTML,/登录教务助手/);assert.doesNotMatch(element('#auth-panel').innerHTML,/登录模拟账号|profile-id/);
 evaluate("state.auth={authenticated:true,identity:{student_id:'SYN-FIXTURE',auth_mode:'synthetic_account',security_realm:'curriculum_synthetic_accounts'}};state.agentStatus={configured:true,available:true,data_kind:'synthetic',personal_data_use:{version:'test'}}");
 assert.equal(evaluate('isAcademicIdentity()'),true);assert.equal(evaluate('personalChatReady()'),true);assert.equal(evaluate('agentDataKind()'),'synthetic');
-evaluate("renderSchool()");assert.match(element('#panel-school').innerHTML,/按学期查看成绩/);assert.match(element('#panel-school').innerHTML,/查询资料/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
+evaluate("renderSchool()");assert.match(element('#panel-school').innerHTML,/课程记录/);assert.match(element('#panel-school').innerHTML,/当前模拟资料未提供毕业自审/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
 evaluate("state.agentStatus.data_kind='personal_source'");assert.equal(evaluate('personalChatReady()'),false);
 """)
 
@@ -725,7 +725,7 @@ element('#school-login-password').value='fixture-secret';context.fetch=async()=>
 
     def test_partial_timetable_and_ambiguous_plan_have_truthful_status_labels(self):
         self.run_js("""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='timetable';state.schoolResult={operation:'timetable',status:'partial_acquisition',data_source:'live',coverage:{captured_rows:3,reported_total:null,complete_within_scope:false,has_more:null},records:[{course_name_raw:'FIXTURE-1'},{course_name_raw:'FIXTURE-2'},{course_name_raw:'FIXTURE-3'}]};state.schoolPlan={status:'ambiguous_plan',missing_fields:[]};renderSchool()");
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='timetable';state.schoolResult={operation:'timetable',status:'partial_acquisition',data_source:'live',coverage:{captured_rows:3,reported_total:null,complete_within_scope:false,has_more:null},records:[{course_name_raw:'FIXTURE-1'},{course_name_raw:'FIXTURE-2'},{course_name_raw:'FIXTURE-3'}]};state.schoolPlan={status:'ambiguous_plan',missing_fields:[]};state.schoolYear='2026-2027';state.schoolSeason='AW';state.schoolViews={'timetable:2026-2027-AW':{...state.schoolResult,target_term:'2026-2027-AW'}};renderSchool()");
 const markup=element('#panel-school').innerHTML;assert.match(markup,/已读取，覆盖范围待确认/);assert.match(markup,/本次读取 3 条 · 完整性待确认/);assert.doesNotMatch(markup,/未完成或待确认|已完整读取当前查询范围/);evaluate("state.schoolOperation='profile';renderSchool()");assert.match(element('#panel-school').innerHTML,/方案匹配不唯一/);
 """)
 
@@ -740,15 +740,15 @@ assert.equal(evaluate('schoolMatchSeason("exams","SS")'),'S');assert.equal(evalu
 evaluate("state.schoolStatus={query_context:{cohort:null,cohort_state:'unknown'}};state.schoolProfile=null;state.schoolYear=schoolCurrentYear()");assert.equal(evaluate('schoolYearChoices().length'),1);
 """)
 
-    def test_school_grade_pagination_filter_does_not_fetch_unread_source(self):
+    def test_school_course_filter_does_not_fetch_unread_source(self):
         self.run_js(r"""
-context.records=Array.from({length:60},(_,index)=>({course_name_raw:`SYNTHETIC-${index}`,course_code_raw:index<2?'REPEATED-COURSE':`C-${index}`,grade_raw:'90',academic_year_raw:index<20?'2023-2024':'2024-2025',completion_status_raw:null}));
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='major_academic';state.schoolResult={operation:'major_academic',status:'partial_acquisition',data_source:'live',coverage:{captured_rows:60,reported_total:75,has_more:true,complete_within_scope:false},records};renderSchool()");
-let markup=element('#panel-school').innerHTML;assert.equal((markup.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g)||[]).length,15);assert.match(markup,/显示 1–15 条 \/ 60 条/);assert.match(markup,/还有未读取内容/);assert.equal(evaluate('state.schoolResult.records.length'),60);
-evaluate('state.schoolGradePage=4;renderSchool()');markup=element('#panel-school').innerHTML;assert.match(markup,/显示 46–60 条/);assert.match(markup,/SYNTHETIC-59/);assert.doesNotMatch(markup,/SYNTHETIC-0<\/td>/);
-evaluate("state.schoolGradeSearch='REPEATED-COURSE';state.schoolGradePage=1;renderSchool()");markup=element('#panel-school').innerHTML;assert.match(markup,/显示 1–2 条 \/ 2 条（已读取 60 条）/);assert.match(markup,/SYNTHETIC-0/);assert.match(markup,/SYNTHETIC-1/);assert.match(markup,/还有未读取内容/);
-evaluate("state.schoolGradeSearch='';state.schoolGradeYear='2023-2024';state.schoolGradePage=99;renderSchool()");assert.match(element('#panel-school').innerHTML,/显示 16–20 条 \/ 20 条/);assert.equal(evaluate('state.schoolGradePage'),2);
-evaluate('clearWorkspace()');assert.equal(evaluate('state.schoolGradeSearch'),'');assert.equal(evaluate('state.schoolGradeYear'),'');assert.equal(evaluate('state.schoolProfile'),null);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+context.records=Array.from({length:60},(_,i)=>({course_name_raw:`SYNTHETIC-${i}`,course_code_raw:i<2?'REPEATED':`C-${i}`,grade_raw:'90'}));
+evaluate("state.schoolViews={'major_academic:ALL-HISTORY':{operation:'major_academic',target_term:'ALL-HISTORY',status:'partial_acquisition',coverage:{captured_rows:60,has_more:true},records}};renderSchool()");assert.match(element('#panel-school').innerHTML,/60 个课程显示组/);assert.match(element('#panel-school').innerHTML,/还有未读取内容/);
+evaluate("state.schoolCourseQuery='REPEATED';renderSchool()");assert.match(element('#panel-school').innerHTML,/2 个课程显示组/);assert.match(element('#panel-school').innerHTML,/SYNTHETIC-0/);assert.match(element('#panel-school').innerHTML,/SYNTHETIC-1/);assert.equal(evaluate("schoolView('major_academic','ALL-HISTORY').records.length"),60);
+evaluate('clearWorkspace()');assert.equal(evaluate('Object.keys(state.schoolViews).length'),0);assert.equal(evaluate('state.schoolCourseQuery'),'');
+
 """)
 
     def test_school_grade_filter_preserves_safe_text_and_unknown_status(self):
@@ -780,7 +780,7 @@ assert.equal((markup.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g)||[]).le
         self.run_js(r"""
 context.result={operation:'exams',records:[{course_name_raw:'合成考试甲',final_exam_time_raw:'合成期末时间',final_exam_place_raw:null},{course_name_raw:'<img src=x onerror=bad()>',final_exam_place_raw:'合成期末地点'}]};
 const markup=evaluate('schoolRecordTable(result)');assert.match(markup,/合成期末时间/);assert.match(markup,/合成期末地点/);assert.match(markup,/来源未提供时间/);assert.match(markup,/来源未提供地点/);assert.doesNotMatch(markup,/期中|没有考试|无考试|<img/);assert.match(markup,/&lt;img/);
-context.result={operation:'exams',records:[{course_name_raw:'合成未知考试',final_exam_time_raw:null,final_exam_place_raw:''}]};const empty=evaluate('schoolRecordTable(result)');assert.match(empty,/合成未知考试/);assert.match(empty,/日期未明确/);assert.match(empty,/来源未提供考试时间与地点/);assert.doesNotMatch(empty,/无考试/);
+context.result={operation:'exams',records:[{course_name_raw:'合成未知考试',final_exam_time_raw:null,final_exam_place_raw:''}]};const empty=evaluate('schoolRecordTable(result)');assert.match(empty,/合成未知考试/);assert.match(empty,/日期未明确/);assert.match(empty,/来源未提供考试时间/);assert.match(empty,/来源未提供地点/);assert.doesNotMatch(empty,/无考试/);
 context.examRows=[{course_name_raw:'后期',final_exam_time_raw:'2026-11-02 14:00',midterm_exam_time_raw:'2026年10月26日 09:00'},{course_name_raw:'未知',final_exam_time_raw:'10月25日'},{course_name_raw:'冲突',final_exam_time_raw:'2026-10-25',field_states:{final_exam_time_raw:'conflicting'}}];
 const grouped=evaluate('schoolExamAgenda(examRows)');assert.ok(grouped.indexOf('<h3>2026-10-26')<grouped.indexOf('<h3>2026-11-02'));assert.ok(grouped.indexOf('<h3>2026-11-02')<grouped.indexOf('<h3>日期未明确'));assert.match(grouped,/期中考试/);assert.match(grouped,/期末考试/);assert.doesNotMatch(grouped,/2026-10-25/);
 for(const value of ['2026-02-30','10月25日','2026-10-25 至 2026-10-26']){context.dateValue=value;assert.equal(evaluate('schoolExamDate(dateValue)'),null);}
@@ -804,30 +804,30 @@ assert.doesNotMatch(markup,/修读状态缺少明确来源时保持待确认|来
 
     def test_timetable_sync_fetches_two_seasons_in_order_and_keeps_primary_result(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only'");
-for(const [season,expected] of [['AW',['A','W']],['SS',['S','SU']]]){
- element('#school-operation').value='timetable';element('#school-year').value='2025-2026';element('#school-season').value=season;const calls=[];
- context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');const body=JSON.parse(options.body);calls.push(body);assert.equal(body.force_refresh,true);if(body.operation==='exams')assert.equal(evaluate('state.schoolResult.operation'),'timetable');return {ok:true,json:async()=>({operation:body.operation,target_term:body.target_term,status:'complete_within_scope',data_source:'live',records:[{course_name_raw:'合成课程',course_code_raw:'SYNTHETIC-C',source_selection_id_raw:'SYNTHETIC-X',time_raw:body.operation==='timetable'?'周一第1节':undefined,final_exam_time_raw:body.operation==='exams'?`合成考试-${body.target_term}`:undefined,field_states:{source_selection_id_raw:'known'}}]})};};
- await evaluate('schoolSync()');assert.deepEqual(calls.map(body=>[body.operation,body.target_term]),[['timetable',`2025-2026-${season}`],...expected.map(value=>['exams',`2025-2026-${value}`])]);assert.equal(evaluate('state.schoolResult.operation'),'timetable');assert.equal(evaluate('state.schoolResult.records[0].time_raw'),'周一第1节');assert.equal(evaluate('state.schoolResult.records[0].related_exams.length'),2);assert.equal(evaluate('state.schoolResult.related_exam_sources.length'),2);assert.equal(evaluate('state.schoolBusy'),false);assert.match(element('#panel-school').innerHTML,/school-meeting-exam/);
-}
-evaluate('clearSchoolWorkspace()');assert.equal(evaluate('state.schoolResult'),null);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+evaluate("state.schoolOperation='timetable'");for(const season of ['AW','SS']){context.season=season;evaluate('state.schoolSeason=season');const calls=[];
+context.fetch=async(path,options)=>{const body=JSON.parse(options.body);calls.push(body);return {ok:true,json:async()=>({...body,status:'complete',records:[{course_name_raw:'合成课程',source_selection_id_raw:'X',field_states:{source_selection_id_raw:'known'},final_exam_time_raw:body.operation==='exams'?'合成考试':undefined}]})};};
+await evaluate("schoolLoadPresentation('arrangements')");assert.deepEqual(calls.map(x=>x.target_term),season==='AW'?['2026-2027-AW','2026-2027-A','2026-2027-W']:['2026-2027-SS','2026-2027-S','2026-2027-SU']);assert.equal(evaluate("schoolView('timetable','2026-2027-'+season).records.length"),1);assert.match(element('#panel-school').innerHTML,/本范围考试/);assert.match(element('#panel-school').innerHTML,/data-arrangement-key="0"/);}
+
 """)
 
     def test_related_exam_sync_rejects_response_scope_and_operation_mismatches(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}}");element('#school-operation').value='timetable';element('#school-year').value='2025-2026';element('#school-season').value='AW';let calls=0;
-context.fetch=async(path,options)=>{const body=JSON.parse(options.body);calls++;return {ok:true,json:async()=>({operation:calls===3?'academic':body.operation,target_term:calls===2?'2025-2026-W':body.target_term,status:'complete',records:[{course_name_raw:'合成同名课',source_selection_id_raw:'SYNTHETIC-X',final_exam_time_raw:'不合并错误范围',field_states:{source_selection_id_raw:'known'}}]})};};
-await evaluate('schoolSync()');assert.equal(calls,3);assert.equal(evaluate('state.schoolResult.records[0].related_exams.length'),0);assert.equal(evaluate('state.schoolResult.operation'),'timetable');assert.doesNotMatch(element('#panel-school').innerHTML,/不合并错误范围/);assert.match(element('#panel-school').innerHTML,/部分考试安排未同步/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+evaluate("state.schoolOperation='timetable'");let calls=0;context.fetch=async(path,options)=>{const b=JSON.parse(options.body);calls++;return {ok:true,json:async()=>({...b,operation:calls===3?'academic':b.operation,target_term:calls===2?'2026-2027-W':b.target_term,status:'complete',records:[{course_name_raw:calls===1?'主课表':'错误范围'}]})};};
+await evaluate("schoolLoadPresentation('arrangements')");assert.equal(calls,3);assert.equal(evaluate("schoolView('exams','2026-2027-A')"),null);assert.equal(evaluate("schoolView('exams','2026-2027-W')"),null);assert.match(element('#panel-school').innerHTML,/主课表/);assert.doesNotMatch(element('#panel-school').innerHTML,/错误范围/);assert.match(element('#panel-school').innerHTML,/本次更新未完成/);
+
 """)
 
-    def test_related_exam_source_failure_and_captcha_keep_timetable_without_claiming_none(self):
+    def test_related_exam_source_failure_keeps_timetable_without_claiming_none(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}}");
-for(const captcha of [false,true]){
- element('#school-operation').value='timetable';element('#school-year').value='2025-2026';element('#school-season').value='AW';const calls=[];
- context.fetch=async(path,options)=>{assert.equal(path,'/api/school/sync');const body=JSON.parse(options.body);calls.push(body);if(calls.length===2)return captcha?{ok:true,json:async()=>({operation:'exams',target_term:body.target_term,status:'captcha_required'})}:{ok:false,status:502,text:async()=>JSON.stringify({code:'source_unavailable',error:'private error must stay out of UI'})};return {ok:true,json:async()=>({operation:body.operation,target_term:body.target_term,status:'complete',records:[{course_name_raw:'合成主课表',source_selection_id_raw:'SYNTHETIC-X',final_exam_time_raw:body.operation==='exams'?'合成冬考试':undefined,field_states:{source_selection_id_raw:'known'}}]})};};
- await evaluate('schoolSync()');assert.equal(calls.length,captcha?2:3);assert.equal(evaluate('state.schoolResult.operation'),'timetable');assert.equal(evaluate('state.schoolNeedsCaptcha'),false);assert.equal(evaluate('state.schoolPending'),null);assert.equal(evaluate('state.schoolResult.records[0].related_exams.length'),captcha?0:1);const markup=element('#panel-school').innerHTML;assert.match(markup,/合成主课表/);assert.equal((markup.match(/部分考试安排未同步/g)||[]).length,1);assert.doesNotMatch(markup,/无考试|没有考试|private error|验证码图片/);
-}
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+evaluate("state.schoolOperation='timetable'");let calls=0;context.fetch=async(path,options)=>{const b=JSON.parse(options.body);calls++;if(calls===2)return {ok:false,status:502,text:async()=>JSON.stringify({code:'source_unavailable',error:'private diagnostic'})};return {ok:true,json:async()=>({...b,status:'complete',records:[{course_name_raw:'保留主课表'}]})};};
+await evaluate("schoolLoadPresentation('arrangements')");assert.equal(calls,3);assert.equal(evaluate("schoolView('timetable','2026-2027-AW').records.length"),1);const markup=element('#panel-school').innerHTML;assert.match(markup,/保留主课表/);assert.match(markup,/不能据此判断没有考试/);assert.match(markup,/本次更新未完成/);assert.doesNotMatch(markup,/private diagnostic/);
+
 """)
 
     def test_related_exam_auth_expiry_or_subject_change_clears_primary(self):
@@ -848,11 +848,12 @@ const pending=evaluate('schoolSync()');for(let index=0;index<10&&!release;index+
 
     def test_school_section_navigation_preserves_query_and_separates_plan(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='academic';state.schoolPlan={status:'acquired_pending_review',source_alias:'SYNTHETIC-PLAN'};renderSchool()");assert.doesNotMatch(element('#panel-school').innerHTML,/下载培养方案 PDF/);
-element('#school-year').value='2024-2025';element('#school-season').value='SS';evaluate("selectSchoolSection('exams')");assert.equal(evaluate('state.schoolYear'),'2024-2025');assert.equal(evaluate('state.schoolSeason'),'S');assert.doesNotMatch(element('#panel-school').innerHTML,/<option value="AW"/);
-element('#school-year').value='2024-2025';element('#school-season').value='SU';evaluate("selectSchoolSection('profile')");assert.match(element('#panel-school').innerHTML,/下载培养方案 PDF/);assert.match(element('#panel-school').innerHTML,/<select id="school-year"[^>]*disabled/);
-element('#school-year').value='2024-2025';element('#school-season').value='SS';evaluate("selectSchoolSection('academic')");assert.equal(evaluate('state.schoolYear'),'2024-2025');assert.equal(evaluate('state.schoolSeason'),'SS');
-evaluate('state.schoolReauth=true;renderSchool()');assert.match(element('#panel-school').innerHTML,/<h2>重新登录教务<\/h2>/);assert.doesNotMatch(element('#panel-school').innerHTML,/school-session|school-status|检查会话|会话有效/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
+
+evaluate("state.schoolPlan={status:'acquired_pending_review',source_alias:'SYNTHETIC-PLAN'};renderSchool()");assert.match(element('#panel-school').innerHTML,/<summary>本人资料与培养原文/);assert.match(element('#panel-school').innerHTML,/下载培养方案 PDF/);
+element('#school-year').value='2024-2025';element('#school-season').value='SS';evaluate("selectSchoolSection('timetable')");assert.equal(evaluate('state.schoolYear'),'2024-2025');assert.equal(evaluate('state.schoolSeason'),'SS');assert.doesNotMatch(element('#panel-school').innerHTML,/下载培养方案 PDF/);assert.match(element('#panel-school').innerHTML,/本范围考试/);
+evaluate("selectSchoolSection('academic')");assert.match(element('#panel-school').innerHTML,/下载培养方案 PDF/);evaluate('state.schoolReauth=true;renderSchool()');assert.match(element('#panel-school').innerHTML,/重新登录教务/);
+
 """)
 
     def test_source_field_evidence_distinguishes_projection_loss_and_cache(self):
