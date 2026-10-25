@@ -5,6 +5,25 @@ from course_assistant.course_plan_policy import compile_hard_constraints, author
 
 
 class CoursePlanPolicyTests(unittest.TestCase):
+    def test_clarification_preserves_explicit_count_credits_and_avoid_friday(self):
+        first = compile_hard_constraints("用本学期历史课程数据给我三门课的组合，至少6学分，尽量避开周五。", [])
+        self.assertEqual(first["engine_patch"], {"course_count": 3, "target_credits": "6", "friday_free": "soft"})
+        message = "从我培养方案的专业课中挑选候选，先看建议大三修的课，保留刚才的3门、至少6学分和尽量避开周五。仅做历史数据的条件测试。"
+        result = compile_hard_constraints(message, [], inherited_policy=first)
+        self.assertEqual(result["status"], "ready", result)
+        self.assertEqual(result["engine_patch"], first["engine_patch"])
+        proof = authorize_changes(message, {"friday_free": "soft"}, prior_constraints={"friday_free": "none"}, class_metadata={})
+        self.assertEqual(proof["status"], "ready")
+        conflict = compile_hard_constraints("保留刚才的2门、至少6学分和尽量避开周五。", [], inherited_policy=first)
+        self.assertIn("conflicting_course_count", str(conflict["unresolved"]))
+        for denied in ("如果尽量避开周五会怎样？", "不要尽量避开周五", "原文说尽量避开周五", "‘尽量避开周五’"):
+            compiled = compile_hard_constraints(denied, [])
+            self.assertNotEqual(compiled["engine_patch"].get("friday_free"), "soft", denied)
+            self.assertEqual(authorize_changes(denied, {"friday_free": "soft"}, prior_constraints={"friday_free": "none"}, class_metadata={})["status"], "needs_clarification", denied)
+        partial = compile_hard_constraints("尽量避开周五第6到8节", [])
+        self.assertNotIn("friday_free", partial["engine_patch"])
+        self.assertEqual(partial["soft_free_slots"], [{"weekday": 5, "periods": [6, 7, 8]}])
+
     def test_nested_course_name_does_not_create_false_lock_ambiguity(self):
         metadata = {
             "long": {"course_code": "SYN-L", "course_name": "应用合成统计", "option_positions": {"A": 1}},

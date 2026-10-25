@@ -55,6 +55,12 @@ def plan_reasoning_facts(plan, searches=()):
     minimum_returned = min(totals) if all(value is not None for value in totals) else None
     shared = (sorted(set.intersection(*(set(value) for value in classes_by_option.values())))
               if all(value is not None for value in classes_by_option.values()) else None)
+    friday_counts = [row["friday_meeting_count"] for row in rows]
+    friday_minimum = min(friday_counts)
+    friday_slots = [sorted({slot["slot"] for slot in row["friday_observed_slots"]})
+        if row["friday_observed_slots"] is not None else None for row in rows]
+    same_friday_slots = (all(value == friday_slots[0] for value in friday_slots)
+        if len(rows) > 1 and all(value is not None for value in friday_slots) else None)
     blocked = {}
     reason_labels = {
         "excluded_or_unknown_weekday_period": "星期或节次资料不完整",
@@ -81,12 +87,15 @@ def plan_reasoning_facts(plan, searches=()):
             "friday_occupied_labels": [row['label'] for row in options if row['friday_meeting_count'] > 0],
             "lowest_credit_labels": [row['label'] for row in options
                 if minimum_returned is not None and _number(row['total_credits']) == minimum_returned],
+            "fewest_friday_meeting_labels": [row["label"] for row in rows if row["friday_meeting_count"] == friday_minimum],
+            "all_same_friday_meeting_count": len(set(friday_counts)) == 1 if len(rows) > 1 else None,
+            "all_same_friday_observed_slots": same_friday_slots,
             "scope": "returned_options_only"},
         "pairwise_changes": differences, "candidate_screening": list(blocked.values())[:10],
         "candidate_screening_omitted": max(0, len(blocked) - 10),
         "duration_mapping_verified": False, "domain_relevance_ranked": False,
         "interpretation": {
             "credits": "minimum是最低要求，excess_above_minimum是方案超过最低要求的学分；不能据返回方案断言恰好达到最低值的组合不存在。",
-            "comparison": "pairwise_changes只比较本次返回方案；未返回的组合和候选不是已排除或不可行。",
+            "comparison": "pairwise_changes只比较本次返回方案；未返回的组合和候选不是已排除或不可行。all_same_friday_observed_slots为true时，周五具体节次相同，不能把少占周五当成某一方案独有优势；占用段数相同但具体节次不同则仍需看原节次。",
             "time": "只能描述weekday_period_text中的星期与节次，没有节次到时刻的映射；不称上午、下午、晚段、半天或课时。",
             "relevance": "选择理由限于实际课程名称、已引用培养原文和条件差异；课程内容、难度、已修完成或课程等价未知。"}}

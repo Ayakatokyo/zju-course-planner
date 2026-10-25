@@ -28,7 +28,7 @@ _REPORTED = re.compile(r"如果|假如|假设|要是|比如|例如|示例|引用
 _NEGATED_CHANGE = re.compile(r"(?:不要|别|不能|不得|不许|不想|不希望)(?:给我|帮我|去|再|把.{0,20})?(?:解除|解锁|取消|放宽|收紧|调整|变更|降低|调低|去掉|改|设为|设置为|解开|锁定|固定住|保留|排除|禁用)")
 _DENIED_INTENT = re.compile(r"不是|并非|(?:没有|没|未曾|从未)(?:说|要求|希望|打算|同意|授权|让|想)|不(?:需要|打算|准备|希望|想要|想|愿意|同意).*(?:解除|解锁|取消|放宽|收紧|调整|变更|改|设为|设置为|锁定|保留|排除)|不接受|不行")
 _NUMBER = r"(?:[0-9]+(?:\.[0-9]+)?|[一二三四五六七八九十百]+)"
-_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要)(" + _NUMBER + r"|两)门")
+_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|给我|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要)(" + _NUMBER + r"|两)门")
 _COURSE_COUNT_LITERAL = re.compile(r"(?:" + _NUMBER + r"|两)门(?:课程|课)?\Z")
 _PROCESS_ITEM = r"(?:来源|依据|证据|引用|未知项|未知部分|未确认项|未确认部分|未确认内容|未核实项|不确定项|不确定性|限制|边界|哪些(?:尚未|还未|没有|未)(?:确认|核实))"
 _PROCESS_ITEMS = _PROCESS_ITEM + r"(?:(?:以及|和|及|与|、)" + _PROCESS_ITEM + r")*"
@@ -231,6 +231,11 @@ def _parse_hard(text):
     if re.search(r"不(?:自动|执行|进行)?(?:选退课|选课操作|退课操作|保存|导出|发布|扩采)|不伪造|不补(?:造|演示)", normalized):
         return [{"text": text, "kind": "boundary", "value": "already_enforced"}]
     records = _course_count_records(text)
+    preserved_count = re.fullmatch(r"(?:保留|沿用|保持|维持)(?:刚才的?|原来的?|原有的?|现有的?)?(" + _NUMBER + r"|两)门(?:课程|课)?", normalized)
+    if not records and preserved_count:
+        # Restating a count is a constraint, not permission to change an
+        # inherited count. Keep both so conflicting preservation is rejected.
+        records = [{**record, "text": text} for record in _course_count_records("选" + preserved_count[1] + "门")]
     if not records and _COURSE_COUNT_LITERAL.fullmatch(normalized):
         # A conjunct such as '课程范围、3门课和至少6学分都保留'
         # restates the count. Retain inherited requirements so a different
@@ -298,7 +303,7 @@ def _soft_scope(text):
     # disappear just because it contains an empty-time word somewhere.
     if not re.fullmatch(r"(?:" + _SOFT_ADDITIVE + r"|请|麻烦|帮我|我希望|希望|让|使|的|改为|改成|调整为|设为|"
             r"尽量|最好|优先|不强求|不一定|不必|不用非得|没必要|保持|留出|留|整天|全天|都)*"
-            r"(?:空闲|没课|无课|留空|空|不要排课|别排课|不排课|不要有课|不上课)(?:一下|一点)?[。.!！]?", residual):
+            r"(?:空闲|没课|无课|留空|空|避开|不要排课|别排课|不排课|不要有课|不上课)(?:一下|一点)?[。.!！]?", residual):
         return None
     weekday = {c: i + 1 for i, c in enumerate("一二三四五六日")}.get(days[0][1])
     weekday = weekday if weekday is not None else 7 if days[0][1] == "天" else int(days[0][1])
@@ -720,6 +725,9 @@ def _friday_change_requested(clause, level):
             prefix = _FRIDAY + r"(?:的)?(?:要求|条件)?(?:仍然|依然|还是|仍)?(?:" + _LEVEL_CHANGE + r")?"
             patterns = [prefix + _FRIDAY_PREDICATES[level]]
             if level == "soft":
+                if (_soft_scope(part) == {"weekday": 5, "periods": None}
+                        and re.search(r"(?:尽量|最好|优先)避开" + _FRIDAY, text)):
+                    return True
                 patterns.append(r"(?:尽量|最好|优先)(?:让|使)?" + _FRIDAY + r"(?:保持|留出|留)?" + _EMPTY)
                 patterns.append(prefix + r"(?:尽量|最好|优先)(?:不要|别)(?:有课|上课|排课|安排课)")
             elif level == "hard":

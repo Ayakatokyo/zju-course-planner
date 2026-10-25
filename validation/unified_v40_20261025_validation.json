@@ -1,0 +1,171 @@
+{
+  "version": "v40_disk_policy_ui_live",
+  "date": "2026-10-25",
+  "runtime": {
+    "port": 18875,
+    "pid": 88093,
+    "backend_policy_patch_activated": false,
+    "table_ui_patch_observed": true,
+    "school_login_preserved": true,
+    "active_requests": 0
+  },
+  "real_runs": [
+    {
+      "status": "completed",
+      "generations": 2,
+      "repairs": 0,
+      "reads": {
+        "read_my_major_academic": 1,
+        "read_my_curriculum": 1
+      },
+      "tools": [
+        "query_my_records",
+        "search_my_curriculum"
+      ]
+    },
+    {
+      "status": "completed",
+      "generations": 3,
+      "repairs": 1,
+      "reads": {
+        "read_my_curriculum": 1
+      },
+      "tools": [
+        "search_my_curriculum"
+      ]
+    },
+    {
+      "status": "completed",
+      "generations": 3,
+      "repairs": 1,
+      "reads": {
+        "read_my_curriculum": 1
+      },
+      "tools": [
+        "search_my_curriculum"
+      ]
+    },
+    {
+      "status": "completed",
+      "generations": 2,
+      "repairs": 0,
+      "reads": {
+        "read_my_major_academic": 1,
+        "read_my_curriculum": 1
+      },
+      "tools": [
+        "query_my_records",
+        "search_my_curriculum"
+      ]
+    },
+    {
+      "status": "completed",
+      "generations": 4,
+      "repairs": 0,
+      "reads": {
+        "read_my_curriculum": 1
+      },
+      "tools": [
+        "check_recommendation_inputs",
+        "search_my_curriculum"
+      ]
+    },
+    {
+      "status": "completed",
+      "generations": 6,
+      "repairs": 0,
+      "reads": {
+        "read_my_curriculum": 1,
+        "read_my_major_academic": 1
+      },
+      "tools": [
+        "search_my_curriculum",
+        "search_my_curriculum",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "search_current_term_courses",
+        "generate_current_term_plan",
+        "generate_current_term_plan"
+      ]
+    }
+  ],
+  "source_audit": {
+    "school_source_pages": 2,
+    "school_source_rows": 104,
+    "grade_fields_preserved": {
+      "kcdm": true,
+      "kcmc": true,
+      "cj": true,
+      "xf": true,
+      "xn": true
+    },
+    "summary_matches_independent_raw_calculation": true,
+    "pdf_course_rows_checked": 18,
+    "pdf_names_credits_terms_match_independent_pdftotext": true,
+    "module_nominal_credits": "43.0",
+    "third_year_rows": 10,
+    "third_year_credits": "23.0",
+    "scope": "source field and fixed-page checks; not full academic applicability or recognition"
+  },
+  "recommendation_live_result": "clarification_then_blocked_before_computation",
+  "offline_failed_pool_replay": {
+    "option_count": 3,
+    "course_count": 3,
+    "target_credits": "6",
+    "max_credits": null,
+    "friday_free": "soft",
+    "live_school_validation": false
+  },
+  "tests": {
+    "final_full": {
+      "run": 1558,
+      "passed": 1551,
+      "skipped": 7,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 67.225
+    },
+    "related": {
+      "run": 269,
+      "passed": 269
+    },
+    "post_assertion_ui_policy": {
+      "run": 232,
+      "passed": 232
+    },
+    "initial_full": {
+      "run": 1558,
+      "passed": 1550,
+      "skipped": 7,
+      "failures": 1,
+      "reason": "legacy assertion expected raw markdown instead of preserved table cells"
+    }
+  },
+  "source_sha256": {
+    "course_assistant/course_plan_policy.py": "f0e76ae207a7c9aae9c15057819cc2f38fbc66e9e6a84f642655930051922a27",
+    "course_assistant/personal_course_plans.py": "fce4e43d4a180a0ac8fa86e614f69d67d60696f97c305b2b420838370ae9da25",
+    "course_assistant/personal_dialogue.py": "a4d4bee39dc1a4276d7bfd1b0ffc28f0495281e01a8da67a616e7fdb3dc50cd6",
+    "course_assistant/personal_evidence.py": "e0ea48f43aba36aa4d3ca9ced6dbcc9200651c86f9b00dbbad2da53110d25772",
+    "course_assistant/curriculum_facts.py": "7e13a8f57f2e8f5a59a5562acdea06455a57a59611d6ba9f634cad176c082fd1",
+    "course_assistant/scenario_data.py": "afc1f887f6101c360a6210f1e78cd3fa1640b3a9763ae32d0b9ab693df483e36",
+    "course_assistant/server.py": "ba9201328c6865c54e4f9973a3304795ee502f5d7671431597a6f57ea3966c59",
+    "web/app.js": "2b04b86f8a4ec75adf28e5a9ec850fa2d85eeb8abd42dd0d4b3e738c22736cd1",
+    "web/styles.css": "b83ea89bbb07b9d6254ae15de061fc146772ba4328b79611c2eb8775cfb9365a",
+    "tests/test_web_contract.py": "a7ffa8b4c9f1b57a759969116f16a98ac04a94442bdba2d3f54980eabc6bb2e1",
+    "tests/test_course_plan_policy.py": "45ce239a8453bec9b56dd34b07044f3741e6f263f0a53113d92e1b93356e89e5",
+    "tests/test_personal_course_plans.py": "fefb79a3f17584d180118cabf5214d768c5f281b752d7a5c288b15886f87e737",
+    "tests/test_personal_progress_web.py": "bc685685070e800b411f17e9528a5d91d0fcff3f0aaea7ca1626269109cd0eac"
+  },
+  "limitations": [
+    "backend_policy_patch_requires_activation",
+    "live_recommendation_followup_unverified",
+    "two_recovered_invalid_json_answers",
+    "full_semantics_and_formal_applicability_not_proven",
+    "user_acceptance_pending"
+  ],
+  "raw_personal_evidence": "private only",
+  "committed": false,
+  "pushed": false
+}

@@ -210,6 +210,26 @@ class CandidateReasoningTests(unittest.TestCase):
             sources=sources(), turn_identity=self.turn)
         return service, found, generated
 
+    def test_same_friday_slots_are_explicit_ties_not_unique_option_advantages(self):
+        _, _, generated = self.comparative_plan()
+        plan = deepcopy(generated["result"])
+        plan["options"] = [deepcopy(plan["options"][0]) for _ in range(3)]
+        for label, option in zip("ABC", plan["options"]):
+            option["label"] = label
+            option["friday_meeting_count"] = 1
+            for index, row in enumerate(option["classes"]):
+                row["weekday_period_text"] = ["周五第1、2节"] if index == 0 else ["周三第7、8节"]
+        summary = plan_reasoning_facts(plan)["returned_option_summary"]
+        self.assertEqual(summary["fewest_friday_meeting_labels"], ["A", "B", "C"])
+        self.assertTrue(summary["all_same_friday_meeting_count"])
+        self.assertTrue(summary["all_same_friday_observed_slots"])
+        plan["options"][2]["classes"][0]["weekday_period_text"] = ["周五第3、4、5节"]
+        summary = plan_reasoning_facts(plan)["returned_option_summary"]
+        self.assertTrue(summary["all_same_friday_meeting_count"])
+        self.assertFalse(summary["all_same_friday_observed_slots"])
+        plan["options"][2].pop("classes")
+        self.assertIsNone(plan_reasoning_facts(plan)["returned_option_summary"]["all_same_friday_observed_slots"])
+
     def test_pairwise_facts_separate_shared_courses_from_actual_replacements(self):
         _, _, generated = self.comparative_plan()
         original = deepcopy(generated)

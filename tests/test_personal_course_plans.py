@@ -40,6 +40,21 @@ class PersonalCoursePlanTests(unittest.TestCase):
     def search(self, turn=None):
         return self.service.execute(NAMES[0], {"query": "Synthetic", "target_term": CURRENT_TERM}, turn_identity=self.turn if turn is None else turn)
 
+    def test_initial_clarification_with_avoid_friday_reaches_solver_once(self):
+        self.search()
+        context = {"user_message": "从我培养方案的专业课中挑选候选，先看建议大三修的课，保留刚才的3门、至少6学分和尽量避开周五。仅做历史数据的条件测试。",
+            "hard_preferences": [], "active_plan_ref": None}
+        result = self.service.execute(NAMES[1], {"recommendation_kind": "courses", "target_term": CURRENT_TERM,
+            "course_codes": ["SYN-A", "SYN-B", "SYN-C"], "target_credits": 3, "max_credits": 12, "friday_free": "soft"},
+            sources=sources(), turn_identity=self.turn, policy_context=context, enforce_policy=True)["result"]
+        self.assertIsNone(result["reason"])
+        self.assertTrue(result["options"])
+        self.assertEqual(result["constraints"]["course_count"], 3)
+        self.assertEqual(result["constraints"]["target_credits"], "6")
+        self.assertIsNone(result["constraints"]["max_credits"])
+        self.assertEqual(result["constraints"]["friday_free"], "soft")
+        self.assertTrue(all(len(option["classes"]) == 3 for option in result["options"]))
+
     def test_human_course_count_reaches_solver_projection_inspect_and_revision(self):
         self.search()
         context = {"user_message": "选3门课程，至少6学分，周五尽量空", "hard_preferences": [], "active_plan_ref": None}
