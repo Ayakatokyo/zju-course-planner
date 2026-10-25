@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-25",
+  "code_commit": "fb1ba61",
+  "restart": {
+    "app_pid": 18509,
+    "app_http_status": 200,
+    "qdrant_http_status": 200,
+    "previous_pids": [
+      11360,
+      16982
+    ],
+    "initial_attempt": "old WAL lock not released; retried after old process exit",
+    "school_relogin_required": true
+  },
+  "login_prepare": {
+    "cache_hits": 157,
+    "missing": 1,
+    "encoded_count": 0,
+    "write_allowed": false
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "status": "completed",
+      "duration_ms": 5748,
+      "model_calls": 2,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum"
+      ],
+      "retrieval": [
+        {
+          "mode": "hybrid_rrf_local_embedding",
+          "semantic": {
+            "status": "available",
+            "reason": null,
+            "dense_used": true,
+            "ranking_version": "rrf60-dual-quota-v2",
+            "candidate_count": 156,
+            "encoded_count": 1,
+            "token_truncated_count": 1
+          }
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "status": "completed",
+      "duration_ms": 7029,
+      "model_calls": 2,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum"
+      ],
+      "retrieval": [
+        {
+          "mode": "module_course_listing",
+          "semantic": null
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "status": "completed",
+      "duration_ms": 8445,
+      "model_calls": 3,
+      "tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "read_my_curriculum",
+        "lookup_academic_terms"
+      ],
+      "retrieval": [
+        {
+          "mode": "module_course_listing",
+          "semantic": null
+        }
+      ]
+    }
+  ],
+  "collections_after": {
+    "curriculum_55bdb10b2095d4b54f3d75f6": {
+      "points": 176915,
+      "status": "green"
+    },
+    "curriculum_embeddings_0a536de7fd7373cd4d1d9736": {
+      "points": 43089,
+      "status": "green"
+    }
+  },
+  "source_content_checked": true,
+  "pdf_navigation": "page=5&view=FitH,693",
+  "pdf_viewport_visual_acceptance": false
+}
