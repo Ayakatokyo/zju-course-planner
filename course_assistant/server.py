@@ -68,6 +68,10 @@ class Application:
         shared_model = model if model is not None else ModelClient()
         from .personal_chat import PersonalChatService
         self.personal_chat = PersonalChatService(self, shared_model)
+        self.curriculum_preparation = None
+        if os.environ.get('COURSE_QDRANT_URL') and os.environ.get('COURSE_LOGIN_PREPARE') == 'true':
+            from .curriculum_preparation import CurriculumPreparation
+            self.curriculum_preparation = CurriculumPreparation(self.auth, self.academic_provider)
         if mock_enabled:
             self._initialize_demo(shared_model, recommendation_demo, recommendation_case)
 
@@ -111,6 +115,8 @@ class Application:
             status.update(authenticated=True, identity=context.identity(), csrf_token=self.auth.csrf(context))
             if is_academic_context(context):
                 status['personal_data_source_status'] = self.academic_provider(context).status(context)['personal_data_source_status']
+                if self.curriculum_preparation:
+                    status['curriculum_preparation'] = self.curriculum_preparation.status(context)
         return status
 
     def require_school(self):
@@ -131,10 +137,16 @@ class Application:
             result = self.scenarios.login(body, previous_token)
             if self.school:
                 self.school.discard_revoked_sessions()
-            return result
-        return self.require_school().login(body, previous_token)
+        else:
+            result = self.require_school().login(body, previous_token)
+        token, response = result
+        if token and self.curriculum_preparation:
+            response = {**response, 'curriculum_preparation': self.curriculum_preparation.enqueue(self.auth.authenticate(token))}
+        return token, response
 
     def close(self):
+        if self.curriculum_preparation:
+            self.curriculum_preparation.close()
         self.personal_chat.drafts.close()
         if self.school:
             self.school.close()

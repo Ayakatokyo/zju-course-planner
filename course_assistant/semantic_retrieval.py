@@ -133,6 +133,10 @@ class LocalSemanticRetriever:
     @classmethod
     def from_environment(cls, environ=None):
         environ = os.environ if environ is None else environ
+        if environ.get("COURSE_QDRANT_URL"):
+            from .persistent_semantics import PersistentSemanticRetriever
+            return PersistentSemanticRetriever(environ.get("COURSE_SEMANTIC_ENCODER_MANIFEST"),
+                python_path=environ.get("COURSE_SEMANTIC_PYTHON"), url=environ["COURSE_QDRANT_URL"])
         return cls(environ.get("COURSE_SEMANTIC_ENCODER_MANIFEST"),
                    python_path=environ.get("COURSE_SEMANTIC_PYTHON"))
 

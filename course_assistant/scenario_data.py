@@ -144,11 +144,17 @@ class ScenarioDataService:
                 if sha256(path.read_bytes()).hexdigest() != plan['pdf_sha256']:
                     raise AccessError('培养来源版本已变化', 409, 'personal_input_changed')
                 return {'source_alias': alias, 'sha256': plan['pdf_sha256']}
-            evidence = PersonalEvidenceService(self.root / 'evidence', authorize, lambda _: path.read_bytes(), describe, self.extractor)
+            evidence = PersonalEvidenceService(self.root / 'evidence', authorize, lambda _: path.read_bytes(), describe, self.extractor, cohort=student['cohort'])
             value = {'observations': observations, 'snapshots': snapshots, 'results': results,
                      'evidence': evidence, 'alias': alias, 'path': path}
             self.services[context.session_ref] = value
             return value
+
+    def prepare_curriculum(self, context):
+        self._authorize(context)
+        services = self._services(context)
+        services['evidence'].prepare(services['alias'])
+        return services['evidence'].prepare_vectors()
 
     def personal_chat_tool(self, context, name, args):
         self._authorize(context)

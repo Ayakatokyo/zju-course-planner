@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-25",
+  "qdrant_version": "1.15.1",
+  "corpus_vectors": 176915,
+  "cache_vectors": 43089,
+  "covered_cohorts_read_only": [
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "other_trusted_cohorts": "missing_only",
+  "unknown_cohort_writes": false,
+  "main_retrieval": "authorized_candidate_vector_cache_with_existing_RRF",
+  "admin_retrieval": "qdrant_server_knn",
+  "full_tests": {
+    "run": 1548,
+    "passed": 1537,
+    "skipped": 11,
+    "failed": 0
+  },
+  "optional_vector_tests_passed": 4,
+  "active_main_http_synthetic_check": {
+    "passed": true,
+    "login_seconds": 0.0205,
+    "encoded_during_prepare": 0,
+    "cache_count_unchanged": true
+  },
+  "isolated_2027_two_logins": {
+    "pdf_extractions": 1,
+    "second_login_encoded": 0
+  },
+  "real_school_login_trigger_verified": false,
+  "generative_model_called": false,
+  "public_deployment": false,
+  "committed": false,
+  "pushed": false,
+  "initial_startup_probe": "connection_refused_before_listen; retry_passed"
+}

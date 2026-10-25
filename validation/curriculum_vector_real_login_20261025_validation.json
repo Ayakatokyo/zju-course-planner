@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-25",
+  "source": "real_school_login_and_main_ui",
+  "login_authenticated": true,
+  "login_preparation": {
+    "status": "existing_corpus_missing_vectors",
+    "persistent_cache_hits": 157,
+    "missing_vectors": 1,
+    "encoded_count": 0,
+    "write_allowed": false,
+    "vector_backend": "qdrant_server"
+  },
+  "query": "毕业论文（设计）需要多少学分及依据页码",
+  "answer_credits": 8,
+  "answer_pdf_page": 5,
+  "duration_ms": 6465,
+  "dense_used": true,
+  "retrieval_encoded_count": 1,
+  "model": "deepseek-flash",
+  "model_requests": 2,
+  "source_read": "read_my_curriculum",
+  "grades_or_schedule_queried": false,
+  "collection_counts_after": {
+    "curriculum_embeddings_0a536de7fd7373cd4d1d9736": 43089,
+    "curriculum_55bdb10b2095d4b54f3d75f6": 176915
+  },
+  "counts_unchanged": true,
+  "scope": "one_real_curriculum_question_not_full_semantic_acceptance"
+}

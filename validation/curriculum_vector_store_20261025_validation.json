@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-25",
+  "implementation": "local_qdrant_persistent_curriculum_corpus",
+  "documents_by_cohort": {
+    "2025": 152,
+    "2024": 152,
+    "2023": 138,
+    "2026": 162
+  },
+  "documents": 604,
+  "vector_points": 176915,
+  "dimension": 512,
+  "page_methods": {
+    "native_layout": 6479,
+    "ocr_status:not_needed": 6477,
+    "local_ocr": 538,
+    "ocr_status:completed": 538,
+    "pages_needing_review": 540,
+    "ocr_status:no_text_detected": 2,
+    "empty_text_pages": 2
+  },
+  "empty_page_visual_review": "two_watermark_only_pages",
+  "ocr_resource_limit_remaining": 0,
+  "reimport_encoded_count": 0,
+  "fresh_process_retrieval_cases": 8,
+  "fresh_process_retrieval_passed": 8,
+  "missing_scope_empty": true,
+  "tests": {
+    "run": 29,
+    "passed": 25,
+    "skipped": 4
+  },
+  "source_quality_verified": false,
+  "online_application_connected": false,
+  "server_restarted": false,
+  "remote_model_calls": 0,
+  "school_requests": 0,
+  "qdrant_mode": "local_single_process",
+  "qdrant_scale_warning": "exceeds_local_recommended_20000_points; server_mode_required_for_production_multi_process",
+  "git_committed": false
+}

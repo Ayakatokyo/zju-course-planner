@@ -536,9 +536,24 @@ class SchoolAccountService:
         store = PersonalObservationStore(directory / "observations", authorize)
         evidence = PersonalEvidenceService(directory / "evidence", authorize,
             lambda alias: self.read_plan_document(context, alias), describe_document,
-            extractor=self.personal_pdf_extractor)
+            extractor=self.personal_pdf_extractor,
+            cohort=parse_payload("profile", connection.profile)["records"][0].get("cohort"))
         connection.personal, connection.personal_epoch = (store, evidence), epoch
         return connection.personal
+
+    def prepare_curriculum(self, context):
+        connection = self._connection(context)
+        profile = parse_payload("profile", connection.profile)["records"][0]
+        if profile.get('field_states',{}).get('cohort') != 'known':
+            return {'status':'unknown_cohort'}
+        acquired = self.acquire_plan(context)
+        if acquired.get('status') != 'acquired_pending_review':
+            return {'status': 'source_not_ready'}
+        connection = self._connection(context)
+        with connection.lock:
+            _, evidence = self._personal_services(context, connection)
+        evidence.prepare(acquired['source_alias'])
+        return evidence.prepare_vectors()
 
     def local_chat_status(self, context):
         connection = self._connection(context)

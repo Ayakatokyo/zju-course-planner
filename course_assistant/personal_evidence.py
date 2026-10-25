@@ -492,12 +492,17 @@ def _chunks(pages):
 class PersonalEvidenceService:
     """A private registry bound to the current callback authorization generation."""
 
-    def __init__(self, root, authorize, read_document, describe_document, extractor=None):
+    def __init__(self, root, authorize, read_document, describe_document, extractor=None, *, cohort=None):
         if not all(callable(fn) for fn in (authorize, read_document, describe_document)) or (extractor is not None and not callable(extractor)):
             _fail("invalid_arguments")
         self._authorize_callback, self._read_callback = authorize, read_document
         self._describe_callback, self._extractor = describe_document, extractor or _extract_document
         self._semantic_retriever = LocalSemanticRetriever.from_environment()
+        # Cohort is supplied only by the authenticated source provider.
+        known = str(cohort).isdigit() and len(str(cohort)) == 4
+        self._increment_allowed = known and int(cohort) not in {2023, 2024, 2025, 2026}
+        if hasattr(self._semantic_retriever, 'allow_write'):
+            self._semantic_retriever.allow_write = self._increment_allowed
         self._extraction_version = EXTRACTION if extractor is None else "injected-page-extractor-v2"
         self.root = Path(root).expanduser().absolute()
         if self.root.resolve() != self.root:
@@ -708,6 +713,20 @@ class PersonalEvidenceService:
         self._current(key, document)
         return self._summary(key, document, state, stale=stale)
 
+    def _extraction_cache(self, key, document):
+        corpus = os.environ.get('COURSE_CURRICULUM_CORPUS')
+        if not corpus or not self._increment_allowed:
+            return None, None
+        from .curriculum_extraction_cache import ExtractionCache
+        receipt = self._authorize_callback()
+        self._current(key, document)
+        # School/scenario providers supply stable owner+realm; test callbacks
+        # without them remain confined to their authorization generation.
+        identity = ([receipt['security_realm'], receipt['owner_student_id']]
+                    if receipt.get('security_realm') and receipt.get('owner_student_id') else [key])
+        cache_key = _digest([identity, document['sha256'], self._extraction_version, CHUNKING])
+        return ExtractionCache(corpus), cache_key
+
     @_safe_storage
     def prepare(self, source_alias):
         key, document = self._authorize(), self._document()
@@ -721,8 +740,34 @@ class PersonalEvidenceService:
                 state, _ = self._load(key, document)
                 self._current(key, document)
                 return {**self._summary(key, document, state), "reused": True}
+        extraction_cache, extraction_key = self._extraction_cache(key, document)
         try:
-            pages = _pages(self._extractor(body))
+            pages = None
+            if extraction_cache is not None:
+                cached = extraction_cache.read(extraction_key)
+                if cached is not None:
+                    admitted = _pages(cached['pages'])
+                    if _chunks(admitted) == cached['chunks']:
+                        pages = admitted
+            corpus = os.environ.get('COURSE_CURRICULUM_CORPUS')
+            if pages is None and corpus and self._extraction_version == EXTRACTION:
+                # Exact source bytes only; a major/cohort match is not authority.
+                import sqlite3
+                try:
+                    cache = sqlite3.connect(Path(corpus).resolve().as_uri()+'?mode=ro', uri=True)
+                    try:
+                        cached = cache.execute("SELECT bundle FROM documents WHERE ready=1 AND json_extract(metadata,'$.sha256')=?", (document['sha256'],)).fetchone()
+                    finally:
+                        cache.close()
+                    if cached:
+                        value = json.loads(cached[0])
+                        admitted = _pages(value['pages'])
+                        if _chunks(admitted) == value['chunks']:
+                            pages = admitted
+                except (OSError, ValueError, KeyError, sqlite3.Error):
+                    pages = None
+            if pages is None:
+                pages = _pages(self._extractor(body))
         except PersonalEvidenceError:
             raise
         except Exception:
@@ -759,7 +804,22 @@ class PersonalEvidenceService:
             finally:
                 temporary.unlink(missing_ok=True)
         self._current(key, document)
+        if extraction_cache is not None:
+            extraction_cache.write(extraction_key, {'pages': pages, 'chunks': chunks},
+                                   lambda: self._current(key, document))
         return {**self._summary(key, document, state), "reused": False}
+
+    def prepare_vectors(self):
+        key, document = self._authorize(), self._document()
+        with self._locked():
+            _, bundle = self._load(key, document)
+        self._source(key, document)
+        warm = getattr(self._semantic_retriever, 'warm', None)
+        if warm is None:
+            return {'status': 'not_configured'}
+        result = warm([r['model_text'] for r in bundle['chunks']], lambda: self._current(key, document))
+        self._source(key, document)
+        return result
 
     def _reference(self, key, state, chunk):
         payload = {"authorization_scope": key, "corpus_version": state["index_id"], "chunk_id": chunk["chunk_id"], "purpose": PURPOSE}
@@ -914,11 +974,15 @@ class PersonalEvidenceService:
                     "scope": "parsed_rows_only_not_verified_pdf_completeness"}}
         semantic = {"status": "not_used", "reason": "exact_course_code_route", "dense_used": False}
         if not codes:
-            retrieval = self._semantic_retriever.rank(query, candidates, limit)
+            rank_authorized = getattr(self._semantic_retriever, 'rank_authorized', None)
+            retrieval = (rank_authorized(query, candidates, limit, lambda: self._current(key, document))
+                         if rank_authorized else self._semantic_retriever.rank(query, candidates, limit))
             semantic = {name: retrieval[name] for name in (
                 "status", "reason", "dense_used", "candidate_count", "encoded_count",
                 "candidate_truncated_count", "text_truncated_count", "token_truncated_count",
                 "ranking_version", "dense_reserved_count")}
+            semantic["vector_backend"] = retrieval.get("vector_backend", "local_encoder")
+            semantic["persistent_cache_hits"] = retrieval.get("persistent_cache_hits", 0)
             semantic["cache_hit"] = retrieval.get("cache_hit", False)
             semantic["document_cache_hit"] = retrieval.get("document_cache_hit", False)
             semantic["query_encoded_count"] = retrieval.get("query_encoded_count", 0)
