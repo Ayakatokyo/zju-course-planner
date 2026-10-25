@@ -585,9 +585,9 @@ class SchoolAccountService:
                 result = store.query(body)
             elif path == "/api/evidence/prepare" and set(body) == {"source_alias"}:
                 result = evidence.prepare(body["source_alias"])
-            elif (path == "/api/evidence/search" and set(body) <= {"query", "limit"} and "query" in body
+            elif (path == "/api/evidence/search" and set(body) <= {"query", "limit", "mode", "offset"} and "query" in body
                   and type(body.get("limit", 5)) is int and 1 <= body.get("limit", 5) <= 5):
-                result = evidence.search(body["query"], limit=body.get("limit", 5))
+                result = evidence.search(body["query"], limit=body.get("limit", 5), mode=body.get("mode", "search"), offset=body.get("offset", 0))
             elif path == "/api/evidence/resolve" and set(body) == {"reference"}:
                 result = evidence.resolve(body["reference"])
             else:
@@ -962,7 +962,7 @@ class SchoolAccountService:
                     return unavailable(operation, term, "fresh_receipt_mismatch")
                 result["freshness"] = "fetched_in_current_turn"
             elif name == "search_my_curriculum":
-                if set(args) - {"query", "limit"} or "query" not in args:
+                if set(args) - {"query", "limit", "mode", "offset"} or "query" not in args:
                     _error("invalid_school_request")
                 matching = [receipt for receipt in receipts if receipt.get("operation") == "curriculum"]
                 receipt = matching[-1] if matching else read("curriculum", None)

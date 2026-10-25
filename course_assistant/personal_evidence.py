@@ -32,10 +32,12 @@ import unicodedata
 
 from .reference_retrieval import terms
 from .semantic_retrieval import LocalSemanticRetriever
+from .curriculum_pdf import extract_document, extraction_summary, quality
+from .curriculum_facts import summarize_course_rows
 
 SCHEMA = "personal-evidence/1"
-CHUNKING = "curriculum-semantic-source-spans-v3"
-EXTRACTION = "pdftotext-layout-utf8-source-spans-v2"
+CHUNKING = "curriculum-semantic-source-spans-v5"
+EXTRACTION = "pdftotext-bbox-selective-ocr-v4"
 CLEANING = "conservative-watermark-lines-v1"
 PURPOSE = "personal_curriculum_local_reference"
 MAX_PDF_BYTES = 10 * 1024 * 1024
@@ -127,7 +129,7 @@ def _pdf(body):
     return body
 
 
-def _extract_pdf(body):
+def _extract_pdf(body, *, bbox=False):
     executable = shutil.which("pdftotext")
     if not executable:
         _fail("extractor_unavailable")
@@ -135,7 +137,8 @@ def _extract_pdf(body):
     selector = selectors.DefaultSelector()
     output = bytearray()
     try:
-        process = subprocess.Popen([executable, "-layout", "-enc", "UTF-8", "-", "-"],
+        flags = ["-bbox-layout", "-nodiag"] if bbox else ["-layout"]
+        process = subprocess.Popen([executable, *flags, "-enc", "UTF-8", "-", "-"],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, shell=False)
         for stream, events in ((process.stdin, selectors.EVENT_WRITE), (process.stdout, selectors.EVENT_READ)):
             os.set_blocking(stream.fileno(), False)
@@ -167,10 +170,12 @@ def _extract_pdf(body):
                         stream.close()
                     else:
                         output.extend(part)
-                        if len(output) > MAX_TEXT_BYTES:
+                        if len(output) > MAX_TEXT_BYTES * (4 if bbox else 1):
                             _fail("extraction_limit_exceeded")
         if process.wait(timeout=max(0.01, deadline - time.monotonic())) != 0:
             _fail("extraction_failed")
+        if bbox:
+            return output.decode("utf-8")
         pages = output.decode("utf-8").split("\f")
         if len(pages) > 1 and pages[-1] == "":
             pages.pop()  # pdftotext emits one terminal form-feed, not a new page.
@@ -194,11 +199,17 @@ def _extract_pdf(body):
                     stream.close()
 
 
+def _extract_document(body):
+    raw = _extract_pdf(body)
+    return extract_document(body, raw, _extract_pdf(body, bbox=True))
+
+
 def _pages(values):
     if not isinstance(values, list) or not values or len(values) > MAX_PAGES:
         _fail("extraction_failed")
     result, total = [], 0
-    for number, text in enumerate(values, 1):
+    for number, value in enumerate(values, 1):
+        text = value.get("text") if isinstance(value, dict) else value
         if (not isinstance(text, str) or len(text) > MAX_PAGE_CHARS or "\x00" in text or "\f" in text):
             _fail("extraction_failed")
         try:
@@ -208,7 +219,12 @@ def _pages(values):
         total += len(raw)
         if total > MAX_TEXT_BYTES:
             _fail("extraction_limit_exceeded")
-        result.append({"page": number, "text": text, "page_text_sha256": sha256(raw).hexdigest()})
+        row = {"page": number, "text": text, "page_text_sha256": sha256(raw).hexdigest()}
+        if isinstance(value, dict):
+            for name in ("raw_text", "width", "height", "word_spans", "extraction_method", "text_quality", "ocr_status", "ocr_reason", "diagonal_text_excluded"):
+                if name in value:
+                    row[name] = deepcopy(value[name])
+        result.append(row)
     if not any(row["text"].strip() for row in result):
         _fail("no_extractable_text")
     return result
@@ -276,20 +292,28 @@ def _heading(text):
         return None
     if re.search(r"培养方案[：:]?$", compact) and not re.match(r"\d+[.、．]", compact):
         return (0, compact, "source_title")
-    match = re.match(r"^(?:(\d+)[.、．]|[（(](\d+)[)）]|(\d+)[)）]|([一二三四五六七八九十]+)[、.])", compact)
+    # An explicit subtable introduction inherits the enclosing elective module.
+    if re.fullmatch(r"以下为核心选修课程[，,]要求\d+(?:\.\d+)?学分[。.]?", compact):
+        return (99, "核心选修课程", "module_requirement")
+    match = re.match(r"^(?:(\d+)[.、．]|[（(]([一二三四五六七八九十\d]+)[)）]|(\d+)[)）]|([一二三四五六七八九十]+)[、.])", compact)
     numbered = bool(match)
     label = compact[match.end():] if match else compact
     # A numbered course choice is a condition, not a new curriculum module.
-    topic = re.match(r"(?:专业(?:模块|基础|必修|选修)?(?:课程|课)?|通识(?:选修)?(?:课程|类)?|"
+    topic = re.match(r"(?:核心选修课程|(?:本专业进阶|跨专业学习|学生自主修读)模块|其他必修环节|专业(?:模块|基础|必修|选修)?(?:课程|课)?|通识(?:必修|选修)?(?:课程|类)?|"
         r"(?:创新创业|自然科学通识|外语|计算机|军体|思政|美育|劳育)(?:课程|类)?|"
         r"个性修读课程|实践教学环节|毕业论文(?:[（(]设计[)）])?|第二课堂|第三课堂|第四课堂|"
         r"培养目标|毕业要求|课程设置与学分分布|(?:必修|选修)课程)", label)
+    # Standalone direction labels are headings; a sentence listing courses for
+    # a direction remains a condition of the enclosing module.
+    direction = re.fullmatch(r"[\u3400-\u9fffA-Za-z]{2,24}方向", label)
+    if direction:
+        return (4, label, "module_requirement")
     if not topic or (not numbered and not ("学分" in label or label in {"培养目标", "毕业要求", "课程设置与学分分布"})):
         return None
     label = re.split(r"[，,:：；;]|(?:至少|不低于|不少于)?\d+(?:\.\d+)?(?:学分|门)", label, maxsplit=1)[0]
     if not label:
         return None
-    depth = (1 if match and (match[1] or match[4]) else 2 if match and match[2] else 3) if match else 2
+    depth = (1 if match[4] else 2 if match[1] else 3 if match[2] else 4) if match else 2
     return depth, label, "module_requirement"
 
 
@@ -339,6 +363,13 @@ def _chunks(pages):
                     "module_title": labels[-1] if labels else None, "module_path": labels,
                     "course_codes": sorted(_codes(model_text)), "table_header_ordinal": current_header,
                     "required_context_pages": list(range(max(1, page["page"] - 1), min(len(pages), page["page"] + 1) + 1))}
+                if role == "course_row":
+                    cells = re.split(r"\s{2,}", raw.strip())
+                    name = cells[1] if len(cells) >= 2 and _codes(cells[0]) else None
+                    if name is None:
+                        matched = re.match(r"\S+\s+(.+?)(?:\s+\d+(?:\.\d+)?(?:\s|$)|$)", model_text)
+                        name = matched[1] if matched else None
+                    row["course_name"] = name
                 indices.append(len(chunks))
                 chunks.append(row)
                 if len(chunks) > MAX_CHUNKS:
@@ -380,6 +411,8 @@ def _chunks(pages):
                         current_header = None
                     add(page, left, right, role, [])
                     continue
+                if depth == 99:
+                    depth = stack[-1][0] + 1 if stack else 2
                 while stack and stack[-1][0] >= depth:
                     stack.pop()
                 key = "module-" + str(len(modules))
@@ -405,6 +438,25 @@ def _chunks(pages):
                 buffer_start, buffer_role = left, role
             buffer_end = right
         flush()
+
+    # A module listing uses bounded, source-contiguous groups, rather than
+    # pretending the five most similar individual rows are a complete catalogue.
+    groups, current = [], []
+    for row in list(chunks):
+        compatible = current and row["semantic_role"] == "course_row" and row["page"] == current[0]["page"] and row["module_keys"] == current[0]["module_keys"]
+        if current and (not compatible or len(current) == 4):
+            groups.append(current)
+            current = []
+        if row["semantic_role"] == "course_row":
+            current.append(row)
+    if current:
+        groups.append(current)
+    for group in groups:
+        first, last = group[0], group[-1]
+        indices = add(pages[first["page"] - 1], first["locator"]["char_start"], last["locator"]["char_end"],
+                      "course_group", first["module_keys"])
+        for ordinal in indices:
+            chunks[ordinal]["table_header_ordinal"] = first["table_header_ordinal"]
 
     # IDs do not recursively include dependency IDs; the entire rebuilt bundle
     # and its signed index hash bind the links, source and processing versions.
@@ -444,7 +496,7 @@ class PersonalEvidenceService:
         if not all(callable(fn) for fn in (authorize, read_document, describe_document)) or (extractor is not None and not callable(extractor)):
             _fail("invalid_arguments")
         self._authorize_callback, self._read_callback = authorize, read_document
-        self._describe_callback, self._extractor = describe_document, extractor or _extract_pdf
+        self._describe_callback, self._extractor = describe_document, extractor or _extract_document
         self._semantic_retriever = LocalSemanticRetriever.from_environment()
         self._extraction_version = EXTRACTION if extractor is None else "injected-page-extractor-v2"
         self.root = Path(root).expanduser().absolute()
@@ -625,7 +677,7 @@ class PersonalEvidenceService:
                 bundle.get("extraction_version") != self._extraction_version):
             _fail("stale_input")
         try:
-            pages = _pages([row["text"] for row in bundle["pages"]])
+            pages = _pages(bundle["pages"])
             if pages != bundle["pages"] or _chunks(pages) != bundle["chunks"]:
                 _fail("stale_input")
         except (KeyError, TypeError):
@@ -684,6 +736,7 @@ class PersonalEvidenceService:
             "empty_pages": [row["page"] for row in pages if not row["text"].strip()], "chunk_count": len(chunks),
             "scope": "extractable_text_only", "layout_verified": False, "cross_page_context_verified": False,
             "human_reviewed_pages": 0, "complete_for_answer": False}
+        coverage.update(extraction_summary(pages))
         state = {"schema": SCHEMA, "authorization_scope": key, "document": document, "index_id": index_id,
             "extraction_version": self._extraction_version, "chunking_version": CHUNKING, "coverage": coverage}
         self._source(key, document)  # Detect byte changes during extraction as well as metadata changes.
@@ -718,6 +771,9 @@ class PersonalEvidenceService:
             "review_status": "unreviewed", "context_role": "full_page_unverified" if row["page"] == chunk["page"] else "adjacent_page_unverified"}
             for row in bundle["pages"] if row["page"] in chunk["required_context_pages"]]
         by_id = {row["chunk_id"]: row for row in bundle["chunks"]}
+        page = bundle["pages"][chunk["page"] - 1]
+        start, end = chunk["locator"]["char_start"], chunk["locator"]["char_end"]
+        boxes = [deepcopy(word) for word in page.get("word_spans", []) if word["start"] < end and word["end"] > start]
         model_context, used, omitted = [], 0, 0
         for dependency in chunk["semantic_context"]:
             other = by_id[dependency["chunk_id"]]
@@ -729,16 +785,31 @@ class PersonalEvidenceService:
                 ("text", "model_text", "model_text_spans", "page", "locator", "review_status")} | {
                 "context_role": dependency["context_role"], "context_completeness": "unverified"})
             used += amount
+        # Count parsed source rows, not groups or unique course codes. Repeated
+        # codes and long-row fragments must not change the row count.
+        course_rows = {row["fragment_group"] for row in bundle["chunks"]
+            if row["semantic_role"] == "course_row" and row["page"] == chunk["page"]
+            and start <= row["locator"]["char_start"] < end}
         return {key_: deepcopy(chunk[key_]) for key_ in ("title", "text", "model_text", "model_text_spans", "page", "locator", "text_sha256", "review_status", "context_completeness", "chunk_kind", "semantic_role", "module_title", "module_path", "cleaning_version")} | {
+            **({"course_row_count": len(course_rows)} if chunk["semantic_role"] == "course_group" else {}),
             "reference": self._reference(key, state, chunk), "required_context": contexts,
             "model_context": model_context, "model_context_chars": used,
             "model_context_omitted": omitted, "model_context_complete": omitted == 0,
+            "context_request": ({"query": chunk["module_title"], "mode": "module_context", "offset": 0, "limit": 5}
+                                if omitted and chunk["module_title"] else None),
             "source_alias": state["document"]["source_alias"], "answer_support_verified": False,
+            "extraction_method": page.get("extraction_method", "injected_text"),
+            "text_quality": page.get("text_quality", quality(page["text"])), "source_boxes": boxes,
+            "field_warnings": (["ocr_fields_unverified"] + (["low_confidence_numeric_or_code"] if any(
+                word.get("confidence", 100) < 80 and re.search(r"[0-9A-Za-z]", page["text"][word["start"]:word["end"]])
+                for word in boxes) else []) if page.get("extraction_method") == "local_ocr" else []),
             "course_identity_verified": False, "official_rule_enabled": False}
 
     @_safe_storage
-    def search(self, query, limit=5):
+    def search(self, query, limit=5, mode="search", offset=0):
         if not isinstance(query, str) or not 0 < len(query.strip()) <= 400 or type(limit) is not int or not 1 <= limit <= 10:
+            _fail("invalid_query")
+        if not isinstance(mode, str) or mode not in {"search", "module_courses", "module_context"} or type(offset) is not int or not 0 <= offset <= MAX_CHUNKS or mode == "search" and offset:
             _fail("invalid_query")
         key, document = self._authorize(), self._document()
         with self._locked():
@@ -752,13 +823,28 @@ class PersonalEvidenceService:
                 if chunk["semantic_role"] != "module_requirement" or not chunk["module_keys"]:
                     continue
                 label = re.sub(r"(?:课程|类)$", "", chunk["module_title"] or "")
+                if label in {"选修", "必修", "专业", "通识"} and not re.search(r"(?:^|[^\u3400-\u9fff])" + re.escape(label), compact_query):
+                    continue  # “核心选修” must not be narrowed to an unrelated “选修课程”.
                 if len(label) >= 2 and label in compact_query:
-                    module_matches[chunk["module_keys"][-1]] = len(label)
-            # A named child module outranks its generic parent (专业 vs 专业选修).
+                    module_matches[chunk["module_keys"][-1]] = label
+            # Suppress embedded generic names, not independent shorter names:
+            # comparing 专业必修 with 本专业进阶模块 must retain both modules.
             if module_matches:
-                longest = max(module_matches.values())
-                module_matches = {key: size for key, size in module_matches.items() if size == longest}
+                module_matches = {key: label for key, label in module_matches.items()
+                    if not any(label != other and label in other for other in module_matches.values())}
+        context_ids = set()
+        if mode == "module_context" and len(module_matches) == 1:
+            for chunk in bundle["chunks"]:
+                if set(chunk["module_keys"]) & set(module_matches):
+                    context_ids.add(chunk["chunk_id"])
+                    context_ids.update(item["chunk_id"] for item in chunk["semantic_context"])
         for ordinal, chunk in enumerate(bundle["chunks"]):
+            if mode == "module_context":
+                if chunk["chunk_id"] in context_ids and chunk["semantic_role"] in {"module_requirement", "module_note", "paragraph", "table_header"}:
+                    ranked.append((0, ordinal, chunk))
+                continue
+            if (chunk["semantic_role"] == "course_group") != (mode == "module_courses"):
+                continue
             exact = bool(codes & set(chunk["course_codes"]))
             if codes and not exact:
                 continue
@@ -773,6 +859,59 @@ class PersonalEvidenceService:
             if score:
                 ranked.append((-score, ordinal, chunk))
         ranked.sort(key=lambda row: row[:2])
+        if mode in {"module_courses", "module_context"}:
+            if len(module_matches) != 1:
+                headings = [chunk for chunk in bundle["chunks"]
+                    if chunk["semantic_role"] == "module_requirement" and chunk["module_keys"]
+                    and (not module_matches or chunk["module_keys"][-1] in module_matches)]
+                choices = []
+                for heading in headings:
+                    choice = {"module_path": heading["module_path"], "page": heading["page"],
+                              "request": {"query": heading["module_title"], "mode": mode, "offset": 0, "limit": limit}}
+                    if choice not in choices:
+                        choices.append(choice)
+                self._current(key, document)
+                return {**self._summary(key, document, state), "status": "needs_clarification", "matches": [],
+                        "module_choices": choices[:20], "module_choices_has_more": len(choices) > 20,
+                        "listing": {"status": "named_unique_module_required", "complete": False},
+                        "retrieval_mode": "module_course_listing" if mode == "module_courses" else "module_context_listing"}
+            ranked.sort(key=lambda row: (row[2]["page"], row[2]["locator"]["char_start"]))
+            count = len(ranked)
+            if offset > count:
+                _fail("invalid_query")
+            matches = [self._view(key, state, bundle, chunk) for _, _, chunk in ranked[offset:offset + limit]]
+            if mode == "module_context":
+                # These are the dependencies themselves. Reattaching all sibling
+                # dependencies would reproduce the same overflowing context.
+                for match in matches:
+                    match.update(model_context=[], model_context_complete=True, model_context_omitted=0,
+                                 model_context_chars=0, context_request=None)
+            self._current(key, document)
+            course_rows = {chunk["fragment_group"] for chunk in bundle["chunks"]
+                if chunk["semantic_role"] == "course_row" and set(chunk["module_keys"]) & set(module_matches)}
+            parsed_rows = []
+            for ordinal in sorted(course_rows):
+                chunk = bundle["chunks"][ordinal]
+                header = chunk.get("table_header_ordinal")
+                header_text = bundle["chunks"][header]["model_text"] if type(header) is int else ""
+                # Only parse the explicit code/name/credit column order. Unknown
+                # or split rows retain their count, without guessed quantities.
+                cells = re.match(r"^\S+\s+(.+?)\s+(\d+(?:\.\d+)?)(?:\s|$)", chunk["model_text"].strip())
+                columns = re.search(r"课程(?:号|代码).*课程名称.*学分", header_text)
+                term = re.search(r"([一二三四五六七八九十]+\s*[（(][春夏秋冬短学期、,，\s]+[)）])\s*$", chunk["model_text"])
+                parsed_rows.append({"credits": cells[2] if cells and columns and chunk['chunk_kind'] != 'partial_fragment' else None,
+                    "suggested_term_raw": term[1] if term and columns else None})
+            return {**self._summary(key, document, state), "status": "pending_review", "matches": matches,
+                    **({"course_summary": summarize_course_rows(parsed_rows)} if mode == "module_courses" else {}),
+                    "retrieval_mode": "module_course_listing" if mode == "module_courses" else "module_context_listing",
+                    "listing": {"status": "parsed_module_rows" if mode == "module_courses" else "parsed_module_context",
+                    "total_groups": count, "returned_groups": len(matches), "offset": offset,
+                    **({"total_course_rows": len(course_rows),
+                        "returned_course_rows": sum(match.get("course_row_count", 0) for match in matches)}
+                       if mode == "module_courses" else {}),
+                    "next_offset": offset + limit if offset + limit < count else None,
+                    "has_more": offset + limit < count, "complete": offset == 0 and count <= limit,
+                    "scope": "parsed_rows_only_not_verified_pdf_completeness"}}
         semantic = {"status": "not_used", "reason": "exact_course_code_route", "dense_used": False}
         if not codes:
             retrieval = self._semantic_retriever.rank(query, candidates, limit)
@@ -781,6 +920,8 @@ class PersonalEvidenceService:
                 "candidate_truncated_count", "text_truncated_count", "token_truncated_count",
                 "ranking_version", "dense_reserved_count")}
             semantic["cache_hit"] = retrieval.get("cache_hit", False)
+            semantic["document_cache_hit"] = retrieval.get("document_cache_hit", False)
+            semantic["query_encoded_count"] = retrieval.get("query_encoded_count", 0)
             if retrieval["dense_used"]:
                 semantic["encoder"] = {name: retrieval[name] for name in ("model_id", "revision", "dimension", "artifact_sha256")}
                 ranked = [(-(row["fusion_score"]), int(row["id"]), bundle["chunks"][int(row["id"])])
@@ -788,12 +929,32 @@ class PersonalEvidenceService:
             # Failed or timed-out inference also takes time: a source/identity
             # change must not revive old lexical citations via the fallback.
             self._source(key, document)
+        # Explicit full course names are stronger than semantic similarity.
+        # Only literal names from rows are used; no synonym implies identity.
+        compact = lambda text: re.sub(r"\s+", "", unicodedata.normalize("NFKC", text)).casefold()
+        named = [(ordinal, chunk) for ordinal, chunk in enumerate(bundle["chunks"])
+                 if chunk.get("course_name") and len(compact(chunk["course_name"])) >= 2
+                 and compact(chunk["course_name"]) in compact(query)
+                 and (not module_matches or set(chunk["module_keys"]) & set(module_matches))]
+        if named and not codes:
+            # Suppress only names embedded in another matched full name. Two
+            # independently named courses of different lengths both survive.
+            named = [(ordinal, chunk) for ordinal, chunk in named if not any(
+                compact(chunk["course_name"]) != compact(other["course_name"])
+                and compact(chunk["course_name"]) in compact(other["course_name"])
+                for _, other in named)]
+            pinned = {ordinal for ordinal, _ in named}
+            ranked = [(-1000, ordinal, chunk) for ordinal, chunk in named] + [r for r in ranked if r[1] not in pinned]
         matches = [{**self._view(key, state, bundle, chunk), "score": -score} for score, _, chunk in ranked[:limit]]
         self._current(key, document)
         return {**self._summary(key, document, state), "status": "pending_review" if matches else "no_supported_answer_in_scope",
             "matches": matches, "retrieval_mode": "exact_course_code_text" if codes else (
                 "hybrid_rrf_local_embedding" if semantic["dense_used"] else "lexical_han_bigram"),
             "semantic_retrieval": semantic,
+            "retrieval_coverage": {"returned_fragments": len(matches), "is_complete_catalog": False,
+                "exact_name_pinned": bool(named) and not codes, "scope": "top_k_evidence_only"},
+            "relevance": "exact_code" if codes and matches else "exact_name" if named and matches else
+                "named_module" if module_matches and matches else "candidate_fragments_unverified" if matches else "no_match",
             "search_candidate_count": len(candidates) if semantic["dense_used"] else len(ranked),
             "named_module_filter_applied": bool(module_matches)}
 

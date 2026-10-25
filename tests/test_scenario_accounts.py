@@ -116,6 +116,17 @@ class ScenarioAccountsTests(unittest.TestCase):
         self.assertTrue(any('未模拟' in c['text'] for c in result['matches']))
         result=adapter.personal_chat_tool(owner,'search_my_curriculum',{'query':'下学期 春夏','limit':5})
         self.assertTrue(any('SYN1002M' in c['text'] for c in result['matches']))
+    def test_module_navigation_and_counts_use_full_source_pool_not_student_choices(self):
+        adapter = next(iter(self.app.adapters.values()))
+        owner = adapter.student['student_id']
+        navigation = adapter.personal_chat_tool(owner, 'search_my_curriculum',
+            {'query': '未知模块', 'mode': 'module_courses'})
+        self.assertEqual(navigation['status'], 'needs_clarification')
+        request = navigation['module_choices'][0]['request']
+        result = adapter.personal_chat_tool(owner, 'search_my_curriculum', request)
+        expected = [c for c in adapter.plan['courses'] if c['module'] == request['query']]
+        self.assertEqual(result['listing']['total_course_rows'], len(expected))
+        self.assertEqual(result['listing']['returned_course_rows'], sum(c['course_row_count'] for c in result['matches']))
     def test_same_dialogue_harness_and_synthetic_projection(self):
         a,b=self.login(),self.login('stats2')
         result=self.app.chat(a,{'message':'我的成绩概况'})

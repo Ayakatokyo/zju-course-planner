@@ -504,6 +504,86 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(tool["projection_omitted_matches"], 1)
         self.assertEqual(result["citations"], [])
 
+    def test_curriculum_ocr_and_listing_coverage_are_projected_without_coordinates(self):
+        item = self.evidence['matches'][0]
+        item.update(extraction_method='local_ocr', text_quality='ocr_needs_review', source_boxes=[{'bbox': [1, 2, 3, 4]}])
+        self.evidence.update(retrieval_mode='module_course_listing', listing={'status': 'parsed_module_rows',
+            'offset': 0, 'total_groups': 1, 'returned_groups': 1, 'next_offset': None, 'has_more': False, 'complete': True})
+        self.evidence['coverage']['pages_needing_review'] = [2]
+        proofs = {}
+        local, remote = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            {'query': '专业选修', 'limit': 5, 'mode': 'module_courses'}, 'test', proofs, 0, [0, 0, {}], set())
+        self.assertEqual(remote['matches'][0]['text_quality'], 'ocr_needs_review')
+        self.assertEqual(remote['extraction_quality']['pages_needing_review'], [2])
+        self.assertNotIn('source_boxes', remote['matches'][0])
+        self.assertTrue(local['matches'][0]['source_boxes'])
+        _, limited = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            {'query': '专业选修', 'limit': 5, 'mode': 'module_courses'}, 'other', {}, 0, [0, 0, {'E': 12000}], set())
+        self.assertFalse(limited['listing']['complete'])
+        self.assertFalse(limited['listing']['projection_complete'])
+
+    def test_curriculum_counts_reflect_only_transmitted_rows_and_navigation_is_actionable(self):
+        from course_assistant.curriculum_facts import summarize_course_rows
+        self.evidence['course_summary'] = summarize_course_rows([
+            {'credits': '2.0', 'suggested_term_raw': '一(夏)'}, {'credits': None}])
+        self.evidence['matches'][0]['course_row_count'] = 4
+        self.evidence['listing'] = {'status': 'parsed_module_rows', 'total_groups': 6,
+            'total_course_rows': 22, 'returned_groups': 1, 'returned_course_rows': 4}
+        self.evidence['module_choices'] = [{'module_path': ['专业选修课程'], 'request': {
+            'query': '专业选修课程', 'mode': 'module_courses', 'limit': 5, 'offset': 0}}]
+        args = {'query': '专业选修', 'mode': 'module_courses', 'limit': 5}
+        _, wire = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            args, 'test', {}, 0, [0, 0, {}], set())
+        self.assertEqual(wire['listing']['total_course_rows'], 22)
+        self.assertEqual(wire['course_summary']['known_nominal_credits_sum'], '2.0')
+        self.assertEqual(wire['course_summary']['unknown_credit_rows'], 1)
+        self.assertEqual(wire['matches'][0]['course_row_count'], 4)
+        self.assertEqual(wire['module_choices'][0]['request']['mode'], 'module_courses')
+        _, omitted = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            args, 'test', {}, 0, [0, 0, {'E': 12000}], set())
+        self.assertEqual(omitted['listing']['returned_course_rows'], 0)
+        self.assertEqual(omitted['listing']['returned_groups'], 0)
+        self.assertEqual(omitted['listing']['total_course_rows'], 22)
+
+    def test_shared_context_is_sent_once_with_resolvable_batch_local_references(self):
+        original = self.evidence['matches'][0]
+        original.update(source_alias='PLAN-SYNTHETIC', model_context_complete=True,
+            model_context=[{'text': '注：仅限合成模块，不得跨模块替代。', 'page': 2, 'context_role': 'module_note'}])
+        other = deepcopy(original)
+        other['text'] = 'SYN1002M 合成第二课 3.0'
+        other['reference'] = 'OTHER-SYNTHETIC-REFERENCE'
+        self.evidence['matches'] = [original, other]
+        local, remote = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            {'query': '合成模块', 'limit': 5}, 'ctx', {}, 0, [0, 0, {}], set())
+        first, second = remote['matches']
+        self.assertEqual(second['model_context'][0], {'context_source_evidence_id': first['evidence_id'], 'context_index': 0})
+        self.assertIn('不得跨模块', first['model_context'][0]['text'])
+        self.assertIn('不得跨模块', local['matches'][1]['model_context'][0]['text'])
+        self.assertTrue(second['model_context_complete'])
+        # A new tool result must not depend on a context hidden in old history.
+        _, again = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            {'query': '合成模块', 'limit': 5}, 'ctx2', {}, 1, [0, 0, {}], set())
+        self.assertIn('text', again['matches'][0]['model_context'][0])
+        original['locator'] = {'page': 2, 'char_start': 0, 'char_end': 20}
+        self.evidence['matches'] = [original, deepcopy(original)]
+        _, repeated = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            {'query': '合成模块', 'limit': 5}, 'same', {}, 0, [0, 0, {}], set())
+        self.assertEqual(len(repeated['matches']), 1)
+        self.assertIn('text', repeated['matches'][0]['model_context'][0])
+
+    def test_curriculum_source_kind_survives_projection_without_arbitrary_metadata(self):
+        for kind in ('source_quote', 'source_course_rows', 'source_course_rows_with_scenario_selection', 'scenario_derived'):
+            with self.subTest(kind=kind):
+                self.evidence['matches'][0]['content_kind'] = kind
+                local, remote = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+                    {'query': '模块', 'limit': 5}, 'kind', {}, 0, [0, 0, {}], set())
+                self.assertEqual(remote['matches'][0]['content_kind'], kind)
+                self.assertEqual(local['matches'][0]['content_kind'], kind)
+        self.evidence['matches'][0]['content_kind'] = 'NEVER-SEND-UNRECOGNIZED'
+        _, remote = PersonalDialogueService._project('search_my_curriculum', self.evidence,
+            {'query': '模块', 'limit': 5}, 'kind', {}, 0, [0, 0, {}], set())
+        self.assertNotIn('content_kind', remote['matches'][0])
+
     def test_invalid_or_oversized_history_is_reset_before_remote_send(self):
         for history in ([{"role": "system", "content": "NEVER-SEND-INJECTED-SYSTEM"}],
                         [{"role": "tool", "tool_call_id": "old", "content": '{"owner_student_id":"NEVER-SEND-OWNER"}'}],

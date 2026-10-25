@@ -24,6 +24,8 @@ from .auth import AccessError
 from .model_client import ModelClient, read_config
 from .personal_dialogue import PersonalDialogueService
 from .personal_observations import source_grade_summary
+from .semantic_retrieval import LocalSemanticRetriever
+from .reference_retrieval import terms
 from scripts.build_curriculum_scenarios import validate_student
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,16 +82,17 @@ class ScenarioAdapter:
         self.student, self.plan = deepcopy(student), deepcopy(plan)
         self.version = digest({'student': student, 'plan': plan})
         self.chunks = self._chunks()
+        self.retriever = LocalSemanticRetriever.from_environment()
 
     def _chunks(self):
         s, p = self.student, self.plan
         chunks = []
-        def add(title, text, page=None):
+        def add(title, text, page=None, **metadata):
             chunks.append({'title': title, 'text': text, 'page': page,
                 'source_alias': 'SCENARIO-' + p['pdf_sha256'][:16],
                 'locator': {'chunk': len(chunks), 'student_version': self.version},
                 'binding_status': 'synthetic_fixture', 'review_status': 'source_bound',
-                'rules_status': 'partial_review'})
+                'rules_status': 'partial_review', 'content_kind': 'scenario_derived', **metadata})
         add('模拟阶段概况 学分合计 年级 培养方案',
             f"{s['display_name']}；2026级；{s['checkpoint']}。本账号固定绑定{p['program_name']}培养方案。"
             f"模拟已完成{s['summary']['completed_records']}条，课程名义学分合计{s['summary']['completed_nominal_credits']}；"
@@ -106,13 +109,26 @@ class ScenarioAdapter:
             for offset in range(0, len(s[bucket]), 4):
                 rows = s[bucket][offset:offset + 4]
                 text = '；'.join(f"{r['course_code']} {r['course_name']} {r['credits']}学分，{r['module']}，培养建议{r['suggested_term_raw']}，PDF第{r['source']['physical_page']}页" for r in rows)
-                add(label, label + '（模拟取舍，不保证实际开课或可选）：' + text, rows[0]['source']['physical_page'])
+                add(label, label + '（模拟取舍，不保证实际开课或可选）：' + text, rows[0]['source']['physical_page'],
+                    content_kind='source_course_rows_with_scenario_selection',
+                    course_names=[r['course_name'] for r in rows], course_codes=[r['course_code'] for r in rows])
         for m in s['named_module_progress']:
             add('模块进度 ' + m['name'], f"{m['name']}模块最低{m['minimum_credits']}学分；"
                 f"模拟已完成名义学分{m['simulated_completed_nominal_credits']}；"
                 f"该列名模块最低差额{m['remaining_named_module_minimum']}。仅模块数字差额，非毕业审核，不跨模块抵扣。", m['source_page'])
         for u in s['unresolved_requirements']:
             add('未确认要求 ' + u['name'], u['name'] + '：' + u['reason'], u['source_page'] if type(u['source_page']) is int else None)
+        for assertion in p.get('source_assertions', []):
+            add('培养方案原文', assertion['quote'], assertion['page'], content_kind='source_quote')
+        # Full parsed module pool, kept separate from simulated choices/stages.
+        for module in p['modules']:
+            rows = [r for r in p['courses'] if r['module'] == module['name']]
+            for start in range(0, len(rows), 4):
+                group = rows[start:start + 4]
+                text = '；'.join(f"{r['course_code']} {r['course_name']} {r['credits']}学分，培养建议{r['suggested_term_raw']}，PDF第{r['source']['physical_page']}页" for r in group)
+                add(module['name'], text, group[0]['source']['physical_page'],
+                    listing_module=module['name'], module_path=[module['name']],
+                    course_row_count=len(group), content_kind='source_course_rows')
         return chunks
 
     def personal_chat_tool(self, context, name, args):
@@ -157,15 +173,50 @@ class ScenarioAdapter:
                 'next_cursor': str(offset + limit) if selected and offset + limit < len(records) else None}
         if name == 'search_my_curriculum':
             query = args['query'].strip().casefold()
-            # Rank bounded complete chunks; retain source terms and module boundaries.
-            terms = re.findall(r'[a-z]+[a-z0-9]*|[\u4e00-\u9fff]{2,}', query)
-            grams = {term[i:i+2] for term in terms for i in range(len(term)-1)}
+            mode, offset, limit = args.get('mode', 'search'), args.get('offset', 0), args.get('limit', 5)
+            if not isinstance(mode, str) or mode not in {'search', 'module_courses', 'module_context'} or type(offset) is not int or not 0 <= offset <= 2000 or type(limit) is not int or not 1 <= limit <= 5 or mode == 'search' and offset:
+                raise ValueError('invalid curriculum query')
+            if mode == 'module_context':
+                # This mock fixture has reviewed excerpts, not the full PDF
+                # dependency graph. Do not claim a complete context listing.
+                return {**base, 'status': 'not_ready', 'matches': [],
+                        'listing': {'status': 'full_context_unavailable_in_fixture', 'complete': False}}
+            if mode == 'module_courses':
+                modules = {c['listing_module'] for c in self.chunks if c.get('listing_module') and re.sub(r'\s+', '', c['listing_module']) in re.sub(r'\s+', '', query)}
+                modules = {m for m in modules if not any(m != other and m in other for other in modules)}
+                if len(modules) != 1:
+                    names = sorted(modules or {c['listing_module'] for c in self.chunks if c.get('listing_module')})
+                    return {**base, 'status': 'needs_clarification', 'matches': [],
+                        'module_choices': [{'module_path': [m], 'request': {'query': m, 'mode': mode, 'offset': 0, 'limit': limit}} for m in names[:20]],
+                        'module_choices_has_more': len(names) > 20,
+                        'listing': {'status': 'named_unique_module_required', 'complete': False}}
+                pool = [c for c in self.chunks if c.get('listing_module') in modules]
+                if offset > len(pool):
+                    raise ValueError('invalid curriculum offset')
+                from .curriculum_facts import summarize_course_rows
+                rows = [r for r in self.plan['courses'] if r['module'] in modules]
+                return {**base, 'matches': deepcopy(pool[offset:offset + limit]), 'retrieval_mode': 'module_course_listing',
+                    'course_summary': summarize_course_rows(rows),
+                    'listing': {'status': 'parsed_module_rows', 'total_groups': len(pool), 'returned_groups': len(pool[offset:offset+limit]),
+                    'total_course_rows': sum(c['course_row_count'] for c in pool),
+                    'returned_course_rows': sum(c['course_row_count'] for c in pool[offset:offset+limit]),
+                    'offset': offset, 'next_offset': offset + limit if offset + limit < len(pool) else None,
+                    'has_more': offset + limit < len(pool), 'complete': offset == 0 and len(pool) <= limit},
+                    'scope': {'binding_status': 'synthetic_fixture', 'rules_status': 'partial_review'}}
+            query_terms = terms(query)
             def score(chunk):
                 text = (chunk['title'] + chunk['text']).casefold()
-                return sum(text.count(term) * 3 for term in terms) + sum(g in text for g in grams)
-            ranked = sorted(enumerate(self.chunks), key=lambda pair: (-score(pair[1]), pair[0]))
-            matches = [deepcopy(c) for _, c in ranked if score(c) > 0][:args.get('limit', 5)]
-            return {**base, 'matches': matches, 'retrieval_mode': 'lexical_han_bigram',
+                return len(query_terms & terms(text))
+            candidates = [{'id': str(i), 'text': c['title'] + '\n' + c['text'], 'lexical_score': score(c)}
+                          for i, c in enumerate(self.chunks) if not c.get('listing_module')]
+            retrieval = self.retriever.rank(query, candidates, limit)
+            selected = [int(r['id']) for r in retrieval['matches']]
+            pinned = [i for i, c in enumerate(self.chunks) if any(n.casefold() in query for n in c.get('course_names', []))
+                      or any(code.casefold() in query_terms for code in c.get('course_codes', []))]
+            selected = (pinned + [i for i in selected if i not in pinned])[:limit]
+            matches = [deepcopy(self.chunks[i]) for i in selected]
+            return {**base, 'matches': matches, 'retrieval_mode': retrieval['retrieval_mode'],
+                    'semantic_retrieval': {k: retrieval[k] for k in ('status', 'reason', 'dense_used', 'candidate_count', 'encoded_count', 'ranking_version')},
                     'scope': {'binding_status': 'synthetic_fixture', 'rules_status': 'partial_review'}}
         raise AccessError('未开放该模拟工具', 403, 'tool_not_allowed')
 

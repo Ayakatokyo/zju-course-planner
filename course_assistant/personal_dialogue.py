@@ -23,7 +23,7 @@ VERSION = "personal-dialogue-text-v2"
 OPERATIONS = {"academic", "major_academic", "timetable", "exams"}
 # Reserve independent envelopes so a record scan cannot consume curriculum
 # evidence. This is serialized evidence size, not the complete prompt budget.
-EVIDENCE_LIMITS = {"C": 2600, "S": 4000, "R": 18000, "E": 6500, "D": 5000, "K": 2500, "P": 6000, "T": 16000, "G": 4000}
+EVIDENCE_LIMITS = {"C": 2600, "S": 4000, "R": 18000, "E": 12000, "D": 5000, "K": 2500, "P": 6000, "T": 16000, "G": 4000}
 COURSE_SEARCH_EVIDENCE_LIMIT = 8000  # Reserve half of T for actual calculation results.
 PLAN_REASONING_FACTS_LIMIT = 4500  # Optional joins share T's existing budget.
 MAX_EGRESS_CHARS = sum(EVIDENCE_LIMITS.values())
@@ -63,7 +63,7 @@ SYSTEM = """你是浙大教务助手。使用中文，优先用简洁自然的�
 
 课程与方案：课程名称参考和获准本学期历史班次不代表最新开课、余量或可选资格。按用户问题结合相关成绩记录与培养原文选择候选，课名推测要说明依据有限；未见成绩不能视为没学过。生成/调整由计算器执行，Harness会自动补必要本轮来源，无需先安排prepare。保留未被用户修改的学分、锁定、硬条件、固定项与版本，只提交本轮明确修改；所需范围或修改不明确则澄清。最终直接解释计算结果，不自行改数字或宣称正式中选、毕业认定、完整无冲突或执行选退课。reasoning_facts可帮助比较共同/替换课程和准确节次，不把两节课改称半天或上午；不同未入选原因逐课区分。
 
-工具使用：每次最多3个相互独立的调用；依赖前一步结果的调用等待结果，不猜ID或参数。一轮最多9次模型工具调用，按execution_budget留出计算和最终回答的空间。已能回答就停止取数；工具受阻时据实际返回解释缺项。数据和引用校验不证明你的每句话正确，不把推断写成来源事实。已有表格/方案无需在正文逐行重复，只说明结论、选择理由及影响判断的必要限制。
+工具使用：每次最多3个相互独立的调用；依赖前一步结果的调用等待结果，不猜ID或参数。一轮最多9次模型工具调用，按execution_budget留出计算和最终回答的空间。已能回答就停止取数；工具受阻时据实际返回解释缺项。数据和引用校验不证明你的每句话正确，不把推断写成来源事实。已有成绩表/方案无需在正文逐行重复；培养课程清单没有自动表格，需在正文实际列出。其他回答只说明结论、选择理由及必要限制。
 
 最终答复统一为kind、text、evidence_ids三个字段：kind为answer、clarify或not_ready；text写自然中文，evidence_ids引用本轮实际使用的来源。可以单独调用finish_answer，也可以在content直接返回同一对象的严格JSON；两种传输执行同一校验。不能裸写正文或加代码围栏。只有必要澄清才设置request_basis。
 表达顺序：查询先回答所问结论；修改先说实际改动和保留条件；比较先说共同点与具体差异，再给取舍。答案无需标题、流程回顾或反复提醒全部边界，只说影响当前判断的限制。对未被资料证明的课程内容、已修状态、时刻或无解原因不要补充推断。"""
@@ -78,7 +78,7 @@ def _tool(name, description, properties=None, required=None):
 FINAL_ANSWER_TOOL = _tool("finish_answer", "交付最终正文与来源，结束本轮；不读取数据、不执行计算。只能单独调用，不能与业务工具同批。", {
     "kind": {"type": "string", "enum": ["answer", "clarify", "not_ready"]},
     "text": {"type": "string", "minLength": 1, "maxLength": MAX_ANSWER_CHARS,
-             "description": "直接回答当前问题，默认80—220字；详细问题可展开。表格和方案已有工具事实，不逐行重述。"},
+             "description": "直接回答当前问题，默认80—220字；详细问题可展开。成绩表和方案卡片不重复；培养课程清单需在text中实际列出。"},
     "evidence_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_ANSWER_REFERENCES},
 }, ["kind", "text", "evidence_ids"])
 
@@ -97,10 +97,13 @@ TOOLS = [
         "target_term": {"type": "string", "maxLength": 20,
             "description": "academic/timetable使用YYYY-YYYY-AW(秋冬)或YYYY-YYYY-SS(春夏)，如2023-2024-SS；exams使用单季A/W/S/SU；major_academic只能ALL-HISTORY。不得填写中文学期或推测未核实的相对学期。"},
         "mode": {"type": "string", "enum": ["summary", "records"]},
-        "page_token": {"type": "string", "maxLength": 60},
+        "page_token": {"type": "string", "maxLength": 60,
+            "description": "续页复制上次返回的next_page_request全部参数，limit/query/operation/mode/学年学期均不能改变。"},
         "limit": {"type": "integer", "minimum": 1, "maximum": 15}}, ["operation"]),
-    _tool("search_my_curriculum", "从教务接口取得本轮本人培养PDF后检索模块、课程与必要条款，不返回整份PDF；绑定及规则待审核。", {
+    _tool("search_my_curriculum", "检索本轮培养PDF。条款/具体课用search；列某模块课程用module_courses；读取被省略的模块条件用module_context，并按next_offset续取。普通top-k不是完整清单。OCR/缺页和上下文省略需如实说明；培养建议学期不是当前开课，绑定及认定待审核。", {
         "query": {"type": "string", "minLength": 1, "maxLength": 400},
+        "mode": {"type": "string", "enum": ["search", "module_courses", "module_context"]},
+        "offset": {"type": "integer", "minimum": 0, "maximum": 2000},
         "limit": {"type": "integer", "minimum": 1, "maximum": 5}}, ["query"]),
     _tool("search_course_catalog", "查询本地课程名称和代码参考，不查询个人记录，不保证当前开课、余量或本人资格。", {
         "query": {"type": "string", "minLength": 1, "maxLength": 200},
@@ -280,6 +283,36 @@ def _coverage(value):
         and (item is None or type(item) is bool or type(item) is int and 0 <= item <= 10000000)}
 
 
+def _curriculum_summary(value):
+    if not isinstance(value, dict):
+        return None
+    def counts(row):
+        keys = ('course_rows', 'known_credit_rows', 'unknown_credit_rows')
+        if any(type(row.get(k)) is not int or not 0 <= row[k] <= 2000 for k in keys):
+            _fail('invalid_tool_result')
+        total = row.get('known_nominal_credits_sum')
+        if (row['course_rows'] != row['known_credit_rows'] + row['unknown_credit_rows']
+                or not isinstance(total, str) or not re.fullmatch(r'\d{1,7}(?:\.\d{1,4})?', total)):
+            _fail('invalid_tool_result')
+        return {**{k: row[k] for k in keys}, 'known_nominal_credits_sum': total}
+    result = counts(value)
+    terms = value.get('suggested_terms')
+    if not isinstance(terms, list) or len(terms) > 20:
+        _fail('invalid_tool_result')
+    result['suggested_terms'] = []
+    for term in terms:
+        if not isinstance(term, dict) or not isinstance(term.get('suggested_term_raw'), str) or not 0 < len(term['suggested_term_raw']) <= 80:
+            _fail('invalid_tool_result')
+        result['suggested_terms'].append({'suggested_term_raw': term['suggested_term_raw'], **counts(term)})
+    for key in ('omitted_term_groups', 'unknown_term_rows'):
+        if type(value.get(key)) is not int or not 0 <= value[key] <= 2000:
+            _fail('invalid_tool_result')
+        result[key] = value[key]
+    result.update(scope='all_parsed_module_rows_not_credit_requirement_or_earned_credits',
+        note='代码按来源行计算；优先使用这些计数与合计，不从分页片段估算。已知名义学分合计不等于模块要求、已获学分或认定；有unknown_credit_rows时不是全量学分。建议学期跨季原值不拆分计数，不代表实际开课。')
+    return result
+
+
 def _grade_summary(value):
     if not isinstance(value, dict):
         return None
@@ -376,6 +409,7 @@ FINAL_WRITING_GUIDE = (
     "正文只说结果、关键差别与取舍，不再列一遍方案，不复述筛选流水账。用户明确追问哪门/哪几节时再写必要细节。\n"
     "列出成绩明细时，evidence_ids须包含所需记录，页面会据此展示来源表（另有课程参考引用也不影响）。"
     "正文只写筛选范围与必要缺项，不逐条重复课程分数、绩点或学分，不另写列表或Markdown表。\n"
+    "培养方案的课程清单没有自动表格：用户要求列举时，必须在text里实际列出课程与所问字段，可用Markdown表格；不能指向不存在的文末来源表。\n"
     "事实措辞：有成绩只能说‘查到该课程的成绩记录’，不能写‘已修’‘已学过’‘内容重合’或据此认定不用再选；"
     "统计数量单位是记录条数，均值只能表示平均数，不据此推断成绩分布。"
     "节次只能说‘周二第11、12节’，不能写‘晚上’。返回方案只能说明这些方案之间的差别，不能概括所有可行组合。"
@@ -424,7 +458,7 @@ def _model_context(messages, proofs):
             continue  # Keep actionable failures distinct from answer evidence.
         guidance = {
             "delivery": "若资料已足够，单独调用finish_answer或直接返回同样的kind/text/evidence_ids严格JSON；正文必须在text字段中。仍缺必要事实才继续选择工具。",
-            "style": "先回答所问结论，默认80—220字；表格和方案会自动展示，不逐项复述。用户要求详细说明时再展开。"}
+            "style": "先回答所问结论，默认80—220字；成绩表和计算方案会自动展示，不逐项复述。培养课程清单须在text内实际列出，可用Markdown表格；没有自动的培养来源表。"}
         if value.get("operation") in {"academic", "major_academic"} and value.get("record_source"):
             guidance["meaning"] = ("这里是成绩记录；有分数不能证明已修完成、学分认定或与另一代码等价。"
                 "数量单位是记录条数，不是去重后的课程门数。未知只表示该字段未取得，不判断没学过或未通过。"
@@ -464,7 +498,7 @@ def _model_context(messages, proofs):
                     guidance["locked_class_count"] = len((plan.get("selection_hint") or {}).get("locked_classes", []))
                 else:
                     guidance["locked_class_count"] = len(plan.get("locked_class_refs", []))
-                guidance["meaning"] = ("这是当前有效条件下的历史课程组合。只解释本次实际返回的方案及差异；"
+                guidance["meaning"] = ("这是当前有效条件下的历史课程组合。course_count是恰好门数，target_credits是最低学分，二者不能都称至少。只解释本次实际返回的方案及差异；"
                     "共同特点先核returned_option_summary，friday_occupied_labels非空就不能说所有方案周五都空。"
                     "未返回不等于不可行。只报原星期和节次，不换算上午、下午、晚上或半天。")
                 guidance["change"] = ("继续调整时只提交本轮需要改变的字段，未修改条件由服务端继承；"
@@ -512,7 +546,7 @@ def _arguments(name, value, allowed_terms=None):
         except ValueError:
             _fail("invalid_tool_arguments")
     allowed = {"get_my_context": set(), "get_my_run_diagnostics": set(), "check_recommendation_inputs": {"recommendation_kind", "target_term"}, "query_my_records": {"operation", "query", "academic_year", "target_term", "limit", "mode", "page_token"},
-        "search_my_curriculum": {"query", "limit"}, "search_course_catalog": {"query", "limit"}}[name]
+        "search_my_curriculum": {"query", "limit", "mode", "offset"}, "search_course_catalog": {"query", "limit"}}[name]
     if set(value) - allowed:
         _fail("invalid_tool_arguments")
     if name in {"get_my_context", "get_my_run_diagnostics"}:
@@ -531,7 +565,13 @@ def _arguments(name, value, allowed_terms=None):
     if type(limit) is not int or not 1 <= limit <= (5 if name == "search_my_curriculum" else 10 if name == "search_course_catalog" else 15):
         _fail("invalid_tool_arguments")
     if name in {"search_my_curriculum", "search_course_catalog"}:
-        return {"query": query, "limit": limit}
+        result = {"query": query, "limit": limit}
+        if name == "search_my_curriculum":
+            mode, offset = value.get("mode", "search"), value.get("offset", 0)
+            if not isinstance(mode, str) or mode not in {"search", "module_courses", "module_context"} or type(offset) is not int or not 0 <= offset <= 2000 or mode == "search" and offset:
+                _fail("invalid_tool_arguments")
+            result.update({key: value[key] for key in ("mode", "offset") if key in value})
+        return result
     operation = value.get("operation")
     if not isinstance(operation, str) or operation not in OPERATIONS:
         _fail("invalid_tool_arguments")
@@ -1195,7 +1235,7 @@ class PersonalDialogueService:
             local["operation"] = remote["operation"] = operation
             descriptor = _record_source(operation, result, args)
             local["record_source"] = remote["record_source"] = deepcopy(descriptor)
-            if result.get("data_source") in {"live", "historical_cache", "none"}:
+            if result.get("data_source") in {"live", "historical_cache", "none", "synthetic_fixture"}:
                 local["data_source"] = result["data_source"]
             for key in ("target_term", "captured_at", "checked_at", "matched_records", "returned_records", "total_records", "historical_only", "observation_status"):
                 if key in result:
@@ -1261,14 +1301,57 @@ class PersonalDialogueService:
             if not isinstance(matches, list):
                 _fail("invalid_tool_result")
             retrieval_mode = result.get("retrieval_mode")
-            if retrieval_mode in {"exact_course_code_text", "lexical_han_bigram", "hybrid_rrf_local_embedding"}:
+            if retrieval_mode in {"exact_course_code_text", "lexical_han_bigram", "hybrid_rrf_local_embedding", "module_course_listing", "module_context_listing"}:
                 local["retrieval_mode"] = remote["retrieval_mode"] = retrieval_mode
+            listing = result.get("listing")
+            if isinstance(listing, dict):
+                projected = {key: value for key, value in listing.items() if key in {
+                    "total_groups", "returned_groups", "offset", "next_offset", "has_more", "complete",
+                    "total_course_rows", "returned_course_rows"}
+                    and (value is None or type(value) is bool or type(value) is int and 0 <= value <= 2000)}
+                projected["status"] = _status(listing.get("status"), "unknown")
+                projected["scope"] = "parsed_rows_only_not_verified_pdf_completeness"
+                local["listing"] = remote["listing"] = projected
+                remote["listing_count_rule"] = "groups是分页片段数，total_course_rows是整个模块已解析来源行数，不是本页条数或按代码去重门数；模块要求学分另见标题原文，不能把选修池学分相加当要求。"
+            summary = _curriculum_summary(result.get('course_summary'))
+            if summary is not None:
+                local['course_summary'] = remote['course_summary'] = summary
+            choices = []
+            for choice in result.get("module_choices", [])[:20]:
+                if not isinstance(choice, dict):
+                    continue
+                path = choice.get("module_path")
+                if not isinstance(path, list) or not 1 <= len(path) <= 10 or not all(
+                        isinstance(v, str) and 0 < len(v) <= 200 for v in path):
+                    continue
+                request = _arguments("search_my_curriculum", choice.get("request"))
+                if request.get("mode") not in {"module_courses", "module_context"}:
+                    continue
+                value = {"module_path": path, "request": request}
+                if len(_json(choices + [value])) > 2400:
+                    break
+                choices.append(value)
+            if choices:
+                remote["module_choices"] = choices
+                remote["module_choices_has_more"] = bool(result.get("module_choices_has_more")) or len(choices) < len(result["module_choices"])
+                remote["module_choice_rule"] = "这些是当前文档模块导航，不是条款证据；按原问题选择request继续读取。比较多个模块可分别查，无法确定目标才问用户。"
+            coverage = result.get("coverage", {})
+            if isinstance(coverage, dict):
+                review_pages = coverage.get("pages_needing_review", [])
+                if isinstance(review_pages, list) and all(type(p) is int and 1 <= p <= 300 for p in review_pages):
+                    local["extraction_quality"] = remote["extraction_quality"] = {
+                        "pages_needing_review": review_pages, "quality_verified": False}
+            if result.get("relevance") in {"exact_code", "exact_name", "named_module", "candidate_fragments_unverified", "no_match"}:
+                remote["relevance"] = result["relevance"]
+            remote["context_reference_rule"] = "context_source_evidence_id/context_index指向本次结果中较早match的model_context原文；复用同一段，不是遗漏。context_request可续取省略条件。相关性仅是检索线索，语义近邻不足以证明问题前提或不存在。"
+            remote["retrieval_scope"] = "片段检索不是完整课程清单；模块列举也只覆盖已解析行。未取明细只能说本轮未取得，不能说原文未给出。未命中不能推断原PDF不存在、本人未修或学校不开课。"
             semantic = result.get("semantic_retrieval")
             if isinstance(semantic, dict):
                 metadata = {key: _scalar(semantic[key], 100) for key in
                     ("status", "reason", "dense_used", "ranking_version", "candidate_count", "encoded_count", "token_truncated_count") if key in semantic}
                 local["semantic_retrieval"] = remote["semantic_retrieval"] = metadata
             local_matches, remote_matches, omitted = [], [], 0
+            shared_context = {}
             scope = result.get("scope", {})
             scope = scope if isinstance(scope, dict) else {}
             for item in matches[:args["limit"]]:
@@ -1285,6 +1368,22 @@ class PersonalDialogueService:
                     "context_completeness": "unverified", "required_context_not_transmitted": True,
                     "binding_status": _status(item.get("binding_status", scope.get("binding_status")), "not_verified"),
                     "rules_status": _status(item.get("rules_status", scope.get("rules_status")), "not_reviewed")}
+                if type(item.get("course_row_count")) is int and 0 <= item["course_row_count"] <= 2000:
+                    row["course_row_count"] = item["course_row_count"]
+                for field, allowed in (("extraction_method", {"native_layout", "local_ocr", "injected_text"}),
+                                       ("text_quality", {"usable_text_unreviewed", "suspect_encoding", "empty", "ocr_needs_review", "layout_needs_review", "sparse_image_needs_review"}),
+                                       ("content_kind", {"source_quote", "source_course_rows", "source_course_rows_with_scenario_selection", "scenario_derived"})):
+                    if item.get(field) in allowed:
+                        row[field] = item[field]
+                warnings = item.get("field_warnings", [])
+                if isinstance(warnings, list):
+                    row["field_warnings"] = [w for w in warnings if w in {"ocr_fields_unverified", "low_confidence_numeric_or_code"}]
+                path = item.get("module_path")
+                if isinstance(path, list) and len(path) <= 10 and all(isinstance(v, str) and len(v) <= 200 for v in path):
+                    row["module_path"] = list(path)
+                request = item.get("context_request")
+                if isinstance(request, dict) and request.get("mode") == "module_context":
+                    row["context_request"] = _arguments("search_my_curriculum", request)
                 semantic_context, context_chars = [], 0
                 for fragment in item.get("model_context", [])[:8]:
                     if not isinstance(fragment, dict):
@@ -1298,12 +1397,12 @@ class PersonalDialogueService:
                     context_chars += len(fragment_text)
                     semantic_context.append({"page": fragment.get("page"), "text": fragment_text,
                         "review_status": "unreviewed", "context_role": _status(fragment.get("context_role"), "related_fragment")})
-                if semantic_context:
+                if semantic_context or item.get("model_context_complete") is True:
                     complete_context = item.get("model_context_complete") is True and len(semantic_context) == len(item.get("model_context", []))
                     row.update(model_context=semantic_context, required_context_not_transmitted=not complete_context,
                         model_context_complete=complete_context,
                         context_completeness="bounded_semantic_context_unreviewed")
-                local_data = {**deepcopy(row), "text": item["text"], **{key: deepcopy(item[key]) for key in ("reference", "source_alias", "locator", "model_text", "model_text_spans") if key in item}}
+                local_data = {**deepcopy(row), "text": item["text"], **{key: deepcopy(item[key]) for key in ("reference", "source_alias", "locator", "model_text", "model_text_spans", "source_boxes") if key in item}}
                 context = item.get("required_context", [])
                 if not isinstance(context, list):
                     _fail("invalid_tool_result")
@@ -1321,21 +1420,48 @@ class PersonalDialogueService:
                     and proof.get("required_context") == context
                     and all(proof.get(key) == value for key, value in identity.items())), None)
                 reused = identifier is not None
+                # References only target full text in an earlier admitted match
+                # of this tool result. Local evidence retains every original span.
+                wire_row = deepcopy(row)
+                pending_context = []
+                for index, fragment in enumerate(wire_row.get("model_context", [])):
+                    key = _json([item.get("source_alias"), fragment])
+                    if item.get("source_alias") and key in shared_context:
+                        ref, position = shared_context[key]
+                        wire_row["model_context"][index] = {"context_source_evidence_id": ref, "context_index": position}
+                    else:
+                        pending_context.append((key, index))
                 if not reused:
-                    identifier = evidence("E", row, local_data)
+                    identifier = evidence("E", wire_row, local_data)
                 if not identifier:
                     omitted += 1
                     continue
+                if any(match["evidence_id"] == identifier for match in remote_matches):
+                    continue  # Keep one definition; never create a self-reference.
                 if reused:
                     local_data = {key: deepcopy(value) for key, value in proofs[identifier].items()
                         if key not in {"evidence_id", "kind", "tool_index"}}
                 elif not local_data["context_omitted"]:
                     budget[1] += context_bytes
-                remote_matches.append({"evidence_id": identifier, **row})
+                for key, index in pending_context:
+                    shared_context.setdefault(key, (identifier, index))
+                remote_matches.append({"evidence_id": identifier, **wire_row})
                 local_matches.append({"evidence_id": identifier, **deepcopy(local_data)})
             local["matches"], remote["matches"] = local_matches, remote_matches
+            if "extraction_quality" in remote:
+                transmitted_pages = {m.get("page") for m in local_matches}
+                transmitted_pages.update(c.get("page") for m in local_matches for c in m.get("model_context", []))
+                remote["extraction_quality"].update(
+                    matched_pages_needing_review=[p for p in remote["extraction_quality"]["pages_needing_review"] if p in transmitted_pages],
+                    scope_note="pages_needing_review是整份文档的解析待核页；matched_pages_needing_review才与本次发送的片段及条件重合。无重合不等于原文语义已审核。")
             local["projection_omitted_matches"] = remote["projection_omitted_matches"] = omitted
+            if "listing" in remote and "returned_course_rows" in remote["listing"]:
+                remote["listing"]["returned_course_rows"] = sum(match.get("course_row_count", 0) for match in remote_matches)
+                remote["listing"]["returned_groups"] = len(remote_matches)
             if omitted:
+                if "listing" in remote:
+                    remote["listing"].update(complete=False, projection_complete=False)
+                    local["listing"].update(complete=False, projection_complete=False)
                 remote["projection_note"] = "本次有检索命中因上下文预算或片段长度未送入；matches为空也不表示没有条款。请只使用已送入的依据，并将相关结论保留为上下文不足。"
             remote["unknown"] = ["layout_unreviewed", "full_page_context_not_transmitted", "personal_applicability_not_inferred"]
             if not remote_matches or any(item["required_context_not_transmitted"] for item in remote_matches):
@@ -1395,7 +1521,7 @@ class PersonalDialogueService:
             "citation_number": index, "label": f"[{index}]"} for index, ref in enumerate(selected, 1)]
 
     def run(self, message, *, data_use, history=(), execution_context=None, task_context=None, clarification_context=None, emit=None):
-        if data_use not in {"personal_retrieval", "synthetic_scenario"}:
+        if data_use not in {"personal_retrieval", "synthetic_scenario", "synthetic_retrieval"}:
             _fail("personal_data_use_required")
         if not isinstance(message, str) or not 0 < len(message.strip()) <= 2000:
             _fail("invalid_chat_request")
@@ -1426,12 +1552,17 @@ class PersonalDialogueService:
             _fail("model_not_configured")
         previous, history_reset = self._history(history)
         system = SYSTEM
+        if data_use == "synthetic_retrieval":
+            system += "\n当前账号身份和成绩为隔离的模拟数据，未连接学校；培养文档是已绑定的来源PDF，课程条目不是合成内容。工具、检索、计算和回答流程与真实账号相同。只能根据工具返回的能力和来源回答，未提供的课表、考试、认定等不能补造。简短说明数据性质即可，不重复免责声明。"
         if data_use == "synthetic_scenario":
             system += ("\n当前为独立模拟账号测试。全部学生身份、成绩和修读状态均为synthetic，绝不是学校认证或实时教务记录。"
                 "query_my_records读取本账号绑定的模拟成绩；search_my_curriculum检索经来源约束的培养课程与本账号模拟阶段。"
                 "需要年级、学分合计、下学期或模块进度时先检索‘模拟阶段概况’或对应课程/模块；不能仅凭成绩概况猜总学分。"
                 "阶段是2026级学生在不同学年秋冬结束后的模拟时间，不以当前日期推断年级。"
                 "模拟阶段概况、成绩、已完成名义学分及选课取舍是本地生成的场景事实，不是培养PDF原文记载的学生情况。"
+                "培养检索的content_kind区分来源：source_quote是所选PDF原文，source_course_rows是其课程行；"
+                "source_course_rows_with_scenario_selection中课程字段来自PDF，已完成/计划/未选择的分组属于模拟取舍；"
+                "scenario_derived是场景派生说明。PDF条款和课程字段不能统称为合成培养方案或本地生成数据，模拟账号绑定也不等于真实本人适用。"
                 "培养建议课程可以作为待核对的学习安排，缺教学班和时段时不能编造可选资格、周五空闲或无冲突课表。"
                 "未模拟的通识、体育、外语与认定保持待确认，不算零缺口或已满足。回答简洁，首次说明模拟范围即可。")
         if diagnostic_context and diagnostic_context.get("previous_preparation"):
@@ -1530,6 +1661,9 @@ class PersonalDialogueService:
                     page_tokens[token] = {"cursor": raw_result["next_cursor"],
                         "arguments": {key: deepcopy(value) for key, value in arguments.items() if key != "page_token"}}
                     local["next_page_token"] = remote["next_page_token"] = token
+                    continuation_request = {**page_tokens[token]["arguments"], "page_token": token}
+                    local["next_page_request"] = deepcopy(continuation_request)
+                    remote["next_page_request"] = deepcopy(continuation_request)
                 if raw_result.get("reason") == "no_observation_in_scope":
                     local["reason"] = remote["reason"] = "no_observation_in_scope"
                     local["query_executed"] = remote["query_executed"] = False
@@ -1814,7 +1948,7 @@ class PersonalDialogueService:
             citations = [] if inaccessible else [{key: deepcopy(value) for key, value in item.items() if key != "tool_index"} for item in proofs.values()]
         response = {"status": "failed" if failure else "completed", "reply": reply,
             "tool_results": [] if inaccessible else results, "citations": citations,
-            "data_kind": "synthetic" if data_use == "synthetic_scenario" else "personal_source", "preview_only": True, "model_used": model_used,
+            "data_kind": "synthetic" if data_use in {"synthetic_scenario", "synthetic_retrieval"} else "personal_source", "preview_only": True, "model_used": model_used,
             "reply_origin": "service_error" if failure else "personal_model_clarification" if decision["kind"] == "clarify" else "personal_model_answer",
             "model_decision": None if failure else decision, "partial_tools_completed": bool(failure and results and not inaccessible),
             "history_reset": history_reset, "versions": {"dialogue_contract": VERSION, "authorization_version": scope}}

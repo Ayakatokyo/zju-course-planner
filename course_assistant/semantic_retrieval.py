@@ -24,7 +24,7 @@ SOURCE_WEIGHTS_SHA256 = "354763b9b1357bc9c44f62c6be2276321081ed2567773608c0d0785
 TOKENIZER_SHA256 = "48cea5d44424912a6fd1ea647bf4fe50b55ab8b1e5879c3275f80e339e8fae26"
 QUERY_PREFIX = "为这个句子生成表示以用于检索相关文章："
 MANIFEST_SCHEMA = "local-bge-onnx/1"
-RANKING_VERSION = "rrf60-dense-quota-v1"
+RANKING_VERSION = "rrf60-dual-quota-v2"
 DIMENSION = 512
 MAX_CANDIDATES = 2000
 MAX_TEXT_CHARS = 1800
@@ -127,6 +127,7 @@ class LocalSemanticRetriever:
         # evidence owns one instance per authenticated generation and still
         # validates fresh source bytes and authorization before/after ranking.
         self._rank_cache = OrderedDict()
+        self._document_vectors = OrderedDict()
         self._rank_cache_lock = threading.Lock()
 
     @classmethod
@@ -225,14 +226,23 @@ class LocalSemanticRetriever:
             cached = self._rank_cache.get(cache_key)
             if cached is not None:
                 self._rank_cache.move_to_end(cache_key)
-                return {**deepcopy(cached), "encoded_count": 0, "cache_hit": True}
+                return {**deepcopy(cached), "encoded_count": 0, "query_encoded_count": 0,
+                        "document_cache_hit": True, "cache_hit": True}
+        document_key = sha256(json.dumps([_identity(status), [row["text"] for row in selected]],
+            ensure_ascii=False, separators=(",", ":")).encode()).hexdigest()
+        with self._rank_cache_lock:
+            document_cached = self._document_vectors.get(document_key)
+            document_vectors = document_cached[0] if document_cached is not None else None
+            if document_vectors is not None:
+                self._document_vectors.move_to_end(document_key)
         try:
-            output = self._run_encoder([QUERY_PREFIX + query.strip()] + [row["text"] for row in selected],
+            texts = [QUERY_PREFIX + query.strip()] + ([] if document_vectors is not None else [row["text"] for row in selected])
+            output = self._run_encoder(texts,
                                        expected_identity=status)
             if isinstance(output, dict) and output.get("identity") != _identity(status):
                 raise _Unavailable("encoder_identity_changed")
             vectors = output.get("vectors") if isinstance(output, dict) else None
-            if (not isinstance(vectors, list) or len(vectors) != len(selected) + 1
+            if (not isinstance(vectors, list) or len(vectors) != len(texts)
                     or any(not isinstance(row, list) or len(row) != DIMENSION
                            or any(type(value) not in (int, float) or not math.isfinite(value) for value in row)
                            or abs(sum(value * value for value in row) - 1.0) > 0.02 for row in vectors)):
@@ -240,6 +250,24 @@ class LocalSemanticRetriever:
             truncated = output.get("token_truncated_count")
             if type(truncated) is not int or not 0 <= truncated <= len(vectors):
                 raise _Unavailable("encoder_output_invalid")
+            truncated_indices = output.get("token_truncated_indices", [] if not truncated else None)
+            if truncated_indices is not None and (not isinstance(truncated_indices, list)
+                    or any(type(i) is not int or not 0 <= i < len(vectors) for i in truncated_indices)
+                    or len(set(truncated_indices)) != truncated or len(truncated_indices) != truncated):
+                raise _Unavailable("encoder_output_invalid")
+            if document_vectors is not None:
+                vectors = vectors + list(document_vectors)
+                truncated += document_cached[1]
+            elif truncated_indices is not None:
+                # No persistence or cross-instance sharing. Source admission
+                # remains upstream; the encoder identity and all input text are
+                # bound into this key. Carry document truncation counts forward
+                # even though only the new query needs encoding on a warm call.
+                with self._rank_cache_lock:
+                    self._document_vectors[document_key] = (tuple(tuple(v) for v in vectors[1:]),
+                                                           sum(i > 0 for i in truncated_indices))
+                    while len(self._document_vectors) > 2:
+                        self._document_vectors.popitem(last=False)
             dense = {row["id"]: sum(left * right for left, right in zip(vectors[0], vector))
                      for row, vector in zip(selected, vectors[1:])}
             dense_order = sorted(selected, key=lambda row: (-dense[row["id"]], row["ordinal"]))
@@ -254,13 +282,20 @@ class LocalSemanticRetriever:
             # this is not a similarity threshold or evidence-quality decision.
             reserved = {row["id"] for row in dense_order[:max(1, (limit + 2) // 3)]}
             chosen = set(reserved)
+            # Retain the strongest literal evidence as well. Generic dense
+            # neighbours must not displace an explicit clause/name match.
+            lexical_reserved = {lexical_order[0]["id"]} if lexical_order and limit >= 2 else set()
+            chosen.update(lexical_reserved)
             for row in ordered:
                 if len(chosen) >= limit:
                     break
                 chosen.add(row["id"])
             ordered = [row for row in ordered if row["id"] in chosen]
             result.update(dense_used=True, retrieval_mode="hybrid_rrf_local_embedding",
-                          encoded_count=len(selected), token_truncated_count=truncated, dense_reserved_count=len(reserved),
+                          encoded_count=0 if document_vectors is not None else len(selected), query_encoded_count=1,
+                          document_cache_hit=document_vectors is not None,
+                          token_truncated_count=truncated, dense_reserved_count=len(reserved),
+                          lexical_reserved_count=len(lexical_reserved),
                           matches=[{"id": row["id"], "lexical_score": row["lexical_score"],
                                     "dense_score": dense[row["id"]], "fusion_score": scores[row["id"]]}
                                    for row in ordered[:limit]])
@@ -290,7 +325,7 @@ def _encode_worker(manifest_path, request):
         raise _Unavailable("runtime_version_mismatch")
     ort.disable_telemetry_events()
     texts = request.get("texts") if isinstance(request, dict) else None
-    if (not isinstance(texts, list) or not 2 <= len(texts) <= MAX_CANDIDATES + 1
+    if (not isinstance(texts, list) or not 1 <= len(texts) <= MAX_CANDIDATES + 1
             or any(not isinstance(text, str) or not 0 < len(text) <= MAX_TEXT_CHARS for text in texts)
             or not texts[0].startswith(QUERY_PREFIX)):
         raise _Unavailable("encoder_input_invalid")
@@ -316,10 +351,11 @@ def _encode_worker(manifest_path, request):
     if ({value.name for value in session.get_inputs()} != {"input_ids", "attention_mask", "token_type_ids"}
             or len(session.get_outputs()) != 1):
         raise _Unavailable("encoder_model_invalid")
-    vectors, token_truncated = [], 0
+    vectors, token_truncated, truncated_indices = [], 0, []
     for start in range(0, len(texts), BATCH_SIZE):
         batch = tokenizer.encode_batch(texts[start:start + BATCH_SIZE])
         token_truncated += sum(bool(row.overflowing) for row in batch)
+        truncated_indices.extend(start + i for i, row in enumerate(batch) if row.overflowing)
         inputs = {"input_ids": np.asarray([row.ids for row in batch], dtype=np.int64),
                   "attention_mask": np.asarray([row.attention_mask for row in batch], dtype=np.int64),
                   "token_type_ids": np.asarray([row.type_ids for row in batch], dtype=np.int64)}
@@ -330,7 +366,8 @@ def _encode_worker(manifest_path, request):
         if (norms < 1e-8).any():
             raise _Unavailable("encoder_model_invalid")
         vectors.extend((encoded / norms).tolist())
-    return {"status": "available", "identity": identity, "vectors": vectors, "token_truncated_count": token_truncated}
+    return {"status": "available", "identity": identity, "vectors": vectors,
+            "token_truncated_count": token_truncated, "token_truncated_indices": truncated_indices}
 
 
 def _worker_main():

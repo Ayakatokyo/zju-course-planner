@@ -188,6 +188,124 @@ class PersonalEvidenceTests(unittest.TestCase):
             self.assertEqual(result["retrieval_mode"], "exact_course_code_text")
             self.assertEqual(len(result["matches"]), 1)
 
+    def test_module_listing_pages_over_all_parsed_rows_with_source_context(self):
+        self.pages = ['(1) 专业选修课程 9学分\n课程号  课程名称  学分\n' +
+            ''.join(f'SYN{i:04}M  合成课程{i}  2.0\n' for i in range(12)) + '附注：不得跨模块重复计入。\n']
+        self.prepare()
+        first = self.service.search('专业选修', mode='module_courses', limit=2)
+        self.assertTrue(first['listing']['has_more'])
+        self.assertFalse(first['listing']['complete'])
+        last = self.service.search('专业选修', mode='module_courses', limit=2, offset=first['listing']['next_offset'])
+        self.assertFalse(last['listing']['has_more'])
+        self.assertEqual(first['listing']['total_course_rows'], 12)
+        self.assertEqual(last['listing']['total_course_rows'], 12)
+        self.assertEqual(first['listing']['returned_course_rows'], 8)
+        self.assertEqual(last['listing']['returned_course_rows'], 4)
+        self.assertEqual(first['course_summary']['course_rows'], 12)
+        self.assertEqual(first['course_summary']['known_nominal_credits_sum'], '24.0')
+        self.assertEqual(first['course_summary']['unknown_term_rows'], 12)
+        self.assertEqual(last['course_summary'], first['course_summary'])
+        text = '\n'.join(m['model_text'] for m in first['matches'] + last['matches'])
+        self.assertTrue(all(text.count(f'SYN{i:04}M') == 1 for i in range(12)))
+        self.assertTrue(all(any('不得跨模块' in c['model_text'] for c in m['model_context']) for m in first['matches']))
+        self.assertEqual(self.service.search('未知模块', mode='module_courses')['status'], 'needs_clarification')
+        for m in first['matches'] + last['matches']:
+            self.assertEqual(self.service.resolve(m['reference'])['text'], m['text'])
+
+    def test_module_navigation_can_recover_from_multiple_named_modules(self):
+        self.pages = ['(1)专业必修课程 3学分\nSYN1001M  合成甲  3.0\n'
+                      '(2)专业选修课程 2学分\nSYN1001M  合成乙  2.0\nSYN1001M  合成丙  2.0\n']
+        self.prepare()
+        result = self.service.search('专业必修和专业选修', mode='module_context')
+        self.assertEqual(result['status'], 'needs_clarification')
+        self.assertEqual(len(result['module_choices']), 2)
+        for choice in result['module_choices']:
+            self.assertEqual(self.service.search(**choice['request'])['status'], 'pending_review')
+        rows = self.service.search('专业选修', mode='module_courses')
+        self.assertEqual(rows['listing']['total_course_rows'], 2)  # Same code is not deduplicated.
+        self.assertEqual(rows['matches'][0]['course_row_count'], 2)
+
+    def test_comparing_different_length_module_names_keeps_both_requirements(self):
+        self.pages = ['(1)专业必修课程 3学分\nSYN1001M  合成甲  3.0\n'
+                      '(2)本专业进阶模块 2学分\nSYN1002M  合成乙  2.0\n']
+        self.prepare()
+        result = self.service.search('专业必修与本专业进阶模块各要求多少学分', limit=5)
+        text = ''.join(m['text'] for m in result['matches'])
+        self.assertIn('专业必修课程 3学分', text)
+        self.assertIn('本专业进阶模块 2学分', text)
+
+    def test_literal_longest_course_name_is_pinned_even_when_dense_prefers_short_name(self):
+        self.pages = ['(1) 专业选修课程 9学分\nSYN1001M  数据分析  2.0\nSYN1002M  商务数据分析  3.0\n']
+        self.prepare()
+        self.assertIn('SYN1002M', self.service.search('商务数据分析建议什么学期', limit=1)['matches'][0]['text'])
+        self.assertFalse(self.service.search('专业选修')['retrieval_coverage']['is_complete_catalog'])
+
+    def test_generic_elective_heading_does_not_hide_core_elective_clause(self):
+        self.pages = ['(1) 思政类 14学分\n2)选修课程 2学分\n合成思政课程。\n'
+                      '(2) 专业选修课程 14.5学分\n以下为核心选修课程，要求14.5学分。\n']
+        self.prepare()
+        result = self.service.search('核心选修课程要求多少学分')
+        self.assertTrue(result['named_module_filter_applied'])
+        self.assertFalse(any('合成思政' in m['text'] for m in result['matches']))
+        self.assertTrue(any('核心选修' in m['text'] for m in result['matches']))
+
+    def test_module_hierarchy_prevents_sibling_leakage_and_keeps_core_parent(self):
+        self.pages = ['三、专业课程 30学分\n(1)专业选修课程 10学分\nSYN1001M  原选修  2.0\n'
+                      '以下为核心选修课程，要求14.5学分。\nSYN1002M  核心课程  3.0\n'
+                      '(2)实践教学环节 6学分\nSYN1003M  实践课程  6.0\n'
+                      '四、个性修读课程 15学分\n1)本专业进阶模块 15学分\nSYN1004M  进阶课程  2.0\n']
+        self.prepare()
+        core = self.service.search('核心选修', mode='module_courses')
+        self.assertEqual(len(core['matches']), 1)
+        self.assertEqual(core['matches'][0]['module_path'], ['专业课程', '专业选修课程', '核心选修课程'])
+        self.assertNotIn('SYN1001M', core['matches'][0]['text'])
+        elective = self.service.search('专业选修', mode='module_courses')
+        self.assertNotIn('SYN1003M', ''.join(m['text'] for m in elective['matches']))
+        self.assertEqual(self.service.search('SYN1004M')['matches'][0]['module_path'], ['个性修读课程', '本专业进阶模块'])
+        self.assertEqual(evidence._heading('（三）核心选修课程14.5学分')[1], '核心选修课程')
+        self.assertIsNotNone(evidence._heading('风险管理方向'))
+        self.assertIsNone(evidence._heading('2.数据科学方向：数据结构和算法、统计学习；'))
+
+    def test_two_independent_course_names_survive_but_embedded_short_name_does_not(self):
+        self.pages = ['专业选修课程 9学分\nSYN1001M  数据分析  2.0\n'
+                      'SYN1002M  商务数据分析  3.0\nSYN1003M  概率论  4.0\n']
+        self.prepare()
+        matches = self.service.search('商务数据分析和概率论各多少学分', limit=2)['matches']
+        self.assertEqual({m['text'].split()[0] for m in matches}, {'SYN1002M', 'SYN1003M'})
+
+    def test_omitted_module_conditions_can_be_read_in_source_order_with_pagination(self):
+        self.pages = ['专业选修课程 9学分\nSYN1001M  合成课程  2.0\n' +
+                      '\n'.join('注：条件'+str(i)+'。' for i in range(12))]
+        # Blank lines create independently addressable conditions.
+        self.pages[0] = self.pages[0].replace('。\n', '。\n\n')
+        self.prepare()
+        match = self.service.search('SYN1001M')['matches'][0]
+        self.assertGreater(match['model_context_omitted'], 0)
+        request = match['context_request']
+        pages, offset = [], 0
+        while True:
+            result = self.service.search(request['query'], mode='module_context', offset=offset, limit=5)
+            pages.extend(result['matches'])
+            if not result['listing']['has_more']:
+                break
+            offset = result['listing']['next_offset']
+        joined = ''.join(m['text'] for m in pages)
+        self.assertTrue(all('条件'+str(i)+'。' in joined for i in range(12)))
+        self.assertTrue(all(not m['model_context'] for m in pages))
+        self.assertEqual(len({m['reference'] for m in pages}), len(pages))
+        self.denied = True
+        self.assert_code('grant_revoked', lambda: self.service.search('专业选修', mode='module_context'))
+
+    def test_pdf_quality_and_source_boxes_survive_signed_bundle_reload(self):
+        self.pages = [{'text': 'SYN1001M  合成课程  2.0\n', 'raw_text': 'native source',
+            'word_spans': [{'start': 0, 'end': 8, 'bbox': [1, 2, 9, 12]}],
+            'extraction_method': 'local_ocr', 'text_quality': 'ocr_needs_review'}]
+        prepared = self.prepare()
+        self.assertEqual(prepared['coverage']['pages_needing_review'], [1])
+        match = self.make_service().search('SYN1001M')['matches'][0]
+        self.assertEqual(match['extraction_method'], 'local_ocr')
+        self.assertEqual(match['source_boxes'][0]['bbox'], [1, 2, 9, 12])
+
     def test_lexical_no_match_unknown_and_conflicting_applicability_are_truthful(self):
         self.metadata["binding_status"] = "conflicting"
         self.prepare()

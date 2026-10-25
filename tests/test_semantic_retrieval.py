@@ -92,12 +92,45 @@ class SemanticRetrievalTests(unittest.TestCase):
             run.assert_called_once()
 
     def test_ranking_cache_is_instance_local_and_bounded(self):
-        with self.available(), patch.object(self.retriever, "_run_encoder", return_value=self.vectors()) as run:
+        with self.available(), patch.object(self.retriever, "_run_encoder", side_effect=lambda texts, **kw: {**self.vectors(), "vectors": [unit_vector(1)] * len(texts)}) as run:
             for index in range(9):
                 self.retriever.rank(f"合成问题{index}", self.candidates)
             self.retriever.rank("合成问题0", self.candidates)
             self.assertEqual(run.call_count, 10)
         self.assertFalse(semantic.LocalSemanticRetriever()._rank_cache)
+
+    def test_changed_query_reuses_documents_but_changed_source_or_encoder_does_not(self):
+        def encode(texts, **kwargs):
+            return {**self.vectors(), "vectors": [unit_vector(1)] * len(texts)}
+        with self.available(), patch.object(self.retriever, "_run_encoder", side_effect=encode) as run:
+            cold = self.retriever.rank("合成问题", self.candidates)
+            warm = self.retriever.rank("另一个问题", self.candidates)
+            self.assertEqual(cold['encoded_count'], 3)
+            self.assertTrue(warm['dense_used'])
+            self.assertEqual(warm['encoded_count'], 0)
+            self.assertEqual(warm['query_encoded_count'], 1)
+            self.assertEqual(len(run.call_args.args[0]), 1)
+            changed = deepcopy(self.candidates)
+            changed[0]['text'] += '修改'
+            self.assertEqual(self.retriever.rank('另一个问题', changed)['encoded_count'], 3)
+            for i in range(3):
+                changed[0]['text'] += str(i)
+                self.retriever.rank('另一个问题', changed)
+            self.assertLessEqual(len(self.retriever._document_vectors), 2)
+        self.assertFalse(semantic.LocalSemanticRetriever()._document_vectors)
+
+    def test_document_truncation_remains_visible_when_only_query_is_encoded(self):
+        def encode(texts, **kwargs):
+            indices = [1] if len(texts) > 1 else []
+            return {**self.vectors(), "vectors": [unit_vector(1)] * len(texts),
+                    "token_truncated_count": len(indices), "token_truncated_indices": indices}
+        with self.available(), patch.object(self.retriever, "_run_encoder", side_effect=encode):
+            first = self.retriever.rank('问题一', self.candidates)
+            second = self.retriever.rank('问题二', self.candidates)
+            self.assertTrue(second['dense_used'])
+            self.assertEqual(second['encoded_count'], 0)
+            self.assertEqual(first['token_truncated_count'], 1)
+            self.assertEqual(second['token_truncated_count'], 1)
 
     def test_only_explicit_application_environment_configures_encoder(self):
         env = {"HF_HOME": "/SYNTHETIC", "OPENAI_BASE_URL": "https://invalid.example"}
@@ -187,6 +220,17 @@ class SemanticRetrievalTests(unittest.TestCase):
         self.assertIn("SYNTHETIC-CORRECT", [row["id"] for row in result["matches"]])
         self.assertEqual(result["dense_reserved_count"], 2)
         self.assertEqual(result["ranking_version"], semantic.RANKING_VERSION)
+
+    def test_literal_clause_survives_generic_dense_neighbours(self):
+        rows = [{'id': 'CLAUSE', 'text': '明确核心要求', 'lexical_score': 9}]
+        rows += [{'id': str(i), 'text': '泛化相似文字', 'lexical_score': 1} for i in range(8)]
+        output = self.vectors()
+        output['vectors'] = [unit_vector(1), unit_vector(-1)] + [unit_vector(1)] * 8
+        with self.available(), patch.object(self.retriever, '_run_encoder', return_value=output):
+            result = self.retriever.rank('核心要求', rows, limit=5)
+        self.assertIn('CLAUSE', [row['id'] for row in result['matches']])
+        self.assertEqual(result['lexical_reserved_count'], 1)
+        self.assertEqual(len(result['matches']), 5)
 
     def test_invalid_queries_candidates_and_nonfinite_scores_do_not_run_encoder(self):
         for query, rows, limit in [("", self.candidates, 5), ("问" * 401, self.candidates, 5),
@@ -338,6 +382,11 @@ class ActualLocalEncoderTests(unittest.TestCase):
         result = retriever.rank("运动课程", rows)
         self.assertTrue(result["dense_used"], result)
         self.assertEqual(result["token_truncated_count"], 1)
+        warm = retriever.rank("每年运动课", rows)
+        self.assertTrue(warm['dense_used'])
+        self.assertTrue(warm['document_cache_hit'])
+        self.assertEqual(warm['encoded_count'], 0)
+        self.assertEqual(warm['token_truncated_count'], 1)
         path = Path(retriever.manifest_path)
         manifest = json.loads(path.read_text())
         manifest["runtime"]["numpy"] = "0.0.0"

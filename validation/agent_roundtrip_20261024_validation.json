@@ -1,0 +1,147 @@
+{
+  "schema": "agent-roundtrip-validation/1",
+  "date": "2026-10-24",
+  "contract": [
+    "original question reaches model",
+    "model chooses declared tools",
+    "Harness executes authorized tools",
+    "matching tool_call_id returns projected data to same model context",
+    "model answers using original question and returned evidence"
+  ],
+  "architecture": "existing single tool-calling loop retained; no new classifier, task-category workflow, or reviewer model",
+  "change": "Preserve reviewed PDF quote/course-row versus simulated selection/record provenance in tool projection and model instructions",
+  "tests": {
+    "command": "python3 -m unittest tests.test_live_source_dialogue tests.test_academic_harness tests.test_personal_dialogue tests.test_scenario_accounts -q",
+    "run": 78,
+    "passed": 78,
+    "skipped": 0,
+    "seconds": 1.523,
+    "full_suite_rerun": false,
+    "earlier_new_test_fixture_error": "Direct projection test omitted normalized limit argument; fixed fixture, no production validator relaxed"
+  },
+  "regression": "Same question with changed synthetic grade 73/91: no business data before model tool selection; tool response includes new value; original question and both source results available at final composition",
+  "final_real_flash": {
+    "records": {
+      "status": "completed",
+      "model_generations": 2,
+      "format_repairs": 0,
+      "model_request_tool_message_counts": [
+        0,
+        1
+      ],
+      "executed_tools": [
+        "get_my_context",
+        "query_my_records"
+      ],
+      "citation_kinds": [
+        "record",
+        "summary"
+      ],
+      "question_preserved_each_generation": true,
+      "elapsed_seconds": 2.54
+    },
+    "curriculum": {
+      "status": "completed",
+      "model_generations": 2,
+      "format_repairs": 0,
+      "model_request_tool_message_counts": [
+        0,
+        2
+      ],
+      "executed_tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "search_my_curriculum"
+      ],
+      "citation_kinds": [
+        "curriculum"
+      ],
+      "question_preserved_each_generation": true,
+      "elapsed_seconds": 5.32
+    },
+    "combined": {
+      "status": "completed",
+      "model_generations": 2,
+      "format_repairs": 0,
+      "model_request_tool_message_counts": [
+        0,
+        2
+      ],
+      "executed_tools": [
+        "get_my_context",
+        "search_my_curriculum",
+        "query_my_records"
+      ],
+      "citation_kinds": [
+        "curriculum",
+        "record",
+        "summary"
+      ],
+      "question_preserved_each_generation": true,
+      "elapsed_seconds": 4.16
+    },
+    "unavailable": {
+      "status": "completed",
+      "model_generations": 1,
+      "format_repairs": 0,
+      "model_request_tool_message_counts": [
+        0
+      ],
+      "executed_tools": [
+        "get_my_context"
+      ],
+      "citation_kinds": [
+        "context"
+      ],
+      "question_preserved_each_generation": true,
+      "elapsed_seconds": 2.61
+    }
+  },
+  "initial_real_flash": {
+    "rounds": 4,
+    "generations": 7,
+    "status": "Completed but curriculum source incorrectly called synthetic; originals retained"
+  },
+  "actual_ui": {
+    "port": 18881,
+    "status": "completed",
+    "model_generations": 2,
+    "format_repairs": 0,
+    "executed_tools": [
+      "get_my_context",
+      "search_my_curriculum",
+      "query_my_records"
+    ],
+    "observed": "PDF course row says professional elective/2.0 credits, simulated grade says 85/2.0; both visibly distinguished and table shown",
+    "user_acceptance": false
+  },
+  "runtime": {
+    "school_18875": {
+      "pid": 47662,
+      "restarted": false
+    },
+    "candidate_18881": {
+      "pid": 78196,
+      "updated": true,
+      "mock_login": true
+    },
+    "old_scenario_18880": "No listener during this audit; did not stop or start it"
+  },
+  "boundaries": [
+    "All new model runs use synthetic student records and reviewed local PDF-derived material",
+    "No new school calls or school login restart",
+    "No claim of general question completeness, full semantic accuracy, official curriculum applicability or recommendation acceptance",
+    "No frontend redesign or full mobile acceptance"
+  ],
+  "source_sha256": {
+    "course_assistant/personal_dialogue.py": "8c5de92b713cfb0a6b7c3567b5a8a1373ac1de14b38d5c6a6a937813b83c0b36",
+    "course_assistant/academic_harness.py": "f7196ec92783e37b3f741ccfd325b3a20a9f39ea901842aa9dde3798928132ed",
+    "course_assistant/scenario_accounts.py": "40b4cbbdabf58fa32530ded8e1e185b63ad3bccf06dc99e71e386ad78f60df98",
+    "course_assistant/personal_chat.py": "7cc2bf7b23336e25000050c4720312dd2307ba88411eae9916b1a133c739dcf4",
+    "tests/test_live_source_dialogue.py": "1154b32c6bfe064712deaee853f934fa9eab3576b2c7ad0c4a1cd7e76e1f808c",
+    "tests/test_personal_dialogue.py": "60b79ce94c34aac75685fb6555c36ad3d112d710535e19c5f6ee33875fc02328"
+  },
+  "committed": false,
+  "pushed": false,
+  "raw_evidence": "private/local-only excluded from Git"
+}

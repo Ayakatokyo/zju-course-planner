@@ -139,12 +139,60 @@ class LiveSourceDialogueTests(unittest.TestCase):
         self.assertGreater(sum(len(json.dumps(tool["result"]["records"], ensure_ascii=False)) for tool in record_tools), 6000)
         self.assertEqual(len(self.last_tool(messages)["matches"]), 5)
 
+    def test_question_and_new_data_round_trip_through_model_selected_tools(self):
+        """The same question must reach each generation, with only executed data.
+
+        This is a protocol double, not a claim about model understanding. Two
+        source values prove that the loop forwards results instead of replaying
+        a previously prepared answer or treating preflight as a data query.
+        """
+        question = "查合成课程0的成绩，并结合培养模块原文说明。"
+        for grade in ("73", "91"):
+            with self.subTest(grade=grade):
+                self.executed.clear()
+                self.rows = [self.record(0)]
+                self.rows[0]["grade_raw"] = grade
+
+                def check_question(messages):
+                    self.assertEqual([m["content"] for m in messages if m["role"] == "user"], [question])
+
+                def choose_records(messages, tools):
+                    check_question(messages)
+                    self.assertEqual(self.executed, [("get_my_context", {})])
+                    self.assertFalse(any(m["role"] == "tool" for m in messages))
+                    return call("query_my_records", {"operation": "major_academic", "query": "合成课程0", "mode": "records"}, "records")
+
+                def choose_curriculum(messages, tools):
+                    check_question(messages)
+                    record = self.last_tool(messages)["records"][0]
+                    self.assertEqual(record["grade_raw"], grade)
+                    self.assertEqual([n for n, _ in self.executed], ["get_my_context", "query_my_records"])
+                    return call("search_my_curriculum", {"query": "合成专业模块"}, "curriculum")
+
+                def compose(messages, tools):
+                    check_question(messages)
+                    outputs = [json.loads(m["content"]) for m in messages if m["role"] == "tool"]
+                    record, clause = outputs[0]["records"][0], outputs[1]["matches"][0]
+                    self.assertEqual(record["grade_raw"], grade)
+                    self.assertIn("至少6学分", clause["text"])
+                    return call("finish_answer", {"kind": "answer",
+                        "text": f"成绩原值为{record['grade_raw']}；培养片段写明模块至少6学分，正式适用待审核。",
+                        "evidence_ids": [record["evidence_id"], clause["evidence_id"]]}, "finish")
+
+                response, _, model = self.run_protocol([choose_records, choose_curriculum, compose], question)
+                self.assertEqual(response["status"], "completed", response)
+                self.assertEqual(len(model.calls), 3)
+                self.assertEqual([n for n, _ in self.executed], ["get_my_context", "query_my_records", "search_my_curriculum"])
+                self.assertEqual([c["kind"] for c in response["citations"]], ["record", "curriculum"])
+                self.assertIn(f"成绩原值为{grade}", response["reply"])
+
     def test_opaque_next_page_really_resumes_and_raw_signed_cursor_never_leaves_service(self):
         args = {"operation": "major_academic", "mode": "records", "query": "", "limit": 15}
         self.record_handler = lambda request: self.result(request, offset=15 if request.get("cursor") else 0)
         def following(messages, tools):
             remote = self.last_tool(messages)
             self.assertRegex(remote["next_page_token"], r"^PAGE-[a-f0-9]{8}-1$")
+            self.assertEqual(remote['next_page_request'], {**args, 'page_token': remote['next_page_token']})
             self.assertNotIn("next_cursor", remote)
             return call("query_my_records", {**args, "page_token": remote["next_page_token"]}, "page-two")
         def respond(messages, tools):

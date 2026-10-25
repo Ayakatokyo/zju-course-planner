@@ -1,0 +1,141 @@
+{
+  "schema": "curriculum-rag-validation/1",
+  "date": "2026-10-24",
+  "version": "v36",
+  "base_commit": "e69dfe92deed78e5a97ef9e1206ce5da08f7fbfd",
+  "scope": "Local PDF extraction and retrieval; frozen-PDF Flash replay and synthetic-account UI; no new school journey",
+  "implementation": {
+    "extraction": "pdftotext-bbox-selective-ocr-v3",
+    "chunking": "curriculum-semantic-source-spans-v4",
+    "ranking": "rrf60-dual-quota-v2",
+    "native_text_first": true,
+    "ocr_local_only": true,
+    "ocr_pages_max": 8,
+    "ocr_seconds_max": 60,
+    "module_pagination": true,
+    "source_versions_enforced": true
+  },
+  "pdf_row_check": {
+    "documents": 2,
+    "visually_checked_course_pages": 8,
+    "reviewed_rows": 121,
+    "raw_six_cell_mismatches": 0,
+    "general_accuracy_claim": false
+  },
+  "retrieval": {
+    "eval-baseline": {
+      "total": 12,
+      "passed": 6,
+      "required": 14,
+      "found": 8
+    },
+    "eval-lexical-final": {
+      "total": 12,
+      "passed": 12,
+      "required": 14,
+      "found": 14
+    },
+    "eval-hybrid-v2": {
+      "total": 12,
+      "passed": 12,
+      "required": 14,
+      "found": 14
+    }
+  },
+  "retrieval_boundary": "Same 12 development cases, 14 required support fragments on 2 fixed PDFs; not held-out accuracy or generated-answer evaluation; baseline and final lexical directly comparable; final hybrid additionally verified",
+  "ocr": {
+    "actual_chinese_image_only_synthetic_pdf": true,
+    "course_codes_and_decimal_credits_checked": true,
+    "quality": "ocr_needs_review",
+    "real_scanned_curriculum_accuracy": "unverified"
+  },
+  "tests": {
+    "final_full": {
+      "run": 1533,
+      "passed": 1527,
+      "skipped": 6,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 66.114
+    },
+    "post_prompt_targeted": {
+      "run": 67,
+      "passed": 67
+    },
+    "actual_local_encoder_and_ocr": {
+      "run": 13,
+      "passed": 13
+    },
+    "earlier_environment_mismatch": {
+      "run": 133,
+      "failures": 6,
+      "reason": "Whole lexical-default test modules were run with encoder environment enabled; retained as failed experiment; separated actual-dependency checks pass"
+    }
+  },
+  "final_frozen_pdf_model_replay": {
+    "rounds": 3,
+    "flash_generations": 6,
+    "format_repairs": 0,
+    "new_school_reads": 0,
+    "checks": [
+      "16 module courses and credits",
+      "core elective requirement and direction choices",
+      "named course credits and suggested term"
+    ]
+  },
+  "final_ui": {
+    "port": 18881,
+    "data": "synthetic business year 2 + reviewed curriculum rows",
+    "rounds": 1,
+    "status": "completed",
+    "flash_generations": 4,
+    "format_repairs": 0,
+    "visible_course_rows": 16,
+    "visible_grade_rows": 2,
+    "grade_records_pagination": "15 + 8 succeeded",
+    "module_minimum": "12.5",
+    "matched_nominal_credits": "3.5",
+    "initial_failure_preserved": "Model referred to nonexistent curriculum source table and changed records page limit; final text-table guidance and opaque next-page request corrected",
+    "user_acceptance": false
+  },
+  "runtime": {
+    "school_18875": {
+      "pid": 47662,
+      "restarted": false,
+      "new_code_active": false
+    },
+    "existing_scenario_18880": {
+      "pid": 49758,
+      "restarted": false,
+      "new_code_active": false
+    },
+    "candidate_scenario_18881": {
+      "pid": 71863,
+      "new_code_active": true
+    }
+  },
+  "remaining": [
+    "General low-quality scanned/mixed-image PDF coverage unverified",
+    "OCR is not reviewed table semantics",
+    "Formal curriculum applicability and credit recognition unverified",
+    "New school endpoint-to-answer journey not executed",
+    "Complete recommendation and user acceptance not upgraded"
+  ],
+  "source_sha256": {
+    "course_assistant/curriculum_pdf.py": "f8b25527c327dafbc066cbc339aa6860dc64f216c8aa6ca8b63ac326c842f8d4",
+    "course_assistant/personal_dialogue.py": "255037aa2a00905bf93518a1f336d53332b8a9690f8581f0a85665864525b6a6",
+    "course_assistant/personal_evidence.py": "8741490cbd5265e8e9abb144f80d9ee715c5bc3bde6733c19433bc5ecb966190",
+    "course_assistant/scenario_accounts.py": "1b69a8bcd73c326a4bc9b9e601f461f26dcd20c0408f01a4882a5cd8e9c5a6b1",
+    "course_assistant/school_accounts.py": "93685837104f8c10d47edb7482b75b114a9fbdb37f75b25c027fa0c228b8abc4",
+    "course_assistant/semantic_retrieval.py": "9288ce4e4db859a1b6fe3a444279a33fad7dae5a3cc654eb1aa57c247cd120cd",
+    "scripts/evaluate_curriculum_rag.py": "28f3dd745d52354540146eabcdba38a05c2fc684e68a56fe9437cea8c13b166d",
+    "tests/test_curriculum_pdf.py": "9b6531fa4cad2b2ab3ca656cc163b86280f3f97651ddcb5c5f535e8ecb13c456",
+    "tests/test_live_source_dialogue.py": "207abbd3d98f5ce72046fa838fafc04f8d0dcb81924e2fe156a1113c41206f24",
+    "tests/test_personal_dialogue.py": "97e4d7a76f9363edae2df498638e7ede5e7946f0f447b3145920e11af1d8bae2",
+    "tests/test_personal_evidence.py": "37c902e10e2739a229e7aad600f15725a06361e7732b66dd24760c522472f7d8",
+    "tests/test_semantic_retrieval.py": "e26a228fd1aaa3cf0f1a21c8f86c176d944db2df49f86f75924d782e9cf39320"
+  },
+  "committed": false,
+  "pushed": false,
+  "raw_evidence": "private/local-only only, excluded from Git"
+}

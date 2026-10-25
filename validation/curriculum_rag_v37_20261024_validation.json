@@ -1,0 +1,196 @@
+{
+  "version": "curriculum-rag-v37",
+  "date": "2026-10-24",
+  "scope": "local_implementation_and_frozen_pdf_validation",
+  "source_sha256": {
+    "course_assistant/personal_evidence.py": "5fb806a914fba1f2247191db91fd8778076d35a1ddced0c298ac1dd279b4c87c",
+    "course_assistant/personal_dialogue.py": "cef4013c2d40151eb3511078e8a28583cd2817b251ceed27bc4d49f6c028c359",
+    "course_assistant/semantic_retrieval.py": "541f41aff412cbf6fe6df6484b526b80949d5c36d06b23b1a02e9a3ac0637ff3",
+    "course_assistant/curriculum_pdf.py": "bfe1c78a7b90957a8d8cb56eacb180054a668f66a972c38d4e417725ddeecee1",
+    "course_assistant/scenario_accounts.py": "e68e19c3cbb08ac2d7d0338b43a7d470cec7b3f917500a0fe472441a9a5edefe",
+    "course_assistant/school_accounts.py": "93685837104f8c10d47edb7482b75b114a9fbdb37f75b25c027fa0c228b8abc4",
+    "scripts/evaluate_curriculum_rag.py": "2dbea204ddbd3e3d0d3551ea188279b775c342ac2228475ccf5e094a52cc8795"
+  },
+  "test_sha256": {
+    "tests/test_personal_evidence.py": "7e693419ce85a205e4e378a6e302e7386c10bfa297a7eee237e996b308e1475b",
+    "tests/test_personal_dialogue.py": "6cb4b7c6d62a35d5dce8152472f6d0f633f960b3288f73d6cda9ffe9dc086614",
+    "tests/test_semantic_retrieval.py": "0b12427f8615f420c3fa75eaf06de11f57f0131c729470180690747e257e686c",
+    "tests/test_curriculum_pdf.py": "07684e26bbb77d920cb6ab66f6f115215ca24cc89bf3b37e4c8852d2400f545d"
+  },
+  "changes": [
+    "module_hierarchy_and_core_elective_parent",
+    "multiple_literal_course_names",
+    "batch_local_context_references",
+    "authorized_module_context_pagination",
+    "sparse_native_plus_large_image_ocr",
+    "ocr_field_uncertainty",
+    "instance_local_document_vector_cache_with_truncation_state",
+    "retrieval_and_actual_projection_evaluation"
+  ],
+  "engineering": {
+    "final_full_suite": {
+      "run": 1543,
+      "passed": 1536,
+      "skipped": 7,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 65.239,
+      "scope_note": "after final production changes; optional dependency fixture fixed separately, subsequent edits are docstrings only"
+    },
+    "real_local_dependencies": {
+      "run": 35,
+      "passed": 35,
+      "skipped": 0,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 2.328,
+      "includes": [
+        "pure_image_pdf",
+        "native_header_scanned_body_pdf",
+        "local_bge",
+        "warm_cache_with_truncated_document"
+      ]
+    },
+    "retained_intermediate_failures": [
+      "heading_expectation_and_fixed_mock_vector_shape_in_initial_regression",
+      "first_cache_policy_did_not_reuse_corpus_with_truncation",
+      "optional_test_fixture_undefined_variable_fixed"
+    ]
+  },
+  "retrieval_evaluation": {
+    "gold_status": "development_regression_not_independent_holdout",
+    "documents": 2,
+    "cases": 20,
+    "required_spans": 52,
+    "lexical": {
+      "passed": 20,
+      "retrieved_spans": 52,
+      "model_projection_spans": 52
+    },
+    "final_local_bge": {
+      "passed": 20,
+      "retrieved_spans": 52,
+      "model_projection_spans": 52
+    },
+    "baseline": {
+      "supported_cases": 19,
+      "passed": 15,
+      "required_spans": 49,
+      "retrieved_spans": 33,
+      "model_projection_spans": 33,
+      "unsupported_module_context_cases": 1
+    }
+  },
+  "performance": {
+    "scope": "one_local_corpus_215_fragments_three_different_queries_not_end_to_end_latency",
+    "before": [
+      {
+        "seconds": 5.3832,
+        "dense_used": true,
+        "encoded_documents": 215,
+        "document_cache_hit": false,
+        "token_truncated_count": 1
+      },
+      {
+        "seconds": 5.3781,
+        "dense_used": true,
+        "encoded_documents": 215,
+        "document_cache_hit": false,
+        "token_truncated_count": 1
+      },
+      {
+        "seconds": 5.3803,
+        "dense_used": true,
+        "encoded_documents": 215,
+        "document_cache_hit": false,
+        "token_truncated_count": 1
+      }
+    ],
+    "after": [
+      {
+        "seconds": 5.3839,
+        "dense_used": true,
+        "encoded_documents": 215,
+        "document_cache_hit": false,
+        "token_truncated_count": 1
+      },
+      {
+        "seconds": 0.2271,
+        "dense_used": true,
+        "encoded_documents": 0,
+        "document_cache_hit": true,
+        "token_truncated_count": 1
+      },
+      {
+        "seconds": 0.2223,
+        "dense_used": true,
+        "encoded_documents": 0,
+        "document_cache_hit": true,
+        "token_truncated_count": 1
+      }
+    ]
+  },
+  "flash": {
+    "rounds": 4,
+    "generations": 8,
+    "format_repairs": 0,
+    "model": "deepseek-flash",
+    "school_reads": 0,
+    "resolved_source_citations": 11,
+    "checks": [
+      {
+        "case": 0,
+        "status": "completed",
+        "generations": 2,
+        "repairs": 0,
+        "source_references_resolved": 4,
+        "bounded_content_checks_passed": true
+      },
+      {
+        "case": 1,
+        "status": "completed",
+        "generations": 2,
+        "repairs": 0,
+        "source_references_resolved": 2,
+        "bounded_content_checks_passed": true
+      },
+      {
+        "case": 2,
+        "status": "completed",
+        "generations": 2,
+        "repairs": 0,
+        "source_references_resolved": 5,
+        "bounded_content_checks_passed": true
+      },
+      {
+        "case": 3,
+        "status": "completed",
+        "generations": 2,
+        "repairs": 0,
+        "source_references_resolved": 0,
+        "bounded_content_checks_passed": true
+      }
+    ],
+    "scope_note": "bounded facts/source-span checks; before final cache-metadata and duplicate-reference guard changes; final retrieval/projection and regressions checked afterward"
+  },
+  "runtime": {
+    "school_port": 18875,
+    "school_pid_observed": 47662,
+    "school_restarted": false,
+    "school_login_rechecked": false,
+    "school_new_version_activated": false,
+    "candidate_port": 18881,
+    "candidate_listener_observed": false,
+    "candidate_started_or_stopped": false,
+    "new_ui_acceptance": false
+  },
+  "delivery": {
+    "committed": false,
+    "pushed": false,
+    "school_new_journey_verified": false,
+    "formal_curriculum_applicability_verified": false,
+    "full_semantics_verified": false,
+    "user_acceptance": false
+  },
+  "private_evidence_policy": "raw PDFs, gold, full model messages, answers and performance diagnostics remain in ignored private storage; no credentials included"
+}
