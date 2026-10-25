@@ -8,7 +8,6 @@ reuses old facts, or makes the solver's authorization/feasibility decisions.
 from __future__ import annotations
 
 from copy import deepcopy
-import inspect
 import re
 import time
 
@@ -58,18 +57,12 @@ class AcademicHarness:
                 self.policy_context["hard_preferences"] = deepcopy(task["hard_preferences"])
                 self.policy_context["soft_preferences"] = deepcopy(task.get("soft_preferences", []))
         self.live_tool = getattr(school, "personal_chat_live_tool", None)
-        try:
-            self.supports_policy = callable(self.live_tool) and "policy_context" in inspect.signature(self.live_tool).parameters
-        except (TypeError, ValueError):
-            self.supports_policy = False
 
     def _invoke(self, name, args):
         if not callable(self.live_tool):
             return self.school.personal_chat_tool(self.context, name, args)
         kwargs = {"receipts": self.receipts, "emit": self.emit, "authorize": self.generation_authorize,
-                  "adopt": self.adopt, "before": self.authorize}
-        if self.supports_policy:
-            kwargs["policy_context"] = deepcopy(self.policy_context)
+                  "adopt": self.adopt, "before": self.authorize, "policy_context": deepcopy(self.policy_context)}
         result = self.live_tool(self.context, name, args, **kwargs)
         if name == "get_my_context" and isinstance(result, dict):
             result = {**result, "capabilities": {**result.get("capabilities", {}),

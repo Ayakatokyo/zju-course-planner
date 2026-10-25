@@ -628,17 +628,6 @@ class SchoolAccountService:
         scope = self._authorize_local(context, connection, epoch)
         return {"scope_key": digest({"connection": scope["scope_key"], "http_epoch": epoch})}
 
-    def prepare_personal_chat(self, context, question, *, before, authorize, emit, adopt):
-        from .personal_acquisition import prepare_sources
-        connection = self._connection(context)
-        # Serialize this question's source additions with other reads. Logout
-        # revokes the AuthManager session without waiting for this lock.
-        with connection.lock:
-            before()
-            result = prepare_sources(self, context, question, authorize=authorize, emit=emit)
-            adopt(bool(result))
-            return result
-
     @staticmethod
     def _live_receipt_ready(receipt):
         if not isinstance(receipt, dict) or receipt.get("ready") is not True or receipt.get("data_source") != "live":
@@ -947,10 +936,8 @@ class SchoolAccountService:
                     term = next(iter(scopes))
                 self._request_body({"operation": operation, "target_term": term, "force_refresh": True})
                 matching = [receipt for receipt in candidates if receipt.get("target_term") == term]
-                # A lexical preflight can lack a scope that the model resolves
-                # from the actual pending clarification. Explicit canonical
-                # arguments still require a fresh authorized read; a null or
-                # ambiguous scope above cannot use a historical observation.
+                # Reuse only this turn's exact scope. Newly resolved canonical
+                # arguments require a fresh read, never a historical snapshot.
                 receipt = matching[-1] if matching else read(operation, term)
                 if not self._live_receipt_ready(receipt):
                     return unavailable(operation, term, "fresh_source_read_failed")

@@ -69,7 +69,7 @@ class LiveSourceConnectionRaceTests(unittest.TestCase):
 class LiveIntentCoordinatorTests(unittest.TestCase):
     def test_live_second_turn_sends_displayed_dialogue_without_raw_tools_or_reasoning(self):
         class LiveSchool(FakeSchool):
-            def personal_chat_live_tool(inner, context, name, args, *, receipts, emit, authorize, adopt, before=None):
+            def personal_chat_live_tool(inner, context, name, args, *, receipts, emit, authorize, adopt, before=None, policy_context=None):
                 self.assertTrue(callable(before), "the coordinator must pass its strict version check")
                 before()
                 authorize()

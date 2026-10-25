@@ -95,12 +95,7 @@ class LiveSyntheticSchool(FakeSchool):
         super().__init__()
         self.reads = []
         self.fail_operation = None
-        self.lexical_preparations = []
         self.policy_calls = []
-
-    def prepare_personal_chat(self, context, question, **kwargs):
-        self.lexical_preparations.append(question)
-        raise AssertionError("live task selection must precede source acquisition")
 
     def personal_chat_live_tool(self, context, name, args, *, receipts, emit, authorize, adopt, before, policy_context=None):
         before()
@@ -402,19 +397,19 @@ class PersonalChatTests(unittest.TestCase):
         mock = AuthContext("demo-a", "SYNTHETIC-MOCK", "SYNTHETIC-A", "mock_development", "v1", "mock")
         self.assert_reason("school_connection_required", self.service.status, mock)
 
-    def test_versions_change_keeps_intent_without_old_facts_and_preserves_stale_local_turns(self):
+    def test_versions_change_keeps_displayed_dialogue_without_raw_tools_and_preserves_stale_turns(self):
         first = self.turn()
         second = self.turn(first, message="继续查询这门课")
         self.assertEqual(len(self.model.calls[1]), 3)
-        self.assertFalse(second["history_reset"])
+        self.assertTrue(second["history_reset"])
         self.app.school.version = "SYNTHETIC-V2"
         history = self.service.history({"conversation_id": first["conversation_id"]}, self.context)
         self.assertTrue(history["is_stale"])
         self.assertTrue(all(turn["is_stale"] for turn in history["turns"]))
         third = self.turn(second, message="查询当前资料")
         self.assertTrue(third["history_reset"])
-        self.assertEqual(len(self.model.calls[2]), 3)
-        self.assertTrue(all(row["role"] == "user" for row in self.model.calls[2]))
+        self.assertEqual([row["role"] for row in self.model.calls[2]],
+                         ["user", "assistant", "user", "assistant", "user"])
         self.assertNotIn("SYNTHETIC-LOCAL-ONLY", str(self.model.calls))
 
     def test_stale_input_replay_is_denied_without_a_model_call(self):
@@ -425,11 +420,14 @@ class PersonalChatTests(unittest.TestCase):
         self.assertEqual(len(self.model.calls), 1)
 
     def test_provider_change_between_turns_resets_outbound_history(self):
-        first = self.turn()
+        first = self.turn(message="SYNTHETIC-PREVIOUS-EGRESS")
         self.model.model = "synthetic-model-2"
         second = self.turn(first)
         self.assertTrue(second["history_reset"])
         self.assertEqual(len(self.model.calls[1]), 1)
+        self.turn(second, message="继续当前模型的对话")
+        self.assertEqual(len(self.model.calls[2]), 3)
+        self.assertNotIn("SYNTHETIC-PREVIOUS-EGRESS", str(self.model.calls[2]))
 
     def test_task_scope_survives_fresh_sources_but_not_model_change(self):
         self.app.dialogue_tool_results = [{"name": "query_my_records",
@@ -492,7 +490,6 @@ class PersonalChatTests(unittest.TestCase):
         self.assertEqual(first["task_status"], "completed")
         self.assertNotIn("task_progress", first)
         self.assertEqual(self.app.school.reads, [])
-        self.assertEqual(self.app.school.lexical_preparations, [])
         self.app.dialogue_tool_calls = []
         self.turn(first, message="换成春夏呢")
         self.assertEqual(self.app.received_task_context["tasks"], [{"tool": "check_recommendation_inputs", **args}])
@@ -513,8 +510,9 @@ class PersonalChatTests(unittest.TestCase):
                 self.assertEqual(stored["task_progress"], progress)
                 history = self.service.history({"conversation_id": result["conversation_id"]}, self.context)
                 self.assertEqual(history["turns"][-1]["task_progress"], progress)
-                intent = self.service._intent_history({"turns": [stored]})
-                self.assertEqual(intent, [{"role": "user", "content": "限定课程任务"}])
+                displayed = self.service._conversation_history({"turns": [stored], "workspace_versions": stored["versions"]})
+                self.assertEqual(displayed, [{"role": "user", "content": "限定课程任务"},
+                    {"role": "assistant", "content": stored["reply"]}])
 
     def test_invalid_or_formal_completed_progress_is_rejected_without_persisted_result(self):
         for progress in ({"kind": "recommendation", "status": "completed", "scope": "formal", "reason": "test_result"},
@@ -550,7 +548,6 @@ class PersonalChatTests(unittest.TestCase):
         first = self.turn(message="帮我根据课表和成绩推荐一下")
         self.assertEqual(first["task_status"], "awaiting_user")
         self.assertEqual(self.app.school.reads, [])
-        self.assertEqual(self.app.school.lexical_preparations, [])
         self.app.reply_origin = "personal_model_evidence"
         self.app.model_decision = {"kind": "answer", "evidence_ids": []}
         self.app.dialogue_tool_calls = [("query_my_records", {"operation": "academic",

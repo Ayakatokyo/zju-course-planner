@@ -60,8 +60,11 @@ def _strings(value, *, limit, pattern):
             and all(type(v) is str and pattern.fullmatch(v) for v in value))
 
 
-def course_plan_tool_schemas():
+def course_plan_tool_schemas(*, managed_dependencies=False):
     """Fresh strict JSON schemas; no identity, path or observation arguments."""
+    dependencies = (" 必要本轮来源由Harness自动补齐；已读范围同轮复用，失败不使用旧缓存。"
+        if managed_dependencies else " 每轮生成或调整前须先有本轮主修与培养，缺少时调用prepare_recommendation_inputs。")
+    inspect_hint = " 仅解释已有计算时使用get_current_term_plan，不搜索、准备或求解。"
     string = lambda **extra: {"type": "string", **extra}
     decimal = {"type": "number", "exclusiveMinimum": 0, "maximum": 100}
     codes = {"type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": True,
@@ -74,21 +77,26 @@ def course_plan_tool_schemas():
         {"name": NAMES[0], "description": "按名称或精确代码检索已授权本学期课程观察；支持来源标题明确并列的另一代码，返回observed关系，不证明课程等价或培养适用。observation_summary给出与计算器相同的历史观察筛查、周五空闲候选与节次；不是当前余量或本人可选结论。",
          "properties": {"query": string(minLength=1, maxLength=100), "target_term": string(enum=[CURRENT_TERM]),
                         "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, "required": ["query", "target_term"]},
-        {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；执行层保留用户在任意星期的明确节次禁排；下午等未明确节次须先澄清。courses仅课程组合，timetable另避开本人课表。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。",
+        {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；执行层保留用户在任意星期的明确节次禁排；下午等未明确节次须先澄清。courses仅课程组合，timetable另避开本人课表。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。" + dependencies + inspect_hint,
          "properties": {"recommendation_kind": string(enum=["courses", "timetable"]), "target_term": string(enum=[CURRENT_TERM]),
              "course_codes": codes, "target_credits": decimal, "max_credits": decimal,
              "friday_free": string(enum=["none", "soft", "hard"]),
              "required_course_codes": {**codes, "minItems": 0}, "change_evidence": evidence},
          "required": ["recommendation_kind", "target_term", "course_codes", "target_credits", "friday_free"]},
-        {"name": NAMES[2], "description": "比较当前版本方案，或显式锁定/解锁/排除班次并重新计算；不保存、不选课。默认继承已有学分、锁定及任意星期的明确节次禁排，只提交本轮明确修改；未明确节次先澄清。保持已有锁、本人课表固定项和数据版本。",
+        {"name": NAMES[2], "description": "比较当前版本方案，或显式锁定/解锁/排除班次并重新计算；不保存、不选课。默认继承已有学分、锁定及任意星期的明确节次禁排，只提交本轮明确修改；未明确节次先澄清。保持已有锁、本人课表固定项和数据版本。"
+            " action=compare时仅允许plan_ref、action、expected_revision、option_labels四字段，且必须提供option_labels；"
+            "action=revise时禁止option_labels，仅传实际需调整的条件。"
+            "用户要求新增锁定时，须在lock_class_refs中传入本轮get返回的对应class_ref；"
+            "change_evidence里的class_refs仅验证该动作，不会执行锁定，不能代替lock_class_refs。" + dependencies + inspect_hint,
          "properties": {"plan_ref": string(pattern="^PLN-[a-f0-9]{48}$"), "action": string(enum=["compare", "revise"]),
              "expected_revision": {"type": "integer", "minimum": 0},
-             "option_labels": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": True, "items": string(enum=["A", "B", "C"])},
+             "option_labels": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": True, "items": string(enum=["A", "B", "C"]),
+                 "description": "仅action=compare时必填；action=revise禁止此字段。查看方案选项可用get_current_term_plan。"},
              "lock_class_refs": refs, "unlock_class_refs": refs, "exclude_class_refs": refs,
              "friday_free": string(enum=["none", "soft", "hard"]), "target_credits": decimal, "max_credits": decimal,
              "change_evidence": evidence},
          "required": ["plan_ref", "action", "expected_revision"]},
-        {"name": NAMES[3], "description": "查看当前连接的课程数据测试选择引用；仅为历史方案对象元数据，更新仍需本轮本人来源。",
+        {"name": NAMES[3], "description": "读取当前连接本人保存的课程数据测试选择引用与计算摘要，用于解释目标、排序和候选范围；不改条件、不重新搜索、准备或求解，不把历史计算称为新读取。更新仍需本轮本人来源。",
          "properties": {"plan_ref": string(pattern="^PLN-[a-f0-9]{48}$"),
              "option_labels": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": True, "items": string(enum=["A", "B", "C"])}},
          "required": []},

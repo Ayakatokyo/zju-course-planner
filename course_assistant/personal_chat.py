@@ -250,15 +250,6 @@ class PersonalChatService:
         return row["state"]
 
     @staticmethod
-    def _intent_history(state):
-        """Carry user intent across fresh data versions, never old fact/tool payloads."""
-        rows = [{"role": "user", "content": turn["message"]} for turn in state.get("turns", [])[-8:]
-                if isinstance(turn, dict) and isinstance(turn.get("message"), str) and 0 < len(turn["message"]) <= 2000]
-        while rows and len(json.dumps(rows, ensure_ascii=False).encode()) > 12000:
-            rows.pop(0)
-        return rows
-
-    @staticmethod
     def _conversation_history(state):
         """Bounded, previously displayed dialogue, never raw tool or reasoning payloads.
 
@@ -266,8 +257,13 @@ class PersonalChatService:
         The dialogue loop labels these messages historical, not current evidence.
         """
         pairs = []
-        for turn in state.get("turns", [])[-6:]:
+        egress = (state.get("workspace_versions") or {}).get("egress_digest")
+        for turn in reversed(state.get("turns", [])[-6:]):
             if not isinstance(turn, dict):
+                continue
+            if (turn.get("versions") or {}).get("egress_digest") != egress:
+                break  # Never revive a prior model/data-use scope on a later turn.
+            if turn.get("status") != "completed":
                 continue
             message, reply = turn.get("message"), turn.get("reply")
             if not isinstance(message, str) or not 0 < len(message) <= 2000:
@@ -275,7 +271,7 @@ class PersonalChatService:
             pair = [{"role": "user", "content": message}]
             if isinstance(reply, str) and reply.strip() and not SENSITIVE.search(reply):
                 pair.append({"role": "assistant", "content": reply[:3000]})
-            pairs.append(pair)
+            pairs.insert(0, pair)
         while pairs and len(json.dumps(pairs, ensure_ascii=False).encode()) > 24000:
             pairs.pop(0)
         return [row for pair in pairs for row in pair]
@@ -495,10 +491,10 @@ class PersonalChatService:
                 same_egress = (state.get("workspace_versions") or {}).get("egress_digest") == versions["egress_digest"]
                 task_context = previous_task_context(state) if same_egress else None
                 clarification_context = previous_clarification_context(state) if same_egress else None
-                history = self._intent_history(state) if reset and same_egress else [] if reset else deepcopy(state.get("messages", []))
-                if callable(getattr(self._provider(context), "personal_chat_live_tool", None)):
-                    history = self._conversation_history(state) if same_egress else []
-                    reset = reset or bool(state.get("messages"))
+                # Both school and synthetic providers share the same bounded
+                # dialogue history; stored tool payloads are audit evidence only.
+                history = self._conversation_history(state) if same_egress else []
+                reset = reset or bool(state.get("messages"))
 
         if "replay" in reservation:
             self._current(context, expected_scope=scope, expected_versions=versions,
@@ -542,33 +538,21 @@ class PersonalChatService:
                 self._current(context, expected_scope=scope, expected_egress=versions["egress_digest"])
 
             def adopt(changed):
-                nonlocal versions, reset, history
+                nonlocal versions, reset
                 if not changed:
                     authorize()
                     return
                 _, current, _ = self._current(context, expected_scope=scope,
                     expected_egress=versions["egress_digest"])
                 if current != versions:
-                    keep_intent = versions["egress_digest"] == current["egress_digest"]
                     versions, reset = current, True
-                    history = self._intent_history(state) if keep_intent else []
 
             harness = AcademicHarness(self._provider(context), context, authorize=authorize,
                 generation_authorize=generation_authorize, adopt=adopt, emit=emit,
                 user_message=body["message"], task_context=task_context,
                 clarification_context=clarification_context, active_plan_ref=active_plan_ref)
-            source_receipts, policy_context = harness.receipts, harness.policy_context
+            policy_context = harness.policy_context
             execute_tool = harness.execute
-            preparation = getattr(self._provider(context), "prepare_personal_chat", None)
-            # Live tools acquire their exact current scope under the school
-            # connection lock. A lexical prefetch before task selection would
-            # read even for "only check" or an unresolved recommendation task.
-            # Keep the old hook only for integrations without dynamic reads.
-            if callable(preparation) and not callable(getattr(self._provider(context), "personal_chat_live_tool", None)):
-                prepared = preparation(context, body["message"], before=authorize, authorize=generation_authorize,
-                                       emit=emit, adopt=adopt)
-                if isinstance(prepared, list):
-                    source_receipts.extend(prepared)
             # Neither inference nor PDF extraction holds the global app lock.
             self._active_model.client = _ObservedModel(snapshot[0], emit, authorize,
                 lambda delta: self.progress.reasoning(progress_key, delta))

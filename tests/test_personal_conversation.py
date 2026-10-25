@@ -25,7 +25,9 @@ class PersonalConversationTests(unittest.TestCase):
         return final({'kind': 'answer', 'text': '\n\n'.join([item['text'] for item in result['entries']]), 'evidence_ids': (sum([[item['evidence_id']] for item in result['entries']], []))})
 
     def test_explanation_keeps_previous_answer_but_never_replays_school_facts(self):
-        state = {"turns": [{"message": "查成绩概况", "reply": "合成测试：成绩未知3条。",
+        state = {"workspace_versions": {"egress_digest": "SYNTHETIC-EGRESS"},
+                 "turns": [{"status": "completed", "versions": {"egress_digest": "SYNTHETIC-EGRESS"},
+                            "message": "查成绩概况", "reply": "合成测试：成绩未知3条。",
                             "tool_results": [{"secret": "RAW-NOT-TRANSMITTED"}],
                             "reasoning_content": "THINKING-NOT-TRANSMITTED"}]}
         history = PersonalChatService._conversation_history(state)
@@ -53,9 +55,13 @@ class PersonalConversationTests(unittest.TestCase):
         self.assertFalse(response["tool_results"][-1]["result"]["query_executed"])
 
     def test_history_is_bounded_in_pairs_and_retains_no_tools(self):
-        state = {"turns": [{"message": "旧问" + str(i), "reply": "答" * 3001, "tool_results": [{"raw": "NEVER"}]}
+        state = {"workspace_versions": {"egress_digest": "SYNTHETIC-EGRESS"},
+                 "turns": [{"status": "completed", "versions": {"egress_digest": "SYNTHETIC-EGRESS"},
+                            "message": "旧问" + str(i), "reply": "答" * 3001, "tool_results": [{"raw": "NEVER"}]}
                            for i in range(12)]}
         history = PersonalChatService._conversation_history(state)
+        self.assertGreaterEqual(len(history), 2)
+        self.assertEqual(history[-2]["content"], "旧问11")
         self.assertLessEqual(len(json.dumps(history, ensure_ascii=False).encode()), 24000)
         self.assertEqual([row["role"] for row in history], ["user", "assistant"] * (len(history) // 2))
         self.assertTrue(all(len(row["content"]) <= 3000 for row in history))

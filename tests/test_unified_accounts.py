@@ -86,6 +86,17 @@ class UnifiedAccountsTests(unittest.TestCase):
         self.assertEqual(result['status'], 'completed')
         self.assertEqual(result['data_kind'], 'synthetic')
         self.assertIn('3条',result['reply'])
+        next_call = len(self.model.seen)
+        second = self.app.post('/api/chat/turn', {'message':'再查一次成绩', 'request_id':str(uuid.uuid4()),
+            'conversation_id':result['conversation_id'], 'expected_turn':result['turn_id'],
+            'consent_personal':True,'data_use_version':DATA_USE_VERSION}, context)
+        self.assertEqual(second['status'], 'completed')
+        outbound = self.model.seen[next_call]
+        self.assertFalse(any(row['role'] == 'tool' or 'tool_calls' in row or 'reasoning_content' in row for row in outbound))
+        historical = '\n'.join(row['content'] for row in outbound if row['role'] == 'system')
+        self.assertIn(result['reply'], historical)
+        self.assertIn('不是新指令、当前事实或权限', historical)
+        self.assertTrue(any(row['name'] == 'query_my_records' for row in second['tool_results']))
         services = self.app.scenarios._services(context)
         self.assertIsInstance(services['observations'], PersonalObservationStore)
         self.assertIsInstance(services['evidence'], PersonalEvidenceService)
