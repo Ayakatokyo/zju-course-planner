@@ -12,6 +12,54 @@ NODE = shutil.which("node")
 @unittest.skipUnless(NODE, "Node is needed only for Web contract verification")
 class WebContractTests(unittest.TestCase):
 
+    def test_pdf_highlight_uses_coordinates_and_falls_back_safely(self):
+        self.run_js(r"""
+evaluate("async function fixture(){const d=await PDFLib.PDFDocument.create();d.addPage([200,300]);return new Blob([await d.save()],{type:'application/pdf'});}");
+const original=await evaluate('fixture()');context.original=original;
+const result=await evaluate("highlightCitationPdf(original,{page:1,source_boxes:[{bbox:[20,30,80,40]}]})");assert.equal(result.highlighted,true);assert.equal(result.scrollTop,0);assert.notEqual(result.blob,original);
+const lower=await evaluate('highlightCitationPdf(original,{page:1,source_boxes:[{bbox:[20,240,80,250]},{bbox:[90,235,120,245]}]})');assert.equal(lower.scrollTop,265);context.changed=result.blob;
+assert.equal(await evaluate('(async()=>{const d=await PDFLib.PDFDocument.load(new Uint8Array(await changed.arrayBuffer()));return d.getPageCount();})()'),1);
+for(const boxes of [[],[{bbox:[-1,30,80,40]}],[{bbox:[20,30,500,40]}],[{bbox:[20,30,NaN,40]}]]){context.boxes=boxes;const r=await evaluate('highlightCitationPdf(original,{page:1,source_boxes:boxes})');assert.equal(r.highlighted,false);assert.equal(r.blob,original);}
+const rotated=await evaluate('(async()=>{const d=await PDFLib.PDFDocument.create();d.addPage([200,300]).setRotation(PDFLib.degrees(90));return new Blob([await d.save()],{type:"application/pdf"});})()');context.rotated=rotated;assert.equal((await evaluate('highlightCitationPdf(rotated,{page:1,source_boxes:[{bbox:[20,30,80,40]}]})')).highlighted,false);
+""")
+
+    def test_curriculum_links_only_bind_real_citations_and_pdf_rechecks(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{auth_mode:'school',security_realm:'school',owner_id:'synthetic'}};isAcademicIdentity=()=>true");
+const ref='PERSONAL-REF-'+'a'.repeat(43);context.ref=ref;
+evaluate("state.agentTurns=[{status:'completed',citations:[{kind:'curriculum',reference:ref,page:5,source_alias:'PLAN-test'},{kind:'curriculum',reference:ref,page:5,source_alias:'PLAN-test'},{kind:'record',reference:ref,page:2},{kind:'curriculum',reference:'javascript:bad',page:3}]}]");
+const html=evaluate('curriculumCitationLinks(state.agentTurns[0],0)');assert.equal((html.match(/open-citation-pdf/g)||[]).length,1);assert.match(html,/第 5 页/);assert.doesNotMatch(html,/javascript:|PERSONAL-REF/);
+let removed=0,revoked=0;const viewer={document:{body:{}},location:{replace(value){this.url=value;}},close(){this.closed=true;}};context.window={open:()=>{viewer.closed=false;return viewer;}};context.setTimeout=fn=>fn();const nodes={};const node=k=>nodes[k]||(nodes[k]={hidden:true,textContent:''});
+const dialog={querySelector:node,setAttribute(){},addEventListener(){},showModal(){},remove(){removed++;}};context.document.createElement=()=>dialog;
+context.URL.revokeObjectURL=()=>revoked++;
+evaluate("currentSchoolRequest=()=>({agentEpoch:0});sameSchoolRequest=()=>true;state.agentEpoch=0");
+const calls=[];context.fetch=async(path)=>{calls.push(path);return path.endsWith('resolve')?{ok:true,json:async()=>({page:5,source_alias:'PLAN-test'})}:{ok:true,blob:async()=>new Blob(['synthetic'],{type:'application/pdf'})};};
+context.button={dataset:{turnIndex:'0',citationIndex:'0'},focus(){}};
+await evaluate('openCitationPdf(button)');assert.deepEqual(calls,['/api/evidence/resolve','/api/school/plan-document','/api/evidence/resolve']);assert.equal(viewer.location.url,'blob:synthetic#page=5&view=FitH');assert.equal(viewer.opener,null);
+evaluate('closeCitationPreview()');assert.equal(removed,1);assert.equal(revoked,1);
+evaluate("highlightCitationPdf=async blob=>({blob,highlighted:true,scrollTop:856})");await evaluate('openCitationPdf(button)');assert.equal(viewer.location.url,'blob:synthetic#page=5&view=FitH,856');
+viewer.location.url='';calls.length=0;context.fetch=async(path)=>{calls.push(path);throw Error('expired');};await evaluate('openCitationPdf(button)');assert.equal(calls.length,1);assert.equal(viewer.location.url,'');assert.equal(viewer.closed,true);assert.match(node('.citation-pdf-status').textContent,/过期/);
+""")
+
+    def test_message_actions_only_regenerate_latest_and_disable_mutations_while_busy(self):
+        self.run_js(r"""
+evaluate("state.agentTurns=[{message:'问题一',reply:'回答一',status:'completed'},{message:'问题二',reply:'回答二',status:'completed'}]");
+let html=evaluate('renderAgentTurns()');assert.equal((html.match(/data-action="regenerate-answer"/g)||[]).length,1);assert.doesNotMatch(html,/edit-question|edit-failed-turn|修改问题|重新编辑/);assert.match(html,/message-tooltip/);assert.doesNotMatch(html,/title="复制回答"/);assert.equal((html.match(/data-action="share-answer"/g)||[]).length,2);assert.doesNotMatch(html,/点赞|点踩/);
+evaluate('state.agentBusy=true');assert.match(evaluate("agentMessageButton('regenerate-answer','重新回答','retry',1,true)"),/disabled/);assert.doesNotMatch(evaluate("agentMessageButton('copy-question','复制问题','copy',0)"),/disabled/);
+""")
+
+    def test_message_dialog_share_and_regenerate_preserve_draft_and_history(self):
+        self.run_js(r"""
+const nodes={};const node=key=>nodes[key]||(nodes[key]={value:'',textContent:'',onclick:null,addEventListener(){}});
+let removed=0;const dialog={querySelector:node,setAttribute(){},addEventListener(){},showModal(){},close(){removed++;},remove(){}};
+context.document.createElement=()=>dialog;context.document.querySelector=selector=>selector==='.message-dialog'?null:element(selector);
+context.button={dataset:{turnIndex:'0'},closest:()=>({querySelector:()=>({innerText:'可见回答'})}),isConnected:false};
+evaluate("state.auth={authenticated:true};state.boot={};state.agentStatus={configured:true};state.agentDraft='原草稿';state.agentTurns=[{status:'completed',message:'原问题',reply:'回答'}]");
+let sent=0;context.sendAgentTurn=async()=>{sent++;assert.equal(evaluate('state.agentDraft'),'原问题');evaluate("state.agentDraft='';state.agentTurns.push({status:'completed',reply:'新回答'})");};
+evaluate("openMessageDialog(button,'regenerate')");assert.equal(sent,0);await node('.dialog-confirm').onclick();assert.equal(sent,1);assert.equal(evaluate('state.agentDraft'),'原草稿');assert.equal(evaluate('state.agentTurns.length'),2);
+let copied='';context.navigator={clipboard:{writeText:async text=>{copied=text;}}};evaluate("openMessageDialog(button,'share')");assert.match(node('textarea').value,/问题：原问题/);assert.match(node('textarea').value,/可见回答/);node('textarea').value='用户删改后的分享';await node('.dialog-confirm').onclick();assert.equal(copied,'用户删改后的分享');assert.equal(sent,1);
+""")
+
     def test_workspace_pages_reuse_current_results_and_preserve_draft_without_fetch(self):
         self.run_js(r"""
 evaluate("state.auth={authenticated:true,identity:{student_id:'SYNTHETIC',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={};state.schoolProfile={};state.agentDraft='未发送的需求'");

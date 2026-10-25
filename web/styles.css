@@ -602,10 +602,6 @@ main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
 .agent-answer > ul, .agent-answer > ol { max-width: 88ch; margin: 10px 0; padding-left: 24px; line-height: 1.85; }
 .agent-answer li + li { margin-top: 4px; }
 .agent-answer-actions { display: flex; align-items: center; gap: 12px; min-height: 32px; margin-top: 10px; }
-.agent-answer-actions .button { min-height: 30px; padding: 4px 8px; border-color: transparent; background: transparent; color: var(--muted); font-size: .75rem; }
-.agent-message.assistant .agent-answer-actions .button { opacity: 0; }
-.agent-message.assistant:hover .agent-answer-actions .button, .agent-message.assistant:focus-within .agent-answer-actions .button { opacity: 1; }
-.agent-answer-actions .button:hover { color: var(--primary); background: var(--selected); }
 .copy-status { color: var(--muted); font-size: .75rem; }
 .agent-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 24px auto 0; max-width: 880px; }
 .agent-starters .button { min-height: 38px; padding: 7px 14px; font-size: .8125rem; font-weight: 400; color: var(--muted); }
@@ -671,3 +667,39 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
   select option:disabled { color: var(--muted); opacity: .65; cursor: not-allowed; }
   #agent-model option[value="@refresh"] { margin-top: 5px; border-top: 1px solid var(--line); border-radius: 0 0 5px 5px; color: var(--muted); }
 }
+
+/* Message tools stay adjacent to their content without competing with the answer. */
+.agent-user-row { margin-bottom: 20px; }
+.agent-user-row .agent-message.user { margin-bottom: 4px; }
+.agent-message-actions { display: flex; align-items: center; gap: 4px; min-height: 32px; }
+.user-actions { justify-content: flex-end; }
+.agent-message-actions .message-action { width: 32px; height: 32px; min-height: 32px; position: relative; padding: 7px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); transition: background .12s, color .12s; }
+.agent-message-actions .message-action svg { width: 18px; height: 18px; display: block; }
+.agent-message-actions .message-action:hover, .agent-message-actions .message-action:focus-visible { opacity: 1; color: var(--primary); background: var(--selected); }
+.message-action:disabled { opacity: .35; cursor: not-allowed; }
+.message-dialog { width: min(640px, 80vw); padding: 24px; border: 1px solid var(--line); border-radius: 14px; color: var(--ink); background: var(--bg); }
+.message-dialog::backdrop { background: rgb(20 25 45 / .25); }
+.message-dialog header, .message-dialog footer { display: flex; align-items: center; gap: 12px; }
+.message-dialog header { justify-content: space-between; }
+.message-dialog h2 { margin: 0; font-size: 1.15rem; }
+.message-dialog > p { color: var(--muted); line-height: 1.7; margin: 14px 0; }
+.message-dialog textarea { width: 100%; min-height: 180px; max-height: 48vh; resize: vertical; padding: 14px; line-height: 1.7; border: 1px solid var(--line); border-radius: 8px; box-sizing: border-box; }
+.message-dialog footer { justify-content: flex-end; margin-top: 18px; }
+.message-dialog footer [role="status"] { margin-right: auto; }
+.dialog-close { font-size: 20px; border: 0; background: transparent; }
+
+.agent-message-actions .message-action:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.agent-message-actions .message-action:active:not(:disabled) { background: var(--surface-deep); }
+.message-tooltip { position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 5; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: white; font-size: 12px; font-weight: 400; line-height: 1.5; white-space: nowrap; pointer-events: none; visibility: hidden; opacity: 0; transition: opacity .12s; }
+.user-actions .message-tooltip { left: auto; right: 0; }
+.message-action:hover:not(:disabled) .message-tooltip, .message-action:focus-visible .message-tooltip { visibility: visible; opacity: 1; }
+.agent-message-actions .copy-status { margin-left: 6px; }
+
+/* Answer citations open only the current authorized PDF. */
+.citation-page-links{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.citation-page-link{border:0;background:transparent;color:#6951a5;padding:4px 0;margin-right:12px;font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.citation-page-link:hover{color:#43297f}.citation-page-link:focus-visible{outline:2px solid #8b72c6;outline-offset:4px;border-radius:3px}
+.citation-pdf-dialog{width:min(480px,80vw);max-height:80vh;padding:18px;border:1px solid #ddd6e8;border-radius:12px;background:white;color:#292534}
+.citation-pdf-dialog::backdrop{background:rgba(25,20,35,.4)}
+.citation-pdf-dialog header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.citation-pdf-status{font-size:13px;color:#696274;margin:12px 0}
