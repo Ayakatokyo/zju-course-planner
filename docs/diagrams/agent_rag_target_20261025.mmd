@@ -1,0 +1,25 @@
+flowchart TB
+    Login["学校登录"] --> Auth["服务端验证本人身份<br/>基础资料、会话与可用来源状态"]
+    Auth --> Input["用户原问题 + 必要历史 / 当前任务"]
+    Input --> Scope["本机范围与能力预检"]
+    Scope --> Model["模型理解问题<br/>选择工具、参数或澄清"]
+    Scope -. "可选前置；尚未实施" .-> Router["工具候选检索<br/>问题向量 × 已授权工具说明索引"]
+    Router -. "候选及完整工具说明，不是事实" .-> Model
+    Model --> Harness["Harness<br/>参数、授权、依赖、版本与预算"]
+    Harness --> Records["结构化查询<br/>成绩 / 课表 / 考试"]
+    Harness --> Rag["资料 RAG<br/>范围过滤 → 混合召回 → 融合排序<br/>可选精排 → 补齐条件"]
+    Harness --> Compute["确定性计算<br/>统计 / 课程组合 / 冲突检查"]
+    Records --> Context["数据与证据回到上下文<br/>范围、时效、覆盖、未知、有效引用"]
+    Rag --> Context
+    Compute --> Context
+    Context --> Model
+    Model --> Finish["资料足够才给出事实结论<br/>不足则继续查询 / 澄清 / 说明缺项"]
+    Finish --> Check["格式、引用与版本校验"]
+    Check --> Answer["简洁正文 + 实际表格 / 方案"]
+    PDF["当前授权 PDF<br/>解析 / OCR / 语义分块 / 文档向量"] -. "来源哈希与处理版本绑定" .-> Rag
+    classDef optional fill:#fff4de,stroke:#b78632,stroke-dasharray:5 5,color:#533d16;
+    classDef model fill:#eaf2ff,stroke:#5377a5,color:#17365c;
+    classDef evidence fill:#edf6ed,stroke:#608760,color:#234923;
+    class Router optional;
+    class Model model;
+    class Records,Rag,Compute,Context,PDF evidence;
