@@ -623,3 +623,8 @@ main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
 .agent-original-answer{white-space:pre-wrap}
 .personal-computation-details p,.personal-computation-details li{line-height:1.7}
 @media(max-width:600px){.agent-grade-answer .personal-record-table{font-size:.8rem}.agent-grade-answer .personal-record-table th:first-child{width:43%}.agent-grade-answer .personal-record-table th,.agent-grade-answer .personal-record-table td{padding:9px 5px}}
+
+/* Model-authored tables remain escaped text and scroll inside the answer. */
+.agent-answer-table { max-width: 100%; overflow-x: auto; margin: 12px 0; }
+.agent-answer-table table { width: 100%; border-collapse: collapse; }
+.agent-answer-table th, .agent-answer-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }

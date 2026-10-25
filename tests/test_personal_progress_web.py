@@ -71,7 +71,7 @@ assert.match(html,/>88</);assert.doesNotMatch(html,/\| 99/);
 // Other tables, uncited courses, and questions with no source table are kept.
 context.turn.reply='| 课程 | 成绩 |\n|---|---|\n| 未引用课程 | 99 |';
 assert.match(evaluate('renderAgentTurns()'),/未引用课程/);
-context.turn.reply='| 方案 | 学分 |\n|---|---|\n| A | 6 |';assert.match(evaluate('renderAgentTurns()'),/\| A \| 6 \|/);
+context.turn.reply='| 方案 | 学分 |\n|---|---|\n| A | 6 |';assert.match(evaluate('renderAgentTurns()'),/<th scope="col">方案<\/th>/);assert.match(evaluate('renderAgentTurns()'),/<tr><td>A<\/td><td>6<\/td><\/tr>/);
 context.turn.message='解释成绩';assert.equal(evaluate('personalGradeAnswer(turn)'),null);
 """)
 

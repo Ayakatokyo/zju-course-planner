@@ -1,0 +1,165 @@
+{
+  "date": "2026-10-25",
+  "source_sha256": {
+    "course_assistant/auth.py": "230630cd552b5c76a3a6b2b04d6935ac3ef33becb23b53a2cab4b17e3c851f21",
+    "course_assistant/chat_runs.py": "5cd8b0ec449da431cb5d71d96040c0fdbcf26f0213a4ae6e86dbf6f02f2ba29f",
+    "course_assistant/chat_model_settings.py": "dc1e66e8ddc9ccc375b0d9a2a6dd8ac8d786b32158af4b67b58dbc0f8cba0d08",
+    "course_assistant/personal_chat.py": "efd4e3ff3481c8c2bfe833c8bc0bcb99104d20066cfbcb184eb7bf4219b913bb",
+    "course_assistant/personal_dialogue.py": "a4d4bee39dc1a4276d7bfd1b0ffc28f0495281e01a8da67a616e7fdb3dc50cd6",
+    "course_assistant/personal_evidence.py": "e0ea48f43aba36aa4d3ca9ced6dbcc9200651c86f9b00dbbad2da53110d25772",
+    "course_assistant/personal_observations.py": "dde39d998b847b951f4243a2e4883aba13c23c4e82b60342541d46ec04861aba",
+    "course_assistant/curriculum_facts.py": "7e13a8f57f2e8f5a59a5562acdea06455a57a59611d6ba9f634cad176c082fd1",
+    "course_assistant/curriculum_pdf.py": "bfe1c78a7b90957a8d8cb56eacb180054a668f66a972c38d4e417725ddeecee1",
+    "course_assistant/scenario_data.py": "d634c6f710fb2b9f3d49a3d65f50b85ec7906f53add88410f910cb18a10a6f01",
+    "course_assistant/scenario_accounts.py": "815ea58c49953d38644ce64c2346826553ea0cf37b22e3ae5a845f3382948d6f",
+    "course_assistant/server.py": "ba9201328c6865c54e4f9973a3304795ee502f5d7671431597a6f57ea3966c59",
+    "course_assistant/semantic_retrieval.py": "541f41aff412cbf6fe6df6484b526b80949d5c36d06b23b1a02e9a3ac0637ff3",
+    "web/app.js": "c718f42e30f64d86af879e1d49943d53980167fa06616005a5dbe0e4ff21baaa",
+    "tests/test_unified_accounts.py": "c77ca89c777602344818307194f8ae3d00d4138ae081af6e07c3dcdc2a1ab953",
+    "tests/test_web_contract.py": "eb368eb80e0f4c2c6439c29bd69670306b645e533bb295a7a7acce949bd37b0b",
+    "tests/test_curriculum_facts.py": "258cface8121fbb7fb5c9cb0ea3c415092e131eb0fc39fe14bfbd786131d0767",
+    "tests/test_personal_evidence.py": "2b8df15f4f6c096823949efd86d0fc875d0f24118306d2da088e3f39e13c847e",
+    "tests/test_personal_dialogue.py": "3d2ce290ff31df12e848b4c130ee928f5d2f87fc53b60ede7a01c810f5f42b5f"
+  },
+  "school_calls": 0,
+  "school_runtime_restarted": false,
+  "committed": false,
+  "pushed": false,
+  "limitations": [
+    "new_school_account_end_to_end_unverified",
+    "formal_applicability_and_recommendation_unaccepted",
+    "general_semantic_accuracy_unproven",
+    "user_acceptance_pending"
+  ],
+  "version": "v39_candidate",
+  "application": "course_assistant.server.Application",
+  "candidate_port": 18882,
+  "candidate_pid": 87010,
+  "preserved_school_port": 18875,
+  "preserved_school_pid": 47662,
+  "tests": {
+    "full": {
+      "run": 1554,
+      "passed": 1547,
+      "skipped": 7,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 68.739
+    },
+    "final_ui_targeted": {
+      "run": 88,
+      "passed": 88,
+      "failures": 0,
+      "errors": 0
+    }
+  },
+  "real_flash_rounds": [
+    {
+      "turn": 1,
+      "status": "completed",
+      "data_kind": "synthetic",
+      "model_generations": 2,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tools": [
+        {
+          "name": "get_my_context",
+          "initiated_by": "service_preflight",
+          "status": "completed",
+          "mode": "none"
+        },
+        {
+          "name": "query_my_records",
+          "initiated_by": "model",
+          "status": "completed",
+          "mode": "overview"
+        },
+        {
+          "name": "search_my_curriculum",
+          "initiated_by": "model",
+          "status": "completed",
+          "mode": "curriculum_keyword"
+        }
+      ]
+    },
+    {
+      "turn": 2,
+      "status": "completed",
+      "data_kind": "synthetic",
+      "model_generations": 3,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tools": [
+        {
+          "name": "get_my_context",
+          "initiated_by": "service_preflight",
+          "status": "completed",
+          "mode": "none"
+        },
+        {
+          "name": "query_my_records",
+          "initiated_by": "model",
+          "status": "completed",
+          "mode": "overview"
+        },
+        {
+          "name": "query_my_records",
+          "initiated_by": "model",
+          "status": "completed",
+          "mode": "overview"
+        }
+      ]
+    },
+    {
+      "turn": 3,
+      "status": "completed",
+      "data_kind": "synthetic",
+      "model_generations": 2,
+      "repair_attempts": 0,
+      "argument_corrections": 0,
+      "tools": [
+        {
+          "name": "get_my_context",
+          "initiated_by": "service_preflight",
+          "status": "completed",
+          "mode": "none"
+        },
+        {
+          "name": "query_my_records",
+          "initiated_by": "model",
+          "status": "completed",
+          "mode": "course_keyword"
+        },
+        {
+          "name": "search_my_curriculum",
+          "initiated_by": "model",
+          "status": "completed",
+          "mode": "curriculum_keyword"
+        }
+      ]
+    }
+  ],
+  "ui_checks": [
+    "same_main_login_and_workspace",
+    "23_grade_rows_with_pagination",
+    "missing_timetable_not_ready_not_free_time",
+    "history_reopened_after_refresh",
+    "desktop_composer_visible"
+  ],
+  "source_fact_checks": {
+    "grade_rows": 23,
+    "mandatory_course_rows": 22,
+    "mandatory_nominal_credits_sum": "53.0",
+    "probability_grade": "77",
+    "probability_suggested_term": "二（秋冬）"
+  },
+  "isolation_checks": [
+    "cross_owner_history_denied",
+    "cross_owner_reference_denied",
+    "csrf_required",
+    "synthetic_bad_password_does_not_call_school",
+    "logout_does_not_revoke_other_owner"
+  ],
+  "raw_evidence_location": "private only",
+  "runtime_note": "main school process unchanged; frontend final copy reload verified on candidate"
+}

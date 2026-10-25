@@ -2,7 +2,7 @@
 from copy import deepcopy
 import threading
 
-from .auth import AccessError, SCHOOL_MODE
+from .auth import AccessError, is_academic_context
 from .model_client import ModelError
 
 
@@ -14,7 +14,7 @@ class ChatModelSettings:
 
     def _key(self, context):
         self.auth.require_context(context)
-        if context.auth_mode != SCHOOL_MODE:
+        if not is_academic_context(context):
             raise AccessError("请先连接学校账号", 403, "school_connection_required")
         return (context.security_realm, context.student_id, context.session_ref, context.binding_version)
 

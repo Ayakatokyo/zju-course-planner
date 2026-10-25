@@ -13,7 +13,7 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 from . import __version__
-from .auth import AccessError, AuthManager, COOKIE_NAME, PROFILES, SCHOOL_MODE
+from .auth import AccessError, AuthManager, COOKIE_NAME, PROFILES, SCHOOL_MODE, SCENARIO_MODE, SCENARIO_REALM, is_academic_context
 from .audit import audit_progress
 from .exporter import export_result
 from .importer import ROOT, SOURCE_ROOT, ImportErrorDetail, digest, load_json, read_sources, require, validate_demo
@@ -24,12 +24,14 @@ from .model_client import ModelClient, read_config, strict_json
 
 class Application:
     def __init__(self, db_path=None, *, mock_enabled=False, clock=None, model=None, recommendation_demo=False, recommendation_case='default',
-                 school_enabled=False, school_client_factory=None, school_root=None, personal_pdf_extractor=None):
+                 school_enabled=False, school_client_factory=None, school_root=None, personal_pdf_extractor=None,
+                 scenario_bundle=None, scenario_accounts=None, scenario_pdfs=None, scenario_root=None):
         self.source, self.fixture, self.chat = None, None, None
         self.school_enabled = bool(school_enabled or school_client_factory is not None)
-        default_db = ROOT / ('private/school_app/planning.sqlite3' if self.school_enabled else 'runtime/planning.sqlite3')
+        private_mode = self.school_enabled or scenario_bundle is not None
+        default_db = ROOT / ('private/school_app/planning.sqlite3' if private_mode else 'runtime/planning.sqlite3')
         database = Path(db_path or default_db).expanduser().resolve()
-        if self.school_enabled:
+        if private_mode:
             resolved = database.resolve()
             if resolved.is_relative_to(ROOT) and not any(resolved.is_relative_to(ROOT / part) for part in ('private', 'local-only')):
                 raise AccessError('学校账号运行库须位于 private、local-only 或项目外目录', 400, 'invalid_private_store')
@@ -47,6 +49,13 @@ class Application:
         self.store = Store(database)
         options = {'clock': clock} if clock else {}
         self.auth = AuthManager(self.store, mock_enabled=mock_enabled, **options)
+        self.scenarios = None
+        if any(value is not None for value in (scenario_bundle, scenario_accounts, scenario_pdfs)):
+            if not all(value is not None for value in (scenario_bundle, scenario_accounts, scenario_pdfs)):
+                raise ValueError('scenario bundle, accounts and PDF map must be configured together')
+            from .scenario_data import ScenarioDataService
+            self.scenarios = ScenarioDataService(self.auth, scenario_bundle, scenario_accounts, scenario_pdfs,
+                scenario_root or database.parent / 'scenario_sources', extractor=personal_pdf_extractor, **options)
         self.school = None
         if self.school_enabled:
             from .school_accounts import SchoolAccountService
@@ -95,13 +104,13 @@ class Application:
     def auth_status(self, context=None):
         status = {'authenticated': False, 'mock_enabled': self.auth.mock_enabled,
                   'school_auth_status': 'not_configured', 'personal_data_source_status': 'not_connected',
-                  'school_client_enabled': self.school_enabled,
-                  'mock_profiles': [{'profile_id': key, **value} for key, value in PROFILES.items()] if self.auth.mock_enabled else []}
+                  'school_client_enabled': self.school_enabled, 'academic_login_enabled': self.school_enabled or self.scenarios is not None,
+                  'scenario_accounts_enabled': self.scenarios is not None, 'mock_profiles': [{'profile_id': key, **value} for key, value in PROFILES.items()] if self.auth.mock_enabled else []}
         if context:
             self.auth.require_context(context)
             status.update(authenticated=True, identity=context.identity(), csrf_token=self.auth.csrf(context))
-            if context.auth_mode == SCHOOL_MODE:
-                status['personal_data_source_status'] = self.school.status(context)['personal_data_source_status']
+            if is_academic_context(context):
+                status['personal_data_source_status'] = self.academic_provider(context).status(context)['personal_data_source_status']
         return status
 
     def require_school(self):
@@ -109,10 +118,28 @@ class Application:
             raise AccessError('学校账号连接未开启', 503, 'school_auth_not_configured')
         return self.school
 
+    def academic_provider(self, context):
+        self.auth.require_context(context)
+        if context.auth_mode == SCENARIO_MODE and context.security_realm == SCENARIO_REALM and self.scenarios:
+            return self.scenarios
+        if context.auth_mode == SCHOOL_MODE:
+            return self.require_school()
+        raise AccessError('请先登录教务助手', 403, 'school_connection_required')
+
+    def login_account(self, body, previous_token=None):
+        if self.scenarios and self.scenarios.handles_username(body.get('username')):
+            result = self.scenarios.login(body, previous_token)
+            if self.school:
+                self.school.discard_revoked_sessions()
+            return result
+        return self.require_school().login(body, previous_token)
+
     def close(self):
         self.personal_chat.drafts.close()
         if self.school:
             self.school.close()
+        if self.scenarios:
+            self.scenarios.close()
 
     def default_bundle(self, context):
         bundle = copy.deepcopy(self.fixture)
@@ -139,7 +166,7 @@ class Application:
 
     def workspace(self, context):
         self.auth.require_context(context)
-        if context.auth_mode == SCHOOL_MODE:
+        if is_academic_context(context):
             raise AccessError('本人教务数据尚未形成可执行推荐输入', 409, 'real_recommendation_not_ready')
         workspace = self.store.workspace(context)
         if workspace is None:
@@ -264,18 +291,18 @@ class Application:
             require(not parsed.query, '接口不接受查询身份或资源范围')
             return {'status': 'ok', 'version': __version__, 'school_auth_status': 'not_configured',
                     'school_client_enabled': self.school_enabled}
-        if context and context.auth_mode == SCHOOL_MODE:
+        if context and is_academic_context(context):
             self.auth.require_context(context)
             require(not parsed.query or parsed.path in {'/api/chat/conversations', '/api/chat/runs'}, '接口不接受查询身份或资源范围')
             if path == '/api/bootstrap':
-                return {'identity': context.identity(), 'school': self.require_school().status(context),
+                return {'identity': context.identity(), 'school': self.academic_provider(context).status(context),
                         'source': {}, 'demo': {}, 'saved_plans': [], 'versions': {},
                         'drafts': {'available': True, 'storage': 'server_session_memory', 'max_chars': 2000, 'ttl_seconds': 1800},
                         'chat': self.personal_chat.status(context)}
             if path == '/api/school/status':
-                return self.require_school().status(context)
+                return self.academic_provider(context).status(context)
             if path == '/api/school/profile':
-                return self.require_school().profile(context)
+                return self.academic_provider(context).profile(context)
             if path == '/api/saved':
                 return []
             if path == '/api/chat/status':
@@ -319,10 +346,10 @@ class Application:
         raise AccessError('资源不可访问', 404, 'inaccessible_object')
 
     def post(self, path, body, context=None):
-        if context and context.auth_mode == SCHOOL_MODE:
+        if context and is_academic_context(context):
             self.auth.require_context(context)
             if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve'}:
-                return self.require_school().local_query(context, path, body)
+                return self.academic_provider(context).local_query(context, path, body)
             if path == '/api/chat/turn':
                 return self.personal_chat.turn(body, context)
             if path == '/api/chat/draft':
@@ -339,17 +366,17 @@ class Application:
             if path == '/api/chat/progress':
                 return self.personal_chat.read_progress(body, context)
             if path == '/api/school/sync':
-                return self.require_school().fetch(context, body)
+                return self.academic_provider(context).fetch(context, body)
             if path == '/api/school/captcha':
-                return self.require_school().submit_captcha(context, body)
+                return self.academic_provider(context).submit_captcha(context, body)
             if path == '/api/school/reauthenticate':
-                return self.require_school().reauthenticate(context, body)
+                return self.academic_provider(context).reauthenticate(context, body)
             if path == '/api/school/plan':
                 require(set(body) <= {'force_refresh'} and type(body.get('force_refresh', False)) is bool, '方案请求格式无效')
-                return self.require_school().acquire_plan(context, force=body.get('force_refresh', False))
+                return self.academic_provider(context).acquire_plan(context, force=body.get('force_refresh', False))
             if path == '/api/school/plan-document':
                 require(set(body) == {'source_alias'}, '仅接受本人方案引用')
-                return self.require_school().read_plan_document(context, body['source_alias']), 'application/pdf', 'pdf'
+                return self.academic_provider(context).read_plan_document(context, body['source_alias']), 'application/pdf', 'pdf'
             raise AccessError('本人教务数据尚未形成可执行推荐输入', 409, 'real_recommendation_not_ready')
         if path == '/api/chat/draft':
             raise AccessError('请先连接学校本人账号', 403, 'school_connection_required')
@@ -488,8 +515,8 @@ def make_handler(app):
                 require(not parsed.query or path in {'/api/chat/conversations', '/api/chat/runs'}, '接口不接受查询身份或资源范围')
                 if path in {'/api/school/profile', '/api/school/captcha'}:
                     context = self.context()
-                    service = app.require_school()
-                    if context.auth_mode != SCHOOL_MODE:
+                    service = app.academic_provider(context)
+                    if not is_academic_context(context):
                         raise AccessError('请先连接学校账号', 403, 'school_connection_required')
                     if path == '/api/school/captcha':
                         result = service.captcha(context)
@@ -502,7 +529,7 @@ def make_handler(app):
                     return
                 if path in {'/api/bootstrap', '/api/chat/status', '/api/chat/conversations', '/api/chat/models', '/api/chat/runs', '/api/chat/draft'}:
                     context = self.context()
-                    if context.auth_mode == SCHOOL_MODE:
+                    if is_academic_context(context):
                         result = app.get(self.path if parsed.query else path, context)
                         app.auth.require_context(context)
                         self.response(result)
@@ -550,14 +577,14 @@ def make_handler(app):
                 require(0 < length <= 2_000_000, '请求大小需在 1 字节至 2 MB 内')
                 body = strict_json(self.rfile.read(length))
                 require(isinstance(body, dict), '请求必须是 JSON 对象')
-                if path == '/api/auth/school-login':
-                    token, result = app.require_school().login(body, self.token())
+                if path in {'/api/auth/login', '/api/auth/school-login'}:
+                    token, result = app.login_account(body, self.token())
                     cookie = f'{COOKIE_NAME}={token}; Path=/; HttpOnly; SameSite=Strict' if token else None
                     self.response(result, cookie=cookie)
                     return
                 if path.startswith('/api/school/'):
                     context = self.context()
-                    if context.auth_mode != SCHOOL_MODE:
+                    if not is_academic_context(context):
                         raise AccessError('请先连接学校账号', 403, 'school_connection_required')
                     app.auth.check_csrf(context, self.headers.get('X-CSRF-Token'))
                     result = app.post(path, body, context)
@@ -570,7 +597,7 @@ def make_handler(app):
                     return
                 if path in {'/api/personal/records', '/api/evidence/prepare', '/api/evidence/search', '/api/evidence/resolve'}:
                     context = self.context()
-                    if context.auth_mode != SCHOOL_MODE:
+                    if not is_academic_context(context):
                         raise AccessError('请先连接学校账号', 403, 'school_connection_required')
                     app.auth.check_csrf(context, self.headers.get('X-CSRF-Token'))
                     result = app.post(path, body, context)
@@ -587,8 +614,8 @@ def make_handler(app):
                     context = self.context()
                     app.auth.check_csrf(context, self.headers.get('X-CSRF-Token'))
                     if path == '/api/auth/logout':
-                        if context.auth_mode == SCHOOL_MODE:
-                            app.require_school().logout(context)
+                        if is_academic_context(context):
+                            app.academic_provider(context).logout(context)
                         else:
                             app.auth.logout(context)
                         self.response({'authenticated': False}, cookie=f'{COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict')
@@ -625,10 +652,15 @@ def main():
     parser.add_argument('--recommendation-case', choices=['default', 'unknown', 'locked_friday'], default='default', help='固定合成验证场景')
     parser.add_argument('--model-env-file', type=Path, default=ROOT / '.env',
                         help='本机模型配置文件（默认 .env），只读取约定配置，不执行文件内容')
+    parser.add_argument('--scenario-bundle', type=Path, help='同入口模拟账号的已核对数据包')
+    parser.add_argument('--scenario-accounts', type=Path, help='本机模拟账号密码哈希与可信绑定')
+    parser.add_argument('--scenario-pdfs', type=Path, help='本机 JSON 培养方案键到 PDF 路径的映射')
     args = parser.parse_args()
     app = Application(args.db, mock_enabled=args.enable_mock, school_enabled=args.enable_school,
                       recommendation_demo=args.recommendation_demo, recommendation_case=args.recommendation_case,
-                      model=ModelClient(read_config(args.model_env_file)))
+                      model=ModelClient(read_config(args.model_env_file)), scenario_bundle=args.scenario_bundle,
+                      scenario_accounts=args.scenario_accounts,
+                      scenario_pdfs=json.loads(args.scenario_pdfs.read_text()) if args.scenario_pdfs else None)
     server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(app))
     print(f'浙大教务助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校账号连接 {"开启" if args.enable_school else "关闭"}', flush=True)
     try:

@@ -2,7 +2,7 @@
 
 The dialogue loop receives only the server's local tool callback. This layer
 owns consent, persistence, replay and input/model-version checks, not retrieval
-or school transport. Synthetic chat and its validators remain separate.
+or school transport. Configured synthetic accounts use the same loop with a separate source provider and security realm.
 """
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import threading
 import time
 import uuid
 
-from .auth import AccessError, SCHOOL_MODE, SCHOOL_REALM
+from .auth import AccessError, SCHOOL_MODE, SCHOOL_REALM, SCENARIO_MODE, is_academic_context, academic_data_kind
 from .importer import digest
 from .model_client import ModelError
 from .storage import chat_title
@@ -108,14 +108,23 @@ class PersonalChatService:
     def _draft_key(context, scope):
         return (context.security_realm, context.student_id, context.session_ref, context.binding_version, scope)
 
-    def _draft_scope(self, context):
+    def _provider(self, context):
+        selector = getattr(self.app, 'academic_provider', None)
+        if callable(selector):
+            return selector(context)
         self.app.auth.require_context(context)
         if context.auth_mode != SCHOOL_MODE or context.security_realm != SCHOOL_REALM:
+            _deny('school_connection_required', '请先登录教务助手', 403)
+        return self.app.school
+
+    def _draft_scope(self, context):
+        self.app.auth.require_context(context)
+        if not is_academic_context(context):
             _deny("school_connection_required", "请先连接学校本人账号", 403)
         # Drafts must work without model configuration or school data reads.
         # Older adapters lacking this local-only method cannot fall back to
         # _current, which also binds model settings and source versions.
-        if not callable(getattr(self.app.school, "personal_chat_identity_scope", None)):
+        if not callable(getattr(self._provider(context), "personal_chat_identity_scope", None)):
             _deny("personal_scope_unavailable", "本人草稿授权范围暂不可用")
         return self._identity_scope(context)
 
@@ -129,7 +138,7 @@ class PersonalChatService:
         if value["conversation_id"] is not None:
             self._owned_state(self.app.store.chat_one(context, value["conversation_id"]), scope)
         self._draft_authorize(context, scope)
-        return {"data_kind": "personal_source", "draft": value}
+        return {"data_kind": academic_data_kind(context), "draft": value}
 
     def write_draft(self, body, context):
         scope = self._draft_scope(context)
@@ -138,11 +147,11 @@ class PersonalChatService:
             self._owned_state(self.app.store.chat_one(context, body["conversation_id"]), scope)
         value = self.drafts.write(self._draft_key(context, scope), body, lambda: self._draft_authorize(context, scope))
         self._draft_authorize(context, scope)
-        return {"data_kind": "personal_source", "draft": value}
+        return {"data_kind": academic_data_kind(context), "draft": value}
 
     def _identity_scope(self, context):
         self.app.auth.require_context(context)
-        method = getattr(self.app.school, "personal_chat_identity_scope", None)
+        method = getattr(self._provider(context), "personal_chat_identity_scope", None)
         if not callable(method):
             return self._current(context)[0]
         receipt = method(context)
@@ -208,9 +217,9 @@ class PersonalChatService:
 
     def _current(self, context, *, expected_scope=None, expected_versions=None, expected_egress=None, model_snapshot=None):
         self.app.auth.require_context(context)
-        if context.auth_mode != SCHOOL_MODE or context.security_realm != SCHOOL_REALM:
+        if not is_academic_context(context):
             _deny("school_connection_required", "请先连接学校本人账号", 403)
-        receipt = self.app.school.personal_chat_scope(context)
+        receipt = self._provider(context).personal_chat_scope(context)
         if (type(receipt) is not dict or type(receipt.get("scope_key")) is not str or
                 not 0 < len(receipt["scope_key"]) <= 512 or type(receipt.get("versions")) is not dict):
             _deny("personal_scope_unavailable", "本人对话授权范围暂不可用")
@@ -273,10 +282,10 @@ class PersonalChatService:
 
     def status(self, context):
         self.app.auth.require_context(context)
-        if context.auth_mode != SCHOOL_MODE or context.security_realm != SCHOOL_REALM:
+        if not is_academic_context(context):
             _deny("school_connection_required", "请先连接学校本人账号", 403)
         model_status = self.settings.client(context).status()
-        local = self.app.school.local_chat_status(context)
+        local = self._provider(context).local_chat_status(context)
         scope, versions = None, {}
         ready = local.get("local", {}).get("available") is True
         if ready:
@@ -296,7 +305,7 @@ class PersonalChatService:
                         "real_recommendation": False}
         return {**local, **model_status, "configured": model_status.get("configured") is True,
                 "available": ready and model_status.get("configured") is True,
-                "data_kind": "personal_source", "preview_only": True, "versions": versions,
+                "data_kind": academic_data_kind(context), "preview_only": True, "versions": versions,
                 "personal_scope": scope, "data_use_version": DATA_USE_VERSION, "max_turns": 20,
                 "personal_data_use": {"version": DATA_USE_VERSION, "summary": DATA_USE_SUMMARY},
                 "data_scope": "本轮问题及必要本人检索内容；按问题只读获取教务来源，不执行选课",
@@ -360,7 +369,7 @@ class PersonalChatService:
                     (context.security_realm, context.student_id, scope, SERVICE, limit + 1)).fetchall()
             result = {"conversations": [{"conversation_id": row[0], "turn_id": row[1], "in_progress": row[2] is not None,
                     "updated_at": row[3], "title": chat_title(row[4])} for row in rows[:limit]],
-                    "limit": limit, "has_more": len(rows) > limit, "data_kind": "personal_source",
+                    "limit": limit, "has_more": len(rows) > limit, "data_kind": academic_data_kind(context),
                     "personal_scope": scope, "versions": versions}
         self._current(context, expected_scope=scope, expected_versions=versions,
                       expected_egress=versions["egress_digest"])
@@ -379,7 +388,7 @@ class PersonalChatService:
             for turn in turns:
                 turn["is_stale"] = turn.get("versions") != versions
             result = {"conversation_id": identifier, "turn_id": row["turn_id"], "turns": turns,
-                    "in_progress": row["in_progress"], "data_kind": "personal_source", "preview_only": True,
+                    "in_progress": row["in_progress"], "data_kind": academic_data_kind(context), "preview_only": True,
                     "is_stale": state.get("workspace_versions") != versions, "personal_scope": scope,
                     "versions": versions, "title": chat_title(state.get("title")), "updated_at": row["updated_at"],
                     "action_pending": False, "option_receipts": {}, "option_receipts_has_more": False}
@@ -440,7 +449,7 @@ class PersonalChatService:
             return None  # An unavailable diagnostic must not break the next task.
 
     @staticmethod
-    def _failure(error):
+    def _failure(error, context):
         if isinstance(error, AccessError):
             code = error.reason
         else:
@@ -456,7 +465,7 @@ class PersonalChatService:
         if isinstance(error, ModelError):
             message = str(error)
         return {"status": "failed", "reply": message, "code": code, "tool_results": [], "citations": [],
-                "data_kind": "personal_source", "preview_only": True, "reply_origin": "service_error",
+                "data_kind": academic_data_kind(context), "preview_only": True, "reply_origin": "service_error",
                 "partial_tools_completed": False, "model_decision": None}
 
     def turn(self, body, context):
@@ -474,7 +483,7 @@ class PersonalChatService:
                 body["expected_turn"], first_message=body["message"])
             if "replay" in reservation:
                 replay = reservation["replay"]
-                if replay.get("personal_scope") != scope or replay.get("data_kind") != "personal_source":
+                if replay.get("personal_scope") != scope or replay.get("data_kind") != academic_data_kind(context):
                     _deny("inaccessible_object", "资源不可访问", 404)
                 if replay.get("versions") != versions:
                     _deny("personal_input_changed", "旧请求资料或模型版本已变化，请创建新一轮")
@@ -487,7 +496,7 @@ class PersonalChatService:
                 task_context = previous_task_context(state) if same_egress else None
                 clarification_context = previous_clarification_context(state) if same_egress else None
                 history = self._intent_history(state) if reset and same_egress else [] if reset else deepcopy(state.get("messages", []))
-                if callable(getattr(self.app.school, "personal_chat_live_tool", None)):
+                if callable(getattr(self._provider(context), "personal_chat_live_tool", None)):
                     history = self._conversation_history(state) if same_egress else []
                     reset = reset or bool(state.get("messages"))
 
@@ -544,18 +553,18 @@ class PersonalChatService:
                     versions, reset = current, True
                     history = self._intent_history(state) if keep_intent else []
 
-            harness = AcademicHarness(self.app.school, context, authorize=authorize,
+            harness = AcademicHarness(self._provider(context), context, authorize=authorize,
                 generation_authorize=generation_authorize, adopt=adopt, emit=emit,
                 user_message=body["message"], task_context=task_context,
                 clarification_context=clarification_context, active_plan_ref=active_plan_ref)
             source_receipts, policy_context = harness.receipts, harness.policy_context
             execute_tool = harness.execute
-            preparation = getattr(self.app.school, "prepare_personal_chat", None)
+            preparation = getattr(self._provider(context), "prepare_personal_chat", None)
             # Live tools acquire their exact current scope under the school
             # connection lock. A lexical prefetch before task selection would
             # read even for "only check" or an unresolved recommendation task.
             # Keep the old hook only for integrations without dynamic reads.
-            if callable(preparation) and not callable(getattr(self.app.school, "personal_chat_live_tool", None)):
+            if callable(preparation) and not callable(getattr(self._provider(context), "personal_chat_live_tool", None)):
                 prepared = preparation(context, body["message"], before=authorize, authorize=generation_authorize,
                                        emit=emit, adopt=adopt)
                 if isinstance(prepared, list):
@@ -565,7 +574,7 @@ class PersonalChatService:
                 lambda delta: self.progress.reasoning(progress_key, delta))
             execution_context = self._execution_context(context, state, scope, identifier)
             response, messages = self._dialogue(authorize, execute_tool).run(
-                body["message"], data_use="personal_retrieval", history=history,
+                body["message"], data_use="synthetic_retrieval" if context.auth_mode == SCENARIO_MODE else "personal_retrieval", history=history,
                 execution_context=execution_context, task_context=task_context,
                 clarification_context=clarification_context, emit=emit)
             if (type(response) is not dict or response.get("status") not in {"completed", "failed"} or
@@ -587,7 +596,7 @@ class PersonalChatService:
             authorize()
         except Exception as error:
             fatal = error
-            response, messages = self._failure(error), []
+            response, messages = self._failure(error, context), []
         finally:
             if hasattr(self._active_model, "client"):
                 del self._active_model.client
@@ -595,7 +604,7 @@ class PersonalChatService:
         try:
             authorize()
         except Exception as error:
-            fatal, response, messages = error, self._failure(error), []
+            fatal, response, messages = error, self._failure(error, context), []
         if response["status"] == "completed":
             emit("answer.validated", {"status": "completed", "tool_count": len(response["tool_results"]),
                                       "citation_count": len(response["citations"])})
@@ -619,11 +628,11 @@ class PersonalChatService:
             try:
                 self.app.auth.require_context(context)
             except AccessError as error:
-                fatal, response, messages = error, self._failure(error), []
+                fatal, response, messages = error, self._failure(error, context), []
             # Failed authentication/input validation discards all current tool
             # data. A local sanitized turn still releases the reservation.
             if fatal is not None:
-                response = self._failure(fatal)
+                response = self._failure(fatal, context)
             pending = next_clarification_context(body["message"], response,
                 previous=clarification_context, task_context=task_context)
             decision = response.get("model_decision")
@@ -634,7 +643,7 @@ class PersonalChatService:
             if response.get("task_progress") is not None and response["status"] == "completed" and not pending:
                 response["task_status"] = ("blocked" if response["task_progress"]["status"] == "blocked" else "partial")
             response.update(conversation_id=identifier, turn_id=turn_id, personal_scope=scope,
-                            versions=deepcopy(versions), data_kind="personal_source", preview_only=True,
+                            versions=deepcopy(versions), data_kind=academic_data_kind(context), preview_only=True,
                             history_reset=reset or response.get("history_reset", False),
                             run_id=run_id, model=model_status.get("model"), thinking=model_status.get("thinking") is True,
                             diagnostics={"available": run_id is not None, "incomplete": bool(log_errors)})

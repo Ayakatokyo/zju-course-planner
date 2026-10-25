@@ -29,6 +29,26 @@ evaluate("state.agentDraft='合成追问';state.agentHistoryPending=true");draft
 assert.equal(evaluate('state.agentDraft'),'合成追问');
 """)
 
+    def test_text_answer_renders_curriculum_table_without_losing_prose(self):
+        self.run_js(r"""
+const reply='已解析2门，共5学分。\n\n| 课程号 | 课程名称 | 学分 | 建议学期 |\n|---|---|---:|:---|\n| SYN101 | 合成课程甲 | 2 | 二(秋) |\n| SYN102 | 合成课程乙 | 3 | 三(春夏) |\n\n仅为方案建议。';
+context.reply=reply;
+evaluate("state.auth={authenticated:true,identity:{auth_mode:'synthetic_account',security_realm:'curriculum_synthetic_accounts'}};state.agentTurns=[{status:'completed',message:'列出完整课程',reply,model_decision:{answer_protocol:'text-v1'}}]");
+const markup=evaluate('renderAgentTurns()');
+assert.equal((markup.match(/<table>/g)||[]).length,1);assert.equal((markup.match(/<tbody><tr>/g)||[]).length,1);
+assert.match(markup,/<td>合成课程甲<\/td>/);assert.match(markup,/<td>三\(春夏\)<\/td>/);
+assert.match(markup,/<p>已解析2门，共5学分。<\/p>/);assert.match(markup,/<p>仅为方案建议。<\/p>/);
+assert.doesNotMatch(markup,/<p>\|/);
+""")
+
+    def test_answer_table_escapes_html_and_preserves_non_table_pipe_text(self):
+        self.run_js(r"""
+context.reply='| 名称 | 说明 |\n|---|---|\n| <img src=x onerror=alert(1)> | **重点** 与 A\\|B |\n\n普通 A|B\n| 非表格 | 原文 |';
+const markup=evaluate('agentAnswerMarkup(reply)');
+assert.doesNotMatch(markup,/<img/);assert.match(markup,/&lt;img/);assert.match(markup,/<strong>重点<\/strong> 与 A\|B/);
+assert.match(markup,/<p>普通 A\|B<\/p>/);assert.match(markup,/<p>\| 非表格 \| 原文 \|<\/p>/);
+""")
+
     def run_js(self, assertions):
         setup = r"""
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
@@ -573,9 +593,19 @@ evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',a
 
     def test_prelogin_badge_matches_enabled_school_and_mock_entrypoints(self):
         self.run_js("""
-evaluate("state.auth={authenticated:false,school_client_enabled:true,mock_enabled:false};clearWorkspace();renderAuth()");assert.equal(element('#mode-badge').textContent,'本人教务');assert.equal(element('#mode-badge').className,'badge');assert.match(element('#auth-panel').innerHTML,/登录教务账号/);
+evaluate("state.auth={authenticated:false,school_client_enabled:true,mock_enabled:false};clearWorkspace();renderAuth()");assert.equal(element('#mode-badge').textContent,'本人教务');assert.equal(element('#mode-badge').className,'badge');assert.match(element('#auth-panel').innerHTML,/登录教务助手/);
 evaluate("state.auth={authenticated:false,school_client_enabled:false,mock_enabled:true,mock_profiles:[]};clearWorkspace();renderAuth()");assert.equal(element('#mode-badge').textContent,'合成演示');assert.equal(element('#mode-badge').className,'badge synthetic');
 evaluate("state.auth={authenticated:false,school_client_enabled:true,mock_enabled:true,mock_profiles:[]};renderAuth()");assert.equal(element('#mode-badge').textContent,'登录入口');assert.equal(element('#mode-badge').className,'badge');
+""")
+
+    def test_configured_synthetic_accounts_use_normal_login_chat_and_draft_contract(self):
+        self.run_js("""
+evaluate("state.auth={authenticated:false,academic_login_enabled:true,school_client_enabled:true,scenario_accounts_enabled:true};renderAuth()");
+assert.match(element('#auth-panel').innerHTML,/登录教务助手/);assert.doesNotMatch(element('#auth-panel').innerHTML,/登录模拟账号|profile-id/);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN-FIXTURE',auth_mode:'synthetic_account',security_realm:'curriculum_synthetic_accounts'}};state.agentStatus={configured:true,available:true,data_kind:'synthetic',personal_data_use:{version:'test'}}");
+assert.equal(evaluate('isAcademicIdentity()'),true);assert.equal(evaluate('personalChatReady()'),true);assert.equal(evaluate('agentDataKind()'),'synthetic');
+evaluate("renderSchool()");assert.match(element('#panel-school').innerHTML,/查看当前账号的教务资料/);assert.match(element('#panel-school').innerHTML,/查询资料/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
+evaluate("state.agentStatus.data_kind='personal_source'");assert.equal(evaluate('personalChatReady()'),false);
 """)
 
     def test_plan_keeps_one_applicability_boundary_without_empty_field_list(self):
@@ -587,7 +617,7 @@ const markup=element('#panel-school').innerHTML;assert.doesNotMatch(markup,/适�
     def test_school_login_protocol_failures_show_specific_safe_messages(self):
         self.run_js("""
 evaluate("state.auth={authenticated:false,school_client_enabled:true};renderAuth()");
-const labels={invalid_credentials:'学校未接受登录凭据',schema_changed:'学校响应格式尚未适配',identity_not_observed:'学校已返回资料但未确认本人身份',route_not_confirmed:'学校接口尚未确认',source_unavailable:'学校连接暂不可用',permission_denied:'学校拒绝本次访问',source_subject_changed:'学校返回的本人身份已变化',source_epoch_changed:'学校会话已变化',source_generation_changed:'学校会话已变化'};
+const labels={invalid_credentials:'账号或密码不正确',schema_changed:'学校响应格式尚未适配',identity_not_observed:'学校已返回资料但未确认本人身份',route_not_confirmed:'学校接口尚未确认',source_unavailable:'学校连接暂不可用',permission_denied:'学校拒绝本次访问',source_subject_changed:'学校返回的本人身份已变化',source_epoch_changed:'学校会话已变化',source_generation_changed:'学校会话已变化'};
 for(const [code,label] of Object.entries(labels)){element('#school-login-username').value='fixture-user';element('#school-login-password').value='fixture-secret';context.fetch=async()=>({ok:true,json:async()=>({authenticated:false,state:code,message:'fixture-secret private diagnostic'})});await evaluate('schoolLogin()');assert.ok(element('#global-status').textContent.startsWith(label));assert.doesNotMatch(element('#global-status').textContent,/fixture-secret|private diagnostic|未完成或待确认/);assert.equal(element('#school-login-password').value,'');}
 element('#school-login-password').value='fixture-secret';context.fetch=async()=>({ok:false,status:502,text:async()=>JSON.stringify({code:'schema_changed',error:'fixture-secret raw response'})});await evaluate('schoolLogin()');assert.match(element('#global-status').textContent,/学校响应格式尚未适配/);assert.doesNotMatch(element('#global-status').textContent,/fixture-secret|raw response/);assert.equal(evaluate("schoolStatusText('__proto__')"),'未完成或待确认');
 """)

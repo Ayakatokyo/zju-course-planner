@@ -168,12 +168,16 @@ class PersonalObservationStore:
     scope_key must incorporate the current application and school generation.
     A new generation requires a new store; old references never grant access.
     """
-    def __init__(self, root, authorize):
+    def __init__(self, root, authorize, *, data_kind="personal_source"):
         if not callable(authorize):
             _fail("invalid_observation_request")
         self.authorize = authorize
         self._lock = threading.RLock()
         self._scope = self._authorization()
+        from .auth import SCENARIO_REALM
+        if data_kind not in {'personal_source', 'synthetic'} or data_kind == 'synthetic' and self._scope['security_realm'] != SCENARIO_REALM:
+            _fail('invalid_observation_request')
+        self.data_kind = data_kind
         self._scope_digest = _digest(self._scope)
         try:
             self.root = Path(root).expanduser().absolute()
@@ -324,7 +328,8 @@ class PersonalObservationStore:
                 snapshot.get("schema") != SCHEMA or snapshot.get("observation_id") != identifier or
                 snapshot.get("scope_digest") != self._scope_digest or
                 snapshot.get("owner_student_id") != self._scope["owner_student_id"] or
-                snapshot.get("security_realm") != self._scope["security_realm"]):
+                snapshot.get("security_realm") != self._scope["security_realm"] or
+                snapshot.get('result', {}).get('data_kind', 'personal_source') != self.data_kind):
             _fail("invalid_private_store")
         return snapshot
 
@@ -347,11 +352,12 @@ class PersonalObservationStore:
                 type(result.get("operation")) is not str or result["operation"] not in OPERATIONS or
                 type(result["records"]) is not list or len(result["records"]) > 2000 or
                 any(type(row) is not dict for row in result["records"]) or type(result["coverage"]) is not dict or
-                type(result["data_source"]) is not str or result["data_source"] not in {"live", "historical_cache", "none"}):
+                type(result["data_source"]) is not str or result["data_source"] not in
+                ({"synthetic_fixture", "none"} if self.data_kind == 'synthetic' else {"live", "historical_cache", "none"})):
             _fail("invalid_observation_result")
         if type(result.get("status")) is str and result["status"] in HARD_STOPS:
             _fail("observation_expired")
-        if result.get("data_kind", "personal_source") != "personal_source" or result.get("security_realm", self._scope["security_realm"]) != self._scope["security_realm"]:
+        if result.get("data_kind", "personal_source") != self.data_kind or result.get("security_realm", self._scope["security_realm"]) != self._scope["security_realm"]:
             _fail("invalid_observation_result")
         term = result["target_term"]
         if result["operation"] == "major_academic":
@@ -382,7 +388,7 @@ class PersonalObservationStore:
         result = snapshot["result"]
         return {"observation_id": snapshot["observation_id"], "operation": result["operation"],
             "target_term": result["target_term"], "status": result.get("status"),
-            "observation_status": snapshot["observation_status"], "data_kind": "personal_source", "local_only": True,
+            "observation_status": snapshot["observation_status"], "data_kind": snapshot['result'].get('data_kind', 'personal_source'), "local_only": True,
             "data_source": result["data_source"], "source_alias": result.get("source_alias"),
             "captured_at": result.get("captured_at"), "checked_at": result.get("checked_at"),
             "cache_captured_at": result.get("cache_captured_at"), "record_count": len(result["records"]),
@@ -421,6 +427,8 @@ class PersonalObservationStore:
                     linked, status = candidates[0]["observation_id"], "linked_historical_cache"
             elif result["data_source"] == "none":
                 status = "source_unavailable"
+            elif result['data_source'] == 'synthetic_fixture':
+                status, historical = 'synthetic_fixture', False
             identifier = "OBS-" + uuid.uuid4().hex
             snapshot = {"schema": SCHEMA, "observation_id": identifier, "scope_digest": self._scope_digest,
                 "owner_student_id": self._scope["owner_student_id"], "security_realm": self._scope["security_realm"],
@@ -446,7 +454,7 @@ class PersonalObservationStore:
             for summary in summaries:
                 latest.setdefault(summary["operation"], summary)
             result = {"operations": sorted(latest), "snapshots": summaries, "latest_observations": latest,
-                      "data_kind": "personal_source", "local_only": True}
+                      "data_kind": self.data_kind, "local_only": True}
             self._authorization(self._scope)
             return result
 

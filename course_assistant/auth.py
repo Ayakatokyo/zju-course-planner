@@ -15,6 +15,18 @@ COOKIE_NAME = "course_session"
 REALM = "mock_development"
 SCHOOL_REALM = "personal_school_client"
 SCHOOL_MODE = "school_client"
+SCENARIO_REALM = "curriculum_synthetic_accounts"
+SCENARIO_MODE = "synthetic_account"
+
+
+def is_academic_context(context):
+    return context is not None and (context.auth_mode, context.security_realm) in {
+        (SCHOOL_MODE, SCHOOL_REALM), (SCENARIO_MODE, SCENARIO_REALM)}
+
+
+def academic_data_kind(context):
+    return "synthetic" if context.auth_mode == SCENARIO_MODE else "personal_source"
+
 PROFILES = {
     "demo-a": {"student_id": "DEMO-STUDENT-001", "name": "模拟学生 A"},
     "demo-b": {"student_id": "DEMO-STUDENT-002", "name": "模拟学生 B"},
@@ -38,6 +50,11 @@ class AuthContext:
     profile_name: str = ""
 
     def identity(self):
+        if self.auth_mode == SCENARIO_MODE:
+            return {"student_id": self.student_id, "name": self.profile_name,
+                    "auth_mode": SCENARIO_MODE, "security_realm": SCENARIO_REALM,
+                    "data_kind": "synthetic", "personal_data_source_status": "synthetic_fixture",
+                    "school_auth_status": "not_school_authenticated"}
         if self.auth_mode == SCHOOL_MODE:
             return {"student_id": self.student_id, "name": self.profile_name,
                     "auth_mode": SCHOOL_MODE, "security_realm": SCHOOL_REALM,
@@ -54,10 +71,13 @@ class AuthManager:
         self.store, self.mock_enabled, self.clock = store, mock_enabled, clock
         self.idle_seconds, self.absolute_seconds = idle_seconds, absolute_seconds
         self.school_session_validator = None
+        self.scenario_session_validator = None
         with store.connect() as db:
             db.execute("CREATE TABLE IF NOT EXISTS personal_school_identities ("
                        "principal TEXT PRIMARY KEY, subject_id TEXT NOT NULL, name TEXT NOT NULL, "
                        "profile_body TEXT NOT NULL)")
+            db.execute("CREATE TABLE IF NOT EXISTS synthetic_account_identities ("
+                       "principal TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL)")
         if mock_enabled:
             with store.connect() as db:
                 for principal, profile in PROFILES.items():
@@ -133,11 +153,43 @@ class AuthManager:
         return token, {"authenticated": True, "identity": context.identity(), "csrf_token": csrf,
                        "school_auth_status": "personal_client_authenticated", "project_sso_status": "not_configured"}
 
+    def login_scenario(self, student_id, name, version, previous_token=None, *, attach):
+        """Called only after the configured local account verifier succeeds."""
+        if (not isinstance(student_id, str) or not re.fullmatch(r'SYN-[A-Za-z0-9_.-]{1,100}', student_id)
+                or not isinstance(name, str) or not 0 < len(name) <= 120
+                or not isinstance(version, str) or not re.fullmatch(r'[a-f0-9]{64}', version)
+                or not callable(attach) or not callable(self.scenario_session_validator)):
+            raise AccessError('模拟账号绑定不可用', 403, 'binding_unavailable')
+        principal = 'SCENARIO-' + sha256((SCENARIO_REALM + ':' + student_id).encode()).hexdigest()
+        token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+        now = self.clock()
+        with self.store.connect() as db:
+            if previous_token:
+                db.execute('UPDATE login_sessions SET revoked=1 WHERE token_hash=?', (self.token_hash(previous_token),))
+            db.execute('INSERT INTO identity_bindings VALUES(?,?,?,?,?) ON CONFLICT(principal) DO UPDATE SET '
+                       'owner=excluded.owner,realm=excluded.realm,version=excluded.version,status=excluded.status',
+                       (principal, student_id, SCENARIO_REALM, version, 'verified_synthetic_account'))
+            db.execute('INSERT INTO synthetic_account_identities VALUES(?,?,?) ON CONFLICT(principal) DO UPDATE SET '
+                       'owner=excluded.owner,name=excluded.name', (principal, student_id, name))
+            db.execute('INSERT INTO login_sessions VALUES(?,?,?,?,?,?,?,?,0)',
+                       (self.token_hash(token), principal, version, csrf, now, now,
+                        now + self.absolute_seconds, now + self.idle_seconds))
+        context = AuthContext(principal, self.token_hash(token), student_id, SCENARIO_REALM, version, SCENARIO_MODE, name)
+        try:
+            attach(context)
+            self.authenticate(token)
+        except Exception:
+            with self.store.connect() as db:
+                db.execute('UPDATE login_sessions SET revoked=1 WHERE token_hash=?', (context.session_ref,))
+            raise
+        return token, {'authenticated': True, 'identity': context.identity(), 'csrf_token': csrf}
+
     def _session(self, session_ref):
         with self.store.connect() as db:
             row = db.execute("SELECT s.principal,s.binding_version,s.csrf_token,s.absolute_expires,s.idle_expires,s.revoked,"
-                             "b.owner,b.realm,b.version,b.status,i.name,i.subject_id FROM login_sessions s LEFT JOIN identity_bindings b "
+                             "b.owner,b.realm,b.version,b.status,COALESCE(i.name,a.name),COALESCE(i.subject_id,a.owner) FROM login_sessions s LEFT JOIN identity_bindings b "
                              "ON b.principal=s.principal LEFT JOIN personal_school_identities i ON i.principal=s.principal "
+                             "LEFT JOIN synthetic_account_identities a ON a.principal=s.principal "
                              "WHERE s.token_hash=?", (session_ref,)).fetchone()
         now = self.clock()
         if not row or row[5] or now >= min(row[3], row[4]):
@@ -147,6 +199,11 @@ class AuthManager:
                     or not isinstance(row[10], str) or not callable(self.school_session_validator)
                     or not self.school_session_validator(session_ref, row[6])):
                 raise AccessError("学校连接已结束，请重新登录", 401, "school_connection_expired")
+        elif row[7] == SCENARIO_REALM:
+            if (row[9] != 'verified_synthetic_account' or row[1] != row[8] or row[6] != row[11]
+                    or not isinstance(row[10], str) or not callable(self.scenario_session_validator)
+                    or not self.scenario_session_validator(session_ref, row[6])):
+                raise AccessError('模拟账号会话已结束，请重新登录', 401, 'scenario_session_expired')
         elif not self.mock_enabled or row[7] != REALM or row[9] != "verified" or row[1] != row[8] or row[0] not in PROFILES or row[6] != PROFILES[row[0]]["student_id"]:
             raise AccessError("身份绑定不可用", 403, "binding_unavailable")
         return row
@@ -157,8 +214,8 @@ class AuthManager:
         session_ref = self.token_hash(token)
         row = self._session(session_ref)
         context = AuthContext(row[0], session_ref, row[6], row[7], row[8],
-                              SCHOOL_MODE if row[7] == SCHOOL_REALM else "mock",
-                              row[10] if row[7] == SCHOOL_REALM else "")
+                              SCHOOL_MODE if row[7] == SCHOOL_REALM else SCENARIO_MODE if row[7] == SCENARIO_REALM else "mock",
+                              row[10] if row[7] in {SCHOOL_REALM, SCENARIO_REALM} else "")
         self.require_context(context)
         return context
 
@@ -166,8 +223,8 @@ class AuthManager:
         if not isinstance(context, AuthContext):
             raise AccessError()
         row = self._session(context.session_ref)
-        expected_mode = SCHOOL_MODE if row[7] == SCHOOL_REALM else "mock"
-        expected_name = row[10] if row[7] == SCHOOL_REALM else ""
+        expected_mode = SCHOOL_MODE if row[7] == SCHOOL_REALM else SCENARIO_MODE if row[7] == SCENARIO_REALM else "mock"
+        expected_name = row[10] if row[7] in {SCHOOL_REALM, SCENARIO_REALM} else ""
         if (context.principal_id, context.student_id, context.security_realm, context.binding_version, context.auth_mode, context.profile_name) != (row[0], row[6], row[7], row[8], expected_mode, expected_name):
             raise AccessError("身份上下文不可用", 403, "context_mismatch")
         now = self.clock()

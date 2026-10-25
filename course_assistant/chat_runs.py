@@ -254,7 +254,7 @@ class ChatRunStore:
     def _summary(row):
         return {key: row[key] for key in ("id", "scope_version", "conversation_id", "request_id", "provider", "model",
                 "remote", "status", "error_code", "created_at", "updated_at", "event_count", "reasoning_chars")} | {
-                "run_id": row["id"], "data_kind": "personal_source", "local_only": True,
+                "run_id": row["id"], "data_kind": "synthetic" if row['realm'] == 'curriculum_synthetic_accounts' else "personal_source", "local_only": True,
                 "thinking": bool(row["thinking"]),
                 "reasoning_kind": "provider_visible_reasoning", "reasoning_is_execution_proof": False}
 
