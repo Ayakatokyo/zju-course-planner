@@ -704,7 +704,7 @@ evaluate("state.auth={authenticated:false,academic_login_enabled:true,school_cli
 assert.match(element('#auth-panel').innerHTML,/登录教务助手/);assert.doesNotMatch(element('#auth-panel').innerHTML,/登录模拟账号|profile-id/);
 evaluate("state.auth={authenticated:true,identity:{student_id:'SYN-FIXTURE',auth_mode:'synthetic_account',security_realm:'curriculum_synthetic_accounts'}};state.agentStatus={configured:true,available:true,data_kind:'synthetic',personal_data_use:{version:'test'}}");
 assert.equal(evaluate('isAcademicIdentity()'),true);assert.equal(evaluate('personalChatReady()'),true);assert.equal(evaluate('agentDataKind()'),'synthetic');
-evaluate("state.schoolOperation='graduation_audit';renderSchool()");assert.match(element('#panel-school').innerHTML,/自审课程/);assert.match(element('#panel-school').innerHTML,/当前模拟资料未提供毕业自审/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
+evaluate("state.schoolOperation='graduation_audit';renderSchool()");assert.match(element('#panel-school').innerHTML,/培养模块/);assert.match(element('#panel-school').innerHTML,/当前模拟资料未提供毕业自审/);assert.doesNotMatch(element('#panel-school').innerHTML,/查看学校来源的本人记录/);
 evaluate("state.agentStatus.data_kind='personal_source'");assert.equal(evaluate('personalChatReady()'),false);
 """)
 

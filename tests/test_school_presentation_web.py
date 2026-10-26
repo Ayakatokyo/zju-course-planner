@@ -31,16 +31,23 @@ evaluate("resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HIS
 const before=evaluate('JSON.stringify(state.schoolViews)'),html=evaluate('schoolProgressMarkup(false)');assert.match(html,/Audit course/);assert.match(html,/通过/);assert.equal((html.match(/<tr class="school-course-row">/g)||[]).length,1);assert.doesNotMatch(html,/Grade only|Major only|未关联|补充学期成绩|school-year|多条成绩/);assert.equal(evaluate('JSON.stringify(state.schoolViews)'),before);
 """)
 
-    def test_progress_columns_and_open_details_survive_filter_and_refresh(self):
+    def test_module_expansion_preserves_ownership_records_and_open_state(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='graduation_audit';resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',target_term:'ALL-HISTORY',status:'complete',records:[{node_kind:'course',course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'60'},{node_kind:'course',course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'90'}]}}");
-let html=evaluate('schoolProgressMarkup(false)');const row=html.match(/<tr class="school-course-row">([\s\S]*?)<\/tr>/)[1];assert.equal((row.match(/<td>/g)||[]).length,5);assert.doesNotMatch(row,/colspan/);assert.match(row,/多条成绩（2）/);
-const button=element('course-button'),detail=element('course-detail');button.dataset={courseDisclosure:evaluate('schoolCourseDisclosureKey(schoolCourseGroups(Object.values(state.schoolViews))[0])')};button.setAttribute('aria-controls','course-detail');button.setAttribute('aria-expanded','false');detail.hidden=true;
-context.document.getElementById=id=>id==='course-detail'?detail:null;
-context.document.querySelectorAll=selector=>selector==='[data-course-disclosure]'?[button]:[];
-evaluate('renderSchool()');button.listeners.click();assert.equal(detail.hidden,false);
-evaluate("state.schoolCourseQuery='Long';state.schoolViews['graduation_audit:ALL-HISTORY'].records.push({node_kind:'course',course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'80'});renderSchool()");html=element('#panel-school').innerHTML;assert.match(html,/aria-expanded="true"/);assert.match(html,/多条成绩（3）/);button.listeners.click();assert.equal(detail.hidden,true);
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='graduation_audit';resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',target_term:'ALL-HISTORY',status:'complete',records:[{node_kind:'module',node_id:'M',course_name_raw:'Parent',earned_credits_raw:'6+2',required_credits_raw:'9+8',completion_status_raw:'不通过'},{node_kind:'module',node_id:'N',parent_node_id:'M',course_name_raw:'Child',completion_status_raw:'通过'},{node_kind:'course',parent_node_id:'M',course_code_raw:'C',course_name_raw:'Same',grade_raw:'60',substitution_raw:'Original replacement'},{node_kind:'course',parent_node_id:'M',course_code_raw:'C',course_name_raw:'Same',grade_raw:'90'},{node_kind:'course',parent_node_id:'N',course_code_raw:'C',course_name_raw:'Same',grade_raw:'80'},{node_kind:'course',parent_node_id:'missing',course_name_raw:'Orphan'}]}}");
+const before=evaluate('JSON.stringify(state.schoolViews)');let html=evaluate('schoolProgressMarkup(false)');assert.doesNotMatch(html,/school-course-records|school-course-filter/);assert.equal((html.match(/class="school-course-row"/g)||[]).length,4);assert.match(html,/6\+2/);assert.match(html,/9\+8/);assert.match(html,/归属未明确的课程记录（1）/);assert.match(html,/Original replacement/);
+const parent=html.split('id="school-module-courses-0"')[1].split('class="school-module-root"')[0];assert.ok(parent.indexOf('60')<parent.indexOf('Child'));assert.ok(parent.indexOf('90')<parent.indexOf('Child'));
+const button=element('module-button'),detail=element('module-detail');button.dataset={courseDisclosure:'module-courses:M'};button.setAttribute('aria-controls','module-detail');button.setAttribute('aria-expanded','false');detail.hidden=true;
+context.document.getElementById=id=>id==='module-detail'?detail:null;context.document.querySelectorAll=selector=>selector==='[data-course-disclosure]'?[button]:[];
+let calls=0;context.fetch=()=>{calls++;throw Error('no request');};evaluate('renderSchool()');button.listeners.click();assert.equal(detail.hidden,false);
+evaluate("state.schoolModuleFailed=true;renderSchool()");html=element('#panel-school').innerHTML;assert.match(html,/aria-expanded="true"/);assert.doesNotMatch(html,/Child/);assert.match(html,/Orphan/);assert.equal(calls,0);assert.equal(evaluate('JSON.stringify(state.schoolViews)'),before);
+evaluate("state.schoolModuleFailed=false;renderSchool()");assert.match(element('#panel-school').innerHTML,/Child/);assert.match(element('#panel-school').innerHTML,/aria-expanded="true"/);
 evaluate('resetSchoolPresentation()');assert.equal(evaluate('Object.keys(state.schoolOpenCourses).length'),0);
+""")
+
+    def test_cyclic_modules_do_not_drop_course_records(self):
+        self.run_js(r"""
+evaluate("resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',status:'complete',records:[{node_kind:'module',node_id:'A',parent_node_id:'B',course_name_raw:'A'},{node_kind:'module',node_id:'B',parent_node_id:'A',course_name_raw:'B'},{node_kind:'course',parent_node_id:'B',course_name_raw:'Cyclic course',grade_raw:'70'}]}}");
+const html=evaluate('schoolProgressMarkup(false)');assert.equal((html.match(/Cyclic course/g)||[]).length,1);assert.match(html,/70/);
 """)
 
     def test_pages_keep_primary_fields_without_auxiliary_panels_or_links(self):

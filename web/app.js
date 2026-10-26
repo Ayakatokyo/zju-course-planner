@@ -1802,31 +1802,37 @@ function schoolCourseDetail(group,modules){
   return schoolPresentationTable(['认定模块','选必修','自审状态','自审成绩 / 学分','备注 / 替代说明'],group.entries.map(({record:r})=>`<tr><td>${esc(schoolAuditPath(modules.get(r.parent_node_id),modules)||r.module_name_raw||'未明确模块')}</td><td>${schoolFieldMarkup(r,'requirement_type_raw')}</td><td>${esc(schoolAuditStatus(r))}</td><td>${schoolFieldMarkup(r,'grade_raw')} / ${schoolFieldMarkup(r,'nominal_credits')}</td><td>${schoolTextMarkup(r.study_note_raw,'')} ${schoolTextMarkup(r.substitution_raw,'')}</td></tr>`));
 }
 
+function schoolModuleCourses(records,key){
+  if(!records.length)return '<p class="inline-empty">本模块未返回直接归属的课程记录。</p>';
+  return schoolPresentationTable(['课程','学分','自审成绩','自审状态'],records.map((r,index)=>{
+    const extra=['requirement_type_raw','study_note_raw','substitution_raw','nonduplicated_recognition_credits_raw'].filter(k=>schoolHasDisplayField(r,k));
+    const labels={requirement_type_raw:'选必修',study_note_raw:'修读备注',substitution_raw:'替代说明',nonduplicated_recognition_credits_raw:'不重复认定学分'};
+    const name=schoolCourseMarkup(r),detail=extra.length?`<details class="school-recognition-detail" ${schoolDisclosure('recognition:'+key+':'+index)}><summary>${name}</summary><dl>${extra.map(k=>`<div><dt>${labels[k]}</dt><dd>${schoolFieldMarkup(r,k)}</dd></div>`).join('')}</dl></details>`:name;
+    return `<tr class="school-course-row"><td>${detail}</td><td>${schoolFieldMarkup(r,'nominal_credits')}</td><td>${schoolFieldMarkup(r,'grade_raw')}</td><td>${esc(schoolAuditStatus(r))}</td></tr>`;
+  }),'school-module-courses');
+}
 function schoolModuleMarkup(audit,modules){
   if(!audit)return '<p class="inline-empty">点击“更新培养进度”，读取模块要求与本人完成情况。</p>';
   if(!schoolUsable(audit))return '<p class="inline-empty">本次没有取得可用的自审记录。</p>';
-  const roots=[...modules.values()].filter(r=>!modules.has(r.parent_node_id));
-  function row(r,depth=0,seen=new Set()){
-    if(seen.has(r.node_id))return '';const next=new Set(seen).add(r.node_id);
-    const children=[...modules.values()].filter(x=>x.parent_node_id===r.node_id);
-    const own=!state.schoolModuleFailed||schoolAuditStatus(r)==='不通过'||schoolAuditStatus(r)==='未通过';
-    return (own?`<tr class="${depth===0?'school-module-root':''}"><td style="padding-left:${12+Math.min(depth,8)*16}px">${schoolTextMarkup(r.course_name_raw)}</td><td>${schoolFieldMarkup(r,'earned_credits_raw')} / ${schoolFieldMarkup(r,'required_credits_raw')}</td><td>${schoolFieldMarkup(r,'completed_courses_raw')} / ${schoolFieldMarkup(r,'required_courses_raw')}</td><td>${esc(schoolAuditStatus(r))}${schoolHasDisplayField(r,'nonduplicated_recognition_credits_raw')?`<details ${schoolDisclosure('module:'+r.node_id)}><summary>认定说明</summary>不重复认定学分：${schoolFieldMarkup(r,'nonduplicated_recognition_credits_raw')}</details>`:''}</td></tr>`:'')+children.map(x=>row(x,depth+1,next)).join('');
+  const courses=audit.records.filter(r=>r.node_kind==='course'),visited=new Set();let sequence=0;
+  function moduleRow(r,depth=0){
+    if(visited.has(r.node_id))return '';visited.add(r.node_id);
+    const own=!state.schoolModuleFailed||['不通过','未通过'].includes(schoolAuditStatus(r));
+    const records=courses.filter(c=>c.parent_node_id===r.node_id),key='module-courses:'+r.node_id,id='school-module-courses-'+sequence++,open=state.schoolOpenCourses?.[key]===true;
+    const title=records.length?`<button type="button" class="school-course-toggle" data-course-disclosure="${esc(key)}" aria-expanded="${open}" aria-controls="${id}"><span>${schoolTextMarkup(r.course_name_raw)}</span></button>`:schoolTextMarkup(r.course_name_raw);
+    const row=own?`<tr class="${depth===0?'school-module-root':''}"><td style="padding-left:${12+Math.min(depth,8)*16}px">${title}</td><td>${schoolFieldMarkup(r,'earned_credits_raw')} / ${schoolFieldMarkup(r,'required_credits_raw')}</td><td>${schoolFieldMarkup(r,'completed_courses_raw')} / ${schoolFieldMarkup(r,'required_courses_raw')}</td><td>${esc(schoolAuditStatus(r))}${schoolHasDisplayField(r,'nonduplicated_recognition_credits_raw')?`<details ${schoolDisclosure('module:'+r.node_id)}><summary>认定说明</summary>不重复认定学分：${schoolFieldMarkup(r,'nonduplicated_recognition_credits_raw')}</details>`:''}</td></tr>${records.length?`<tr class="school-module-expanded" id="${id}" ${open?'':'hidden'}><td colspan="4"><div class="school-module-course-body">${schoolModuleCourses(records,key)}</div></td></tr>`:''}`:'';
+    return row+[...modules.values()].filter(c=>c.parent_node_id===r.node_id).map(c=>moduleRow(c,depth+1)).join('');
   }
-  return `<div class="school-module-data"><label class="school-inline-check"><input id="school-module-failed" type="checkbox" ${state.schoolModuleFailed?'checked':''}>仅看未通过模块</label><div class="school-module-list">${schoolPresentationTable(['培养模块','已获 / 要求学分','完成 / 要求门数','学校自审结果'],roots.map(r=>row(r)),'school-module-table')}</div></div>`;
+  let rows=[...modules.values()].filter(r=>!modules.has(r.parent_node_id)).map(r=>moduleRow(r)).join('');
+  // Malformed/cyclic parent links must not hide source modules or their records.
+  rows+=[...modules.values()].filter(r=>!visited.has(r.node_id)).map(r=>moduleRow(r)).join('');
+  const unmatched=courses.filter(r=>!modules.has(r.parent_node_id));
+  const unknown=unmatched.length?`<details class="school-unassigned-courses" ${schoolDisclosure('unassigned-audit-courses')}><summary>归属未明确的课程记录（${unmatched.length}）</summary>${schoolModuleCourses(unmatched,'unassigned')}</details>`:'';
+  return `<div class="school-module-data"><label class="school-inline-check"><input id="school-module-failed" type="checkbox" ${state.schoolModuleFailed?'checked':''}>仅看未通过模块</label><div class="school-module-list">${rows?schoolPresentationTable(['培养模块','已获 / 要求学分','完成 / 要求门数','学校自审结果'],[rows],'school-module-table'):'<p class="inline-empty">暂无符合条件的模块。</p>'}</div>${unknown}</div>`;
 }
 function schoolProgressMarkup(busy){
   const audit=schoolView('graduation_audit','ALL-HISTORY'),modules=new Map((audit?.records||[]).filter(r=>r.node_kind==='module').map(r=>[r.node_id,r]));
-  const groups=schoolCourseGroups(audit?[audit]:[]);
-  const query=(state.schoolCourseQuery||'').trim().toLocaleLowerCase();
-  const filtered=groups.filter(group=>{const nodes=group.entries.filter(e=>e.source.operation==='graduation_audit').map(e=>e.record);return (!query||[group.name,group.code].some(v=>v.toLocaleLowerCase().includes(query)))&&(!state.schoolStatusFilter||nodes.some(r=>schoolAuditStatus(r)===state.schoolStatusFilter))&&(!state.schoolOnlyGrades||group.entries.some(e=>schoolHasDisplayField(e.record,'grade_raw')));});
-  const rows=filtered.map((group,index)=>{
-    const auditEntries=group.entries.filter(e=>e.source.operation==='graduation_audit'),statuses=[...new Set(auditEntries.map(e=>schoolAuditStatus(e.record)))],grades=group.entries.filter(e=>schoolHasDisplayField(e.record,'grade_raw')),credits=schoolGroupValues(group,'nominal_credits'),paths=[...new Set(auditEntries.map(e=>schoolAuditPath(modules.get(e.record.parent_node_id),modules)||e.record.module_name_raw||'模块未明确'))];
-    const key=schoolCourseDisclosureKey(group),open=state.schoolOpenCourses?.[key]===true,id='school-course-detail-'+index;
-    return `<tr class="school-course-row"><td><button type="button" class="school-course-toggle" data-course-disclosure="${esc(key)}" aria-expanded="${open}" aria-controls="${id}"><span>${esc(group.name)}<small>${esc(group.code||'代码未提供')}</small></span></button></td><td>${esc(credits.length>1?'来源值不同':credits[0]??'未提供')}</td><td>${esc(statuses.join(' / ')||'未明确')}</td><td>${grades.length===1?esc(grades[0].record.grade_raw):grades.length>1?`多条成绩（${grades.length}）`:'未提供'}</td><td>${paths.length?paths.map(path=>`<span class="school-course-path">${esc(path)}</span>`).join(''):'模块未明确'}</td></tr><tr class="school-course-expanded" id="${id}" ${open?'':'hidden'}><td colspan="5"><div class="school-course-detail-body">${schoolCourseDetail(group,modules)}</div></td></tr>`;
-  });
-  return `    <section class="school-result"><div class="toolbar"><h2>培养模块</h2>${agentDataKind()==='synthetic'?'<span>当前模拟资料未提供毕业自审</span>':`<button class="button primary" data-read-operation="graduation_audit" ${busy?'disabled':''}>更新培养进度</button>`}</div>${schoolSourceLine(audit,'graduation_audit','ALL-HISTORY')}${schoolModuleMarkup(audit,modules)}</section>
-    <section class="school-result" id="school-course-records"><h2>自审课程</h2><form id="school-course-filter" class="school-grade-filter"><div class="field"><label for="school-course-search">查找自审课程</label><input id="school-course-search" type="search" maxlength="100" value="${esc(state.schoolCourseQuery||'')}" placeholder="课程名称或代码"></div><div class="field"><label for="school-course-status">自审状态</label><select id="school-course-status">${[['','全部状态'],['通过','通过'],['在修','在修'],['被替代','被替代'],['不通过','不通过'],['未通过','未通过'],['未明确','未明确']].map(([value,label])=>`<option value="${value}" ${state.schoolStatusFilter===value?'selected':''}>${label}</option>`).join('')}</select></div><label class="school-inline-check"><input id="school-only-grades" type="checkbox" ${state.schoolOnlyGrades?'checked':''}>仅有自审成绩</label><button class="button" type="submit">筛选课程</button><button class="button" type="button" id="school-course-reset">清除筛选</button></form>
-    ${rows.length?schoolPresentationTable(['课程','课程学分','自审状态','自审成绩','归属模块'],rows,'school-course-table'):'<p class="inline-empty">暂无符合条件的自审课程。</p>'}</section>`;
+  return `<section class="school-result"><div class="toolbar"><h2>培养模块</h2>${agentDataKind()==='synthetic'?'<span>当前模拟资料未提供毕业自审</span>':`<button class="button primary" data-read-operation="graduation_audit" ${busy?'disabled':''}>更新培养进度</button>`}</div>${schoolSourceLine(audit,'graduation_audit','ALL-HISTORY')}${agentDataKind()==='synthetic'&&!audit?'':schoolModuleMarkup(audit,modules)}</section>`;
 }
 function schoolTermForm(label,busy){
   const section=schoolSection();
@@ -1877,8 +1883,6 @@ function renderSchool(){
   $('#school-query-form')?.addEventListener('submit',event=>{event.preventDefault();schoolRememberQuery();schoolLoadPresentation(section);});
   document.querySelectorAll('[data-read-operation]').forEach(button=>button.addEventListener('click',()=>schoolLoadPresentation(button.dataset.readOperation)));
   $('#school-module-failed')?.addEventListener('change',event=>{state.schoolModuleFailed=event.target.checked;renderSchool();});
-  $('#school-course-filter')?.addEventListener('submit',event=>{event.preventDefault();state.schoolCourseQuery=$('#school-course-search').value;state.schoolStatusFilter=$('#school-course-status').value;state.schoolOnlyGrades=$('#school-only-grades').checked;renderSchool();});
-  $('#school-course-reset')?.addEventListener('click',()=>{state.schoolCourseQuery='';state.schoolStatusFilter='';state.schoolOnlyGrades=false;renderSchool();});
   document.querySelectorAll('[data-arrangement-key]').forEach(button=>button.addEventListener('click',()=>{state.schoolArrangementKey=button.dataset.arrangementKey;renderSchool();$('.school-arrangement-detail')?.scrollIntoView?.({block:'nearest'});}));
   $('#school-season-filter')?.addEventListener('change',event=>{state.schoolSeasonFilter=event.target.value;renderSchool();});
   for(const id of ['#school-year','#school-season'])$(id)?.addEventListener('change',()=>{schoolRememberQuery();if(section==='timetable'){state.schoolArrangementKey='';state.schoolSeasonFilter='';}if(section==='academic')state.schoolGradePage=1;renderSchool();});

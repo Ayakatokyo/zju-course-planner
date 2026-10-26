@@ -793,3 +793,17 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .school-detail-fields > div { min-width: 0; }
 .school-detail-fields dt { color: var(--muted); font-size: .8125rem; }
 .school-detail-fields dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+
+/* Cultivation records expand beneath their owning module. */
+.school-module-expanded > td { padding: 0; }
+.school-module-course-body { padding: 12px 20px 20px; background: var(--surface); }
+.school-module-courses { width: 100%; table-layout: fixed; }
+.school-module-courses th:first-child { width: 52%; }
+.school-module-courses th:not(:first-child) { width: 16%; }
+.school-module-courses td { overflow-wrap: anywhere; }
+.school-module-course-body .table-wrap { margin: 0; }
+.school-module-courses .school-recognition-detail { margin: 0; color: var(--ink); font-size: inherit; }
+.school-recognition-detail dl { margin: 12px 0 0; }
+.school-recognition-detail dt { color: var(--muted); }
+.school-recognition-detail dd { margin: 0 0 8px; }
+.school-unassigned-courses { margin-top: 20px; }
