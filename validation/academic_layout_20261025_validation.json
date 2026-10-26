@@ -129,7 +129,7 @@
     "committed": false,
     "pushed": false
   },
-  "current_phase": "five_page_split",
+  "current_phase": "five_page_cleanup",
   "five_page_split": {
     "user_choice": "Five independent pages, including separate timetable and exams.",
     "pages": [
@@ -217,6 +217,91 @@
     "new_source_scope": false,
     "live_candidate_section_expansion": "not queried",
     "pdf_acquisition": "not queried",
+    "user_visual_acceptance": "pending",
+    "committed": false,
+    "pushed": false
+  },
+  "five_page_cleanup": {
+    "request": "Review all five pages; remove unnecessary notes, auxiliary profile/PDF panel and inter-section interactions; show primary data dimensions.",
+    "removed": [
+      "profile and curriculum PDF auxiliary block",
+      "generic subtitles on all five pages",
+      "repeated source/mechanism/completeness success explanations",
+      "module-to-course filtering and scroll linkage",
+      "timetable exam attachment display and cross-page jump",
+      "clickable exam-to-timetable links",
+      "duplicated raw timetable panel",
+      "repeated enrollment preview and submission explanations"
+    ],
+    "retained": [
+      "all five pages and independent query ranges",
+      "module requirements, completion values and source audit results",
+      "recognition details, course codes and source grades",
+      "grade points, credits and per-attempt identifiers",
+      "teacher, raw time/place and meeting data",
+      "exam events, dates, times, locations and missing-value states",
+      "official enrollment period and eight selected-class columns",
+      "same-page class lookup",
+      "failed refresh, historical cache and incomplete coverage indicators"
+    ],
+    "regression": {
+      "command": "python3 -m unittest discover -s tests -p '*web*.py' -q",
+      "tests": 188,
+      "result": "passed",
+      "node_check": "passed",
+      "diff_check": "passed",
+      "full_backend_suite": "not rerun"
+    },
+    "live_checks": {
+      "viewports_css": [
+        [
+          1680,
+          790
+        ],
+        [
+          1280,
+          900
+        ]
+      ],
+      "original_viewport_restored": true,
+      "audit_modules": 28,
+      "audit_course_groups": 103,
+      "semester_grade_rows": 10,
+      "timetable_records": 3,
+      "exam_rows": 2,
+      "selected_class_rows": 3,
+      "auxiliary_panel_present": false,
+      "module_link_buttons": 0,
+      "exam_course_buttons": 0,
+      "cross_page_links": 0,
+      "generic_subtitles": 0,
+      "normal_source_line": "update time only",
+      "whole_page_horizontal_overflow": false
+    },
+    "repeatable_checks": [
+      {
+        "trigger": "Load cultivation with profile/plan data available.",
+        "expected": "Module requirements and audit course facts remain; no profile/PDF auxiliary block, module click linkage, or generic explanatory paragraphs."
+      },
+      {
+        "trigger": "Load matching timetable and exam sources, then open either page.",
+        "expected": "Each displays its own primary fields; no cross-page jump or attached exam content on timetable. Timetable details stay local."
+      },
+      {
+        "trigger": "Change exam term while grade page number and timetable filters exist.",
+        "expected": "Only the exam query changes; grade page number and timetable filters remain."
+      },
+      {
+        "trigger": "Open one timetable record whose time and place repeat exactly in its sole meeting.",
+        "expected": "Identical time/place show once; different values and week/season information remain available."
+      }
+    ],
+    "screenshots_directory": "private/five_pages_cleanup_20261025",
+    "backend_restart": false,
+    "model_calls": false,
+    "school_writes": false,
+    "source_scope_expansion": false,
+    "candidate_class_lookup_this_turn": "not queried",
     "user_visual_acceptance": "pending",
     "committed": false,
     "pushed": false

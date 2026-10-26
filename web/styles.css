@@ -709,11 +709,6 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .enrollment-preview table{width:100%;border-collapse:collapse}.enrollment-preview th,.enrollment-preview td{text-align:left;padding:10px 12px;border-bottom:1px solid #e8e9ef;vertical-align:top}.enrollment-preview th{background:#f3f2fa;white-space:nowrap}.enrollment-preview h3{margin:18px 0 10px}.enrollment-preview .table-wrap{margin:12px 0}.enrollment-preview .button{margin-bottom:6px}
 
 /* Two academic workspaces: shared table tracks and desktop reading order. */
-.school-identity { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 16px 24px; }
-.school-identity > p { margin: 0; font-weight: 600; }
-.school-identity > details { margin-left: auto; }
-.school-identity > details[open] { width: 100%; }
-.school-identity details > summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
 .school-course-link { border: 0; background: transparent; padding: 2px 0; color: var(--primary); text-align: left; text-decoration: underline; text-underline-offset: 3px; }
 .school-course-link[aria-pressed="true"] { font-weight: 750; background: var(--selected); }
 .school-inline-check { display: inline-flex; flex: 0 0 auto; gap: 8px; align-items: center; white-space: nowrap; margin: 12px 0; }
@@ -749,10 +744,6 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .school-course-detail-body td,.school-course-detail-body th { overflow-wrap: anywhere; padding: 12px; }
 .school-course-detail-body .school-data-table td:first-child { min-width: 0; }
 .school-course-detail-body .table-wrap { margin: 0; }
-.school-module-disclosure { margin-top: 16px; }
-.school-module-disclosure > summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
-.school-module-disclosure > summary > span { margin-left: 16px; font-size: .8125rem; font-weight: 400; color: var(--muted); }
-.school-module-disclosure + .field-help { margin-top: 12px; }
 .school-module-list { margin-top: 8px; }
 .school-module-table { width: 100%; table-layout: fixed; }
 .school-module-table th:first-child { width: 40%; }
@@ -761,7 +752,7 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .school-module-table td details { margin-top: 4px; font-size: .8125rem; color: var(--muted); }
 .school-module-table td summary { cursor: pointer; }
 .school-module-root { background: var(--canvas); }
-.school-module-root .school-course-link { font-weight: 600; }
+.school-module-root > td:first-child { font-weight: 600; }
 .school-season-control { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: .875rem; }
 .school-season-control select { min-height: 40px; }
 .school-timetable-workspace .school-timetable { min-width: 840px; }
@@ -776,6 +767,7 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .school-enrollment-workspace { margin-top: 24px; }
 .school-enrollment-workspace > p { margin-top: 8px; font-size: .875rem; }
 .school-enrollment-workspace .enrollment-preview { margin-top: 16px; }
+.enrollment-preview > .toolbar { margin-bottom: 16px; }
 .school-enrollment-workspace .school-data-table { table-layout: fixed; min-width: 1040px; font-size: .8125rem; }
 .school-enrollment-workspace .school-selected-table { min-width: 960px; }
 .school-selected-table th:nth-child(1) { width: 18%; }
@@ -800,3 +792,7 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .school-grade-record dl { margin: 12px 0 0; font-size: .8125rem; }
 .school-grade-record dt { color: var(--muted); }
 .school-grade-record dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.school-detail-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px 24px; margin: 16px 0; }
+.school-detail-fields > div { min-width: 0; }
+.school-detail-fields dt { color: var(--muted); font-size: .8125rem; }
+.school-detail-fields dd { margin: 4px 0 0; overflow-wrap: anywhere; }

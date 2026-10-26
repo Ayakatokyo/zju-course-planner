@@ -1193,11 +1193,11 @@ function workspaceIcon(key){
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[key]||paths.profile}"/></svg>`;
 }
 const workspaceSchoolPages={
-  graduation_audit:{title:'培养进度',description:'核对培养模块要求、学校自审结果及课程认定。'},
-  academic:{title:'成绩记录',description:'按学期或主修范围查看成绩，保留各次修读记录。'},
-  timetable:{title:'我的课表',description:'查看所选学期的上课时段与课程详情。'},
-  exams:{title:'考试安排',description:'按分学期查看考试时间和地点。'},
-  enrollment:{title:'当前选课',description:'查看学校当前选课期的已选状态、志愿与教学班，只读预览。'}
+  graduation_audit:{title:'培养进度'},
+  academic:{title:'成绩记录'},
+  timetable:{title:'我的课表'},
+  exams:{title:'考试安排'},
+  enrollment:{title:'当前选课'}
 };
 function renderWorkspaceNavigation(){
   const nav=$('#workspace-navigation');if(!nav)return;
@@ -1554,7 +1554,7 @@ function schoolTimetableRawMeetings(record){
     const meeting=typeof value==='string'?{time_raw:value}:value&&typeof value==='object'?value:{};
     const fields=[['time_raw','上课时间'],['place_raw','上课地点'],['week_annotation_raw','周次']].filter(([key])=>schoolHasDisplayField(meeting,key)).map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolTextMarkup(meeting[key])}</dd></div>`).join('');
     const seasons=schoolChineseSeasons(meeting),parity=schoolChineseParity(meeting);
-    return fields||seasons||parity?`<li><span>时段${index+1}</span><dl>${fields}${seasons?`<div><dt>分学期</dt><dd>${esc(seasons)}</dd></div>`:''}${parity?`<div><dt>单双周</dt><dd>${esc(parity)}</dd></div>`:''}</dl></li>`:'';
+    return fields||seasons||parity?`<li>${record.meetings.length>1?`<span>时段${index+1}</span>`:''}<dl>${fields}${seasons?`<div><dt>分学期</dt><dd>${esc(seasons)}</dd></div>`:''}${parity?`<div><dt>单双周</dt><dd>${esc(parity)}</dd></div>`:''}</dl></li>`:'';
   }).join('');
   return rows?`<ul class="school-timetable-source-meetings">${rows}</ul>`:'';
 }
@@ -1572,14 +1572,14 @@ function schoolTimetableMarkup(result){
   const allPeriods=[...new Set(located.flatMap(item=>item.periods))].sort((left,right)=>left-right);
   const periodRows=allPeriods.at(-1)<=30?Array.from({length:allPeriods.at(-1)||0},(_,index)=>index+1):allPeriods;
   const cells=dayNames.slice(1).map((_,index)=>periodRows.map(period=>located.filter(item=>item.weekday===index+1&&item.periods.includes(period))));
-  const table=located.length?`<div class="school-timetable-scroll" role="region" aria-label="课表可横向滚动" tabindex="0"><table class="school-timetable"><caption>按星期与节次编排 · 底色范围对应上课节次</caption><thead><tr><th scope="col">节次</th>${dayNames.slice(1).map(day=>`<th scope="col">${day}</th>`).join('')}</tr></thead><tbody>${periodRows.map((period,rowIndex)=>`<tr><th scope="row" class="school-timetable-period">${period}${periodTimes.has(period)?`<br><small class="school-period-clock">${esc(periodTimes.get(period))}</small>`:''}</th>${cells.map((dayCells,dayIndex)=>{
+  const table=located.length?`<div class="school-timetable-scroll" role="region" aria-label="课表可横向滚动" tabindex="0"><table class="school-timetable"><caption class="sr-only">周课表</caption><thead><tr><th scope="col">节次</th>${dayNames.slice(1).map(day=>`<th scope="col">${day}</th>`).join('')}</tr></thead><tbody>${periodRows.map((period,rowIndex)=>`<tr><th scope="row" class="school-timetable-period">${period}${periodTimes.has(period)?`<br><small class="school-period-clock">${esc(periodTimes.get(period))}</small>`:''}</th>${cells.map((dayCells,dayIndex)=>{
     const matches=dayCells[rowIndex],key=matches.map(item=>item.id).join(',');
     if(rowIndex&&periodRows[rowIndex-1]+1===period&&key&&key===dayCells[rowIndex-1].map(item=>item.id).join(','))return '';
     if(!matches.length)return '<td class="school-timetable-empty" aria-label="本次返回未定位时段" title="本次返回未定位时段"></td>';
     let span=1;while(rowIndex+span<periodRows.length&&periodRows[rowIndex+span]===period+span&&key===dayCells[rowIndex+span].map(item=>item.id).join(','))span+=1;
     return `<td rowspan="${span}" class="school-timetable-occupied" data-weekday="${dayIndex+1}" data-period="${period}"><div class="school-timetable-cell">${matches.map(item=>schoolMeetingMarkup(item)).join('')}</div></td>`;
   }).join('')}</tr>`).join('')}</tbody></table></div>`:'<p class="inline-empty">本次课表尚无可定位到星期和节次的时段。</p>';
-  return `<div class="school-timetable-view"><p class="school-timetable-summary">${records.length}条课表记录 · 已定位${located.length}个时段${pending.length?` · 未排入课表${pending.length}个时段`:''}</p>${table}${located.length&&periodDisplay.origin==='public_reference'?`<p class="school-timetable-note">${schoolPeriodReferenceLink(periodDisplay)}</p>`:''}<p class="school-timetable-note">按返回时段展示，已有周次及分学期分别保留；空格不表示空闲。</p>${pending.length?`<section class="school-timetable-pending"><h3>未排入课表的课程</h3><div class="school-timetable-pending-list">${pending.map(item=>schoolMeetingMarkup(item,true)).join('')}</div></section>`:''}${schoolTimetableSourceMarkup(records)}</div>`;
+  return `<div class="school-timetable-view"><p class="school-timetable-summary">${records.length}条课表记录 · 已定位${located.length}个时段${pending.length?` · 未排入课表${pending.length}个时段`:''}</p>${table}${located.length&&periodDisplay.origin==='public_reference'?`<p class="school-timetable-note">${schoolPeriodReferenceLink(periodDisplay)}</p>`:''}<p class="school-timetable-note">空白时段未返回课程信息。</p>${pending.length?`<section class="school-timetable-pending"><h3>未排入课表的课程</h3><div class="school-timetable-pending-list">${pending.map(item=>schoolMeetingMarkup(item,true)).join('')}</div></section>`:''}</div>`;
 }
 const schoolOperationNames={profile:'本人资料',academic:'学期成绩',major_academic:'主修历史',graduation_audit:'毕业资格自审',timetable:'我的课表',exams:'考试安排'};
 const schoolStatusNames={ok:'已读取',complete:'已读取',complete_within_scope:'本次范围已读取',partial:'部分读取',partial_unknown:'部分读取，覆盖待确认',ready:'会话有效',connected:'会话有效',authenticated:'会话有效',live:'本次查询',historical_cache:'历史缓存',acquired_pending_review:'已获取，内容待核验',cached:'已缓存',unknown:'待确认',captcha_required:'需要验证码',interactive_verification_required:'需要学校交互验证',source_session_expired:'教务会话已失效',authentication_required:'需要重新登录',awaiting_user_login:'需要重新登录',auth_expired:'需要重新登录',user_confirmation_required:'需要本人确认',not_configured:'尚未配置',profile_fields_missing:'适用范围信息缺失',plan_missing:'尚未取得方案',plan_not_found:'未找到对应方案',plan_ambiguous:'方案匹配不唯一',no_match:'未找到对应方案',ambiguous:'方案匹配不唯一'};
@@ -1660,11 +1660,7 @@ function selectSchoolSection(operation){
   schoolRememberQuery();state.schoolOperation=operation;
   const query=state.schoolPageQueries?.[schoolSection()];state.schoolYear=query?.year||schoolCurrentYear();state.schoolSeason=schoolMatchSeason(operation,query?.season||(operation==='exams'?'A':'AW'));
   if(operation==='major_academic')state.schoolGradeSource='major_academic';
-  state.schoolGradePage=1;clearMessage();renderSchool();
-}
-function schoolNavigateToTerm(page,term){
-  const match=String(term).match(/^(20\d{2}-20\d{2})-(AW|SS|A|W|S|SU)$/);if(!match)return;
-  openWorkspacePage(page);state.schoolYear=match[1];state.schoolSeason=schoolMatchSeason(page,match[2]);state.schoolPageQueries??={};state.schoolPageQueries[page]={year:state.schoolYear,season:state.schoolSeason};renderSchool();
+  clearMessage();renderSchool();
 }
 
 function schoolCompletionStatusText(value){return typeof value==='string'?({passed:'通过',failed:'未通过',in_progress:'在修',pending_recognition:'待认定',replaced:'被替代'}[value]||value):value;}
@@ -1715,13 +1711,13 @@ function schoolRecordTable(result){
 function schoolEnrollmentMarkup(){
   if(agentDataKind()==='synthetic')return '';
   const p=state.schoolEnrollment;
-  const header=`<section class="school-result enrollment-preview"><h2>选退课预览</h2><p class="field-help">读取当前官方选课信息，供提交前核对。本版本不会提交选课或退课。</p><button class="button" type="button" data-action="enrollment-preview" ${state.schoolBusy?'disabled':''}>刷新选课预览</button>`;
+  const header=`<section class="school-result enrollment-preview"><div class="toolbar"><h2>已选教学班</h2><button class="button" type="button" data-action="enrollment-preview" ${state.schoolBusy?'disabled':''}>刷新选课</button></div>`;
   if(!p)return header+'</section>';
   if(p.status!=='available')return header+`<p>${esc(schoolStatusText(p.status))}</p></section>`;
   const selected=(p.selected||[]).map(r=>`<tr><td>${esc(r.kcmc)}<small>${esc(r.kcdm)}</small></td><td>${esc(r.xkkh)}</td><td>${esc(r.sxbj==='1'?'已选上':r.sxbj==='0'?'待筛选':'状态待核对')}</td><td>${esc(r.xkzy??'—')}</td><td>${esc(r.jsxm??'—')}</td><td>${esc(r.xxq??'—')}</td><td>${esc(r.sksj??'—')}</td><td>${esc(r.skdd??'—')}</td></tr>`).join('');
   const courses=(p.courses||[]).map(r=>`<button class="button" type="button" data-preview-course="${esc(r.kcdm)}" ${state.schoolBusy?'disabled':''}>${esc(r.kcmc)} · 查看教学班</button>`).join(' ');
   const sections=(p.sections||[]).map(r=>`<tr>${['xkkh','jsxm','xxq','sksj','skdd','kssj','rs','sfxz'].map(k=>`<td>${esc(r[k]??'—')}</td>`).join('')}</tr>`).join('');
-  return header+`<p>${esc(p.academic_year)} · ${esc(p.scope)}</p><h3>页面已选教学班</h3>${schoolPresentationTable(['课程 / 代码','选课课号','页面状态','志愿','教师','学期','上课时间','地点'],[selected],'school-selected-table')}<h3>本类（专业）课程</h3><div>${courses}</div>${sections?schoolPresentationTable(['选课课号','教师','学期','时间','地点','考试','余量 / 容量','学校选择状态原码'],[sections]):''}<p class="field-help">预览不保证可选资格或最终中选；实时提交尚未启用。</p></section>`;
+  return header+`${schoolPresentationTable(['课程 / 代码','选课课号','页面状态','志愿','教师','学期','上课时间','地点'],[selected],'school-selected-table')}<h3>本类（专业）课程</h3><div>${courses}</div>${sections?schoolPresentationTable(['选课课号','教师','学期','时间','地点','考试','余量 / 容量','状态原码'],[sections]):''}</section>`;
 }
 async function loadEnrollmentPreview(courseCode){
   if(state.schoolBusy||state.busy||agentDataKind()==='synthetic')return;
@@ -1746,17 +1742,14 @@ function schoolExamAgenda(records){
     const day=schoolHasDisplayField(record,timeKey)?schoolExamDate(record[timeKey]):null,key=day||'日期未明确';
     if(!groups.has(key))groups.set(key,[]);groups.get(key).push({record,timeKey,placeKey,label});count++;
   }if(!count){const day=schoolHasDisplayField(record,'exam_date')?schoolExamDate(record.exam_date):schoolHasDisplayField(record,'exam_time_raw')?schoolExamDate(record.exam_time_raw):null;const key=day||'日期未明确';if(!groups.has(key))groups.set(key,[]);groups.get(key).push({record});}}
-  return `<div class="exam-agenda">${[...groups].sort(([a],[b])=>a==='日期未明确'?1:b==='日期未明确'?-1:a.localeCompare(b)).map(([day,items])=>`<section class="exam-day"><h3>${esc(day)}</h3><ul>${items.map(item=>`<li class="exam-entry ${item.record.presentation_selected?'is-selected':''}"><div class="exam-entry-title"><strong>${item.record.presentation_key!=null?`<button class="school-course-link" data-arrangement-key="${esc(item.record.presentation_key)}" data-arrangement-term="${esc(item.record.presentation_term||'')}">${schoolCourseMarkup(item.record)}</button>`:schoolCourseMarkup(item.record)}</strong>${item.label?`<span class="badge neutral">${item.label}</span>`:''}</div>${item.label?`<dl><div><dt>时间</dt><dd>${schoolHasDisplayField(item.record,item.timeKey)?schoolFieldMarkup(item.record,item.timeKey):'来源未提供时间'}</dd></div><div><dt>地点</dt><dd>${schoolHasDisplayField(item.record,item.placeKey)?schoolFieldMarkup(item.record,item.placeKey):'来源未提供地点'}</dd></div></dl>`:`<p>${['exam_time_raw','exam_date','start_time','end_time'].filter(k=>schoolHasDisplayField(item.record,k)).map(k=>schoolFieldMarkup(item.record,k)).join(' ')||'来源未提供考试时间'} · ${schoolHasDisplayField(item.record,'place_raw')?schoolFieldMarkup(item.record,'place_raw'):'来源未提供地点'}</p>`}</li>`).join('')}</ul></section>`).join('')}</div>`;
+  return `<div class="exam-agenda">${[...groups].sort(([a],[b])=>a==='日期未明确'?1:b==='日期未明确'?-1:a.localeCompare(b)).map(([day,items])=>`<section class="exam-day"><h3>${esc(day)}</h3><ul>${items.map(item=>`<li class="exam-entry"><div class="exam-entry-title"><strong>${schoolCourseMarkup(item.record)}</strong>${item.label?`<span class="badge neutral">${item.label}</span>`:''}</div>${item.label?`<dl><div><dt>时间</dt><dd>${schoolHasDisplayField(item.record,item.timeKey)?schoolFieldMarkup(item.record,item.timeKey):'来源未提供时间'}</dd></div><div><dt>地点</dt><dd>${schoolHasDisplayField(item.record,item.placeKey)?schoolFieldMarkup(item.record,item.placeKey):'来源未提供地点'}</dd></div></dl>`:`<p>${['exam_time_raw','exam_date','start_time','end_time'].filter(k=>schoolHasDisplayField(item.record,k)).map(k=>schoolFieldMarkup(item.record,k)).join(' ')||'来源未提供考试时间'} · ${schoolHasDisplayField(item.record,'place_raw')?schoolFieldMarkup(item.record,'place_raw'):'来源未提供地点'}</p>`}</li>`).join('')}</ul></section>`).join('')}</div>`;
 }
 function schoolEmptyResult(result){
   const complete=result.coverage?.complete_within_scope===true;
   const success=['ok','complete','complete_within_scope'].includes(result.status);
   return `<div class="school-empty-result"><h3>${complete&&success?'当前查询范围内没有返回记录':'本次未取得可展示记录'}</h3><p>${complete&&success?'可调整学年、学期或成绩范围后重新查询。':'来源尚未完整返回，不能据此判断没有课程或考试。请核对查询范围，稍后重试。'}</p></div>`;
 }
-function schoolPlanMarkup(busy){
-  const plan=state.schoolPlan;
-  return `<section class="school-plan"><div class="toolbar"><h2>培养方案</h2><button class="button" data-action="school-plan" ${busy?'disabled':''}>${plan?'重新核对方案':'获取培养方案'}</button></div>${plan?`<p>${esc(schoolStatusText(plan.status))}</p>${plan.source_alias?`<button class="button small" data-action="school-plan-document" data-source-alias="${esc(plan.source_alias)}" ${busy?'disabled':''}>下载培养方案 PDF</button>`:''}<p class="field-help">PDF 获取成功后仍需核验适用范围及培养要求，当前不用于自动推荐。</p>`:'<p class="field-help">根据本人入学年份、学院和专业查找，按需获取。</p>'}</section>`;
-}
+
 function schoolResultDetails(result){
   const operation=result.operation||state.schoolOperation;
   const explanation=operation==='graduation_audit'?'毕业资格自审的课程状态、替代说明及模块要求来自学校当前查询；结果仅供参考，不等于正式毕业结论。':operation==='timetable'?'按学校课表原始记录展示，正式中选须以学校选课结果为准。':operation==='exams'?'只展示本次返回的考试字段；未展示的字段不代表没有考试。':['academic','major_academic'].includes(operation)?'来源学分和成绩保留学校原值，尚未判定已获学分或毕业资格。':'本人资料仅用于核对来源及培养方案适用范围。';
@@ -1779,16 +1772,23 @@ function schoolFieldEvidenceMarkup(result){
   }).join('');
 }
 // Session-only presentation snapshots. Raw source records are never rewritten.
-function resetSchoolPresentation(){state.schoolViews={};state.schoolViewErrors={};state.schoolCourseQuery='';state.schoolModuleFilter='';state.schoolStatusFilter='';state.schoolOnlyGrades=false;state.schoolModuleFailed=false;state.schoolArrangementKey='';state.schoolSeasonFilter='';state.schoolDisclosures={};state.schoolOpenCourses={};state.schoolPageQueries={};state.schoolGradeSource='academic';}
+function resetSchoolPresentation(){state.schoolViews={};state.schoolViewErrors={};state.schoolCourseQuery='';state.schoolStatusFilter='';state.schoolOnlyGrades=false;state.schoolModuleFailed=false;state.schoolArrangementKey='';state.schoolSeasonFilter='';state.schoolDisclosures={};state.schoolOpenCourses={};state.schoolPageQueries={};state.schoolGradeSource='academic';}
 function schoolDisclosure(key,defaultOpen=false){return `data-school-disclosure="${esc(key)}" ${(state.schoolDisclosures?.[key]??defaultOpen)?'open':''}`;}
 function schoolCourseDisclosureKey(group){return JSON.stringify([group.code,group.name,...(group.code?[]:group.entries.map(e=>[e.source.operation,e.source.target_term,e.index]))]);}
 function schoolViewKey(operation,term=''){return operation+':'+term;}
 function schoolView(operation,term=''){return state.schoolViews?.[schoolViewKey(operation,term)]||null;}
 function schoolUsable(result){return result&&['ok','complete','complete_within_scope','partial','partial_unknown','partial_acquisition'].includes(result.status)&&Array.isArray(result.records);}
 function schoolSourceLine(result,operation,term=''){
-  const error=state.schoolViewErrors?.[schoolViewKey(operation,term)];
-  return `<p class="school-provenance">${esc(schoolOperationNames[operation])}${term?` · ${esc(term==='ALL-HISTORY'?'本次全部来源范围':term)}`:''} · ${result?`${error?'上次读取 · ':''}读取时间：${esc(schoolCaptureTime(result.captured_at))} · ${esc(result.data_source==='live'?'本次来源读取':result.data_source==='historical_cache'?'历史缓存':'来源时效待确认')} · ${esc(schoolStatusText(result.status))}${operation==='profile'?'':' · '+esc(schoolCoverageText(result))}`:'尚未读取'}${error?`<span class="school-source-error">${esc(schoolStatusText(error))}，本次更新未完成</span>`:''}</p>`;
+  const error=state.schoolViewErrors?.[schoolViewKey(operation,term)],parts=[];
+  if(result){
+    const captured=schoolCaptureTime(result.captured_at);if(captured!=='待确认')parts.push(`更新于 ${captured}`);
+    if(result.data_source==='historical_cache')parts.push('历史缓存');
+    if(!['ok','complete','complete_within_scope'].includes(result.status))parts.push(schoolStatusText(result.status));
+    if(operation!=='profile'){const coverage=schoolCoverageText(result);if(!coverage.endsWith('已完整读取当前查询范围'))parts.push(coverage);}
+  }
+  return parts.length||error?`<p class="school-provenance">${esc(parts.join(' · '))}${error?`<span class="school-source-error">${esc(schoolStatusText(error))}，本次更新未完成${result?'，保留上次数据':''}</span>`:''}</p>`:'';
 }
+
 function schoolAuditPath(row,modules){
   const parts=[],seen=new Set();let current=row;
   while(current&&!seen.has(current.node_id)){seen.add(current.node_id);parts.unshift(current.course_name_raw||'未命名模块');current=modules.get(current.parent_node_id);}
@@ -1820,27 +1820,23 @@ function schoolModuleMarkup(audit,modules){
     if(seen.has(r.node_id))return '';const next=new Set(seen).add(r.node_id);
     const children=[...modules.values()].filter(x=>x.parent_node_id===r.node_id);
     const own=!state.schoolModuleFailed||schoolAuditStatus(r)==='不通过'||schoolAuditStatus(r)==='未通过';
-    return (own?`<tr class="${depth===0?'school-module-root':''}"><td style="padding-left:${12+Math.min(depth,8)*16}px"><button class="school-course-link" type="button" data-module-id="${esc(r.node_id)}" aria-pressed="${state.schoolModuleFilter===r.node_id}">${schoolTextMarkup(r.course_name_raw)}</button></td><td>${schoolFieldMarkup(r,'earned_credits_raw')} / ${schoolFieldMarkup(r,'required_credits_raw')}</td><td>${schoolFieldMarkup(r,'completed_courses_raw')} / ${schoolFieldMarkup(r,'required_courses_raw')}</td><td>${esc(schoolAuditStatus(r))}${schoolHasDisplayField(r,'nonduplicated_recognition_credits_raw')?`<details ${schoolDisclosure('module:'+r.node_id)}><summary>认定说明</summary>不重复认定学分（学校原值）：${schoolFieldMarkup(r,'nonduplicated_recognition_credits_raw')}</details>`:''}</td></tr>`:'')+children.map(x=>row(x,depth+1,next)).join('');
+    return (own?`<tr class="${depth===0?'school-module-root':''}"><td style="padding-left:${12+Math.min(depth,8)*16}px">${schoolTextMarkup(r.course_name_raw)}</td><td>${schoolFieldMarkup(r,'earned_credits_raw')} / ${schoolFieldMarkup(r,'required_credits_raw')}</td><td>${schoolFieldMarkup(r,'completed_courses_raw')} / ${schoolFieldMarkup(r,'required_courses_raw')}</td><td>${esc(schoolAuditStatus(r))}${schoolHasDisplayField(r,'nonduplicated_recognition_credits_raw')?`<details ${schoolDisclosure('module:'+r.node_id)}><summary>认定说明</summary>不重复认定学分：${schoolFieldMarkup(r,'nonduplicated_recognition_credits_raw')}</details>`:''}</td></tr>`:'')+children.map(x=>row(x,depth+1,next)).join('');
   }
-  return `<details class="school-module-disclosure" ${schoolDisclosure('modules',true)}><summary>查看培养模块（${modules.size}）<span>点击模块可筛选下方课程</span></summary><label class="school-inline-check"><input id="school-module-failed" type="checkbox" ${state.schoolModuleFailed?'checked':''}>仅看未通过模块</label><div class="school-module-list">${schoolPresentationTable(['培养模块','已获 / 要求学分','完成 / 要求门数','学校自审结果'],roots.map(r=>row(r)),'school-module-table')}</div></details><p class="field-help">学校自审仅供参考。各层级学分不相加；空状态不等于必修欠课。</p>`;
+  return `<div class="school-module-data"><label class="school-inline-check"><input id="school-module-failed" type="checkbox" ${state.schoolModuleFailed?'checked':''}>仅看未通过模块</label><div class="school-module-list">${schoolPresentationTable(['培养模块','已获 / 要求学分','完成 / 要求门数','学校自审结果'],roots.map(r=>row(r)),'school-module-table')}</div></div>`;
 }
 function schoolProgressMarkup(busy){
   const audit=schoolView('graduation_audit','ALL-HISTORY'),modules=new Map((audit?.records||[]).filter(r=>r.node_kind==='module').map(r=>[r.node_id,r]));
-  const profileView=schoolView('profile'),profile=profileView?.profile||state.schoolProfile;
-  const identity=profile?['cohort','college_name',profile.major_name?'major_name':'major_or_category_raw'].filter(k=>schoolHasDisplayField(profile,k)).map(k=>`${k==='cohort'?'入学年份：':k==='major_or_category_raw'?'类（专业）：':''}${schoolPlainText(profile[k],'')}`).join(' · '):'本人背景尚未读取';
   const groups=schoolCourseGroups(audit?[audit]:[]);
   const query=(state.schoolCourseQuery||'').trim().toLocaleLowerCase();
-  function belongs(r){let node=r.parent_node_id;const seen=new Set();while(node&&!seen.has(node)){if(node===state.schoolModuleFilter)return true;seen.add(node);node=modules.get(node)?.parent_node_id;}return false;}
-  const filtered=groups.filter(group=>{const nodes=group.entries.filter(e=>e.source.operation==='graduation_audit').map(e=>e.record);return (!query||[group.name,group.code].some(v=>v.toLocaleLowerCase().includes(query)))&&(!state.schoolModuleFilter||nodes.some(belongs))&&(!state.schoolStatusFilter||nodes.some(r=>schoolAuditStatus(r)===state.schoolStatusFilter))&&(!state.schoolOnlyGrades||group.entries.some(e=>schoolHasDisplayField(e.record,'grade_raw')));});
+  const filtered=groups.filter(group=>{const nodes=group.entries.filter(e=>e.source.operation==='graduation_audit').map(e=>e.record);return (!query||[group.name,group.code].some(v=>v.toLocaleLowerCase().includes(query)))&&(!state.schoolStatusFilter||nodes.some(r=>schoolAuditStatus(r)===state.schoolStatusFilter))&&(!state.schoolOnlyGrades||group.entries.some(e=>schoolHasDisplayField(e.record,'grade_raw')));});
   const rows=filtered.map((group,index)=>{
     const auditEntries=group.entries.filter(e=>e.source.operation==='graduation_audit'),statuses=[...new Set(auditEntries.map(e=>schoolAuditStatus(e.record)))],grades=group.entries.filter(e=>schoolHasDisplayField(e.record,'grade_raw')),credits=schoolGroupValues(group,'nominal_credits'),paths=[...new Set(auditEntries.map(e=>schoolAuditPath(modules.get(e.record.parent_node_id),modules)||e.record.module_name_raw||'模块未明确'))];
     const key=schoolCourseDisclosureKey(group),open=state.schoolOpenCourses?.[key]===true,id='school-course-detail-'+index;
-    return `<tr class="school-course-row"><td><button type="button" class="school-course-toggle" data-course-disclosure="${esc(key)}" aria-expanded="${open}" aria-controls="${id}"><span>${esc(group.name)}<small>${esc(group.code||'代码未提供')}</small></span></button></td><td>${esc(credits.length>1?'来源值不同':credits[0]??'未提供')}</td><td>${esc(statuses.join(' / ')||'未明确')}</td><td>${grades.length===1?esc(grades[0].record.grade_raw)+(grades[0].source.operation==='graduation_audit'?'<small>自审成绩</small>':''):grades.length>1?`多条成绩（${grades.length}）`:'未提供'}</td><td>${paths.length?paths.map(path=>`<span class="school-course-path">${esc(path)}</span>`).join(''):'模块未明确'}</td></tr><tr class="school-course-expanded" id="${id}" ${open?'':'hidden'}><td colspan="5"><div class="school-course-detail-body">${schoolCourseDetail(group,modules)}</div></td></tr>`;
+    return `<tr class="school-course-row"><td><button type="button" class="school-course-toggle" data-course-disclosure="${esc(key)}" aria-expanded="${open}" aria-controls="${id}"><span>${esc(group.name)}<small>${esc(group.code||'代码未提供')}</small></span></button></td><td>${esc(credits.length>1?'来源值不同':credits[0]??'未提供')}</td><td>${esc(statuses.join(' / ')||'未明确')}</td><td>${grades.length===1?esc(grades[0].record.grade_raw):grades.length>1?`多条成绩（${grades.length}）`:'未提供'}</td><td>${paths.length?paths.map(path=>`<span class="school-course-path">${esc(path)}</span>`).join(''):'模块未明确'}</td></tr><tr class="school-course-expanded" id="${id}" ${open?'':'hidden'}><td colspan="5"><div class="school-course-detail-body">${schoolCourseDetail(group,modules)}</div></td></tr>`;
   });
-  return `<section class="school-result school-identity"><p>${esc(identity)}</p><details ${schoolDisclosure('identity')}><summary>本人资料与培养原文</summary><button class="button small" data-read-operation="profile" ${busy?'disabled':''}>更新本人资料</button>${schoolSourceLine(profileView,'profile')}${profile?schoolRecordTable({operation:'profile',profile}):''}${schoolPlanMarkup(busy)}</details></section>
-    <section class="school-result"><div class="toolbar"><h2>培养进度</h2>${agentDataKind()==='synthetic'?'<span>当前模拟资料未提供毕业自审</span>':`<button class="button primary" data-read-operation="graduation_audit" ${busy?'disabled':''}>更新培养进度</button>`}</div>${schoolSourceLine(audit,'graduation_audit','ALL-HISTORY')}${schoolModuleMarkup(audit,modules)}</section>
+  return `    <section class="school-result"><div class="toolbar"><h2>培养模块</h2>${agentDataKind()==='synthetic'?'<span>当前模拟资料未提供毕业自审</span>':`<button class="button primary" data-read-operation="graduation_audit" ${busy?'disabled':''}>更新培养进度</button>`}</div>${schoolSourceLine(audit,'graduation_audit','ALL-HISTORY')}${schoolModuleMarkup(audit,modules)}</section>
     <section class="school-result" id="school-course-records"><h2>自审课程</h2><form id="school-course-filter" class="school-grade-filter"><div class="field"><label for="school-course-search">查找自审课程</label><input id="school-course-search" type="search" maxlength="100" value="${esc(state.schoolCourseQuery||'')}" placeholder="课程名称或代码"></div><div class="field"><label for="school-course-status">自审状态</label><select id="school-course-status">${[['','全部状态'],['通过','通过'],['在修','在修'],['被替代','被替代'],['不通过','不通过'],['未通过','未通过'],['未明确','未明确']].map(([value,label])=>`<option value="${value}" ${state.schoolStatusFilter===value?'selected':''}>${label}</option>`).join('')}</select></div><label class="school-inline-check"><input id="school-only-grades" type="checkbox" ${state.schoolOnlyGrades?'checked':''}>仅有自审成绩</label><button class="button" type="submit">筛选课程</button><button class="button" type="button" id="school-course-reset">清除筛选</button></form>
-    ${state.schoolModuleFilter?`<p>当前模块：${esc(schoolAuditPath(modules.get(state.schoolModuleFilter),modules))}</p>`:''}<p class="field-help">${audit?filtered.length+' 个自审课程显示组':'自审尚未读取'}；多处认定逐条保留，自审成绩不代表某次修读成绩。</p>${rows.length?schoolPresentationTable(['课程','课程学分','自审状态','自审成绩','归属模块'],rows,'school-course-table'):'<p class="inline-empty">尚无符合条件的自审课程。可更新培养进度或清除筛选。</p>'}</section>`;
+    ${rows.length?schoolPresentationTable(['课程','课程学分','自审状态','自审成绩','归属模块'],rows,'school-course-table'):'<p class="inline-empty">暂无符合条件的自审课程。</p>'}</section>`;
 }
 function schoolTermForm(label,busy){
   const section=schoolSection(),major=section==='academic'&&state.schoolGradeSource==='major_academic';
@@ -1848,7 +1844,7 @@ function schoolTermForm(label,busy){
 }
 function schoolGradeWorkspaceMarkup(busy){
   const operation=state.schoolGradeSource||'academic',term=operation==='major_academic'?'ALL-HISTORY':state.schoolYear+'-'+state.schoolSeason,result=schoolView(operation,term);
-  return `${schoolTermForm('查询成绩',busy)}<section class="school-result school-grade-workspace">${schoolSourceLine(result,operation,term)}${schoolUsable(result)?schoolGradeTable(result):'<p class="inline-empty">当前范围尚无可展示成绩。请选择范围并查询，其他学期记录不会合并到这里。</p>'}</section>`;
+  return `${schoolTermForm('查询成绩',busy)}<section class="school-result school-grade-workspace">${schoolSourceLine(result,operation,term)}${schoolUsable(result)?schoolGradeTable(result):'<p class="inline-empty">当前范围尚未读取成绩。</p>'}</section>`;
 }
 
 function schoolSelectedEnrollment(record,records,preview,year,season){
@@ -1858,27 +1854,31 @@ function schoolSelectedEnrollment(record,records,preview,year,season){
   return matches.length===1?matches[0]:null;
 }
 function schoolTimetableWorkspaceMarkup(busy){
-  const term=state.schoolYear+'-'+state.schoolSeason,timetable=schoolView('timetable',term),exams=schoolRelatedExamTerms(term).map(t=>schoolView('exams',t)).filter(Boolean),all=schoolUsable(timetable)?timetable.records:[],selected=all.find((r,i)=>String(i)===state.schoolArrangementKey);
+  const term=state.schoolYear+'-'+state.schoolSeason,timetable=schoolView('timetable',term),all=schoolUsable(timetable)?timetable.records:[],selected=all.find((r,i)=>String(i)===state.schoolArrangementKey);
   const visible=all.filter(r=>!state.schoolSeasonFilter||!schoolChineseSeasons(r)||schoolChineseSeasons(r).includes(state.schoolSeasonFilter));
   const rendered={...timetable,records:visible.map(r=>({...r,related_exams:[],presentation_key:String(all.indexOf(r))}))};
-  const linked=selected?schoolAttachRelatedExams({...timetable,records:all},exams).records[all.indexOf(selected)].related_exams:[];
-  return `${schoolTermForm('查询课表',busy)}<section class="school-result school-timetable-workspace"><div class="toolbar"><h2>周课表</h2><label class="school-season-control" for="school-season-filter">分学期筛选<select id="school-season-filter"><option value="">全部（含分学期未知记录）</option>${(state.schoolSeason==='AW'?['秋','冬']:['春','夏']).map(v=>`<option ${state.schoolSeasonFilter===v?'selected':''}>${v}</option>`).join('')}</select></label></div>${schoolSourceLine(timetable,'timetable',term)}${schoolUsable(timetable)?schoolTimetableMarkup(rendered):'<p class="inline-empty">查询本学期课表后，已知时段进入周课表，缺少时间的课程单列。</p>'}${selected?`<section class="school-arrangement-detail"><h3>${schoolTextMarkup(selected.course_name_raw)}</h3>${schoolTimetableSourceMarkup([selected])}<h4>已读取的关联考试</h4>${linked.length?schoolExamAgenda(linked):'<p class="field-help">当前已读取来源中没有可精确关联的考试，请到考试安排页查询核对。</p>'}<button class="button small" data-school-exam-term="${esc(schoolRelatedExamTerms(term)[0])}">查看考试安排</button></section>`:''}</section>`;
+  return `${schoolTermForm('查询课表',busy)}<section class="school-result school-timetable-workspace"><div class="toolbar"><h2>周课表</h2><label class="school-season-control" for="school-season-filter">分学期<select id="school-season-filter"><option value="">全部（含未知）</option>${(state.schoolSeason==='AW'?['秋','冬']:['春','夏']).map(v=>`<option ${state.schoolSeasonFilter===v?'selected':''}>${v}</option>`).join('')}</select></label></div>${schoolSourceLine(timetable,'timetable',term)}${schoolUsable(timetable)?schoolTimetableMarkup(rendered):'<p class="inline-empty">当前学期尚未读取课表。</p>'}${selected?schoolTimetableDetailMarkup(selected):''}</section>`;
+}
+function schoolTimetableDetailMarkup(record){
+  const singleMeeting=Array.isArray(record.meetings)&&record.meetings.length===1?record.meetings[0]:null;
+  const fields=[['course_code_raw','课程代码'],['source_selection_id_raw','选课课号'],['instructor_raw','教师'],['time_raw','上课时间'],['place_raw','地点'],['term_raw','学期'],['selection_status_raw','页面状态']].filter(([key])=>schoolHasDisplayField(record,key)&&!(['time_raw','place_raw'].includes(key)&&singleMeeting&&schoolHasDisplayField(singleMeeting,key)&&schoolPlainText(record[key],'')===schoolPlainText(singleMeeting[key],'')));
+  return `<section class="school-arrangement-detail"><h3>${schoolTextMarkup(record.course_name_raw)}</h3><dl class="school-detail-fields">${fields.map(([key,label])=>`<div><dt>${label}</dt><dd>${schoolFieldMarkup(record,key)}</dd></div>`).join('')}</dl>${schoolTimetableRawMeetings(record)}</section>`;
 }
 function schoolExamWorkspaceMarkup(busy){
-  const term=state.schoolYear+'-'+state.schoolSeason,source=schoolView('exams',term),combined=state.schoolYear+'-'+(['A','W'].includes(state.schoolSeason)?'AW':'SS'),timetable=schoolView('timetable',combined),all=schoolUsable(timetable)?timetable.records:[];
-  const cards=schoolUsable(source)?source.records.map(exam=>{const matches=schoolAttachRelatedExams({...timetable,records:all},[{...source,records:[exam]}]).records.map((r,i)=>r.related_exams.length?i:-1).filter(i=>i>=0);return {...exam,presentation_key:matches.length===1?String(matches[0]):null,presentation_term:combined};}):[];
-  return `${schoolTermForm('查询考试',busy)}<section class="school-result school-exam-workspace">${schoolSourceLine(source,'exams',term)}${schoolUsable(source)?schoolExamAgenda(cards):'<p class="inline-empty">当前分学期尚无可展示考试记录。请查询核对，不能据此判断没有考试。</p>'}</section>`;
+  const term=state.schoolYear+'-'+state.schoolSeason,source=schoolView('exams',term);
+  return `${schoolTermForm('查询考试',busy)}<section class="school-result school-exam-workspace">${schoolSourceLine(source,'exams',term)}${schoolUsable(source)?schoolExamAgenda(source.records):'<p class="inline-empty">当前分学期尚未读取考试。</p>'}</section>`;
 }
+
 function schoolEnrollmentWorkspaceMarkup(){
   const preview=state.schoolEnrollment;
-  return `<div class="school-enrollment-workspace">${preview?.status==='available'?`<p class="field-help">学校当前选课期：${esc(preview.academic_year)} ${preview.season==='1'?'秋冬':preview.season==='2'?'春夏':preview.season} · 读取时间：${esc(schoolCaptureTime(preview.checked_at))}</p>`:''}${agentDataKind()==='synthetic'?'<section class="school-result"><p class="inline-empty">当前模拟资料未提供学校选课预览。</p></section>':schoolEnrollmentMarkup()}</div>`;
+  return `<div class="school-enrollment-workspace">${preview?.status==='available'?`<p class="field-help">学校当前选课期：${esc(preview.academic_year)} ${preview.season==='1'?'秋冬':preview.season==='2'?'春夏':preview.season} · 更新于 ${esc(schoolCaptureTime(preview.checked_at))}</p>`:''}${agentDataKind()==='synthetic'?'<section class="school-result"><p class="inline-empty">当前模拟资料未提供学校选课预览。</p></section>':schoolEnrollmentMarkup()}</div>`;
 }
 
 function renderSchool(){
   const panel=$('#panel-school');if(!isAcademicIdentity()){panel.innerHTML='';return;}
   const busy=state.schoolBusy||state.busy,section=schoolSection(),years=schoolYearChoices();if(!years.includes(state.schoolYear))state.schoolYear=years[0];state.schoolSeason=schoolMatchSeason(section,state.schoolSeason);
   renderWorkspaceNavigation();
-  panel.innerHTML=`<div class="page-heading"><div><h1>${workspaceSchoolPages[section].title}</h1><p>${workspaceSchoolPages[section].description}</p></div></div>${busy?'<p role="status" class="school-loading-line">正在读取所需资料…</p>':''}`+({graduation_audit:schoolProgressMarkup,academic:schoolGradeWorkspaceMarkup,timetable:schoolTimetableWorkspaceMarkup,exams:schoolExamWorkspaceMarkup,enrollment:schoolEnrollmentWorkspaceMarkup}[section](busy))+`${state.schoolNeedsCaptcha?`<section class="school-verification"><h2>学校验证码</h2>${state.schoolCaptchaUrl?`<img class="school-captcha" src="${esc(state.schoolCaptchaUrl)}" alt="学校图片验证码">`:'<p>验证码图片尚未载入。</p>'}<form id="school-captcha-form"><label for="school-captcha-text">验证码</label><div class="button-group"><input id="school-captcha-text" type="text" autocomplete="off" pattern="[A-Za-z0-9]{1,16}" maxlength="16" required ${busy?'disabled':''}><button class="button primary" ${busy?'disabled':''}>提交并重试查询</button><button type="button" class="button" data-action="school-captcha-refresh" ${busy?'disabled':''}>换一张</button></div></form></section>`:''}${state.schoolReauth?`<section class="school-verification"><h2>重新登录教务</h2><p class="field-help">请验证当前账号。切换账号请先退出。</p>${schoolCredentialForm(true)}</section>`:''}`;
+  panel.innerHTML=`<div class="page-heading"><div><h1>${workspaceSchoolPages[section].title}</h1></div></div>${busy?'<p role="status" class="school-loading-line">正在读取所需资料…</p>':''}`+({graduation_audit:schoolProgressMarkup,academic:schoolGradeWorkspaceMarkup,timetable:schoolTimetableWorkspaceMarkup,exams:schoolExamWorkspaceMarkup,enrollment:schoolEnrollmentWorkspaceMarkup}[section](busy))+`${state.schoolNeedsCaptcha?`<section class="school-verification"><h2>学校验证码</h2>${state.schoolCaptchaUrl?`<img class="school-captcha" src="${esc(state.schoolCaptchaUrl)}" alt="学校图片验证码">`:'<p>验证码图片尚未载入。</p>'}<form id="school-captcha-form"><label for="school-captcha-text">验证码</label><div class="button-group"><input id="school-captcha-text" type="text" autocomplete="off" pattern="[A-Za-z0-9]{1,16}" maxlength="16" required ${busy?'disabled':''}><button class="button primary" ${busy?'disabled':''}>提交并重试查询</button><button type="button" class="button" data-action="school-captcha-refresh" ${busy?'disabled':''}>换一张</button></div></form></section>`:''}${state.schoolReauth?`<section class="school-verification"><h2>重新登录教务</h2><p class="field-help">请验证当前账号。切换账号请先退出。</p>${schoolCredentialForm(true)}</section>`:''}`;
   document.querySelectorAll('details[data-school-disclosure]').forEach(detail=>detail.addEventListener('toggle',()=>{if(detail.isConnected){state.schoolDisclosures??={};state.schoolDisclosures[detail.dataset.schoolDisclosure]=detail.open;}}));
   document.querySelectorAll('[data-course-disclosure]').forEach(button=>button.addEventListener('click',()=>{
     const open=button.getAttribute('aria-expanded')!=='true';state.schoolOpenCourses??={};state.schoolOpenCourses[button.dataset.courseDisclosure]=open;
@@ -1886,14 +1886,12 @@ function renderSchool(){
   }));
   $('#school-query-form')?.addEventListener('submit',event=>{event.preventDefault();schoolRememberQuery();schoolLoadPresentation(section==='academic'?(state.schoolGradeSource||'academic'):section);});
   document.querySelectorAll('[data-read-operation]').forEach(button=>button.addEventListener('click',()=>schoolLoadPresentation(button.dataset.readOperation)));
-  document.querySelectorAll('[data-module-id]').forEach(button=>button.addEventListener('click',()=>{state.schoolModuleFilter=button.dataset.moduleId;renderSchool();$('#school-course-records')?.scrollIntoView?.({block:'start'});}));
   $('#school-module-failed')?.addEventListener('change',event=>{state.schoolModuleFailed=event.target.checked;renderSchool();});
   $('#school-course-filter')?.addEventListener('submit',event=>{event.preventDefault();state.schoolCourseQuery=$('#school-course-search').value;state.schoolStatusFilter=$('#school-course-status').value;state.schoolOnlyGrades=$('#school-only-grades').checked;renderSchool();});
-  $('#school-course-reset')?.addEventListener('click',()=>{state.schoolCourseQuery='';state.schoolStatusFilter='';state.schoolModuleFilter='';state.schoolOnlyGrades=false;renderSchool();});
-  document.querySelectorAll('[data-arrangement-key]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.arrangementTerm)schoolNavigateToTerm('timetable',button.dataset.arrangementTerm);state.schoolArrangementKey=button.dataset.arrangementKey;renderSchool();$('.school-arrangement-detail')?.scrollIntoView?.({block:'nearest'});}));
+  $('#school-course-reset')?.addEventListener('click',()=>{state.schoolCourseQuery='';state.schoolStatusFilter='';state.schoolOnlyGrades=false;renderSchool();});
+  document.querySelectorAll('[data-arrangement-key]').forEach(button=>button.addEventListener('click',()=>{state.schoolArrangementKey=button.dataset.arrangementKey;renderSchool();$('.school-arrangement-detail')?.scrollIntoView?.({block:'nearest'});}));
   $('#school-season-filter')?.addEventListener('change',event=>{state.schoolSeasonFilter=event.target.value;renderSchool();});
-  for(const id of ['#school-year','#school-season'])$(id)?.addEventListener('change',()=>{schoolRememberQuery();state.schoolArrangementKey='';state.schoolSeasonFilter='';state.schoolGradePage=1;renderSchool();});
-  document.querySelectorAll('[data-school-exam-term]').forEach(button=>button.addEventListener('click',()=>schoolNavigateToTerm('exams',button.dataset.schoolExamTerm)));
+  for(const id of ['#school-year','#school-season'])$(id)?.addEventListener('change',()=>{schoolRememberQuery();if(section==='timetable'){state.schoolArrangementKey='';state.schoolSeasonFilter='';}if(section==='academic')state.schoolGradePage=1;renderSchool();});
   $('#school-grade-source')?.addEventListener('change',event=>{schoolRememberQuery();state.schoolGradeSource=event.target.value==='major_academic'?'major_academic':'academic';state.schoolGradePage=1;state.schoolGradeSearch='';state.schoolGradeYear='';renderSchool();});
   $('#school-grade-filter')?.addEventListener('submit',event=>{event.preventDefault();state.schoolGradeSearch=$('#school-grade-search').value;state.schoolGradeYear=$('#school-grade-year')?.value||'';state.schoolGradeSort=$('#school-grade-sort').value;state.schoolGradePage=1;renderSchool();});
   $('[data-action="enrollment-preview"]')?.addEventListener('click',()=>loadEnrollmentPreview());

@@ -143,7 +143,7 @@ const conflict=plain(`schoolTimetableMeetings({records:[{time_raw:'周二第1节
         self.run_js(r"""
 const markup=evaluate(`schoolTimetableMarkup({records:[{course_name_raw:'合成未排课程',course_code_raw:'SYNTHETIC-A',instructor_raw:null,time_raw:null,place_raw:null,formal_enrollment_status:'unknown',meetings:[{weekday:4,periods:null,time_raw:null}]}]})`);
 assert.match(markup,/未排入课表的课程/);assert.match(markup,/合成未排课程/);assert.match(markup,/<span>周四<\/span>/);
-assert.match(markup,/空格不表示空闲/);assert.doesNotMatch(markup,/地点待确认|星期待确认|节次待确认|正式中选待确认|周次待确认|分学期待确认|school-meeting-place|school-meeting-teacher|school-meeting-status/);
+assert.match(markup,/空白时段未返回课程信息/);assert.doesNotMatch(markup,/地点待确认|星期待确认|节次待确认|正式中选待确认|周次待确认|分学期待确认|school-meeting-place|school-meeting-teacher|school-meeting-status/);
 assert.doesNotMatch(markup,/<dt>教师<\/dt>|<dt>上课时间<\/dt>|<dt>上课地点<\/dt>|<dt>正式中选<\/dt>/);
 const known=evaluate(`schoolTimetableMarkup({records:[{course_name_raw:'合成已排课程',time_raw:'秋周一第1节{第1-8周}',place_raw:'合成地点',instructor_raw:'合成教师',formal_enrollment_status:'selected'}]})`);
 assert.match(known,/合成地点/);assert.match(known,/合成教师/);assert.match(known,/正式中选/);assert.match(known,/秋 · 第1-8周/);
@@ -338,7 +338,7 @@ const expression=`{records:[{course_name_raw:'合成地点未对齐',time_raw:'�
 const items=plain(`schoolTimetableMeetings(${expression})`);
 assert.deepEqual(items.map(item=>item.place),[null,null]);
 const markup=evaluate(`schoolTimetableMarkup(${expression})`);
-assert.doesNotMatch(markup,/地点待确认|school-meeting-place/);assert.match(markup,/合成教室未分配/);
+assert.doesNotMatch(markup,/地点待确认|school-meeting-place/);assert.match(evaluate(`schoolTimetableDetailMarkup((${expression}).records[0])`),/合成教室未分配/);
 """)
 
     def test_large_or_invalid_period_numbers_do_not_invent_a_long_calendar(self):
@@ -361,7 +361,7 @@ const markup=evaluate(`schoolTimetableMarkup({records:[
 assert.doesNotMatch(markup,/<(?:script|img|svg|iframe|b)\b/);
 assert.match(markup,/&lt;script&gt;/);assert.match(markup,/&lt;svg onload=bad\(\)&gt;/);
 assert.match(markup,/&lt;iframe src=javascript:bad\(\)&gt;/);
-assert.match(markup,/空格不表示空闲/);assert.match(markup,/本次返回未定位时段/);
+assert.match(markup,/空白时段未返回课程信息/);assert.match(markup,/本次返回未定位时段/);
 """)
 
 
