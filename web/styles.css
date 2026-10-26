@@ -606,9 +606,6 @@ main:has(> #panel-school:not([hidden])) { max-width: 1280px; }
 .agent-starters { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 24px auto 0; max-width: 880px; }
 .agent-starters .button { min-height: 38px; padding: 7px 14px; font-size: .8125rem; font-weight: 400; color: var(--muted); }
 main:has(> #panel-plans:not([hidden])) { max-width: 1280px; }
-.plan-view-switch { display: flex; width: fit-content; gap: 4px; margin: 0 0 24px; padding: 4px; border-radius: 9px; background: var(--canvas); }
-.plan-view-switch .button { border-color: transparent; background: transparent; color: var(--muted); }
-.plan-view-switch .button[aria-pressed="true"] { border-color: var(--line); background: var(--bg); color: var(--primary); }
 .plan-comparison-wrap { max-width: 100%; overflow: auto; margin-top: 20px; }
 .plan-comparison { width: 100%; min-width: 700px; border-collapse: collapse; table-layout: fixed; }
 .plan-comparison caption { padding: 0 0 12px; text-align: left; font-size: .8125rem; color: var(--muted); }

@@ -10,8 +10,19 @@ class SchoolPresentationTests(unittest.TestCase):
 evaluate("resetSchoolPresentation();state.schoolYear='2024-2025';state.schoolSeason='AW';state.schoolViews={'academic:2024-2025-AW':{operation:'academic',target_term:'2024-2025-AW',status:'complete',records:[{course_name_raw:'This semester',grade_raw:'90',source_selection_id_raw:'selection-one'}]},'academic:2024-2025-SS':{operation:'academic',target_term:'2024-2025-SS',status:'complete',records:[{course_name_raw:'Another semester',grade_raw:'70'}]},'major_academic:ALL-HISTORY':{operation:'major_academic',status:'complete',records:[{course_name_raw:'Major record'}]},'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',status:'complete',records:[{node_kind:'course',course_code_raw:'C',course_name_raw:'Audit only'}]}}");
 let html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/This semester/);assert.match(html,/selection-one/);assert.doesNotMatch(html,/Another semester|Audit only|Major record|归属模块|自审状态|未关联/);
 evaluate("state.schoolSeason='SS'");html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/Another semester/);assert.doesNotMatch(html,/This semester/);
-evaluate("state.schoolGradeSource='major_academic'");html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/Major record/);assert.doesNotMatch(html,/Another semester|This semester/);
+evaluate("state.schoolGradeSource='major_academic'");html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/Another semester/);assert.doesNotMatch(html,/Major record|This semester|school-grade-source|主修历史/);
 evaluate("state.schoolGradeSource='academic';state.schoolYear='2023-2024'");assert.doesNotMatch(evaluate('schoolGradeWorkspaceMarkup(false)'),/This semester|Another semester|Major record/);
+""")
+
+    def test_grade_form_requests_only_the_selected_semester(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';resetSchoolPresentation();state.schoolOperation='academic';state.schoolYear='2024-2025';state.schoolSeason='AW';state.schoolGradeSource='major_academic';renderSchool()");
+assert.doesNotMatch(element('#panel-school').innerHTML,/school-grade-source|主修历史|仅看主修/);
+element('#school-year').value='2024-2025';element('#school-season').value='AW';const requests=[];
+context.fetch=async(path,options)=>{const body=JSON.parse(options.body);requests.push({path,body});return {ok:true,json:async()=>({...body,status:'complete',records:[{course_name_raw:'Semester only',grade_raw:'90'}]})};};
+const finished=evaluate("new Promise(resolve=>{const original=schoolLoadPresentation;schoolLoadPresentation=async kind=>{await original(kind);resolve();};})");
+element('#school-query-form').listeners.submit({preventDefault(){}});await finished;
+assert.equal(requests.length,1);assert.deepEqual(requests[0].body,{operation:'academic',target_term:'2024-2025-AW',force_refresh:true});assert.match(element('#panel-school').innerHTML,/Semester only/);
 """)
 
     def test_progress_never_mixes_grade_or_major_sources(self):

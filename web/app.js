@@ -5,7 +5,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({'&':
 const clone = value => JSON.parse(JSON.stringify(value));
 const rows = value => Array.isArray(value) ? value : (value?.records || []);
 const showValue = value => value === null || value === undefined ? '待确认' : (typeof value === 'object' ? JSON.stringify(value) : String(value));
-const state = {agentHistorySearch:'',planView:'cards',schoolGradeSort:'source',auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false,  agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
+const state = {agentHistorySearch:'',schoolGradeSort:'source',auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false,  agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
 state.agentProgressPoll=null;
 state.agentDraftSync=newAgentDraftSync();
 Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRunDetails:{},agentScroll:{initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''}});
@@ -23,7 +23,7 @@ function clearAgentDiagnostics(){Object.assign(state,{agentModels:[],agentModels
 function clearAgentConversation(){closeCitationPreview();document.querySelector('.message-dialog')?.remove?.();stopAgentProgress();state.agentEpoch+=1;if(state.agentModelsBusy)state.agentModelsStatus='idle';state.agentModelsBusy=false;state.agentSettingsBusy=false;state.agentScroll={initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''};Object.assign(state,{agentRunDetails:{}});Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
   resetAgentDraftSync();clearAgentConversation();clearSchoolWorkspace();state.agentStatus=null;
-  Object.assign(state,{agentHistorySearch:'',planView:'cards',schoolGradeSort:'source',mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],agentHistory:[],agentHistoryError:'',agentHistoryHasMore:false,selected:0,dirty:false,busy:false});
+  Object.assign(state,{agentHistorySearch:'',schoolGradeSort:'source',mode:'demo',tab:'assistant',agentDraft:'',previewBusy:false,week:1,season:'冬',boot:null,csrfToken:null,loadedSaved:null,comparison:null,savedComparison:null,compareSavedIds:[],constraints:{},lastConstraints:null,generated:null,audit:null,sourceAudit:null,saved:[],agentHistory:[],agentHistoryError:'',agentHistoryHasMore:false,selected:0,dirty:false,busy:false});
   $$('.tab-panel').forEach(panel=>{panel.innerHTML='';panel.hidden=true;});
   $('#mode-badge').textContent='合成演示';$('#mode-badge').className='badge synthetic';$('#session-control').hidden=true;
   $('.nav-tabs').hidden=true;$('#conversation-sidebar').hidden=true;$('#conversation-list').innerHTML='';if($('#agent-history-search'))$('#agent-history-search').value='';
@@ -32,7 +32,7 @@ function renderAuth() {
   const auth=state.auth || {};const authenticated=auth.authenticated===true;
   $('.nav-tabs').hidden=!authenticated;$('#session-control').hidden=!authenticated;$('#conversation-sidebar').hidden=!authenticated;$('#tab-saved').hidden=isAcademicIdentity();
   $('#auth-panel').hidden=authenticated;
-  for(const id of ['#tab-plans','#workspace-navigation'])$(id).hidden=!authenticated||!isAcademicIdentity();
+  $('#workspace-navigation').hidden=!authenticated||!isAcademicIdentity();
   if(authenticated){$('#logout').setAttribute('aria-label',`退出 ${auth.identity?.name || '当前账号'}`);return;}
   const schoolEnabled=auth.academic_login_enabled===true||auth.school_client_enabled===true;const badge=$('#mode-badge');
   badge.textContent=schoolEnabled?(auth.mock_enabled||auth.scenario_accounts_enabled?'登录入口':'本人教务'):(auth.mock_enabled?'合成演示':'未登录');badge.className=auth.mock_enabled&&!schoolEnabled?'badge synthetic':'badge';
@@ -819,7 +819,6 @@ function restoreAgentScroll(){
 function scrollAgentDialogue(direction){const element=$('#agent-dialogue-scroll');if(!element)return;const maximum=Math.max(0,(element.scrollHeight||0)-(element.clientHeight||0));element.scrollTop=direction==='latest'?maximum:Math.min(maximum,Math.max(0,(element.scrollTop||0)+direction*(element.clientHeight||0)*0.85));if(direction==='latest')state.agentScroll.newMessages=false;updateAgentScroll();}
 
 function renderAssistant() {
-  if(state.tab==='plans')renderWorkspacePlans();
   const panel=$('#panel-assistant');if(!state.boot){panel.innerHTML='';return;}
   captureAgentScroll();
   const status=state.agentStatus,school=isAcademicIdentity(),configured=status?.configured===true&&(!school||personalChatReady()&&status.available!==false&&!state.schoolReauth);
@@ -1210,7 +1209,7 @@ function openWorkspacePage(page){
     if(state.schoolBusy||state.busy)return;
     selectSchoolSection(page);switchTab('school');
     $(`#workspace-navigation [data-page="${page}"]`)?.focus();
-  }else if(['assistant','plans'].includes(page))switchTab(page);
+  }else if(page==='assistant')switchTab(page);
 }
 function renderPlanComparison(result,options){
   const rows=[
@@ -1235,19 +1234,11 @@ function renderPlanComparison(result,options){
   }).join('');
   return `<div class="plan-comparison-wrap" tabindex="0" role="region" aria-label="方案对比表"><table class="plan-comparison"><caption>按课程代码对齐，底色标出不同项；缺少代码的课程分别列出。</caption><thead><tr><th scope="col">比较项</th>${options.map(option=>`<th scope="col">方案 ${esc(option.label)}</th>`).join('')}</tr></thead><tbody>${summaries}${courseRows}</tbody></table></div>`;
 }
-function renderWorkspacePlans(){
-  const panel=$('#panel-plans');if(!isAcademicIdentity()){panel.innerHTML='';return;}
-  // Inspect results carry references only. Keep the last displayed computation,
-  // including blocked revisions, instead of resurrecting an earlier success.
-  const turn=[...state.agentTurns].reverse().find(turn=>{const plan=personalCoursePlanValue(turn.recommendation_result);return plan&&['generate','revise','compare'].includes(plan.action);});
-  panel.innerHTML=`<div class="page-heading"><div><h1>本轮方案</h1><p>当前对话中最近一次生成或调整的结果。</p></div></div>${state.agentBusy?'<p class="field-help" role="status">对话正在处理中，以下为此前结果。</p>':''}${turn&&turn.recommendation_result.options?.length?`<div class="plan-view-switch" role="group" aria-label="方案显示方式"><button class="button small" data-action="plan-view" data-view="cards" aria-pressed="${state.planView==='cards'}">方案卡片</button><button class="button small" data-action="plan-view" data-view="table" aria-pressed="${state.planView==='table'}">对比表</button></div>`:''}${turn?renderPersonalCoursePlans(turn.recommendation_result,turn.is_stale===true,state.planView):'<div class="school-empty"><h2>先聊聊你的选课目标</h2><p>从左侧进入对话，说明选课目标；生成课程组合后会在这里展示。也可以打开已有对话。</p></div>'}`;
-}
-
 function switchTab(tab) {
   const previousTab=state.tab;if(previousTab==='assistant')captureAgentScroll();
-  if(isAcademicIdentity()&&!['assistant','school','plans'].includes(tab))tab='assistant';
-  if(['school','plans'].includes(tab)&&!isAcademicIdentity())tab='assistant';
-  state.tab=tab;renderWorkspaceNavigation();if(tab==='plans')renderWorkspacePlans();if(tab==='assistant')renderAssistant();$$('.nav-tab').forEach(button=>{const selected=button.dataset.tab===tab;button.classList.toggle('active',selected);button.setAttribute('aria-selected',String(selected));button.tabIndex=selected||tab==='school'&&button.dataset.tab==='assistant'?0:-1;});
+  if(tab==='plans'||isAcademicIdentity()&&!['assistant','school'].includes(tab))tab='assistant';
+  if(tab==='school'&&!isAcademicIdentity())tab='assistant';
+  state.tab=tab;renderWorkspaceNavigation();if(tab==='assistant')renderAssistant();$$('.nav-tab').forEach(button=>{const selected=button.dataset.tab===tab;button.classList.toggle('active',selected);button.setAttribute('aria-selected',String(selected));button.tabIndex=selected||tab==='school'&&button.dataset.tab==='assistant'?0:-1;});
   $$('.tab-panel').forEach(panel=>panel.hidden=panel.id!==`panel-${tab}`);
   if(tab==='audit'&&!(state.mode==='demo'?state.audit:state.sourceAudit))refreshAudit();
   if(tab==='school'){renderSchool();ensureSchoolQueryContext();}
@@ -1659,7 +1650,6 @@ function selectSchoolSection(operation){
   if(state.schoolBusy||state.busy||!Object.hasOwn(workspaceSchoolPages,schoolSection(operation))||!['major_academic','profile',...Object.keys(workspaceSchoolPages)].includes(operation))return;
   schoolRememberQuery();state.schoolOperation=operation;
   const query=state.schoolPageQueries?.[schoolSection()];state.schoolYear=query?.year||schoolCurrentYear();state.schoolSeason=schoolMatchSeason(operation,query?.season||(operation==='exams'?'A':'AW'));
-  if(operation==='major_academic')state.schoolGradeSource='major_academic';
   clearMessage();renderSchool();
 }
 
@@ -1772,7 +1762,7 @@ function schoolFieldEvidenceMarkup(result){
   }).join('');
 }
 // Session-only presentation snapshots. Raw source records are never rewritten.
-function resetSchoolPresentation(){state.schoolViews={};state.schoolViewErrors={};state.schoolCourseQuery='';state.schoolStatusFilter='';state.schoolOnlyGrades=false;state.schoolModuleFailed=false;state.schoolArrangementKey='';state.schoolSeasonFilter='';state.schoolDisclosures={};state.schoolOpenCourses={};state.schoolPageQueries={};state.schoolGradeSource='academic';}
+function resetSchoolPresentation(){state.schoolViews={};state.schoolViewErrors={};state.schoolCourseQuery='';state.schoolStatusFilter='';state.schoolOnlyGrades=false;state.schoolModuleFailed=false;state.schoolArrangementKey='';state.schoolSeasonFilter='';state.schoolDisclosures={};state.schoolOpenCourses={};state.schoolPageQueries={};}
 function schoolDisclosure(key,defaultOpen=false){return `data-school-disclosure="${esc(key)}" ${(state.schoolDisclosures?.[key]??defaultOpen)?'open':''}`;}
 function schoolCourseDisclosureKey(group){return JSON.stringify([group.code,group.name,...(group.code?[]:group.entries.map(e=>[e.source.operation,e.source.target_term,e.index]))]);}
 function schoolViewKey(operation,term=''){return operation+':'+term;}
@@ -1839,11 +1829,11 @@ function schoolProgressMarkup(busy){
     ${rows.length?schoolPresentationTable(['课程','课程学分','自审状态','自审成绩','归属模块'],rows,'school-course-table'):'<p class="inline-empty">暂无符合条件的自审课程。</p>'}</section>`;
 }
 function schoolTermForm(label,busy){
-  const section=schoolSection(),major=section==='academic'&&state.schoolGradeSource==='major_academic';
-  return `<form id="school-query-form" class="school-query-form"><input id="school-operation" type="hidden" value="${esc(section==='academic'?(state.schoolGradeSource||'academic'):section)}">${section==='academic'?`<div class="field"><label for="school-grade-source">成绩范围</label><select id="school-grade-source" ${busy?'disabled':''}><option value="academic" ${!major?'selected':''}>学期成绩</option><option value="major_academic" ${major?'selected':''}>主修历史</option></select></div>`:''}${major?'':`<div class="field"><label for="school-year">学年</label><select id="school-year" ${busy?'disabled':''}>${schoolYearChoices().map(y=>`<option ${y===state.schoolYear?'selected':''}>${y}</option>`).join('')}</select></div><div class="field"><label for="school-season">学期</label><select id="school-season" ${busy?'disabled':''}>${Object.entries(schoolSeasonChoices(section)).map(([v,label])=>`<option value="${v}" ${v===state.schoolSeason?'selected':''}>${label}</option>`).join('')}</select></div>`}<button class="button primary" ${busy?'disabled':''}>${busy?'正在读取…':label}</button></form>`;
+  const section=schoolSection();
+  return `<form id="school-query-form" class="school-query-form"><input id="school-operation" type="hidden" value="${esc(section)}"><div class="field"><label for="school-year">学年</label><select id="school-year" ${busy?'disabled':''}>${schoolYearChoices().map(y=>`<option ${y===state.schoolYear?'selected':''}>${y}</option>`).join('')}</select></div><div class="field"><label for="school-season">学期</label><select id="school-season" ${busy?'disabled':''}>${Object.entries(schoolSeasonChoices(section)).map(([v,label])=>`<option value="${v}" ${v===state.schoolSeason?'selected':''}>${label}</option>`).join('')}</select></div><button class="button primary" ${busy?'disabled':''}>${busy?'正在读取…':label}</button></form>`;
 }
 function schoolGradeWorkspaceMarkup(busy){
-  const operation=state.schoolGradeSource||'academic',term=operation==='major_academic'?'ALL-HISTORY':state.schoolYear+'-'+state.schoolSeason,result=schoolView(operation,term);
+  const operation='academic',term=state.schoolYear+'-'+state.schoolSeason,result=schoolView(operation,term);
   return `${schoolTermForm('查询成绩',busy)}<section class="school-result school-grade-workspace">${schoolSourceLine(result,operation,term)}${schoolUsable(result)?schoolGradeTable(result):'<p class="inline-empty">当前范围尚未读取成绩。</p>'}</section>`;
 }
 
@@ -1884,7 +1874,7 @@ function renderSchool(){
     const open=button.getAttribute('aria-expanded')!=='true';state.schoolOpenCourses??={};state.schoolOpenCourses[button.dataset.courseDisclosure]=open;
     button.setAttribute('aria-expanded',String(open));document.getElementById(button.getAttribute('aria-controls')).hidden=!open;
   }));
-  $('#school-query-form')?.addEventListener('submit',event=>{event.preventDefault();schoolRememberQuery();schoolLoadPresentation(section==='academic'?(state.schoolGradeSource||'academic'):section);});
+  $('#school-query-form')?.addEventListener('submit',event=>{event.preventDefault();schoolRememberQuery();schoolLoadPresentation(section);});
   document.querySelectorAll('[data-read-operation]').forEach(button=>button.addEventListener('click',()=>schoolLoadPresentation(button.dataset.readOperation)));
   $('#school-module-failed')?.addEventListener('change',event=>{state.schoolModuleFailed=event.target.checked;renderSchool();});
   $('#school-course-filter')?.addEventListener('submit',event=>{event.preventDefault();state.schoolCourseQuery=$('#school-course-search').value;state.schoolStatusFilter=$('#school-course-status').value;state.schoolOnlyGrades=$('#school-only-grades').checked;renderSchool();});
@@ -1892,7 +1882,6 @@ function renderSchool(){
   document.querySelectorAll('[data-arrangement-key]').forEach(button=>button.addEventListener('click',()=>{state.schoolArrangementKey=button.dataset.arrangementKey;renderSchool();$('.school-arrangement-detail')?.scrollIntoView?.({block:'nearest'});}));
   $('#school-season-filter')?.addEventListener('change',event=>{state.schoolSeasonFilter=event.target.value;renderSchool();});
   for(const id of ['#school-year','#school-season'])$(id)?.addEventListener('change',()=>{schoolRememberQuery();if(section==='timetable'){state.schoolArrangementKey='';state.schoolSeasonFilter='';}if(section==='academic')state.schoolGradePage=1;renderSchool();});
-  $('#school-grade-source')?.addEventListener('change',event=>{schoolRememberQuery();state.schoolGradeSource=event.target.value==='major_academic'?'major_academic':'academic';state.schoolGradePage=1;state.schoolGradeSearch='';state.schoolGradeYear='';renderSchool();});
   $('#school-grade-filter')?.addEventListener('submit',event=>{event.preventDefault();state.schoolGradeSearch=$('#school-grade-search').value;state.schoolGradeYear=$('#school-grade-year')?.value||'';state.schoolGradeSort=$('#school-grade-sort').value;state.schoolGradePage=1;renderSchool();});
   $('[data-action="enrollment-preview"]')?.addEventListener('click',()=>loadEnrollmentPreview());
   document.querySelectorAll('[data-preview-course]').forEach(button=>button.addEventListener('click',()=>loadEnrollmentPreview(button.dataset.previewCourse)));
@@ -2018,7 +2007,6 @@ $('.app-shell').addEventListener('click',async event=>{
     case'regenerate-answer':openMessageDialog(button,'regenerate');break;
     case'share-answer':openMessageDialog(button,'share');break;
     case'copy-answer':await copyAgentAnswer(button);break;
-    case'plan-view':if(['cards','table'].includes(button.dataset.view)){state.planView=button.dataset.view;renderWorkspacePlans();$(`[data-action="plan-view"][data-view="${state.planView}"]`)?.focus();}break;
     case'workspace-page':openWorkspacePage(button.dataset.page);break;
     case'new-agent-conversation':if(state.agentBusy||state.agentActionBusy)break;clearAgentConversation();queueAgentDraftSave(true);clearMessage();switchTab('assistant');renderAgentHistory();break;
     case'load-agent-conversation':await loadAgentConversation(button.dataset.conversationId);break;
