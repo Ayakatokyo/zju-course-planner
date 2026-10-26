@@ -128,5 +128,97 @@
     "user_acceptance": "pending after failed previous round",
     "committed": false,
     "pushed": false
+  },
+  "current_phase": "five_page_split",
+  "five_page_split": {
+    "user_choice": "Five independent pages, including separate timetable and exams.",
+    "pages": [
+      "培养进度",
+      "成绩记录",
+      "我的课表",
+      "考试安排",
+      "当前选课"
+    ],
+    "replaces": "Combined academic/arrangements workspaces and unmatched-supplement tables.",
+    "source_rules": {
+      "cultivation": "graduation_audit only; profile and curriculum PDF auxiliary",
+      "grades": "one selected operation and term; no audit columns",
+      "timetable": "selected combined semester only; no implicit exam reads",
+      "exams": "one selected sub-semester; exact links to already loaded timetable only",
+      "enrollment": "official current scope, independent of historical page queries"
+    },
+    "regression": {
+      "command": "python3 -m unittest discover -s tests -p '*web*.py' -q",
+      "tests": 185,
+      "result": "passed",
+      "focused_subset_tests": 130,
+      "counts_overlap": true,
+      "node_check": "passed",
+      "diff_check": "passed",
+      "full_backend_suite": "not rerun"
+    },
+    "live_checks": {
+      "viewports_css": [
+        [
+          1680,
+          790
+        ],
+        [
+          1280,
+          900
+        ]
+      ],
+      "original_viewport_restored": true,
+      "grade_term": "2024-2025-AW",
+      "grade_rows": 10,
+      "major_rows": 104,
+      "major_page_size": 15,
+      "major_pagination": "next page verified",
+      "return_to_semester_rows": 10,
+      "audit_modules": 28,
+      "audit_course_groups": 103,
+      "module_filter_rows": 18,
+      "timetable_term": "2026-2027-AW",
+      "timetable_rows": 3,
+      "located_slots": 1,
+      "unlocated_slots": 2,
+      "autumn_exam_rows": 2,
+      "unread_winter_does_not_reuse_autumn": true,
+      "independent_term_memory": true,
+      "exam_to_course_exact_link": true,
+      "current_selected_class_rows": 3,
+      "enrollment_has_no_historical_term_form": true,
+      "grade_row_details_margin_css": "0px",
+      "whole_document_horizontal_overflow": false,
+      "console_errors": 0
+    },
+    "repeatable_checks": [
+      {
+        "trigger": "Read semester grades; read audit and major data; return to the selected semester.",
+        "expected": "Only that semester grade source is displayed; audit status/module and other cached sources never appear in the grade table."
+      },
+      {
+        "trigger": "Select different grade, timetable and exam semesters; navigate away and back.",
+        "expected": "Each page keeps its own query range; an unread range has an empty state, not stale records from another range."
+      },
+      {
+        "trigger": "Read timetable and one matching exam term; click uniquely matched exam.",
+        "expected": "Navigation opens the corresponding timetable term and course detail using the validated selection identifier; ambiguous matches remain unlinked."
+      },
+      {
+        "trigger": "Expand a grade record in a narrow desktop view.",
+        "expected": "Course and numeric fields remain aligned; selection identifier wraps inside the course column; no whole-page overflow."
+      }
+    ],
+    "screenshots_directory": "private/five_pages_20261025",
+    "backend_restart": false,
+    "model_calls": false,
+    "school_writes": false,
+    "new_source_scope": false,
+    "live_candidate_section_expansion": "not queried",
+    "pdf_acquisition": "not queried",
+    "user_visual_acceptance": "pending",
+    "committed": false,
+    "pushed": false
   }
 }

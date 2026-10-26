@@ -5,39 +5,36 @@ from tests import test_web_contract as web
 class SchoolPresentationTests(unittest.TestCase):
     run_js = web.WebContractTests.run_js
 
-    def test_grade_first_does_not_claim_a_failed_audit_link(self):
+    def test_grades_show_only_selected_scope_without_audit_columns(self):
         self.run_js(r"""
-evaluate("resetSchoolPresentation();state.schoolViews={'academic:2024-2025-AW':{operation:'academic',target_term:'2024-2025-AW',status:'complete',records:[{course_name_raw:'Synthetic course',grade_raw:'90',source_selection_id_raw:'selection-one'}]}}");
-let html=evaluate('schoolAcademicMarkup(false)');assert.match(html,/自审尚未读取/);assert.match(html,/需先读取培养进度/);assert.match(html,/读取培养进度并核对/);assert.doesNotMatch(html,/未能关联自审|未关联自审|未关联培养模块|归属待核对/);
-assert.match(html,/<select id="school-course-status" disabled/);assert.match(html,/<option value="unlinked"[^>]*disabled/);
-evaluate("state.schoolViewErrors={'graduation_audit:ALL-HISTORY':'source_unavailable'}");html=evaluate('schoolAcademicMarkup(false)');assert.match(html,/自审读取未完成/);assert.doesNotMatch(html,/自审尚未读取|未能关联自审|归属待核对/);assert.match(html,/90/);
+evaluate("resetSchoolPresentation();state.schoolYear='2024-2025';state.schoolSeason='AW';state.schoolViews={'academic:2024-2025-AW':{operation:'academic',target_term:'2024-2025-AW',status:'complete',records:[{course_name_raw:'This semester',grade_raw:'90',source_selection_id_raw:'selection-one'}]},'academic:2024-2025-SS':{operation:'academic',target_term:'2024-2025-SS',status:'complete',records:[{course_name_raw:'Another semester',grade_raw:'70'}]},'major_academic:ALL-HISTORY':{operation:'major_academic',status:'complete',records:[{course_name_raw:'Major record'}]},'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',status:'complete',records:[{node_kind:'course',course_code_raw:'C',course_name_raw:'Audit only'}]}}");
+let html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/This semester/);assert.match(html,/selection-one/);assert.doesNotMatch(html,/Another semester|Audit only|Major record|归属模块|自审状态|未关联/);
+evaluate("state.schoolSeason='SS'");html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/Another semester/);assert.doesNotMatch(html,/This semester/);
+evaluate("state.schoolGradeSource='major_academic'");html=evaluate('schoolGradeWorkspaceMarkup(false)');assert.match(html,/Major record/);assert.doesNotMatch(html,/Another semester|This semester/);
+evaluate("state.schoolGradeSource='academic';state.schoolYear='2023-2024'");assert.doesNotMatch(evaluate('schoolGradeWorkspaceMarkup(false)'),/This semester|Another semester|Major record/);
 """)
 
-    def test_unmatched_supplements_stay_separate_from_audit_courses(self):
+    def test_progress_never_mixes_grade_or_major_sources(self):
         self.run_js(r"""
-evaluate("resetSchoolPresentation();state.schoolViews={audit:{operation:'graduation_audit',target_term:'ALL-HISTORY',status:'complete',records:[{node_kind:'module',node_id:'M',course_name_raw:'Module'},{node_kind:'course',node_id:'N',parent_node_id:'M',course_code_raw:'C',course_name_raw:'Shared name',completion_status_raw:'通过',grade_raw:'80'},{node_kind:'course',node_id:'D',parent_node_id:'M',course_code_raw:'D',course_name_raw:'Audit only',completion_status_raw:'在修'}]},grades:{operation:'academic',target_term:'2024-2025-AW',status:'complete',records:[{course_code_raw:'C',course_name_raw:'Shared name',grade_raw:'90'},{course_name_raw:'Shared name',grade_raw:'70'},{course_code_raw:'X',course_name_raw:'Unmatched grade',grade_raw:'60'}]}};state.schoolViews['graduation_audit:ALL-HISTORY']=state.schoolViews.audit;delete state.schoolViews.audit");
-const before=evaluate('JSON.stringify(state.schoolViews)'),html=evaluate('schoolAcademicMarkup(false)'),parts=html.split('<details class="school-unlinked-records"');assert.equal(parts.length,2);assert.equal((parts[0].match(/<tr class="school-course-row">/g)||[]).length,2);assert.equal((parts[1].match(/<tr class="school-course-row">/g)||[]).length,2);
-assert.match(parts[0],/通过/);assert.match(parts[0],/在修/);assert.match(parts[0],/多条成绩（2）/);assert.doesNotMatch(parts[0],/未能关联自审|归属待核对/);assert.match(parts[1],/归属待核对/);assert.match(parts[1],/Shared name/);assert.match(parts[1],/Unmatched grade/);assert.equal(evaluate('JSON.stringify(state.schoolViews)'),before);
-evaluate("state.schoolViewErrors={'graduation_audit:ALL-HISTORY':'source_unavailable'}");assert.doesNotMatch(evaluate('schoolAcademicMarkup(false)'),/自审尚未读取|自审读取未完成/);
-evaluate("state.schoolStatusFilter='unlinked'");const filtered=evaluate('schoolAcademicMarkup(false)');assert.match(filtered,/0 个自审课程显示组 · 2 个待核对的补充显示组/);assert.doesNotMatch(filtered,/Audit only/);
+evaluate("resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',target_term:'ALL-HISTORY',status:'complete',records:[{node_kind:'module',node_id:'M',course_name_raw:'Module'},{node_kind:'course',node_id:'N',parent_node_id:'M',course_code_raw:'C',course_name_raw:'Audit course',completion_status_raw:'通过',grade_raw:'80'}]},grades:{operation:'academic',status:'complete',records:[{course_code_raw:'C',course_name_raw:'Audit course',grade_raw:'90'},{course_name_raw:'Grade only'}]},major:{operation:'major_academic',status:'complete',records:[{course_name_raw:'Major only'}]}}");
+const before=evaluate('JSON.stringify(state.schoolViews)'),html=evaluate('schoolProgressMarkup(false)');assert.match(html,/Audit course/);assert.match(html,/通过/);assert.match(html,/1 个自审课程显示组/);assert.doesNotMatch(html,/Grade only|Major only|未关联|补充学期成绩|school-year|多条成绩/);assert.equal(evaluate('JSON.stringify(state.schoolViews)'),before);
 """)
 
-    def test_course_columns_and_open_details_survive_filter_and_source_refresh(self):
+    def test_progress_columns_and_open_details_survive_filter_and_refresh(self):
         self.run_js(r"""
-evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation();state.schoolViews={'academic:2026-2027-AW':{operation:'academic',target_term:'2026-2027-AW',status:'complete',records:[{course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'60'},{course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'90'}]}}");
-let html=evaluate('schoolAcademicMarkup(false)');
-const row=html.match(/<tr class="school-course-row">([\s\S]*?)<\/tr>/)[1];
-assert.equal((row.match(/<td>/g)||[]).length,5);assert.doesNotMatch(row,/colspan/);assert.match(row,/多条成绩（2）/);
-const button=element('course-button'),detail=element('course-detail');
-button.dataset={courseDisclosure:evaluate('schoolCourseDisclosureKey(schoolCourseGroups(Object.values(state.schoolViews))[0])')};button.setAttribute('aria-controls','course-detail');button.setAttribute('aria-expanded','false');detail.hidden=true;
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='graduation_audit';resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',target_term:'ALL-HISTORY',status:'complete',records:[{node_kind:'course',course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'60'},{node_kind:'course',course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'90'}]}}");
+let html=evaluate('schoolProgressMarkup(false)');const row=html.match(/<tr class="school-course-row">([\s\S]*?)<\/tr>/)[1];assert.equal((row.match(/<td>/g)||[]).length,5);assert.doesNotMatch(row,/colspan/);assert.match(row,/多条成绩（2）/);
+const button=element('course-button'),detail=element('course-detail');button.dataset={courseDisclosure:evaluate('schoolCourseDisclosureKey(schoolCourseGroups(Object.values(state.schoolViews))[0])')};button.setAttribute('aria-controls','course-detail');button.setAttribute('aria-expanded','false');detail.hidden=true;
 context.document.getElementById=id=>id==='course-detail'?detail:null;
-const fold=element('identity-fold');fold.dataset={schoolDisclosure:'identity'};fold.open=true;fold.isConnected=true;
-context.document.querySelectorAll=selector=>selector==='[data-course-disclosure]'?[button]:selector==='details[data-school-disclosure]'?[fold]:[];
-evaluate('renderSchool()');button.listeners.click();fold.listeners.toggle();assert.equal(detail.hidden,false);assert.equal(button.getAttribute('aria-expanded'),'true');
-evaluate("state.schoolCourseQuery='Long';state.schoolViews.extra={operation:'major_academic',status:'complete',target_term:'ALL-HISTORY',records:[{course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'80'}]};renderSchool()");
-html=element('#panel-school').innerHTML;assert.match(html,/aria-expanded="true"/);assert.match(html,/<tr class="school-course-expanded" id="school-course-detail-0" >/);assert.match(html,/多条成绩（3）/);assert.match(html,/data-school-disclosure="identity" open/);
-button.listeners.click();assert.equal(detail.hidden,true);
-evaluate('resetSchoolPresentation()');assert.equal(evaluate('Object.keys(state.schoolOpenCourses).length'),0);assert.equal(evaluate('Object.keys(state.schoolDisclosures).length'),0);
+context.document.querySelectorAll=selector=>selector==='[data-course-disclosure]'?[button]:[];
+evaluate('renderSchool()');button.listeners.click();assert.equal(detail.hidden,false);
+evaluate("state.schoolCourseQuery='Long';state.schoolViews['graduation_audit:ALL-HISTORY'].records.push({node_kind:'course',course_code_raw:'C',course_name_raw:'Long course name',grade_raw:'80'});renderSchool()");html=element('#panel-school').innerHTML;assert.match(html,/aria-expanded="true"/);assert.match(html,/多条成绩（3）/);button.listeners.click();assert.equal(detail.hidden,true);
+evaluate('resetSchoolPresentation()');assert.equal(evaluate('Object.keys(state.schoolOpenCourses).length'),0);
+""")
+
+    def test_five_page_navigation_remembers_independent_query_ranges(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};resetSchoolPresentation();state.schoolOperation='academic';state.schoolYear='2024-2025';state.schoolSeason='SS';selectSchoolSection('timetable');state.schoolYear='2026-2027';state.schoolSeason='AW';selectSchoolSection('exams');state.schoolSeason='W';selectSchoolSection('academic')");assert.equal(evaluate('state.schoolYear'),'2024-2025');assert.equal(evaluate('state.schoolSeason'),'SS');evaluate("selectSchoolSection('exams')");assert.equal(evaluate('state.schoolSeason'),'W');evaluate("selectSchoolSection('timetable')");assert.equal(evaluate('state.schoolSeason'),'AW');assert.equal(evaluate('Object.keys(workspaceSchoolPages).length'),5);evaluate('clearWorkspace()');assert.equal(evaluate('Object.keys(state.schoolPageQueries).length'),0);
 """)
 
     def test_grouping_keeps_attempts_recognitions_and_ambiguous_names(self):
