@@ -113,6 +113,22 @@ context.record={course_code_raw:'C',source_selection_id_raw:'X',field_states:{so
 assert.equal(evaluate("schoolSelectedEnrollment(record,[record],preview,'2026-2027','AW').sxbj"),'1');assert.equal(evaluate("schoolSelectedEnrollment(record,[record],preview,'2025-2026','AW')"),null);assert.equal(evaluate("schoolSelectedEnrollment(record,[record,record],preview,'2026-2027','AW')"),null);context.preview.selected.push({...context.preview.selected[0]});assert.equal(evaluate("schoolSelectedEnrollment(record,[record],preview,'2026-2027','AW')"),null);
 """)
 
+    def test_grade_search_is_local_and_sort_keeps_unknowns_and_source_records(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};resetSchoolPresentation();state.schoolOperation='academic';state.schoolYear='2024-2025';state.schoolSeason='AW';state.schoolViews={'academic:2024-2025-AW':{operation:'academic',target_term:'2024-2025-AW',status:'complete',records:[{course_name_raw:'Low',grade_raw:'60'},{course_name_raw:'Text',grade_raw:'良好'},{course_name_raw:'Zero',grade_raw:'0'},{course_name_raw:'Conflict',grade_raw:'100',field_states:{grade_raw:'conflicting'}},{course_name_raw:'High',grade_raw:'90'}]}};renderSchool()");
+const source=evaluate("JSON.stringify(schoolView('academic','2024-2025-AW').records)");let calls=0;context.fetch=()=>{calls++;throw Error('no fetch');};
+const input=element('#school-grade-search');input.value='High';input.listeners.input({target:input,isComposing:true});assert.equal(evaluate('state.schoolGradeSearch'),'');input.listeners.compositionend({target:input});assert.match(element('#panel-school').innerHTML,/High/);assert.doesNotMatch(element('#panel-school').innerHTML,/良好|上一页|下一页|school-grade-filter|id="school-grade-sort"/);assert.equal(calls,0);
+evaluate("state.schoolGradeSearch='';state.schoolGradeSort='grade'");assert.equal(evaluate("schoolGradeRows(schoolView('academic','2024-2025-AW')).map(r=>r.course_name_raw).join(',')"),'High,Low,Zero,Text,Conflict');
+evaluate("state.schoolGradeSort='grade_asc'");assert.equal(evaluate("schoolGradeRows(schoolView('academic','2024-2025-AW')).map(r=>r.course_name_raw).join(',')"),'Zero,Low,High,Text,Conflict');
+evaluate("state.schoolGradeSort='source'");assert.equal(evaluate("JSON.stringify(schoolGradeRows(schoolView('academic','2024-2025-AW')))"),source);assert.equal(evaluate("JSON.stringify(schoolView('academic','2024-2025-AW').records)"),source);
+""")
+
+    def test_compact_exams_keep_each_event_and_nonstandard_times(self):
+        self.run_js(r"""
+context.events=[{course_name_raw:'Two events',final_exam_time_raw:'2026年11月10日(08:00-10:00)',final_exam_place_raw:'A',midterm_exam_time_raw:'2026-10-26 09:00-11:00',midterm_exam_place_raw:'B'},{course_name_raw:'Unknown',final_exam_time_raw:'按学校通知（待确认）',final_exam_place_raw:'<img>'}];
+const html=evaluate('schoolExamAgenda(events)');assert.equal((html.match(/class="exam-compact-row"/g)||[]).length,3);assert.equal((html.match(/Two events/g)||[]).length,2);assert.match(html,/08:00-10:00/);assert.match(html,/按学校通知（待确认）/);assert.match(html,/&lt;img&gt;/);assert.doesNotMatch(html,/<img>|<dl>/);assert.ok(html.indexOf('2026-10-26')<html.indexOf('2026-11-10'));assert.ok(html.indexOf('2026-11-10')<html.indexOf('日期未明确'));
+""")
+
     def test_normalized_exam_fields_are_not_discarded(self):
         self.run_js(r"""
 context.examFixture=[{course_name_raw:'Synthetic exam',exam_date:'2026-11-01',start_time:'09:00',end_time:'11:00',place_raw:'Room'}];const html=evaluate('schoolExamAgenda(examFixture)');for(const text of ['2026-11-01','09:00','11:00','Room'])assert.ok(html.includes(text));assert.doesNotMatch(html,/来源未提供考试时间/);

@@ -760,7 +760,7 @@ const markup=evaluate('schoolRecordTable(result)');assert.match(markup,/&lt;scri
         self.run_js(r"""
 context.result={operation:'major_academic',records:Array.from({length:16},(_,index)=>({course_name_raw:`SYNTHETIC-${index}`,course_code_raw:'REPEATED-COURSE',grade_raw:index===15?'90':null,nominal_credits:index===15?0:null,academic_year_raw:null,term_raw:'',completion_status_raw:'unknown'}))};
 let markup=evaluate('schoolRecordTable(result)');const header=markup.match(/<thead>([\s\S]*?)<\/thead>/)[1];
-assert.match(header,/课程/);assert.match(header,/成绩/);assert.match(header,/>学分<\/th>/);assert.doesNotMatch(header,/>学年<|>学期<|>修读状态<|来源|记录学年/);assert.doesNotMatch(markup,/school-grade-year|待确认|来源未提供/);
+assert.match(header,/课程/);assert.match(header,/成绩/);assert.match(header,/data-sort="credits"/);assert.doesNotMatch(header,/>学年<|>学期<|>修读状态<|来源|记录学年/);assert.doesNotMatch(markup,/school-grade-year|待确认|来源未提供/);
 assert.equal((markup.match(/<tbody>[\s\S]*?<\/tbody>/)[0].match(/<tr>/g)||[]).length,15);assert.match(markup,/SYNTHETIC-0/);assert.match(markup,/SYNTHETIC-1/);
 evaluate("state.schoolGradeSearch='SYNTHETIC-0'");markup=evaluate('schoolRecordTable(result)');assert.match(markup.match(/<thead>([\s\S]*?)<\/thead>/)[1],/成绩/);assert.match(markup,/muted">—/);
 evaluate("state.schoolGradeSearch='';state.schoolGradePage=2");markup=evaluate('schoolRecordTable(result)');assert.match(markup,/SYNTHETIC-15/);assert.match(markup,/<td>0<\/td>/);assert.match(markup,/<td>90<\/td>/);

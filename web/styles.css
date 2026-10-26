@@ -807,3 +807,20 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .school-recognition-detail dt { color: var(--muted); }
 .school-recognition-detail dd { margin: 0 0 8px; }
 .school-unassigned-courses { margin-top: 20px; }
+
+/* Semester grades: one toolbar, local search, sortable numeric headings. */
+.school-grade-toolbar { display: flex; align-items: end; gap: 20px; flex-wrap: wrap; }
+.school-grade-toolbar .school-query-form { margin: 0; flex: 0 0 500px; width: 500px; flex-wrap: nowrap; }
+.school-grade-toolbar .school-query-form .field { flex: 0 0 180px; }
+.school-grade-search-field { flex: 1 1 220px; min-width: 180px; }
+.school-grade-search-field input { width: 100%; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--control-radius); background: var(--bg); }
+.school-sort-button { border: 0; background: none; padding: 0; font: inherit; text-align: left; }
+.school-sort-button:hover { color: var(--primary); }
+/* One exam event per aligned row, grouped by source date. */
+.exam-agenda-compact .exam-day { grid-template-columns: 110px minmax(0,1fr); gap: 16px; }
+.exam-compact-row { display: grid; grid-template-columns: minmax(140px,.9fr) minmax(160px,1.3fr) 80px minmax(140px,1fr); align-items: baseline; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.exam-compact-row > * { min-width: 0; overflow-wrap: anywhere; }
+.exam-compact-row strong { font-weight: 550; }
+.exam-compact-row small { display: block; color: var(--muted); font-size: .8125rem; }
+.exam-compact-time { font-variant-numeric: tabular-nums; }
+.exam-compact-type { color: var(--muted); font-size: .8125rem; }
