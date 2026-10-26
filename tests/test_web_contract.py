@@ -745,8 +745,8 @@ evaluate("state.schoolStatus={query_context:{cohort:null,cohort_state:'unknown'}
 evaluate("state.auth={authenticated:true,identity:{student_id:'SCHOOL-FIXTURE',auth_mode:'school_client',security_realm:'personal_school_client'}};state.csrfToken='memory-only';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation()");
 
 context.records=Array.from({length:60},(_,i)=>({course_name_raw:`SYNTHETIC-${i}`,course_code_raw:i<2?'REPEATED':`C-${i}`,grade_raw:'90'}));
-evaluate("state.schoolViews={'major_academic:ALL-HISTORY':{operation:'major_academic',target_term:'ALL-HISTORY',status:'partial_acquisition',coverage:{captured_rows:60,has_more:true},records}};renderSchool()");assert.match(element('#panel-school').innerHTML,/60 个课程显示组/);assert.match(element('#panel-school').innerHTML,/还有未读取内容/);
-evaluate("state.schoolCourseQuery='REPEATED';renderSchool()");assert.match(element('#panel-school').innerHTML,/2 个课程显示组/);assert.match(element('#panel-school').innerHTML,/SYNTHETIC-0/);assert.match(element('#panel-school').innerHTML,/SYNTHETIC-1/);assert.equal(evaluate("schoolView('major_academic','ALL-HISTORY').records.length"),60);
+evaluate("state.schoolViews={'major_academic:ALL-HISTORY':{operation:'major_academic',target_term:'ALL-HISTORY',status:'partial_acquisition',coverage:{captured_rows:60,has_more:true},records}};renderSchool()");assert.match(element('#panel-school').innerHTML,/60 个成绩 \/ 主修显示组/);assert.match(element('#panel-school').innerHTML,/还有未读取内容/);
+evaluate("state.schoolCourseQuery='REPEATED';renderSchool()");assert.match(element('#panel-school').innerHTML,/2 个成绩 \/ 主修显示组/);assert.match(element('#panel-school').innerHTML,/SYNTHETIC-0/);assert.match(element('#panel-school').innerHTML,/SYNTHETIC-1/);assert.equal(evaluate("schoolView('major_academic','ALL-HISTORY').records.length"),60);
 evaluate('clearWorkspace()');assert.equal(evaluate('Object.keys(state.schoolViews).length'),0);assert.equal(evaluate('state.schoolCourseQuery'),'');
 
 """)

@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-25",
+  "base_commit": "7df9213",
+  "scope": "desktop academic and arrangements static frontend",
+  "implementation": {
+    "course_rows": "five actual table cells with separate expandable detail rows",
+    "modules": "whole disclosure, full table without nested vertical scroll",
+    "arrangements": "full-width timetable followed by independent exam terms",
+    "enrollment": "eight source fields in separate columns",
+    "disclosures": "session-only; retained through render/filter/source updates; cleared with presentation state"
+  },
+  "engineering": {
+    "command": "python3 -m unittest tests.test_school_presentation_web tests.test_web_contract tests.test_school_timetable_web -q",
+    "tests": 127,
+    "result": "passed",
+    "node_check": "passed",
+    "git_diff_check": "passed",
+    "full_backend_suite": "not rerun"
+  },
+  "browser": {
+    "url": "http://127.0.0.1:18875/",
+    "css_viewports": [
+      [
+        1680,
+        790
+      ],
+      [
+        1280,
+        900
+      ]
+    ],
+    "original_viewport_restored": true,
+    "five_column_header_body_geometry": "identical x and width in both viewports",
+    "checkbox_css_size": [
+      16,
+      16
+    ],
+    "document_horizontal_overflow": false,
+    "timetable_width_at_1280": 971,
+    "selected_table_at_1280": {
+      "width": 972,
+      "container": 972,
+      "columns": 8
+    },
+    "observed_console_errors": 0,
+    "checks": [
+      "long module paths wrap within their column",
+      "multiple recognition records retained on expansion",
+      "course expansion retained after filter and grade query",
+      "identity disclosure remains open after profile refresh",
+      "module filtering and failed-only toggle preserve open module table",
+      "season filter retains unknown-season records",
+      "exam click opens matching course detail",
+      "autumn and winter exam sources remain separate",
+      "current enrollment preview retains independent term and all eight fields"
+    ],
+    "screenshots_directory": "private/layout_20261025",
+    "personal_materials_tracked": false
+  },
+  "repeatable_checks": [
+    {
+      "trigger": "Load audit and grade sources; filter a course with multiple records; expand, filter again, then query grades.",
+      "expected": "Course and all records remain visible under the same five headers; expanded row stays open."
+    },
+    {
+      "trigger": "At a 1280 CSS-pixel desktop viewport, query the approved current arrangements and open current enrollment preview.",
+      "expected": "Timetable days and eight selected-class fields fit their containers; no whole-document horizontal overflow; exam terms and unknown time/place remain explicit."
+    },
+    {
+      "trigger": "Open module and recognition disclosures; toggle failed-only and select a module.",
+      "expected": "Disclosures remain open, original hierarchy/values stay intact, course filtering stays local."
+    }
+  ],
+  "boundaries": {
+    "backend_restart": false,
+    "school_reads": "existing authorized profile/audit/major/current-term grades/timetable/exams/enrollment preview, for layout verification",
+    "school_writes": false,
+    "model_calls": false,
+    "new_endpoints_or_years": false,
+    "live_candidate_section_expansion": "not re-queried",
+    "user_visual_acceptance": "pending",
+    "committed": false,
+    "pushed": false
+  },
+  "association_followup": {
+    "user_feedback": "All queried rows looked unlinked after layout changes; preceding visual acceptance failed.",
+    "observed_trigger": {
+      "queried_term": "2024-2025-AW",
+      "grade_rows": 10,
+      "audit_source": "not loaded",
+      "grade_course_code": "not supplied as an independent field"
+    },
+    "root_cause": "UI conflated an unread audit source with a failed cross-source association; supplements were mixed into the same list as audit courses.",
+    "changes": [
+      "Separate unread, failed and acquired-but-unmatched audit states.",
+      "Disable audit-status filtering until a usable audit exists.",
+      "Offer explicit audit read without adding automatic source requests.",
+      "Keep audit groups and unassociated supplemental records in separate tables.",
+      "Label term selection as supplemental grade scope."
+    ],
+    "regression": {
+      "tests": 129,
+      "result": "passed",
+      "node_check": "passed",
+      "diff_check": "passed",
+      "command": "python3 -m unittest tests.test_school_presentation_web tests.test_web_contract tests.test_school_timetable_web -q"
+    },
+    "live_reproduction": {
+      "grade_first_rows": 10,
+      "grade_first_status": "audit not read",
+      "after_audit_primary_groups": 103,
+      "after_audit_supplement_groups": 10,
+      "observed_audit_statuses": [
+        "通过",
+        "未明确",
+        "在修",
+        "被替代",
+        "不通过"
+      ],
+      "grade_detail_expansion_retained": true,
+      "counts_are_unique_courses": false
+    },
+    "repeatable_check": "In a fresh authenticated page, supplement one allowed semester of grades before reading audit. Verify unread labels and disabled audit-status filter. Explicitly read audit; verify original source statuses in the main table and unmatched grade records in a separate supplemental table. Never merge solely by course name.",
+    "screenshots_directory": "private/layout_20261025",
+    "backend_restart": false,
+    "school_writes": false,
+    "model_calls": false,
+    "user_acceptance": "pending after failed previous round",
+    "committed": false,
+    "pushed": false
+  }
+}
