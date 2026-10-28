@@ -884,8 +884,13 @@ class PersonalEvidenceService:
                 if chunk["semantic_role"] != "module_requirement" or not chunk["module_keys"]:
                     continue
                 label = re.sub(r"(?:课程|类)$", "", chunk["module_title"] or "")
-                if label in {"选修", "必修", "专业", "通识"} and not re.search(r"(?:^|[^\u3400-\u9fff])" + re.escape(label), compact_query):
-                    continue  # “核心选修” must not be narrowed to an unrelated “选修课程”.
+                title = re.sub(r"\s+", "", unicodedata.normalize("NFKC", chunk["module_title"] or ""))
+                if label in {"选修", "必修", "专业", "通识"} and (
+                        not re.search(r"(?:^|[^\u3400-\u9fff])" + re.escape(label), compact_query)
+                        or compact_query != label and title not in compact_query):
+                    # A missing specialized name must not resolve to its broad
+                    # generic parent (e.g. 专业核心课程 -> 专业课程).
+                    continue
                 if len(label) >= 2 and label in compact_query:
                     module_matches[chunk["module_keys"][-1]] = label
             # Suppress embedded generic names, not independent shorter names:

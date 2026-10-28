@@ -28,7 +28,7 @@ from .personal_drafts import PersonalDraftService
 
 DATA_USE_VERSION = "personal-retrieval-v1"
 SERVICE = "personal-retrieval-chat-v1"
-TOOLS_VERSION = "personal-question-tools-v35-scoped-audit"
+TOOLS_VERSION = "personal-question-tools-v40-source-completeness"
 DATA_USE_SUMMARY = "本轮问题及检索到的相关教务记录、培养资料片段会发送给当前模型；不发送账号凭据。"
 SENSITIVE = re.compile(r"(?i)(sk[-_][a-z0-9_-]{12,}|bearer\s+\S+|(?:password|passwd|cookie|token|api[_ -]?key|密码|口令)\s*(?:[:=：]|是|为|\bis\b)\s*\S+|(?:密码|口令)\s+\S+|(?<!\d)\d{10}(?!\d))")
 
@@ -62,7 +62,7 @@ class _ObservedModel:
         self.emit("model.start", {"model": status.get("model"), "step": self.step,
                                    "input_chars": len(json.dumps(messages, ensure_ascii=False))})
         def observed(metadata):
-            values = {key: metadata[key] for key in ("model", "status", "elapsed_ms", "usage", "http_status", "request_id", "completion_id")
+            values = {key: metadata[key] for key in ("model", "status", "elapsed_ms", "usage", "http_status", "request_id", "completion_id", "failure_detail")
                       if metadata.get(key) is not None}
             values["step"] = self.step
             if metadata.get("code"):
@@ -605,11 +605,9 @@ class PersonalChatService:
                         error_fields["failure_detail"] = diagnostic["failure_detail"]
                         break
             emit("error", error_fields)
-        if run_id is not None:
-            try:
-                self.runs.finish(context, run_id, response["status"], error_code=response.get("code") if response["status"] != "completed" else None)
-            except ChatRunError:
-                log_errors.append(True)
+        # The terminal run state is committed with the reserved request below.
+        # Authority can expire here; that must prevent source delivery, not leave
+        # an already-ended worker permanently recorded as running.
         with self.app.lock:
             try:
                 self.app.auth.require_context(context)

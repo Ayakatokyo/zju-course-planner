@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from copy import deepcopy
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP, localcontext
+from decimal import Decimal, ROUND_HALF_UP, localcontext
 from hashlib import sha256
 from pathlib import Path
 import base64
@@ -44,6 +44,49 @@ def normalize_record_query(query, operation):
     return query
 
 
+def _source_number(record, key, maximum=None):
+    states = record.get("field_states", {})
+    value = record.get(key)
+    raw = str(value).strip() if type(value) in (str, int, float) else ""
+    if (not isinstance(states, dict) or states.get(key) != "known" or len(raw) > 100
+            or not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", raw)):
+        return None
+    number = Decimal(raw)
+    return number if number.is_finite() and (maximum is None or number <= maximum) else None
+
+
+def validate_grade_filter(value, operation):
+    """A bounded source-field predicate, never a pass/fail or identity inference."""
+    if (type(operation) is not str or operation not in {"academic", "major_academic"} or type(value) is not dict
+            or set(value) - {"kind", "op", "value"}
+            or type(value.get("kind")) is not str
+            or value.get("kind") not in {"numeric", "non_numeric", "unknown"}):
+        _fail("invalid_observation_request")
+    if "op" in value or "value" in value:
+        number = value.get("value")
+        if (value["kind"] != "numeric" or type(value.get("op")) is not str
+                or value.get("op") not in {"eq", "gt", "gte", "lt", "lte"}
+                or type(number) not in (int, float) or not 0 <= number <= 100):
+            _fail("invalid_observation_request")
+    return deepcopy(value)
+
+
+def matches_grade_filter(record, predicate):
+    if predicate is None:
+        return True
+    number = _source_number(record, "grade_raw", 100)
+    states = record.get("field_states", {})
+    known = isinstance(states, dict) and states.get("grade_raw") == "known" and record.get("grade_raw") is not None
+    kind = "numeric" if number is not None else "non_numeric" if known else "unknown"
+    if kind != predicate["kind"]:
+        return False
+    if "op" not in predicate:
+        return True
+    target = Decimal(str(predicate["value"]))
+    return {"eq": number == target, "gt": number > target, "gte": number >= target,
+            "lt": number < target, "lte": number <= target}[predicate["op"]]
+
+
 def source_grade_summary(records, coverage):
     """Describe raw numeric grades in matching rows; never infer recognition.
 
@@ -51,8 +94,11 @@ def source_grade_summary(records, coverage):
     Means use ROUND_HALF_UP to two decimal places. Known text, annotations and
     numbers outside 0..100 are excluded, not converted into pass/fail or points.
     """
-    numbers, non_numeric, unknown, completion_known = [], 0, 0, 0
+    numbers, credits, non_numeric, unknown, completion_known = [], [], 0, 0, 0
     for record in records:
+        nominal = _source_number(record, "nominal_credits")
+        if nominal is not None:
+            credits.append(nominal)
         states = record.get("field_states", {})
         completion = record.get("completion_status_raw")
         completion_missing = completion is None or isinstance(completion, str) and completion.strip().casefold() in {"", "unknown"}
@@ -62,29 +108,24 @@ def source_grade_summary(records, coverage):
         if not isinstance(states, dict) or states.get("grade_raw") != "known" or value is None:
             unknown += 1
             continue
-        raw = str(value).strip() if type(value) in (str, int, float) else ""
-        if not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", raw):
-            non_numeric += 1
-            continue
-        try:
-            grade = Decimal(raw)
-        except InvalidOperation:
-            non_numeric += 1
-            continue
-        if not grade.is_finite() or not 0 <= grade <= 100:
+        grade = _source_number(record, "grade_raw", 100)
+        if grade is None:
             non_numeric += 1
             continue
         numbers.append(grade)
     canonical = lambda value: format(value, "f").rstrip("0").rstrip(".") if "." in format(value, "f") else format(value, "f")
     with localcontext() as context:
-        context.prec = 40
+        context.prec = 150
         mean = (sum(numbers, Decimal(0)) / Decimal(len(numbers))).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP) if numbers else None
+        nominal_sum = canonical(sum(credits, Decimal(0))) if credits else None
     return {"matched_records": len(records), "numeric_grade_count": len(numbers),
         "non_numeric_grade_count": non_numeric, "unknown_grade_count": unknown,
         "completion_status_counts": {"known": completion_known, "unknown": len(records) - completion_known},
         "numeric_min": canonical(min(numbers)) if numbers else None,
         "numeric_max": canonical(max(numbers)) if numbers else None,
         "numeric_mean_unweighted": format(mean, ".2f") if mean is not None else None,
+        "nominal_credits_known_count": len(credits), "nominal_credits_unknown_count": len(records) - len(credits),
+        "known_nominal_credits_sum": nominal_sum,
         "mean_decimal_places": 2, "basis": "known_pure_numeric_0_100_source_grades",
         "scope": "all_matching_rows_in_selected_snapshot", "coverage": deepcopy(coverage),
         "is_gpa": False, "earned_credits_verified": False, "academic_recognition_verified": False,
@@ -93,7 +134,7 @@ RESULT_FIELDS = frozenset({"status", "data_kind", "security_realm", "operation",
     "data_source", "records", "issues", "row_failures", "coverage", "captured_at", "checked_at",
     "cache_captured_at", "failure", "source_alias", "source_field_diagnostics", "period_times",
     "period_times_source"})
-QUERY_FIELDS = frozenset({"operation", "observation_id", "query", "academic_year", "limit", "cursor", "mode"})
+QUERY_FIELDS = frozenset({"operation", "observation_id", "query", "academic_year", "limit", "cursor", "mode", "grade_filter"})
 HARD_STOPS = frozenset({"source_session_expired", "source_subject_changed", "permission_denied",
     "awaiting_user_login", "captcha_required", "user_confirmation_required"})
 OBSERVATION_ID = re.compile(r"OBS-[a-f0-9]{32}\Z")
@@ -497,7 +538,7 @@ class PersonalObservationStore:
             body, signature = cursor.split(".")
             payload = json.loads(base64.b64decode(body + "=" * (-len(body) % 4), altchars=b"-_", validate=True))
             if (not re.fullmatch(r"[a-f0-9]{64}", signature) or not isinstance(payload, dict) or
-                    set(payload) != {"scope", "observation_id", "snapshot_sha256", "operation", "query", "academic_year", "limit", "offset"} or
+                    set(payload) - {"grade_filter"} != {"scope", "observation_id", "snapshot_sha256", "operation", "query", "academic_year", "limit", "offset"} or
                     not hmac.compare_digest(signature, self._sign(payload)) or payload["scope"] != self._scope_digest or
                     type(payload["offset"]) is not int or payload["offset"] < 1):
                 raise ValueError
@@ -514,7 +555,8 @@ class PersonalObservationStore:
                 type(limit) is not int or not 1 <= limit <= 20 or
                 type(mode) is not str or mode not in {"records", "summary"}):
             _fail("invalid_observation_request")
-        return operation, normalize_record_query(query, operation), year, limit, mode
+        predicate = validate_grade_filter(body["grade_filter"], operation) if "grade_filter" in body else None
+        return operation, normalize_record_query(query, operation), year, limit, mode, predicate
 
     @staticmethod
     def _matches(record, query, year, target_term=None):
@@ -555,14 +597,15 @@ class PersonalObservationStore:
             if cursor and values.get("mode", "records") != "records":
                 _fail("invalid_observation_cursor")
             if cursor:
-                for key in ("operation", "observation_id", "query", "academic_year", "limit"):
+                for key in ("operation", "observation_id", "query", "academic_year", "limit", "grade_filter"):
                     supplied = values.get(key)
                     if key == "query" and type(supplied) is str:
                         supplied = normalize_record_query(supplied, cursor["operation"])
-                    if key in values and supplied != cursor[key]:
+                    if key in values and supplied != cursor.get(key):
                         _fail("invalid_observation_cursor")
-                    values[key] = cursor[key]
-            operation, query, year, limit, mode = self._query_values(values)
+                    if key in cursor:
+                        values[key] = cursor[key]
+            operation, query, year, limit, mode, predicate = self._query_values(values)
             if "observation_id" in values:
                 snapshot = self._load(values["observation_id"])
             else:
@@ -576,7 +619,8 @@ class PersonalObservationStore:
                 _fail("invalid_observation_cursor")
             records = snapshot["result"]["records"]
             positions = [index for index, record in enumerate(records)
-                         if self._matches(record, query, year, snapshot["result"]["target_term"])]
+                         if self._matches(record, query, year, snapshot["result"]["target_term"])
+                         and matches_grade_filter(record, predicate)]
             filtered = [records[index] for index in positions]
             offset = cursor["offset"] if cursor else 0
             if offset > len(filtered):
@@ -584,11 +628,13 @@ class PersonalObservationStore:
             selected = deepcopy(filtered[offset:offset + limit]) if mode == "records" else []
             next_cursor = self._cursor({"scope": self._scope_digest, "observation_id": snapshot["observation_id"],
                 "snapshot_sha256": snapshot_hash, "operation": operation, "query": query,
-                "academic_year": year, "limit": limit, "offset": offset + limit}) if mode == "records" and offset + limit < len(filtered) else None
+                "academic_year": year, "limit": limit, "offset": offset + limit,
+                **({"grade_filter": predicate} if predicate is not None else {})}) if mode == "records" and offset + limit < len(filtered) else None
             result = {**self._summary(snapshot), "records": selected, "total_records": len(records),
                 "source_record_indices": positions[offset:offset + limit] if mode == "records" else [],
                 "matched_records": len(filtered), "returned_records": len(selected), "next_cursor": next_cursor,
                 "query": query, "academic_year": year, "offset": offset, "mode": mode,
+                **({"grade_filter": deepcopy(predicate)} if predicate is not None else {}),
                 "issues": deepcopy(snapshot["result"].get("issues")),
                 "row_failures": deepcopy(snapshot["result"].get("row_failures")), "failure": snapshot["result"].get("failure")}
             if operation == "graduation_audit":

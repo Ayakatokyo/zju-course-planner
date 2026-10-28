@@ -14,9 +14,9 @@ import time
 from .auth import AccessError
 from .chat_runs import tool_event_fields
 from .personal_acquisition import prepare_recommendation_sources
-from .personal_tasks import PREPARE_RECOMMENDATION_TOOL, validate_recommendation_task
+from .personal_tasks import PREPARE_RECOMMENDATION_TOOL, validate_recommendation_task, validate_clarification_context
 
-VERSION = "academic-harness-v2"
+VERSION = "academic-harness-v3"
 COMPUTE_TOOLS = frozenset({"generate_current_term_plan", "update_current_term_plan"})
 
 
@@ -30,6 +30,9 @@ def resource_catalog(context):
                 "freshness": "read_on_demand_each_turn", "scope": "ALL-HISTORY" if operation in {"major_academic", "graduation_audit"} else "explicit_term"})
     if capabilities.get("curriculum_local_search") is True:
         resources.append({"resource": "curriculum", "tool": "search_my_curriculum", "freshness": "read_on_demand_each_turn", "scope": "authenticated_student"})
+    if capabilities.get("current_enrollment_query") is True:
+        resources.append({"resource": "current_enrollment", "tool": "query_current_enrollment",
+                          "freshness": "read_on_demand_each_turn", "scope": "school_current_selection_page"})
     if capabilities.get("course_catalog_search") is True:
         resources.append({"resource": "course_names", "tool": "search_course_catalog", "freshness": "local_reference", "scope": "configured_catalog"})
     course = context.get("course_data_test", {})
@@ -47,7 +50,7 @@ class AcademicHarness:
         self.school, self.context = school, context
         self.authorize, self.generation_authorize, self.adopt, self.emit = authorize, generation_authorize, adopt, emit
         self.receipts = []
-        self.clarification_context = deepcopy(clarification_context)
+        self.clarification_context = validate_clarification_context(clarification_context)
         self.policy_context = {"user_message": user_message, "hard_preferences": [], "soft_preferences": [],
             "active_plan_ref": active_plan_ref, "pending_messages": []}
         # An owned plan already carries canonical constraints. Do not replay
@@ -93,6 +96,14 @@ class AcademicHarness:
                 result = self._invoke("check_recommendation_inputs", {key: task[key] for key in ("recommendation_kind", "target_term")})
                 result = {**result, "prepared_sources": prepared}
             else:
+                if name == "generate_current_term_plan":
+                    if args.get("request_basis", "current_message") == "pending_task":
+                        if self.clarification_context is None:
+                            raise AccessError("当前没有可继续的待补请求", 409, "clarification_context_missing")
+                        self.policy_context["pending_messages"] = [self.clarification_context["request"],
+                            *self.clarification_context["supplements"]]
+                    else:
+                        self.policy_context["pending_messages"] = []
                 requirements = getattr(self.school, "personal_chat_tool_requirements", None)
                 task = None
                 if name in COMPUTE_TOOLS and callable(self.live_tool) and callable(requirements):

@@ -233,6 +233,54 @@ class PersonalObservationTests(unittest.TestCase):
         self.assertEqual(empty["matched_records"], 0)
         self.assertIsNone(empty["numeric_mean_unweighted"])
 
+    def test_grade_predicate_and_credit_sum_cover_all_matches_across_pages(self):
+        source = self.result(count=10)
+        source["records"] = [self.record(i, grade_raw=grade, nominal_credits=credit,
+            field_states={"course_name_raw": "known", "grade_raw": state, "nominal_credits": credit_state})
+            for i, (grade, state, credit, credit_state) in enumerate([
+                ("90", "known", "2", "known"), ("91", "known", "3", "known"),
+                ("92", "known", "3", "known"), ("91", "known", "1", "known"),
+                ("90", "known", "1.5", "known"), ("89", "known", "2", "known"),
+                ("90", "unknown", "100", "known"), ("通过", "known", None, "unknown"),
+                ("90(补考)", "known", "9", "known"), ("101", "known", "9", "known")])]
+        self.register(source)
+        predicate = {"kind": "numeric", "op": "gte", "value": 90}
+        first = self.store.query({"operation": "major_academic", "grade_filter": predicate, "limit": 2})
+        self.assertEqual((first["matched_records"], first["returned_records"]), (5, 2))
+        self.assertEqual(first["source_record_indices"], [0, 1])
+        summary = first["source_grade_summary"]
+        self.assertEqual((summary["known_nominal_credits_sum"], summary["nominal_credits_known_count"],
+                          summary["nominal_credits_unknown_count"]), ("10.5", 5, 0))
+        self.assertEqual(summary["numeric_mean_unweighted"], "90.80")
+        self.assertFalse(summary["earned_credits_verified"])
+        following = self.store.query({"operation": "major_academic", "cursor": first["next_cursor"]})
+        self.assertEqual(following["grade_filter"], predicate)
+        self.assertEqual(following["source_grade_summary"], summary)
+        self.assertEqual(following["source_record_indices"], [2, 3])
+        self.assert_code("invalid_observation_cursor", self.store.query,
+            {"operation": "major_academic", "cursor": first["next_cursor"],
+             "grade_filter": {"kind": "numeric", "op": "gt", "value": 90}})
+        strict = self.store.query({"operation": "major_academic", "grade_filter": {"kind": "numeric", "op": "gt", "value": 90}})
+        self.assertEqual(strict["source_record_indices"], [1, 2, 3])
+        for kind, expected in (("numeric", 6), ("unknown", 1), ("non_numeric", 3)):
+            result = self.store.query({"operation": "major_academic", "grade_filter": {"kind": kind}, "mode": "summary"})
+            self.assertEqual(result["matched_records"], expected)
+
+    def test_grade_filter_rejects_invalid_or_wrong_source_and_missing_credits_are_not_zero(self):
+        source = self.result(count=2)
+        source["records"] = [self.record(i, nominal_credits=value,
+            field_states={"nominal_credits": "known" if i == 0 else "unknown"}) for i, value in enumerate(("0", "3"))]
+        self.register(source)
+        summary = self.store.query({"operation": "major_academic"})["source_grade_summary"]
+        self.assertEqual((summary["known_nominal_credits_sum"], summary["nominal_credits_unknown_count"]), ("0", 1))
+        for predicate in ({}, None, {"kind": []}, {"kind": "passed"},
+                {"kind": "unknown", "op": "eq", "value": 0}, {"kind": "numeric", "op": "gte"},
+                {"kind": "numeric", "value": 90}, {"kind": "numeric", "op": [], "value": 0},
+                *({"kind": "numeric", "op": "gte", "value": v} for v in (True, "90", -1, 101, float("nan"), 10**400))):
+            self.assert_code("invalid_observation_request", self.store.query, {"operation": "major_academic", "grade_filter": predicate})
+        self.assert_code("invalid_observation_request", self.store.query,
+            {"operation": "timetable", "grade_filter": {"kind": "numeric"}})
+
     def test_completion_field_counts_cover_all_matching_rows_beyond_first_page(self):
         source=self.result(count=22)
         for index,row in enumerate(source["records"]):

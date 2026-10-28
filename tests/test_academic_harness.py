@@ -75,11 +75,47 @@ class AcademicHarnessTests(unittest.TestCase):
             raise AccessError("Synthetic authorization revoked", 403, "grant_revoked")
         return {"scope_key": "SYNTHETIC", "versions": {"input": "v1"}}
 
-    def harness(self, message="推荐合成课程5学分", active=None):
+    def harness(self, message="推荐合成课程5学分", active=None, clarification=None):
         return AcademicHarness(self.school, None, authorize=self.authorize,
             generation_authorize=self.authorize, adopt=lambda _: None,
             emit=lambda event, fields: self.events.append((event, deepcopy(fields))),
-            user_message=message, active_plan_ref=active)
+            user_message=message, active_plan_ref=active, clarification_context=clarification)
+
+    def test_managed_generation_continues_only_explicit_trusted_clarification(self):
+        from course_assistant.personal_tasks import next_clarification_context
+        request = "生成2门课、至少5学分、尽量周五空闲的条件方案。"
+        pending = next_clarification_context(request, {"status": "completed",
+            "reply_origin": "personal_model_clarification", "reply": "请选择课程范围。",
+            "model_decision": {"kind": "clarify", "request_basis": "current_message"}})
+        runtime = self.harness("只在合成课程里选，其他条件保留。", clarification=pending)
+        args = {**self.args(), "friday_free": "soft", "request_basis": "pending_task"}
+        result, _ = self.dialogue(runtime, [call(NAMES[0], {"query": "Synthetic", "target_term": CURRENT_TERM}),
+            call(NAMES[1], args, "compute"), self.answer], runtime.policy_context["user_message"])
+        plan = result["recommendation_result"]
+        self.assertTrue(plan["options"], plan)
+        self.assertEqual(plan["constraints"]["course_count"], 2)
+        self.assertEqual(plan["constraints"]["target_credits"], "5")
+        self.assertEqual(plan["constraints"]["friday_free"], "soft")
+        self.assertEqual(runtime.policy_context["pending_messages"], [request])
+        self.assertEqual(len([n for n, _ in self.school.calls if n == "query_my_records"]), 1)
+        # A new request with a pending clarification must not inherit its goals.
+        changed = self.harness("换个需求，推荐合成课程5学分。", clarification=pending)
+        changed.execute(NAMES[0], {"query": "Synthetic", "target_term": CURRENT_TERM})
+        new_plan = changed.execute(NAMES[1], {**self.args(), "request_basis": "current_message"})["result"]
+        self.assertEqual(changed.policy_context["pending_messages"], [])
+        self.assertEqual(new_plan["constraints"]["friday_free"], "none")
+        self.assertIsNone(new_plan["constraints"].get("course_count"))
+        # A model claim cannot create a pending human request or read sources.
+        missing = self.harness()
+        before = len(self.school.calls)
+        with self.assertRaises(AccessError) as caught:
+            missing.execute(NAMES[1], args)
+        self.assertEqual(caught.exception.reason, "clarification_context_missing")
+        self.assertEqual(len(self.school.calls), before)
+        from course_assistant.personal_course_plans import validate_course_plan_args
+        for basis in (None, True, "all_history", []):
+            with self.subTest(basis=basis), self.assertRaises(ValueError):
+                validate_course_plan_args(NAMES[1], {**self.args(), "request_basis": basis})
 
     @staticmethod
     def args(kind="courses"):

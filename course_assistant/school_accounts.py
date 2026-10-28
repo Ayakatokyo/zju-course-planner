@@ -681,6 +681,10 @@ class SchoolAccountService:
                     and re.fullmatch(r"PLAN-[a-f0-9]{24}", receipt["source_alias"]) is not None
                     and isinstance(receipt.get("sha256"), str)
                     and re.fullmatch(r"[a-f0-9]{64}", receipt["sha256"]) is not None)
+        if receipt.get("operation") == "current_enrollment":
+            return (receipt.get("status") == "available"
+                    and isinstance(receipt.get("source_alias"), str)
+                    and re.fullmatch(r"SOURCE-[a-f0-9]{24}", receipt["source_alias"]) is not None)
         return (receipt.get("status") in {"complete_within_scope", "partial_acquisition"}
                 and isinstance(receipt.get("observation_id"), str)
                 and re.fullmatch(r"OBS-[a-f0-9]{32}", receipt["observation_id"]) is not None)
@@ -830,8 +834,18 @@ class SchoolAccountService:
             started = time.monotonic()
             emit("tool.start", fields)
             try:
-                result = (self.acquire_plan(context, force=True) if operation == "curriculum" else
-                          self.fetch(context, {"operation": operation, "target_term": term, "force_refresh": True}))
+                if operation == "current_enrollment":
+                    from .school_enrollment_preview import selected_snapshot
+                    preview = self.enrollment_preview(context, {})
+                    if preview.get("status") != "available":
+                        _error(preview.get("status", "source_unavailable"))
+                    result = selected_snapshot(preview)
+                    result["checked_at"] = preview["checked_at"]
+                    result["source_alias"] = self._capture(context, operation, result["target_term"],
+                        [{key: deepcopy(result[key]) for key in ("target_term", "records", "checked_at")}])
+                else:
+                    result = (self.acquire_plan(context, force=True) if operation == "curriculum" else
+                              self.fetch(context, {"operation": operation, "target_term": term, "force_refresh": True}))
                 if not isinstance(result, dict):
                     raise ValueError("invalid_source_result")
             except Exception as error:
@@ -854,10 +868,12 @@ class SchoolAccountService:
             for key in ("failure", "source_alias", "sha256"):
                 if key in result:
                     receipt[key] = result[key]
-            if operation != "curriculum" and (result.get("operation") != operation or result.get("target_term") != term):
+            if operation == "current_enrollment":
+                receipt.update(target_term=result["target_term"], result=deepcopy(result))
+            elif operation != "curriculum" and (result.get("operation") != operation or result.get("target_term") != term):
                 receipt["ready"] = False
             receipt["ready"] = self._live_receipt_ready(receipt)
-            if receipt["ready"] and (diagnostics := source_receipt_diagnostics(operation, result)) is not None:
+            if receipt["ready"] and operation != "current_enrollment" and (diagnostics := source_receipt_diagnostics(operation, result)) is not None:
                 receipt["diagnostics"] = diagnostics
             receipts.append(receipt)
             # Source additions change the input digest. The caller adopts that
@@ -917,6 +933,7 @@ class SchoolAccountService:
                     "api_operations": [{"operation": operation, "target_term_required": operation not in {"major_academic", "graduation_audit"}}
                                        for operation in ("academic", "major_academic", "graduation_audit", "timetable", "exams")],
                     "capabilities": {"curriculum_available": curriculum, "personal_record_query": True, "live_record_query": True,
+                        "current_enrollment_query": callable(getattr(connection.client, "enrollment_preview", None)),
                         "curriculum_local_search": True, "read_only_acquisition": True,
                         "course_catalog_search": catalog.get("status") == "ready",
                         "recommendation_input_check": True,
@@ -964,10 +981,24 @@ class SchoolAccountService:
                     receipts=receipts, emit=emit, authorize=authorize, adopt=adopt, before=before, policy_context=policy_context)
                 result = {"status": "available", "data_kind": "personal_source", "check_executed": True,
                     "readiness": assess_recommendation_readiness(current, **args)}
+            elif name == "query_current_enrollment":
+                from .school_enrollment_preview import validate_selection_query, query_selected
+                try:
+                    query = validate_selection_query(args)
+                except ValueError:
+                    _error("invalid_school_request")
+                matching = [item for item in receipts if item.get("operation") == "current_enrollment"]
+                receipt = matching[-1] if matching else read("current_enrollment", None)
+                if not self._live_receipt_ready(receipt):
+                    return unavailable("current_enrollment", reason="fresh_source_read_failed")
+                result = query_selected(receipt["result"], query)
             elif name == "query_my_records":
-                if set(args) - {"operation", "target_term", "query", "academic_year", "limit", "cursor", "mode"} or args.get("operation") not in DOMAINS:
+                if set(args) - {"operation", "target_term", "query", "academic_year", "limit", "cursor", "mode", "grade_filter"} or args.get("operation") not in DOMAINS:
                     _error("invalid_school_request")
                 operation = args["operation"]
+                if "grade_filter" in args:
+                    from .personal_observations import validate_grade_filter
+                    validate_grade_filter(args["grade_filter"], operation)
                 term = args.get("target_term")
                 candidates = [receipt for receipt in receipts if receipt.get("operation") == operation]
                 if term is None and operation in {"major_academic", "graduation_audit"}:
@@ -985,7 +1016,7 @@ class SchoolAccountService:
                 if not self._live_receipt_ready(receipt):
                     return unavailable(operation, term, "fresh_source_read_failed")
                 request = {key: deepcopy(value) for key, value in args.items()
-                           if key in {"operation", "query", "academic_year", "limit", "cursor", "mode"}}
+                           if key in {"operation", "query", "academic_year", "limit", "cursor", "mode", "grade_filter"}}
                 request["observation_id"] = receipt["observation_id"]
                 result = self.local_query(context, "/api/personal/records", request)
                 if result.get("observation_id") != receipt["observation_id"] or result.get("target_term") != term:
@@ -1037,7 +1068,7 @@ class SchoolAccountService:
                                        "real_recommendation": False},
                       "note": "按当前登录本人范围查询；服务可按已提交问题准备必要的本人只读来源。来源是观察记录，培养适用及规则待审核。"}
         elif name == "query_my_records":
-            request = {key: value for key, value in args.items() if key in {"operation", "query", "academic_year", "limit"}}
+            request = {key: value for key, value in args.items() if key in {"operation", "query", "academic_year", "limit", "mode", "cursor", "grade_filter"}}
             local = self.local_chat_status(context)["local"]
             snapshots = [item for item in local["observations"]["snapshots"] if item["operation"] == request.get("operation")]
             if args.get("target_term") is not None:

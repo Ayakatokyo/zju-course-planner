@@ -11,6 +11,7 @@ from copy import deepcopy
 import json
 import re
 import unicodedata
+from .personal_observations import validate_grade_filter
 
 
 MAX_TASKS = 6
@@ -247,7 +248,16 @@ def _task(row):
                 or "target_term" in arguments and arguments["target_term"] != term
                 or "mode" in arguments and arguments["mode"] != mode):
             return None
-        return {"tool": name, "operation": operation, "target_term": term, "query": query, "mode": mode}
+        task = {"tool": name, "operation": operation, "target_term": term, "query": query, "mode": mode}
+        if "grade_filter" in arguments or "grade_filter" in result:
+            try:
+                predicate = validate_grade_filter(result.get("grade_filter"), operation)
+            except ValueError:
+                return None
+            if "grade_filter" in arguments and arguments["grade_filter"] != predicate:
+                return None
+            task["grade_filter"] = predicate
+        return task
     if name in SEARCH_SUCCESS and isinstance(result.get("status"), str) and result["status"] in SEARCH_SUCCESS[name]:
         query = _query(arguments.get("query"), 400 if name == "search_my_curriculum" else 200)
         if query is not None:
@@ -283,12 +293,17 @@ def validate_task_context(value):
             invalid()
         tool = task["tool"]
         if tool == "query_my_records":
-            if (set(task) != {"tool", "operation", "target_term", "query", "mode"}
+            if (set(task) - {"grade_filter"} != {"tool", "operation", "target_term", "query", "mode"}
                     or type(task["operation"]) is not str or task["operation"] not in OPERATIONS
                     or type(task["target_term"]) is not str or not _term(task["operation"], task["target_term"])
                     or type(task["mode"]) is not str or task["mode"] not in {"summary", "records"}
                     or type(task["query"]) is not str or _query(task["query"], 100, empty=True) is None):
                 invalid()
+            if "grade_filter" in task:
+                try:
+                    validate_grade_filter(task["grade_filter"], task["operation"])
+                except ValueError:
+                    invalid()
         elif tool == PREPARE_RECOMMENDATION_TOOL:
             try:
                 intent = {key: item for key, item in task.items() if key != "tool"}

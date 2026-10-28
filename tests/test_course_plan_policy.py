@@ -5,6 +5,41 @@ from course_assistant.course_plan_policy import compile_hard_constraints, author
 
 
 class CoursePlanPolicyTests(unittest.TestCase):
+    def test_ordered_option_and_course_reference_is_exact(self):
+        metadata = {"first": {"course_name": "合成甲", "course_code": "SYN-A", "option_positions": {"A": 1, "B": 2}},
+            "second": {"course_name": "合成乙", "course_code": "SYN-B", "option_positions": {"A": 2, "B": 1}}}
+        for phrase, chosen in (("第一套方案里的第一门课", "first"), ("第2套方案的首门课", "second"),
+                               ("方案A首门课", "first"), ("A方案中的第二门课", "second")):
+            message = "锁定" + phrase + "，其他条件保留。"
+            with self.subTest(phrase=phrase):
+                proof = authorize_changes(message, {"lock_class_refs": [chosen]}, prior_constraints={}, class_metadata=metadata)
+                self.assertEqual(proof["status"], "ready", proof)
+                consumed = [x for row in proof["verified_changes"].values() for x in row.get("consumed_expressions", [])]
+                self.assertTrue(consumed)
+                self.assertEqual(compile_hard_constraints(message, [], consumed_expressions=consumed)["status"], "ready")
+                other = "second" if chosen == "first" else "first"
+                self.assertEqual(authorize_changes(message, {"lock_class_refs": [other]}, prior_constraints={}, class_metadata=metadata)["status"], "needs_clarification")
+        for message in ("锁定第四套方案里的第一门课", "不要锁定第一套方案里的第一门课", "假如锁定第一套方案里的第一门课"):
+            self.assertEqual(authorize_changes(message, {"lock_class_refs": ["first"]}, prior_constraints={}, class_metadata=metadata)["status"], "needs_clarification")
+        message = "锁定第一套方案里的第一门课且必须同校区"
+        proof = authorize_changes(message, {"lock_class_refs": ["first"]}, prior_constraints={}, class_metadata=metadata)
+        consumed = [x for row in proof["verified_changes"].values() for x in row.get("consumed_expressions", [])]
+        self.assertEqual(compile_hard_constraints(message, [], consumed_expressions=consumed)["status"], "needs_clarification")
+
+    def test_generated_condition_plan_keeps_count_and_soft_scope_after_supplement(self):
+        request = "用已获准的2026—2027秋冬历史班次，生成3门课、至少6学分、尽量周五空闲的条件方案。"
+        initial = compile_hard_constraints(request, [])
+        self.assertEqual(initial["status"], "ready", initial)
+        self.assertEqual(initial["engine_patch"], {"course_count": 3, "target_credits": "6", "friday_free": "soft"})
+        continued = compile_hard_constraints('只在课程名含“管理”的历史班次里选，其他条件保留。', [], inherited_policy=initial)
+        self.assertEqual(continued["engine_patch"], initial["engine_patch"])
+        for message in ("不要生成3门课", "我不需要生成3门课", "假如生成3门课", "引用：生成3门课会怎样？"):
+            with self.subTest(message=message):
+                self.assertNotIn("course_count", compile_hard_constraints(message, [])["engine_patch"])
+        for message in ("假如尽量周五空闲的条件方案", "不要尽量周五空闲的条件方案", "尽量周五空闲的条件方案且必须同校区"):
+            result = compile_hard_constraints(message, [])
+            self.assertFalse(result["status"] == "ready" and result["engine_patch"].get("friday_free") == "soft", result)
+
     def test_clarification_preserves_explicit_count_credits_and_avoid_friday(self):
         first = compile_hard_constraints("用本学期历史课程数据给我三门课的组合，至少6学分，尽量避开周五。", [])
         self.assertEqual(first["engine_patch"], {"course_count": 3, "target_credits": "6", "friday_free": "soft"})

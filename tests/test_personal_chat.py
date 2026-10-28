@@ -761,6 +761,7 @@ class PersonalChatTests(unittest.TestCase):
         self.assertNotIn("MUST-NOT-LEAK", str(self.service.history({"conversation_id": result["conversation_id"]}, self.context)))
 
     def test_midturn_input_model_and_scope_changes_discard_private_results_and_finish(self):
+        self.enable_private_runs()
         for kind in ("input", "model", "scope"):
             with self.subTest(kind=kind):
                 previous = self.turn()
@@ -780,8 +781,24 @@ class PersonalChatTests(unittest.TestCase):
                 self.assertFalse(row["in_progress"])
                 self.assertEqual(row["state"]["turns"][-1]["tool_results"], [])
                 self.assertEqual(row["state"]["messages"], [])
+                run_id = row['state']['turns'][-1]['run_id']
+                with self.app.store.connect() as db:
+                    terminal = db.execute('SELECT status,error_code FROM personal_chat_runs WHERE id=?', (run_id,)).fetchone()
+                self.assertEqual(tuple(terminal), ('failed', reason))
+
+    def test_reserved_request_cannot_finish_an_unrelated_run_id(self):
+        self.enable_private_runs()
+        scope = self.service._identity_scope(self.context)
+        unrelated = self.service.runs.begin(self.context, str(uuid.uuid4()), str(uuid.uuid4()), self.model.status(), scope)
+        with patch.object(self.service.runs, 'begin', return_value=unrelated):
+            result = self.turn()
+        self.assertEqual(result['status'], 'completed')
+        with self.app.store.connect() as db:
+            status = db.execute('SELECT status FROM personal_chat_runs WHERE id=?', (unrelated,)).fetchone()[0]
+        self.assertEqual(status, 'running')
 
     def test_logout_during_inference_is_not_blocked_and_returns_no_private_payload(self):
+        self.enable_private_runs()
         first = self.turn()
         started, release = threading.Event(), threading.Event()
         def wait():
@@ -803,6 +820,10 @@ class PersonalChatTests(unittest.TestCase):
         self.assertFalse(row["in_progress"])
         self.assertEqual(row["state"]["turns"][-1]["tool_results"], [])
         self.assertEqual(row["state"]["turns"][-1]["citations"], [])
+        run_id = row['state']['turns'][-1]['run_id']
+        with self.app.store.connect() as db:
+            terminal = db.execute('SELECT status FROM personal_chat_runs WHERE id=?', (run_id,)).fetchone()
+        self.assertEqual(terminal[0], 'failed')
 
     def test_parallel_turn_is_rejected_without_holding_inference_lock(self):
         first = self.turn()

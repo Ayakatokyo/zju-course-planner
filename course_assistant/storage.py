@@ -7,6 +7,7 @@ import uuid
 from copy import deepcopy
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from hashlib import sha256
 from pathlib import Path
 from .importer import digest
 
@@ -456,3 +457,18 @@ class Store:
                        "WHERE realm=? AND owner=? AND request_id=? AND conversation_id=?",
                        ("complete" if response["status"] == "completed" else "failed", encoded(response),
                         context.security_realm, context.student_id, request_id, identifier))
+            run_id = response.get("run_id")
+            if (type(run_id) is str and re.fullmatch(r"RUN-[a-f0-9]{32}", run_id)
+                    and type(response.get("personal_scope")) is str
+                    and response["status"] in {"completed", "failed"}
+                    and db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='personal_chat_runs'").fetchone()):
+                # This is cleanup of this exact server-reserved request, not a
+                # read or renewed authorization. Bind every owner/scope/request
+                # field, and never let a run ID finalize a different request.
+                db.execute("UPDATE personal_chat_runs SET status=?,error_code=?,updated_at=? "
+                           "WHERE id=? AND realm=? AND owner=? AND scope_version=? "
+                           "AND conversation_id=? AND request_id=? AND status='running'",
+                           (response["status"], response.get("code") if response["status"] == "failed" else None,
+                            datetime.now(timezone.utc).timestamp(), run_id, context.security_realm,
+                            context.student_id, sha256(response["personal_scope"].encode("utf-8")).hexdigest(),
+                            identifier, request_id))

@@ -109,6 +109,25 @@ class PreviousPreparationContextTests(unittest.TestCase):
 
 
 class PersonalTaskTests(unittest.TestCase):
+    def test_grade_predicate_survives_intent_projection_without_source_facts(self):
+        row = record(operation="major_academic", term="ALL-HISTORY", query="合成关键词", mode="records")
+        predicate = {"kind": "numeric", "op": "gte", "value": 80}
+        row["arguments"]["grade_filter"] = deepcopy(predicate)
+        row["result"].update(grade_filter=deepcopy(predicate), records=[{"grade_raw": "PRIVATE"}])
+        value = previous_task_context(state(row))
+        self.assertEqual(value["tasks"][0]["grade_filter"], predicate)
+        self.assertEqual(validate_task_context(value), value)
+        self.assertNotIn("PRIVATE", json.dumps(value))
+        for bad in ({"kind": "unknown"}, None, {"kind": "numeric", "value": "PRIVATE"}):
+            altered = deepcopy(row)
+            altered["result"]["grade_filter"] = bad
+            self.assertIsNone(previous_task_context(state(altered)))
+        for bad in (None, {"kind": "numeric", "op": "gte", "value": 101}):
+            altered = deepcopy(value)
+            altered["tasks"][0]["grade_filter"] = bad
+            with self.assertRaisesRegex(ValueError, "invalid_task_context"):
+                validate_task_context(altered)
+
     @staticmethod
     def clarify(question="哪个学年？", basis="current_message"):
         return {"status": "completed", "reply_origin": "personal_model_clarification",

@@ -33,9 +33,11 @@ USAGE = frozenset({"prompt_tokens", "completion_tokens", "total_tokens", "cached
 COMMON_FIELDS = COUNTS | {"elapsed_ms", "status", "error_code"}
 TOOL_FIELDS = {"tool_name", "operation", "target_term", "query_mode", "initiated_by",
                "has_more", "complete_within_scope"}
+SOURCE_OPERATIONS = frozenset({"academic", "major_academic", "graduation_audit", "timetable",
+                               "exams", "curriculum", "current_enrollment"})
 EVENT_FIELDS = {
     "model.start": COMMON_FIELDS | {"provider", "model"},
-    "model.end": COMMON_FIELDS | {"provider", "model", "usage", "reasoning_content", "request_id", "completion_id", "http_status"},
+    "model.end": COMMON_FIELDS | {"provider", "model", "usage", "reasoning_content", "request_id", "completion_id", "http_status", "failure_detail"},
     "tool.start": COMMON_FIELDS | TOOL_FIELDS,
     "tool.end": COMMON_FIELDS | TOOL_FIELDS,
     "tool.rejected": COMMON_FIELDS | {"tool_name", "failure_detail"},
@@ -96,7 +98,7 @@ def tool_event_fields(name, arguments=None, result=None, *, initiated_by="model"
     result = result if type(result) is dict else {}
     fields = {"tool_name": name, "initiated_by": initiated_by}
     operation = arguments.get("operation", result.get("operation"))
-    if operation in ("academic", "major_academic", "timetable", "exams", "curriculum"):
+    if operation in SOURCE_OPERATIONS:
         fields["operation"] = operation
     term = arguments.get("target_term", result.get("target_term"))
     match = re.fullmatch(r"((?:19|20|21)\d{2})-((?:19|20|21)\d{2})-(?:AW|SS|A|W|S|SU)", term) if type(term) is str else None
@@ -302,7 +304,7 @@ class ChatRunStore:
             elif key in {"error_code", "failure_detail"}:
                 result[key] = _code(value)
             elif key == "operation":
-                if type(value) is not str or value not in {"academic", "major_academic", "timetable", "exams", "curriculum"}:
+                if type(value) is not str or value not in SOURCE_OPERATIONS:
                     _fail("invalid_run_event")
                 result[key] = value
             elif key == "target_term":

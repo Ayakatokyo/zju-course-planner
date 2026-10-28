@@ -74,14 +74,16 @@ def course_plan_tool_schemas(*, managed_dependencies=False):
         "properties": {"field": string(enum=["friday_free", "target_credits", "max_credits", "unlock_class_refs", "lock_class_refs", "exclude_class_refs"]),
             "quote": string(minLength=1, maxLength=200), "class_refs": refs}, "required": ["field", "quote"]}}
     schemas = [
-        {"name": NAMES[0], "description": "按名称或精确代码检索已授权本学期课程观察；支持来源标题明确并列的另一代码，返回observed关系，不证明课程等价或培养适用。observation_summary给出与计算器相同的历史观察筛查、周五空闲候选与节次；不是当前余量或本人可选结论。",
+        {"name": NAMES[0], "description": "按用户已明确的课程名称或代码范围检索已授权本学期课程观察；未给候选范围先澄清，不用“课”等泛词代替整个课程池；支持来源标题明确并列的另一代码，返回observed关系，不证明课程等价或培养适用。observation_summary给出与计算器相同的历史观察筛查、周五空闲候选与节次；不是当前余量或本人可选结论。",
          "properties": {"query": string(minLength=1, maxLength=100), "target_term": string(enum=[CURRENT_TERM]),
                         "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, "required": ["query", "target_term"]},
         {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；执行层保留用户在任意星期的明确节次禁排；下午等未明确节次须先澄清。courses仅课程组合，timetable另避开本人课表。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。" + dependencies + inspect_hint,
          "properties": {"recommendation_kind": string(enum=["courses", "timetable"]), "target_term": string(enum=[CURRENT_TERM]),
              "course_codes": codes, "target_credits": decimal, "max_credits": decimal,
              "friday_free": string(enum=["none", "soft", "hard"]),
-             "required_course_codes": {**codes, "minItems": 0}, "change_evidence": evidence},
+             "required_course_codes": {**codes, "minItems": 0}, "change_evidence": evidence,
+             "request_basis": {"type": "string", "enum": ["current_message", "pending_task"],
+                 "description": "补充上轮待澄清的同一生成请求用pending_task，继承服务端保留的原始人类条件；新请求或换题用current_message（默认）。不能引用任意历史。"}},
          "required": ["recommendation_kind", "target_term", "course_codes", "target_credits", "friday_free"]},
         {"name": NAMES[2], "description": "比较当前版本方案，或显式锁定/解锁/排除班次并重新计算；不保存、不选课。默认继承已有学分、锁定及任意星期的明确节次禁排，只提交本轮明确修改；未明确节次先澄清。保持已有锁、本人课表固定项和数据版本。"
             " action=compare时仅允许plan_ref、action、expected_revision、option_labels四字段，且必须提供option_labels；"
@@ -96,7 +98,7 @@ def course_plan_tool_schemas(*, managed_dependencies=False):
              "friday_free": string(enum=["none", "soft", "hard"]), "target_credits": decimal, "max_credits": decimal,
              "change_evidence": evidence},
          "required": ["plan_ref", "action", "expected_revision"]},
-        {"name": NAMES[3], "description": "读取当前连接本人保存的课程数据测试选择引用与计算摘要，用于解释目标、排序和候选范围；不改条件、不重新搜索、准备或求解，不把历史计算称为新读取。更新仍需本轮本人来源。",
+        {"name": NAMES[3], "description": "读取当前连接本人保存的课程数据测试选择引用与计算摘要，用于解释目标、排序和候选范围；不改条件、不重新搜索、准备或求解，不把历史计算称为新读取。更新仍需本轮本人来源。selection_hint.options已提供方案标签、课程顺序及class_ref，可用于解析用户要锁定的对象；此时options为空表示未重新计算，不能说无法读取已存课程。",
          "properties": {"plan_ref": string(pattern="^PLN-[a-f0-9]{48}$"),
              "option_labels": {"type": "array", "minItems": 1, "maxItems": 3, "uniqueItems": True, "items": string(enum=["A", "B", "C"])}},
          "required": []},
@@ -119,6 +121,9 @@ def validate_course_plan_args(name, args):
         if key in args and (type(args[key]) not in {int, float} or (value := _number(args[key])) is None or not 0 < value <= 100):
             _invalid()
     if "friday_free" in args and (type(args["friday_free"]) is not str or args["friday_free"] not in {"none", "soft", "hard"}):
+        _invalid()
+    if "request_basis" in args and (type(args["request_basis"]) is not str
+            or args["request_basis"] not in {"current_message", "pending_task"}):
         _invalid()
     if "change_evidence" in args:
         values = args["change_evidence"]

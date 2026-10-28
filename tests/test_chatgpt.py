@@ -3,12 +3,14 @@ from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import io
 import json
+import socket
+import ssl
 from pathlib import Path
 import tempfile
 import time
 from types import SimpleNamespace
 import unittest
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 
 from course_assistant.auth import AccessError, SCHOOL_MODE, SCHOOL_REALM
@@ -267,6 +269,34 @@ class ChatGPTTests(unittest.TestCase):
                 client.complete([{"role": "user", "content": "synthetic"}], [], observer=observed.append)
             self.assertEqual(observed[0]["status"], "failed")
             self.assertNotIn("partial", json.dumps(observed))
+
+    def test_transport_failures_keep_safe_categories_without_retry_or_error_text(self):
+        client = self.client()
+        secret = "SYNTHETIC-PRIVATE-URL-AND-TOKEN"
+        failures = [(URLError(ssl.SSLCertVerificationError(secret)), "tls_certificate_error"),
+                    (URLError(ssl.SSLError(secret)), "tls_error"),
+                    (TimeoutError(secret), "timeout"),
+                    (URLError(socket.gaierror(secret)), "dns_error"),
+                    (ConnectionResetError(secret), "connection_error"),
+                    (URLError(secret), "network_error")]
+        for failure, category in failures:
+            with self.subTest(category=category):
+                observed, before = [], len(self.transport.calls)
+                self.transport.replies.append(failure)
+                with self.assertRaises(ModelError) as caught:
+                    client.complete([{"role": "user", "content": "synthetic"}], [], observer=observed.append)
+                self.assertEqual(len(self.transport.calls), before + 1)
+                self.assertEqual(caught.exception.code, "model_unavailable")
+                self.assertEqual(caught.exception.failure_detail, category)
+                self.assertEqual(observed[0]["failure_detail"], category)
+                self.assertEqual(observed[0]["status"], "failed")
+                self.assertNotIn(secret, json.dumps(observed) + str(caught.exception))
+        self.transport.replies.append(URLError(TimeoutError(secret)))
+        with self.assertRaises(ModelError) as caught:
+            self.service._json(AUTH + "/synthetic")
+        self.assertEqual(caught.exception.code, "chatgpt_unavailable")
+        self.assertEqual(caught.exception.failure_detail, "timeout")
+        self.assertNotIn(secret, str(caught.exception))
 
     def test_unregistered_tool_and_wrong_namespace_fail_before_execution(self):
         client = self.client()

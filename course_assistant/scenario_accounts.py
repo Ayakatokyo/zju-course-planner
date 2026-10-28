@@ -23,7 +23,7 @@ from .academic_harness import AcademicHarness
 from .auth import AccessError
 from .model_client import ModelClient, read_config
 from .personal_dialogue import PersonalDialogueService
-from .personal_observations import source_grade_summary
+from .personal_observations import source_grade_summary, validate_grade_filter, matches_grade_filter
 from .semantic_retrieval import LocalSemanticRetriever
 from .reference_retrieval import terms
 from scripts.build_curriculum_scenarios import validate_student
@@ -143,6 +143,7 @@ class ScenarioAdapter:
                 'curriculum_available': True, 'curriculum_local_search': True, 'live_record_query': False,
                 'course_catalog_search': False, 'course_data_test': False}}
         if name == 'query_my_records':
+            predicate = validate_grade_filter(args['grade_filter'], args.get('operation')) if 'grade_filter' in args else None
             if args.get('operation') != 'major_academic':
                 return {**base, 'status': 'not_ready', 'reason': 'no_observation_in_scope', 'records': []}
             records = []
@@ -158,16 +159,20 @@ class ScenarioAdapter:
                     continue
                 if args.get('academic_year') and args['academic_year'] != r['academic_year']:
                     continue
+                if not matches_grade_filter(row, predicate):
+                    continue
                 records.append((index, row))
             offset, limit = int(args.get('cursor', 0)), args.get('limit', 15)
             if not 0 <= offset <= len(records) or not 1 <= limit <= 15:
                 raise ValueError('invalid record cursor')
             selected = [] if args.get('mode') == 'summary' else records[offset:offset + limit]
-            coverage = {'complete_within_scope': True, 'captured_rows': len(records), 'reported_total': len(records)}
+            total = len(self.student['academic_records'])
+            coverage = {'complete_within_scope': True, 'captured_rows': total, 'reported_total': total}
             return {**base, 'operation': 'major_academic', 'target_term': 'ALL-HISTORY',
                 'records': [r for _, r in selected], 'source_record_indices': [i for i, _ in selected],
-                'matched_records': len(records), 'total_records': len(records), 'returned_records': len(selected),
+                'matched_records': len(records), 'total_records': total, 'returned_records': len(selected),
                 'offset': offset, 'mode': args.get('mode', 'records'), 'coverage': coverage,
+                **({'grade_filter': predicate} if predicate is not None else {}),
                 'observation_id': self.version, 'source_alias': 'SYNTHETIC-ACADEMIC',
                 'source_grade_summary': source_grade_summary([r for _, r in records], coverage),
                 'next_cursor': str(offset + limit) if selected and offset + limit < len(records) else None}

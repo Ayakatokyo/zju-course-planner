@@ -59,6 +59,21 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
             return final({"kind": "answer", "text": text, "evidence_ids": [value["records"][0]["evidence_id"]]})
         return answer
 
+    def test_public_credit_meaning_needs_no_school_read_and_cannot_attest_old_credits(self):
+        for text, expected in [("不能直接称为正式欠修学分；模块字段之差只是算术差额，正式认定还需适用规则和学校审核。", "completed"),
+                               ("你已获6学分，还差3学分。", "failed")]:
+            self.executed.clear()
+            def answer(messages, tools):
+                value = json.loads(next(row['content'] for row in reversed(messages) if row['role'] == 'tool'))
+                return final({'kind': 'answer', 'text': text, 'evidence_ids': [value['entries'][0]['evidence_id']]})
+            model = ScriptedModel([call('lookup_academic_terms', {'topics': ['credits']}), answer])
+            service = PersonalDialogueService(model, self.authorize, self.execute)
+            result, _ = service.run('这两个数相减，可以直接叫作正式欠修吗？', data_use='personal_retrieval',
+                history=[{'role': 'user', 'content': '合成实践模块学分呢？'},
+                         {'role': 'assistant', 'content': '学校自审合成实践模块要求9学分，已获6学分。'}])
+            self.assertEqual(result['status'], expected)
+            self.assertFalse(any(name == 'query_my_records' for name, _ in self.executed))
+
     def test_audit_wording_can_recover_once_without_reacquiring_or_replaying_rejected_draft(self):
         rejected = "合成实践模块。学校自审中该模块已获6/要求9学分。"
         valid = "学校自审中，合成实践模块已获6学分，要求9学分。"
@@ -74,6 +89,71 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         self.assertNotIn(rejected, json.dumps(messages, ensure_ascii=False))
         self.assertNotIn(rejected, json.dumps(history, ensure_ascii=False))
         self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "source_claim_not_supported")
+
+    def selection_fixture(self, count=16):
+        from course_assistant.school_enrollment_preview import selected_snapshot, query_selected
+        self.context['capabilities']['current_enrollment_query'] = True
+        snapshot = selected_snapshot({'academic_year': '2026-2027', 'season': '1',
+            'selected': [{'kcmc': f'合成已选{i}', 'kcdm': f'SYN-{i}', 'sxbj': '1', 'sksj': '--'} for i in range(count)]})
+        snapshot.update(checked_at=1000, source_alias='SOURCE-' + 'a' * 24)
+        original = self.execute
+        def execute(name, args):
+            if name != 'query_current_enrollment':
+                return original(name, args)
+            self.executed.append((name, deepcopy(args)))
+            return {**query_selected(snapshot, args), 'cookie': 'SYNTHETIC-NOT-FOR-MODEL'}
+        self.execute = execute
+
+    def test_current_selection_model_receives_page_scope_pagination_and_no_credentials(self):
+        self.selection_fixture()
+        def first(messages, tools):
+            self.assertIn('query_current_enrollment', [t['function']['name'] for t in tools])
+            return call('query_current_enrollment', {})
+        def second(messages, tools):
+            result = json.loads(next(row['content'] for row in reversed(messages) if row['role'] == 'tool'))
+            self.assertEqual(result['record_source']['scope_kind'], 'current_selection_page')
+            self.assertEqual(result['target_term'], '2026-2027-AW')
+            self.assertFalse(result['selection_summary']['formal_enrollment_verified'])
+            self.assertEqual(len(result['records']), 15)
+            self.assertEqual(result['next_offset'], 15)
+            return call('query_current_enrollment', result['next_page_request'], identifier='page-2')
+        def answer(messages, tools):
+            result = json.loads(next(row['content'] for row in reversed(messages) if row['role'] == 'tool'))
+            self.assertEqual(len(result['records']), 1)
+            self.assertFalse(result['retrieval']['has_more'])
+            self.assertNotIn('next_offset', result)
+            return final({'kind': 'answer', 'text': '末条为合成已选15，页面状态已选上，正式中选尚未确认。',
+                          'evidence_ids': [result['records'][0]['evidence_id']]})
+        result, _, model = self.run_model([first, second, answer])
+        self.assertEqual(result['status'], 'completed', result)
+        self.assertEqual(result['citations'][0]['operation'], 'current_enrollment')
+        self.assertEqual(result['citations'][0]['source_record_index'], 15)
+        self.assertNotIn('SYNTHETIC-NOT-FOR-MODEL', json.dumps(model.calls))
+        self.assertNotIn('SOURCE-' + 'a' * 24, json.dumps(model.calls))
+
+    def test_current_selection_empty_list_has_current_summary_evidence(self):
+        self.selection_fixture(0)
+        def answer(messages, tools):
+            result = json.loads(next(row['content'] for row in reversed(messages) if row['role'] == 'tool'))
+            self.assertEqual(result['selection_summary']['matched_records'], 0)
+            return final({'kind': 'answer', 'text': '本次当前选课页面未返回已选记录，不能据此判断其他来源没有课程。',
+                          'evidence_ids': [result['selection_summary']['evidence_id']]})
+        result, _, _ = self.run_model([call('query_current_enrollment', {}), answer])
+        self.assertEqual(result['status'], 'completed', result)
+
+    def test_current_selection_tool_cannot_be_used_without_capability(self):
+        result, _, _ = self.run_model([call('query_current_enrollment', {})])
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual([name for name, _ in self.executed], ['get_my_context'])
+
+    def test_current_selection_does_not_allow_positive_formal_enrollment_claim(self):
+        self.selection_fixture(1)
+        def unsupported(messages, tools):
+            result = json.loads(next(row['content'] for row in reversed(messages) if row['role'] == 'tool'))
+            return final({'kind': 'answer', 'text': '你已经正式中选。',
+                          'evidence_ids': [result['records'][0]['evidence_id']]})
+        result, _, _ = self.run_model([call('query_current_enrollment', {}), unsupported])
+        self.assertEqual(result['code'], 'unsupported_personal_claim')
 
     def test_audit_repair_still_rejects_wrong_values_and_stops_after_one_attempt(self):
         bad = self.audit_answer("学校自审中，合成实践模块已获9学分，要求9学分。")
@@ -189,6 +269,33 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         value=json.loads(next(row["content"] for row in reversed(model.calls[-1][0]) if row["role"] == "tool"))
         self.assertFalse(value["coverage"]["complete_within_scope"])
         self.assertFalse(result["citations"][0]["record_source"]["full_student_history_verified"])
+
+    def test_grade_filter_and_nominal_sum_reach_model_with_current_summary_proof(self):
+        self.set_summary()
+        predicate = {"kind": "numeric", "op": "gte", "value": 90}
+        self.records.update(grade_filter=predicate, matched_records=2,
+            source_grade_summary=source_grade_summary([
+                {"grade_raw": "90", "nominal_credits": "1", "field_states": {"grade_raw": "known", "nominal_credits": "known"}},
+                {"grade_raw": "91", "nominal_credits": "1.5", "field_states": {"grade_raw": "known", "nominal_credits": "known"}}],
+                self.records["coverage"]))
+        def answer(messages, tools):
+            remote = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            self.assertEqual(remote["grade_filter"], predicate)
+            summary = remote["source_grade_summary"]
+            self.assertEqual((summary["matched_records"], summary["known_nominal_credits_sum"]), (2, "2.5"))
+            self.assertFalse(summary["earned_credits_verified"])
+            return final({"kind": "answer", "text": "本轮满足分数条件的2条记录，名义学分合计2.5，不等于已获学分。",
+                          "evidence_ids": [summary["evidence_id"]]})
+        result, _, _ = self.run_model([call("query_my_records", {"operation": "academic", "target_term": "2023-2024-SS", "mode": "summary", "grade_filter": predicate}), answer])
+        self.assertEqual((result["status"], result["repair_attempts"]), ("completed", 0))
+        self.assertEqual(result["citations"][0]["source_grade_summary"]["known_nominal_credits_sum"], "2.5")
+
+    def test_tool_cannot_ignore_requested_grade_predicate(self):
+        self.set_summary()
+        with self.assertRaises(PersonalDialogueError):
+            PersonalDialogueService._project("query_my_records", self.records,
+                {"operation": "academic", "target_term": "2023-2024-SS", "limit": 15,
+                 "grade_filter": {"kind": "numeric", "op": "gte", "value": 90}}, "12345678", {}, 0, [0, 0, {}], set())
 
 
     def test_two_term_summaries_and_record_detail_keep_independent_sources(self):

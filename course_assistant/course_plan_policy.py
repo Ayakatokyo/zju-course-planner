@@ -14,7 +14,7 @@ import re
 from .planner import _number
 
 
-VERSION = "course-plan-policy/3"
+VERSION = "course-plan-policy/5"
 _DAY = re.compile(r"(?:周|星期)([一二三四五六日天1-7])")
 _PERIOD_TOKEN = r"第?\s*[0-9]+\s*节?"
 _PERIOD_CONNECTOR = r"(?:到|至|[-—–~～、,，]|和|及)"
@@ -25,10 +25,10 @@ _SPACE = re.compile(r"\s+")
 _SOFT = re.compile(r"尽量|最好|优先|不强求|不一定|不必|不用非得|没必要")
 _SOFT_ADDITIVE = r"(?:也|同样(?:地)?|另外|此外|还)"
 _REPORTED = re.compile(r"如果|假如|假设|要是|比如|例如|示例|引用|原文|(?:老师|资料|他|她|你)(?:说|建议)|会怎样|会有什么|有什么影响|为什么|怎么样|是否已经|有没有(?:被)?(?:取消|解除)")
-_NEGATED_CHANGE = re.compile(r"(?:不要|别|不能|不得|不许|不想|不希望)(?:给我|帮我|去|再|把.{0,20})?(?:解除|解锁|取消|放宽|收紧|调整|变更|降低|调低|去掉|改|设为|设置为|解开|锁定|固定住|保留|排除|禁用)")
-_DENIED_INTENT = re.compile(r"不是|并非|(?:没有|没|未曾|从未)(?:说|要求|希望|打算|同意|授权|让|想)|不(?:需要|打算|准备|希望|想要|想|愿意|同意).*(?:解除|解锁|取消|放宽|收紧|调整|变更|改|设为|设置为|锁定|保留|排除)|不接受|不行")
+_NEGATED_CHANGE = re.compile(r"(?:不要|别|不能|不得|不许|不想|不希望)(?:给我|帮我|去|再|把.{0,20})?(?:生成|解除|解锁|取消|放宽|收紧|调整|变更|降低|调低|去掉|改|设为|设置为|解开|锁定|固定住|保留|排除|禁用)")
+_DENIED_INTENT = re.compile(r"不是|并非|(?:没有|没|未曾|从未)(?:说|要求|希望|打算|同意|授权|让|想)|不(?:需要|打算|准备|希望|想要|想|愿意|同意).*(?:生成|解除|解锁|取消|放宽|收紧|调整|变更|改|设为|设置为|锁定|保留|排除)|不接受|不行")
 _NUMBER = r"(?:[0-9]+(?:\.[0-9]+)?|[一二三四五六七八九十百]+)"
-_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|给我|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要)(" + _NUMBER + r"|两)门")
+_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|生成|给我|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要)(" + _NUMBER + r"|两)门")
 _COURSE_COUNT_LITERAL = re.compile(r"(?:" + _NUMBER + r"|两)门(?:课程|课)?\Z")
 _PROCESS_ITEM = r"(?:来源|依据|证据|引用|未知项|未知部分|未确认项|未确认部分|未确认内容|未核实项|不确定项|不确定性|限制|边界|哪些(?:尚未|还未|没有|未)(?:确认|核实))"
 _PROCESS_ITEMS = _PROCESS_ITEM + r"(?:(?:以及|和|及|与|、)" + _PROCESS_ITEM + r")*"
@@ -303,7 +303,7 @@ def _soft_scope(text):
     # disappear just because it contains an empty-time word somewhere.
     if not re.fullmatch(r"(?:" + _SOFT_ADDITIVE + r"|请|麻烦|帮我|我希望|希望|让|使|的|改为|改成|调整为|设为|"
             r"尽量|最好|优先|不强求|不一定|不必|不用非得|没必要|保持|留出|留|整天|全天|都)*"
-            r"(?:空闲|没课|无课|留空|空|避开|不要排课|别排课|不排课|不要有课|不上课)(?:一下|一点)?[。.!！]?", residual):
+            r"(?:空闲|没课|无课|留空|空|避开|不要排课|别排课|不排课|不要有课|不上课)(?:一下|一点)?(?:的(?:条件|课程|排课)?方案)?[。.!！]?", residual):
         return None
     weekday = {c: i + 1 for i, c in enumerate("一二三四五六日")}.get(days[0][1])
     weekday = weekday if weekday is not None else 7 if days[0][1] == "天" else int(days[0][1])
@@ -602,6 +602,18 @@ def _evidence_clauses(message, quote):
     return clauses + [quote] if len(clauses) > 1 else clauses
 
 
+def _option_position_pattern(label, position):
+    """Resolve only stable A/B/C option order and an explicit course position."""
+    option = r"(?:方案)?" + re.escape(label) + r"(?:方案)?"
+    if label.upper() in {"A", "B", "C"}:
+        ordinal = ord(label.upper()) - ord("A") + 1
+        option += r"|第(?:" + str(ordinal) + "|" + "一二三"[ordinal - 1] + r")套(?:方案)?"
+    course = r"第?(?:" + str(position) + "|" + "一二三四五六七八九十"[position - 1] + r")(?:门|个)"
+    if position == 1:
+        course += r"|首(?:门|个)"
+    return r"(?:" + option + r")(?:里|中)?(?:的)?(?:" + course + r")(?:课程|课|班次)?"
+
+
 def _target_matches(text, refs, metadata, *, unlocking=False):
     normalized = _norm(text)
     locked = {ref for ref, row in metadata.items() if row.get("locked") is True}
@@ -627,7 +639,7 @@ def _target_matches(text, refs, metadata, *, unlocking=False):
     for ref in refs:
         row = metadata.get(ref, {})
         direct = ref in named
-        positioned = any(re.search(r"(?:方案)?" + re.escape(label.casefold()) + r"(?:中|里|的)?(?:第?(?:" + str(position) + "|" + "一二三四五六七八九十"[position-1] + r")(?:门|个)|首(?:门|个))", normalized)
+        positioned = any(re.search(_option_position_pattern(label.casefold(), position), normalized)
                          for label, position in row.get("option_positions", {}).items() if 1 <= position <= 10)
         if not direct and not positioned:
             return False
@@ -662,7 +674,7 @@ def _consumed_class_expressions(clause, field, refs, metadata):
                       for label in row.get("option_positions", {})]
         qualifier = "(?:" + "|".join(qualifiers) + ")?" if qualifiers else ""
         targets = [qualifier + re.escape(value) for value in (row.get("course_code"), row.get("course_name")) if type(value) is str and value]
-        targets += [r"(?:方案)?" + re.escape(label) + r"(?:中|里|的)?(?:第?(?:" + str(position) + "|" + "一二三四五六七八九十"[position-1] + r")(?:门|个)|首(?:门|个))"
+        targets += [_option_position_pattern(label, position)
                     for label, position in row.get("option_positions", {}).items() if 1 <= position <= 10]
         for target in targets:
             # Match a small action phrase, stopping at the verified target.

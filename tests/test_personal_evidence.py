@@ -275,6 +275,21 @@ class PersonalEvidenceTests(unittest.TestCase):
         self.assertFalse(any('合成思政' in m['text'] for m in result['matches']))
         self.assertTrue(any('核心选修' in m['text'] for m in result['matches']))
 
+    def test_unknown_specialized_module_does_not_fall_back_to_generic_parent(self):
+        self.pages = ['2. 专业课程 8学分\n(1) 专业必修课程 6学分\n'
+                      '课程号 课程名称 学分\nSYN1001M 合成必修 3.0\n'
+                      '(2) 专业选修课程 2学分\n课程号 课程名称 学分\nSYN1002M 合成选修 2.0\n']
+        self.prepare()
+        for mode in ('module_courses', 'module_context'):
+            result = self.service.search('专业核心课程', mode=mode)
+            self.assertEqual(result['status'], 'needs_clarification')
+            self.assertEqual(result['matches'], [])
+            self.assertTrue(any(c['module_path'][-1] == '专业必修课程' for c in result['module_choices']))
+        broad = self.service.search('专业课程', mode='module_courses')
+        self.assertEqual(broad['listing']['total_course_rows'], 2)
+        precise = self.service.search('专业必修课程', mode='module_courses')
+        self.assertEqual(precise['listing']['total_course_rows'], 1)
+
     def test_module_hierarchy_prevents_sibling_leakage_and_keeps_core_parent(self):
         self.pages = ['三、专业课程 30学分\n(1)专业选修课程 10学分\nSYN1001M  原选修  2.0\n'
                       '以下为核心选修课程，要求14.5学分。\nSYN1002M  核心课程  3.0\n'

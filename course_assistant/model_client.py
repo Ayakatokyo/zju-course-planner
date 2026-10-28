@@ -5,6 +5,8 @@ from copy import deepcopy
 import json
 import os
 import re
+import socket
+import ssl
 import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -12,11 +14,31 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 class ModelError(ValueError):
-    def __init__(self, message, code="model_error", *, http_status=None, request_id=None):
+    def __init__(self, message, code="model_error", *, http_status=None, request_id=None, failure_detail=None):
         super().__init__(message)
         self.code = code
         self.http_status = http_status
         self.request_id = request_id
+        self.failure_detail = failure_detail
+
+
+def transport_failure_kind(error):
+    """Classify by exception type only; never persist URLs, headers or error text."""
+    for _ in range(4):
+        if not isinstance(error, URLError):
+            break
+        error = error.reason
+    if isinstance(error, ssl.SSLCertVerificationError):
+        return "tls_certificate_error"
+    if isinstance(error, ssl.SSLError):
+        return "tls_error"
+    if isinstance(error, TimeoutError):
+        return "timeout"
+    if isinstance(error, socket.gaierror):
+        return "dns_error"
+    if isinstance(error, ConnectionError):
+        return "connection_error"
+    return "network_error"
 
 
 def strict_json(text):

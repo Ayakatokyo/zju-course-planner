@@ -87,6 +87,27 @@ class GraduationAuditTests(unittest.TestCase):
         finally:
             h.doCleanups()
 
+    def test_same_named_module_types_survive_source_and_model_summary(self):
+        h = account_tests.SchoolAccountTests()
+        h.setUp()
+        try:
+            rows = [{"JDDM": "S1", "JDMC": "同名合成模块", "XBX": "必修课程", "SFTG": "不通过"},
+                    {"JDDM": "S2", "JDMC": "同名合成模块", "XBX": "选修课程", "SFTG": "通过"},
+                    {"JDDM": "S3_bx", "JDMC": "类型未知模块", "SFTG": "通过"}]
+            response = {"state": "business", "http_status": 200, "content_type": "application/json",
+                        "payload": project_rows(rows)}
+            _, context, _, _ = h.login(account_tests.FakeSchoolClient(requests=[response]))
+            args = {"operation": "graduation_audit", "mode": "summary", "limit": 15}
+            result = h.live(context, "query_my_records", args, [])
+            from course_assistant.personal_dialogue import PersonalDialogueService
+            _, remote = PersonalDialogueService._project('query_my_records', result, args, '12345678', {}, 1, [0,0], set())
+            modules = remote['graduation_summary']['modules']
+            self.assertEqual([m['course_name_raw'] for m in modules], ['同名合成模块', '同名合成模块', '类型未知模块'])
+            self.assertEqual([m.get('requirement_type_raw') for m in modules], ['必修课程', '选修课程', None])
+            self.assertEqual([m['completion_status_raw'] for m in modules], ['不通过', '通过', '通过'])
+        finally:
+            h.doCleanups()
+
     def test_scoped_audit_summary_covers_matches_not_unrelated_modules_or_only_page(self):
         h = account_tests.SchoolAccountTests()
         h.setUp()

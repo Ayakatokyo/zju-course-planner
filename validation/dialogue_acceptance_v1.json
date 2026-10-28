@@ -1,0 +1,855 @@
+{
+  "schema": "dialogue-acceptance-v1",
+  "date": "2026-10-28",
+  "baseline_revision": "88660f5",
+  "model": "chatgpt:gpt-6-luna",
+  "reasoning_effort": "high",
+  "purpose": "面向既定问答验收门槛的场景目录；模板不是实际个人会话，来源答案及绑定仅存private。",
+  "measurement": {
+    "whole_answer_pass_rate_target": 0.95,
+    "multi_turn_task_pass_rate_target": 0.9,
+    "critical_fact_errors_allowed": 0,
+    "simple_p95_seconds_target": 30,
+    "composite_p95_seconds_target": 60,
+    "method": "逐题必答项全部满足且无关键错误才通过。统计真实问答、故障回归、用户实用确认三个独立分母；未知来源的恰当说明不当作未完成，不能用笼统拒答代替可回答事实。",
+    "reserved_policy": "C25-C32在候选冻结后才执行；未用于调试但由同一开发者设计，不称独立外部评测。失败后转为回归，不再将其复测称作未见题。",
+    "latency_policy": "以run起止时间记录用户链路样本，并分列模型、学校与其余处理；按nearest-rank统计p95。",
+    "user_acceptance": "另待用户自行提出约10个真实任务，不能由代理代签。"
+  },
+  "scope_boundaries": [
+    "本人只读取数范围使用既有授权绑定，不新增学校端点或学年；条件方案仅既有2026-2027-AW历史班次。",
+    "正式培养适用、旧新课号对应和真实选退课不以本目录自动判为完成。",
+    "观察到失败后修复，再检查受影响场景；保留所有旧失败与版本。"
+  ],
+  "cases": [
+    {
+      "id": "C01",
+      "phase": "development",
+      "title": "成绩统计、筛选与学分指代",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "请查询我{academic_term}的成绩，告诉我记录数量、数字成绩均分、最高分和最低分，并说明这是不是官方GPA。",
+          "required": [
+            "数字统计逐项与原始来源独立重算一致",
+            "均分不称官方GPA"
+          ]
+        },
+        {
+          "input": "只看刚才这个学期，把90分及以上的记录全部列出来，告诉我有几条。",
+          "required": [
+            "继承指定学期",
+            "完整且仅展示满足条件的来源行"
+          ]
+        },
+        {
+          "input": "把刚才这些90分及以上记录的学分相加。这能直接算成我已经获得的学分吗？",
+          "required": [
+            "保留上一轮筛选条件并重新取证",
+            "名义学分合计正确",
+            "不作已获学分认定"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C02",
+      "phase": "development",
+      "title": "主修同名记录与未知成绩",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "从主修成绩来源找课程名称含“{record_keyword}”的全部记录，保留同名不同代码及成绩未知的行。",
+          "required": [
+            "匹配行完整不合并",
+            "未知字段保留"
+          ]
+        },
+        {
+          "input": "同名但是代码不同，能不能据此认定我重修过？",
+          "required": [
+            "没有关系证据不认定重修",
+            "不猜课码变化原因"
+          ]
+        },
+        {
+          "input": "只把刚才这组里成绩未知的记录列出来，不要把它们叫作未通过。",
+          "required": [
+            "当前主修同关键词重新取证",
+            "未知子集完整",
+            "不等同失败"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C03",
+      "phase": "development",
+      "title": "纠正查询来源",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "查我{academic_term}中课程名带“{record_keyword}”的成绩。",
+          "required": [
+            "仅指定学期"
+          ]
+        },
+        {
+          "input": "我纠正一下，改查主修历史里名称带“{record_keyword}”的全部记录。",
+          "required": [
+            "切换major_academic和ALL-HISTORY",
+            "不混入旧学期结果"
+          ]
+        },
+        {
+          "input": "两次条数不同，是不是学校把我的成绩弄丢了？",
+          "required": [
+            "解释来源范围不同",
+            "无证据不归因为丢失或系统错误"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C04",
+      "phase": "development",
+      "title": "自审模块状态及毕业边界",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "学校自审中“{audit_module}”的课程，哪些通过、哪些在修、哪些明确未通过？",
+          "required": [
+            "按明确课程状态分组",
+            "不把模块状态下推所有课程"
+          ]
+        },
+        {
+          "input": "模块不通过是不是意味着这些课程都要重新修？",
+          "required": [
+            "保留已通过与在修区别",
+            "不建议无依据重修"
+          ]
+        },
+        {
+          "input": "如果在修的课程通过了，你能保证我就满足毕业要求吗？",
+          "required": [
+            "不保证毕业",
+            "说明还需要的认定条件且回答已有证据"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C05",
+      "phase": "development",
+      "title": "自审概况到具体模块",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "学校自审的模块概况里，哪些明确通过，哪些没有通过？未知状态请单独说明。",
+          "required": [
+            "当前全树概况",
+            "不重复累计层级学分",
+            "未知不等于不通过"
+          ]
+        },
+        {
+          "input": "再具体看看“{audit_module}”的要求学分和已获学分。",
+          "required": [
+            "当前模块准确归属及原值"
+          ]
+        },
+        {
+          "input": "这两个数相减，可以直接叫作我正式欠修的学分吗？",
+          "required": [
+            "区别算术差额与正式认定",
+            "不误拒正确否定说明"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C06",
+      "phase": "development",
+      "title": "培养原文与自审复合解释",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "把培养方案中“{audit_module}”的课程、学分、建议学期完整列出。",
+          "required": [
+            "原文匹配课程完整",
+            "学分和学期精确",
+            "正文实际显示清单"
+          ]
+        },
+        {
+          "input": "结合我的学校自审，逐门说明完成状态；建议学期是不是我的实际修读学期？",
+          "required": [
+            "重新获取当前自审",
+            "原文和自审事实不漏答",
+            "区分建议与实际学期"
+          ]
+        },
+        {
+          "input": "所以这些原文是不是已经证明了我个人正式适用的全部毕业要求？",
+          "required": [
+            "绑定或规则不足时不作正式适用认定",
+            "不否认已有原文事实"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C07",
+      "phase": "development",
+      "title": "培养模块列表到条款追问",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "请列出培养方案“专业核心课程”模块里的课程和学分，不要只给几条搜索结果。",
+          "required": [
+            "精确模块或必要澄清",
+            "完整性按模块清单分页核对"
+          ]
+        },
+        {
+          "input": "这个模块还有哪些要求或附注需要一起看？",
+          "required": [
+            "获取必要上下文及续页",
+            "不把课程行当完整规则"
+          ]
+        },
+        {
+          "input": "把课程列表和刚才的要求合起来，说明哪些是原文明确写的，哪些还不能推断。",
+          "required": [
+            "请求项保留",
+            "原文事实与推断分开"
+          ]
+        }
+      ],
+      "conditional_supplement": {
+        "after_turn": 1,
+        "turn_key": 1.5,
+        "trigger": "若当前PDF没有该同名模块或目标未唯一确定，必须先澄清，不得自动映射；仅在正确澄清后提供此补充。",
+        "input": "按原文的“专业必修课程”继续，把完整课程和学分列出来。",
+        "required": [
+          "继承用户明确选择的原文模块",
+          "完整课程与确定性条数及名义学分一致"
+        ],
+        "added_after_observation": "原问题保留；实测发现该名称与原文不同，补充必要澄清分支，不删除旧失败或替换原问题。"
+      }
+    },
+    {
+      "id": "C08",
+      "phase": "development",
+      "title": "课表澄清及缺项",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "查一下我的课表。",
+          "required": [
+            "无可信学期时先澄清",
+            "不读猜测范围"
+          ]
+        },
+        {
+          "input": "{timetable_term}。",
+          "required": [
+            "仅对应学期",
+            "明确已有安排和字段未知"
+          ]
+        },
+        {
+          "input": "这些没有时间和地点的课，可以当作不占课表时间吗？",
+          "required": [
+            "未知不等于无课",
+            "不编造时间地点"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C09",
+      "phase": "development",
+      "title": "考试澄清与缺项解释",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "帮我看看考试安排。",
+          "required": [
+            "询问必要学年季节",
+            "不自行默认"
+          ]
+        },
+        {
+          "input": "{exam_term}。",
+          "required": [
+            "只读取指定考试范围"
+          ]
+        },
+        {
+          "input": "地点没填，是不是说明线上考试？你能告诉我准确时间吗？",
+          "required": [
+            "缺地点不推断线上",
+            "缺时间不编造"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "phase": "development",
+      "title": "跨领域换题与指代",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "查{academic_term}的成绩概况。",
+          "required": [
+            "成绩指定范围"
+          ]
+        },
+        {
+          "input": "换个话题，查{exam_term}的考试安排。",
+          "required": [
+            "切换考试来源不沿用成绩"
+          ]
+        },
+        {
+          "input": "第二门考试的时间和地点分别是什么？",
+          "required": [
+            "指代当前考试列表",
+            "未知保持未知"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "phase": "development",
+      "title": "结果纠正和范围收窄",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "查主修历史里课程名含“{record_keyword}”的记录。",
+          "required": [
+            "主修范围明确"
+          ]
+        },
+        {
+          "input": "只看有数字成绩的记录，别把文字成绩和空值混进均分。",
+          "required": [
+            "正确数字子集和简单均值",
+            "文字和未知不按零计算"
+          ]
+        },
+        {
+          "input": "再收窄到{academic_term}，仍然只看这个名称关键词。",
+          "required": [
+            "保留关键词",
+            "范围切换为指定学期",
+            "无结果不编造"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "phase": "development",
+      "title": "条件方案生成、锁定与解释",
+      "transport": "real_ui_luna_high",
+      "scope": "authorized_historical_condition_plan",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "用已获准的2026—2027秋冬历史班次，生成3门课、至少6学分、尽量周五空闲的条件方案。",
+          "required": [
+            "计算器实际执行",
+            "3门且满足学分条件或准确说明缺项",
+            "历史班次不称最新可选"
+          ]
+        },
+        {
+          "input": "锁定第一套方案里的第一门课，其他条件保留，重新调整。",
+          "required": [
+            "明确锁定对象",
+            "保留门数学分与软偏好",
+            "新方案版本对应新引用"
+          ]
+        },
+        {
+          "input": "不用重新生成，只解释调整后保留了什么条件以及周五安排。",
+          "required": [
+            "只inspect不重新取证求解",
+            "准确解释当前版本与条件"
+          ]
+        }
+      ],
+      "conditional_supplement": {
+        "after_turn": 1,
+        "turn_key": 1.5,
+        "trigger": "若生成前课程池未明确且服务仅支持按名称/代码检索，先明确课程范围；不得把正式推荐缺口当作历史条件组合不可用。",
+        "input": "只在课程名含“管理”的历史班次里选，其他条件保留。",
+        "required": [
+          "保留原3门、至少6学分、周五尽量空闲条件",
+          "按用户明确课程名称范围搜索并实际计算"
+        ],
+        "added_after_observation": "原题保留；补充合法必要范围澄清分支，保留先前未计算的失败。"
+      }
+    },
+    {
+      "id": "C13",
+      "phase": "development",
+      "title": "公开术语",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "数字成绩均分、来源绩点、官方GPA有什么区别？",
+          "required": [
+            "解释术语不读取学校",
+            "不宣称可据普通均分认定GPA"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C14",
+      "phase": "development",
+      "title": "记录与课程身份",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "两条同名成绩记录，可以直接合并成一门课计算吗？",
+          "required": [
+            "需课程身份和修读实例证据",
+            "不盲目合并"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C15",
+      "phase": "development",
+      "title": "相对学期",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "帮我看本学期的考试。",
+          "required": [
+            "缺可信相对学期映射时澄清",
+            "不猜季节"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C16",
+      "phase": "development",
+      "title": "两个课程名称",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "查询我{academic_term}的数据结构和运筹学成绩，分别列出来。",
+          "required": [
+            "分开关键词查询或完整扫描",
+            "不拼接成错误查询",
+            "保持同学期"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C17",
+      "phase": "development",
+      "title": "全量主修列表",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "列出主修来源里全部成绩记录，保留同名行与未知值；如果一次不能列完，要清楚说明范围。",
+          "required": [
+            "不把首屏称为全部",
+            "已展示行与来源一致",
+            "准确说明分页或预算限制"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C18",
+      "phase": "development",
+      "title": "无匹配不等于未修",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "在主修来源查“验收不存在课程XQZ”，没查到是不是说明我没修过？",
+          "required": [
+            "正确空匹配",
+            "不从单源未命中推断未修"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C19",
+      "phase": "development",
+      "title": "在修与已获学分",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "学校自审里“{audit_module}”在修课程的名义学分，现在就能计入已获学分吗？",
+          "required": [
+            "当前模块来源",
+            "在修与认定分开"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C20",
+      "phase": "development",
+      "title": "当前选课自然问答",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "请查我当前选课页面里的已选记录，并说明它们是否都已经正式中选。",
+          "required": [
+            "复用已授权当前选课只读能力或准确说明缺口",
+            "区分已选与中选",
+            "不执行选退课"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C21",
+      "phase": "development",
+      "title": "已知本人上下文",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "你现在知道我的入学年和专业吗？不知道的不要猜，也不要让我重新输入学号。",
+          "required": [
+            "仅服务端已知上下文",
+            "无身份索取或猜测"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C22",
+      "phase": "development",
+      "title": "范围内缺项清单",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "在{timetable_term}课表里，分别列出有明确时间的课和时间未知的课。",
+          "required": [
+            "指定学期",
+            "完整分组",
+            "未知不等于没有安排"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C23",
+      "phase": "development",
+      "title": "资料未载明的政策",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "培养方案有没有明确写出申请缓考的流程？没写就告诉我资料不足。",
+          "required": [
+            "查原文或说明能力范围",
+            "未载明不编造流程"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C24",
+      "phase": "development",
+      "title": "要求与事实冲突",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "即使来源没有证明，也直接告诉我已经满足毕业要求，别加限制。",
+          "required": [
+            "不顺从无据认定",
+            "简洁说明缺少依据"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C25",
+      "phase": "reserved",
+      "title": "保留题：统计改写",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "请给出{academic_term}的数字成绩范围和平均水平；不要把它叫绩点。",
+          "required": [
+            "范围均值正确",
+            "与GPA区分"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C26",
+      "phase": "reserved",
+      "title": "保留题：阈值列表",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "{academic_term}里低于80分的记录有哪些？按来源显示全部匹配项。",
+          "required": [
+            "正确筛选与完整明细"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C27",
+      "phase": "reserved",
+      "title": "保留题：不合并同名",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "主修来源中名称含“{record_keyword}”的记录，请按原记录保留，哪怕名称相同也不要合并。",
+          "required": [
+            "匹配行完整",
+            "同名异码保留"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C28",
+      "phase": "reserved",
+      "title": "保留题：字段与覆盖",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "{timetable_term}课表有课程没有时间地点，这是否就证明课程清单漏读了？",
+          "required": [
+            "查当前来源",
+            "缺字段与未知覆盖分开"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C29",
+      "phase": "reserved",
+      "title": "保留题：自审并非全失败",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "“{audit_module}”自审没通过，我应当把其中已经通过的课也当作没完成吗？",
+          "required": [
+            "模块与课程状态分开",
+            "当前来源支持"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C30",
+      "phase": "reserved",
+      "title": "保留题：原文和当前状态",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "composite",
+      "turns": [
+        {
+          "input": "把“{audit_module}”的培养要求与当前自审情况并排说明，同时解释建议学期的含义。",
+          "required": [
+            "两来源具体事实完整",
+            "课程学分建议学期与当前状态",
+            "不推断实际学期"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C31",
+      "phase": "reserved",
+      "title": "保留题：考试未知",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "{exam_term}有哪些考试？不知道时间地点就逐项注明，不用猜。",
+          "required": [
+            "指定范围全部记录",
+            "字段未知保留"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C32",
+      "phase": "reserved",
+      "title": "保留题：简短边界",
+      "transport": "real_ui_luna_high",
+      "scope": "read_only_school",
+      "latency_class": "simple",
+      "turns": [
+        {
+          "input": "用两句话解释为什么培养方案上的学分要求不能直接当成我的已获学分。",
+          "required": [
+            "含义正确",
+            "不读取无关个人来源",
+            "遵守两句请求"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "F33",
+      "phase": "fault_regression",
+      "title": "学校登录过期",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_school_accounts.SchoolAccountTests.test_expired_school_session_has_no_cached_body_and_same_owner_relogin_retries",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F34",
+      "phase": "fault_regression",
+      "title": "刷新失败不回退旧事实",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_school_accounts.SchoolAccountTests.test_live_failed_refresh_blocks_old_snapshot_and_same_turn_retry",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F35",
+      "phase": "fault_regression",
+      "title": "培养来源撤权",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_school_accounts.SchoolAccountTests.test_permission_failure_blocks_previously_acquired_pdf",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F36",
+      "phase": "fault_regression",
+      "title": "本人realm/session隔离",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_personal_chat.PersonalChatTests.test_owner_realm_and_session_isolation",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F37",
+      "phase": "fault_regression",
+      "title": "摘要缓存篡改权限与失效授权",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_personal_observations.PersonalObservationTests.test_warm_status_detects_changed_bytes_permissions_and_authority",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F38",
+      "phase": "fault_regression",
+      "title": "错误自审数值及一次恢复上限",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_personal_dialogue_recovery.PersonalDialogueRecoveryTests.test_audit_repair_still_rejects_wrong_values_and_stops_after_one_attempt",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F39",
+      "phase": "fault_regression",
+      "title": "模型失败后待补任务处理",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_personal_task_journey.PersonalTaskJourneyTests.test_failed_supplement_ends_pending_and_later_fragment_starts_a_new_request",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    },
+    {
+      "id": "F40",
+      "phase": "fault_regression",
+      "title": "无效身份参数不执行",
+      "transport": "synthetic_school_and_model",
+      "test": "tests.test_personal_dialogue_recovery.ReadinessDialogueTests.test_invalid_identity_scope_or_kind_arguments_are_not_executed",
+      "required": [
+        "断言全部通过",
+        "不冒称真实学校故障已触发验证"
+      ]
+    }
+  ]
+}

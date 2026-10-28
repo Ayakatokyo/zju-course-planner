@@ -9,6 +9,8 @@ from course_assistant.auth import AuthContext
 from course_assistant.chat_runs import (ChatRunError, ChatRunStore, MAX_EVENTS,
                                        MAX_REASONING_EVENT, MAX_REASONING_RUN, tool_event_fields)
 from course_assistant.storage import Store
+from course_assistant.personal_chat import _ObservedModel
+from course_assistant.model_client import ModelError
 
 
 class ChatRunTests(unittest.TestCase):
@@ -68,6 +70,27 @@ class ChatRunTests(unittest.TestCase):
         self.assertEqual(details["reasoning_kind"], "provider_visible_reasoning")
         self.assertFalse(details["reasoning_is_execution_proof"])
         self.assertEqual(details["events"][1]["fields"]["http_status"], 200)
+
+    def test_model_failure_category_reaches_private_log_without_transport_text(self):
+        class FailedClient:
+            def status(self):
+                return {"model": "synthetic-model"}
+
+            def complete_stream_with_metadata(self, messages, tools, *, observer, on_reasoning):
+                observer({"status": "failed", "code": "model_unavailable", "failure_detail": "tls_error",
+                          "elapsed_ms": 8, "raw_error": "SYNTHETIC-PRIVATE-URL-AND-TOKEN"})
+                raise ModelError("Unavailable", "model_unavailable", failure_detail="tls_error")
+
+        run = self.begin()
+        model = _ObservedModel(FailedClient(),
+            lambda kind, fields: self.logs.event(self.context, run, kind, fields), lambda: None)
+        with self.assertRaises(ModelError):
+            model.complete([], [])
+        events = self.logs.read(self.context, run, self.scope)["events"]
+        self.assertEqual(events[-1]["kind"], "model.end")
+        self.assertEqual(events[-1]["fields"]["failure_detail"], "tls_error")
+        self.assertEqual(events[-1]["fields"]["error_code"], "model_unavailable")
+        self.assertNotIn("SYNTHETIC-PRIVATE", str(events))
 
     def test_tool_rejection_is_stored_as_validation_not_a_dispatched_tool(self):
         run = self.begin()
@@ -152,6 +175,22 @@ class ChatRunTests(unittest.TestCase):
         self.assertFalse(detail["events"][0]["fields"]["complete_within_scope"])
         self.assertEqual(detail["events"][1]["fields"]["failure_detail"], "answer_shape_invalid")
 
+    def test_current_selection_and_audit_acquisition_events_persist_end_to_end(self):
+        for operation, term in [('current_enrollment', '2026-2027-AW'), ('graduation_audit', 'ALL-HISTORY')]:
+            with self.subTest(operation=operation):
+                run = self.begin()
+                arguments = {'operation': operation, 'target_term': term}
+                fields = tool_event_fields('read_my_' + operation, arguments,
+                    {'operation': operation, 'records': [{'cookie': 'SYNTHETIC-EXCLUDED'}], 'returned_records': 1},
+                    initiated_by='service_acquisition')
+                self.logs.event(self.context, run, 'tool.start', fields)
+                self.logs.event(self.context, run, 'tool.end', {**fields, 'elapsed_ms': 23, 'status': 'completed'})
+                self.logs.finish(self.context, run, 'completed')
+                events = self.logs.read(self.context, run, self.scope)['events']
+                self.assertEqual([e['kind'] for e in events], ['tool.start', 'tool.end'])
+                self.assertEqual(events[-1]['fields']['operation'], operation)
+                self.assertEqual(events[-1]['fields']['elapsed_ms'], 23)
+                self.assertNotIn('SYNTHETIC-EXCLUDED', str(events))
     def test_scope_diagnostic_fields_reject_free_text_and_wrong_types(self):
         run = self.begin()
         for fields in ({"operation": []}, {"operation": "owner_student_id"}, {"target_term": "/private/source"},

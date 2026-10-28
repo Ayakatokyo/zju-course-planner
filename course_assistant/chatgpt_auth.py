@@ -24,7 +24,7 @@ from urllib.request import Request, build_opener
 import uuid
 
 from .auth import AccessError, is_academic_context
-from .model_client import ModelError, NoRedirect, strict_json
+from .model_client import ModelError, NoRedirect, strict_json, transport_failure_kind
 
 AUTH = "https://auth.openai.com"
 RESOURCE = "https://api.openai.com/v1"
@@ -147,8 +147,9 @@ class ChatGPTAccounts:
             raise ModelError("ChatGPT 请求未成功，请重新连接或稍后重试", code, http_status=status) from None
         except ModelError:
             raise
-        except (URLError, TimeoutError, OSError):
-            raise ModelError("ChatGPT 服务暂时无法连接", "chatgpt_unavailable") from None
+        except (URLError, TimeoutError, OSError) as error:
+            raise ModelError("ChatGPT 服务暂时无法连接", "chatgpt_unavailable",
+                             failure_detail=transport_failure_kind(error)) from None
         except (ValueError, TypeError):
             raise ModelError("ChatGPT 返回格式无效", "chatgpt_protocol_error") from None
 

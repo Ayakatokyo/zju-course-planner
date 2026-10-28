@@ -69,6 +69,23 @@ class ScenarioAccountsTests(unittest.TestCase):
         self.app = ScenarioApplication(self.path, self.accounts, self.model, clock=lambda: self.now[0])
     def login(self, username='stats1', previous=None):
         return self.app.login({'username': username, 'password': self.password}, previous)
+    def test_grade_filter_and_summary_share_the_school_record_semantics(self):
+        student = deepcopy(self.students[0])
+        base = student['academic_records'][0]
+        student['academic_records'] = [{**base, 'grade': grade, 'credits': credit}
+            for grade, credit in ((90, '1'), (91, '1.5'), (80, '2'), (None, '3'))]
+        adapter = ScenarioAdapter(student, json.loads(self.path.read_text())['plans'][0])
+        args = {'operation': 'major_academic', 'grade_filter': {'kind': 'numeric', 'op': 'gte', 'value': 90}, 'limit': 1}
+        first = adapter.personal_chat_tool(student['student_id'], 'query_my_records', args)
+        second = adapter.personal_chat_tool(student['student_id'], 'query_my_records', {**args, 'cursor': first['next_cursor']})
+        self.assertEqual(first['matched_records'], 2)
+        self.assertEqual(first['total_records'], 4)
+        self.assertEqual(first['coverage']['captured_rows'], 4)
+        self.assertEqual(first['source_grade_summary']['known_nominal_credits_sum'], '2.5')
+        self.assertEqual(second['source_grade_summary'], first['source_grade_summary'])
+        self.assertEqual(second['source_record_indices'], [1])
+        unknown = adapter.personal_chat_tool(student['student_id'], 'query_my_records', {**args, 'grade_filter': {'kind': 'unknown'}})
+        self.assertEqual(unknown['source_record_indices'], [3])
     def test_verified_password_binding_and_no_plain_password_store(self):
         a, b = self.login(), self.login('stats2')
         self.assertEqual(self.app.view(a)['student']['study_year'], 1)

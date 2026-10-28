@@ -7,7 +7,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request
 
 from .chatgpt_auth import RESOURCE
-from .model_client import ModelClient, ModelError, strict_json
+from .model_client import ModelClient, ModelError, strict_json, transport_failure_kind
 
 
 class ModelRouter:
@@ -209,10 +209,14 @@ class ChatGPTClient(ModelClient):
             raise ModelError("ChatGPT 请求失败，请检查连接或订阅额度", metadata["code"], http_status=status) from None
         except ModelError as error:
             metadata["code"] = error.code
+            if error.failure_detail is not None:
+                metadata["failure_detail"] = error.failure_detail
             raise
-        except (URLError, TimeoutError, OSError):
+        except (URLError, TimeoutError, OSError) as error:
             metadata["code"] = "model_unavailable"
-            raise ModelError("ChatGPT 服务超时或不可连接", "model_unavailable") from None
+            metadata["failure_detail"] = transport_failure_kind(error)
+            raise ModelError("ChatGPT 服务超时或不可连接", "model_unavailable",
+                             failure_detail=metadata["failure_detail"]) from None
         except (ValueError, KeyError, TypeError, AttributeError, RecursionError):
             metadata["code"] = "model_protocol_error"
             raise ModelError("GPT 返回格式无效，本轮不采纳", "model_protocol_error") from None

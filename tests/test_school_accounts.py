@@ -116,6 +116,79 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertNotIn("SYNTHETIC-INPUT-NOT-OWNER", str(result))
         self.assertEqual(self.auth.authenticate(token), context)
 
+    @staticmethod
+    def selection_client():
+        client = FakeSchoolClient()
+        client.selection_calls = []
+        client.selection_result = {'state': 'business', 'source_subject_id': PROFILE_A['source_subject_id'],
+            'preview': {'academic_year': '2026-2027', 'season': '1',
+                'selected': [{'kcmc': '合成课程', 'kcdm': f'SYN-{i}', 'sxbj': ('1', '0', None)[i % 3],
+                              'sksj': '--', 'skdd': None, 'cookie': 'SYNTHETIC-NOT-FOR-PROJECTION'} for i in range(16)],
+                'courses': [{'kcmc': '非已选目录条目'}]}}
+        def preview(course_code=None):
+            client.selection_calls.append(course_code)
+            return deepcopy(client.selection_result)
+        client.enrollment_preview = preview
+        return client
+
+    def test_current_selection_is_scoped_to_school_page_and_reused_only_within_turn(self):
+        _, context, client, _ = self.login(self.selection_client())
+        receipts, events = [], []
+        first = self.live(context, 'query_current_enrollment', {}, receipts, events=events)
+        self.assertEqual(first['target_term'], '2026-2027-AW')
+        self.assertEqual((first['total_records'], first['returned_records'], first['next_offset']), (16, 15, 15))
+        self.assertEqual(first['selection_summary'], {'matched_records': 16, 'page_selected_count': 6,
+            'page_pending_count': 5, 'page_unknown_count': 5})
+        self.assertFalse(first['formal_enrollment_verified'])
+        self.assertEqual(first['records'][0]['field_states']['time_raw'], 'unknown')
+        client.selection_result['preview']['selected'] = []
+        page = self.live(context, 'query_current_enrollment', {'offset': 15}, receipts)
+        self.assertEqual(page['source_record_indices'], [15])
+        self.assertIsNone(page['next_offset'])
+        exact = self.live(context, 'query_current_enrollment', {'query': 'syn-1'}, receipts)
+        self.assertEqual(exact['source_record_indices'], [1])
+        self.assertEqual(client.selection_calls, [None])
+        self.assertEqual(sum(e[0] == 'tool.end' for e in events), 1)
+        self.assertNotIn('SYNTHETIC-NOT-FOR-PROJECTION', json.dumps(receipts))
+        self.assertNotIn('非已选目录条目', json.dumps(receipts, ensure_ascii=False))
+        current = self.live(context, 'query_current_enrollment', {}, [])
+        self.assertEqual(current['selection_summary']['matched_records'], 0)
+        self.assertEqual(client.selection_calls, [None, None])
+        self.assertTrue(list(self.service.root.rglob('sources/*.json')))
+
+    def test_current_selection_failure_does_not_use_old_rows_or_retry_within_turn(self):
+        _, context, client, _ = self.login(self.selection_client())
+        self.live(context, 'query_current_enrollment', {}, [])
+        client.selection_result = {'state': 'source_unavailable'}
+        receipts = []
+        for _ in range(2):
+            result = self.live(context, 'query_current_enrollment', {}, receipts)
+            self.assertEqual(result['status'], 'not_ready')
+            self.assertIsNone(result['matched_records'])
+            self.assertEqual(result['records'], [])
+        self.assertEqual(len(client.selection_calls), 2)
+
+    def test_current_selection_rejects_scope_injection_before_read_and_subject_change_after_read(self):
+        _, context, client, _ = self.login(self.selection_client())
+        for args in ({'owner': 'SYNTHETIC-B'}, {'target_term': '2024-2025-AW'}, {'course_code': 'SYN-1'},
+                     {'offset': True}, {'limit': 16}, {'query': []}):
+            with self.subTest(args=args), self.assertRaises(AccessError):
+                self.live(context, 'query_current_enrollment', args, [])
+        self.assertEqual(client.selection_calls, [])
+        client.selection_result['source_subject_id'] = PROFILE_B['source_subject_id']
+        with self.assertRaises(AccessError) as error:
+            self.live(context, 'query_current_enrollment', {}, [])
+        self.assertEqual(error.exception.reason, 'source_subject_changed')
+
+    def test_current_selection_rechecks_authorization_after_transport(self):
+        token, context, client, _ = self.login(self.selection_client())
+        def revoked(course_code=None):
+            self.auth.logout(token)
+            return deepcopy(client.selection_result)
+        client.enrollment_preview = revoked
+        with self.assertRaises(AccessError):
+            self.live(context, 'query_current_enrollment', {}, [])
+
     def test_query_context_uses_authenticated_cohort_without_new_school_requests(self):
         _, context, client, _ = self.login()
         self.assertEqual(self.service.status(context)["query_context"], {"cohort": 2023, "cohort_state": "known"})
@@ -771,6 +844,22 @@ class SchoolAccountTests(unittest.TestCase):
         second = self.live(context, "search_my_curriculum", {"query": "9学分"}, receipts)
         self.assertTrue(second["matches"])
         self.assertEqual(len(client.request_calls), before + 2)
+
+    def test_live_grade_filter_preserves_full_scope_and_filters_before_paging(self):
+        payload = {"items": [{"kcmc": "合成课" + str(i), "kcdm": "SYN" + str(i), "cj": grade, "xf": credit}
+            for i, (grade, credit) in enumerate((("80", "2"), ("90", "1"), ("91", "1.5")))], "total": 3}
+        response = {"state": "business", "http_status": 200, "content_type": "application/json", "payload": payload}
+        _, context, client, _ = self.login(FakeSchoolClient(requests=[response]))
+        args = {"operation": "academic", "target_term": "2026-2027-AW", "limit": 1,
+                "grade_filter": {"kind": "numeric", "op": "gte", "value": 90}}
+        receipts = []
+        first = self.live(context, "query_my_records", args, receipts)
+        self.assertEqual((first["total_records"], first["matched_records"], first["returned_records"]), (3, 2, 1))
+        self.assertEqual(first["source_grade_summary"]["known_nominal_credits_sum"], "2.5")
+        second = self.live(context, "query_my_records", {**args, "cursor": first["next_cursor"]}, receipts)
+        self.assertEqual(second["source_record_indices"], [2])
+        self.assertEqual(second["observation_id"], first["observation_id"])
+        self.assertEqual(len(client.request_calls), 1)
 
     def test_live_curriculum_failure_cannot_search_previously_acquired_pdf(self):
         _, context, client, _ = self.login()

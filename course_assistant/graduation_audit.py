@@ -54,6 +54,6 @@ def parse_row(row, index):
 
 
 def summary(records):
-    modules = [{k: row[k] for k in ("node_id", "parent_node_id", "course_name_raw", "completion_status_raw", "required_credits_raw", "earned_credits_raw", "required_courses_raw", "completed_courses_raw", "nonduplicated_recognition_credits_raw") if row.get(k) not in (None, "")} for row in records if row.get("node_kind") == "module"]
+    modules = [{k: row[k] for k in ("node_id", "parent_node_id", "course_name_raw", "requirement_type_raw", "completion_status_raw", "required_credits_raw", "earned_credits_raw", "required_courses_raw", "completed_courses_raw", "nonduplicated_recognition_credits_raw") if row.get(k) not in (None, "")} for row in records if row.get("node_kind") == "module"]
     return {"modules": modules, "course_record_count": sum(row.get("node_kind") == "course" for row in records),
-        "note": "学校毕业资格自审结果仅供参考；空状态不是必修欠课；已达标模块仍可能列出未修备选课；被替代不算待修；复合学分原值不相加，各层级学分不重复累计。"}
+        "note": "学校毕业资格自审结果仅供参考；空状态不是必修欠课；已达标模块仍可能列出未修备选课；被替代不算待修；复合学分原值不相加，各层级学分不重复累计。同名模块保持独立，以原名称及requirement_type_raw区分；类型缺失时保留未知，不从node_id猜分类或另造名称。"}
