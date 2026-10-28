@@ -298,8 +298,19 @@ class PersonalDialogueTests(unittest.TestCase):
         summary = {"kind": "summary", "operation": "graduation_audit", "tool_index": 0,
                    "graduation_summary": {"modules": [{"course_name_raw": "合成实践模块", "earned_credits_raw": "6"}]}}
         self.assertEqual(check(text, {"R-test": summary})[0], text)
+        for value in ("学校自审的合成实践模块目前不通过。自审模块显示已获6学分。",
+                      "学校自审的合成实践模块目前不通过；该模块已获6.0学分。",
+                      "模块自审为已获6学分，状态不通过。"):
+            self.assertEqual(check(value)[0], value)
         for value in (text.replace("6.0", "9"), text.replace("合成实践模块", "另一模块"),
-                      text.replace("学校自审", "当前"), text + "已满足毕业资格。", text + "还差3学分。"):
+                      text.replace("学校自审", "当前"), text + "已满足毕业资格。", text + "还差3学分。",
+                      "学校自审的合成实践模块目前不通过。自审模块显示已获9学分。",
+                      "学校自审的合成实践模块目前不通过。你已获6学分。",
+                      "学校自审的合成实践模块目前不通过。另一自审模块显示已获6学分。",
+                      "模块自审为已获9学分。", "模块自审中你已获6学分。",
+                      "学校自审的合成实践模块目前不通过。另一个模块通过。该模块已获6学分。",
+                      "学校自审的合成实践模块目前不通过。\n该模块已获6学分。",
+                      "合成实践模块目前不通过。该模块已获6学分。"):
             with self.assertRaises(PersonalDialogueError) as error:
                 check(value)
             self.assertEqual(error.exception.code, "unsupported_personal_claim")
@@ -314,6 +325,12 @@ class PersonalDialogueTests(unittest.TestCase):
             check(text, refs=["R-stale"])
         with self.assertRaises(PersonalDialogueError):
             check(text, refs=[])
+        other = {**proof, "record": {**proof["record"], "module_name_raw": "合成第二模块"}}
+        with self.assertRaises(PersonalDialogueError):
+            check("学校自审列出合成实践模块和合成第二模块。该模块已获6学分。",
+                  {"R-test": proof, "R-other": other}, ["R-test", "R-other"])
+        with self.assertRaises(PersonalDialogueError):
+            check("模块自审为已获6学分。", {"R-test": proof, "R-other": other}, ["R-test", "R-other"])
 
     def test_real_model_style_limits_and_source_caveats_are_not_positive_capability_claims(self):
         disclaimers = ["来源学分不等于已获学分。", "不能判断毕业资格，也未用于推荐。",

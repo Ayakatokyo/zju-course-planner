@@ -470,6 +470,40 @@ class PersonalObservationTests(unittest.TestCase):
         self.assert_code("invalid_private_store", self.store.query,
                          {"operation": "major_academic", "observation_id": registered["observation_id"]})
 
+    def test_warm_status_detects_changed_bytes_permissions_and_authority(self):
+        registered = self.register()
+        expected = self.store.describe()
+        changed_view = self.store.describe()
+        changed_view["snapshots"][0]["coverage"]["captured_rows"] = 999
+        self.assertEqual(self.store.describe(), expected)
+        path = self.store.directory / (registered["observation_id"] + ".json")
+        original, info = path.read_bytes(), path.stat()
+        path.chmod(0o644)
+        self.assert_code("invalid_private_store", self.store.describe)
+        path.chmod(0o600)
+        # Same size and mtime must not make a changed signed value trustworthy.
+        altered = original.replace(b'"grade_raw":70', b'"grade_raw":90')
+        self.assertNotEqual(original, altered)
+        path.write_bytes(altered)
+        os.utime(path, ns=(info.st_atime_ns, info.st_mtime_ns))
+        self.assert_code("invalid_private_store", self.store.describe)
+        path.write_bytes(original)
+        self.assertEqual(self.store.describe(), expected)
+        self.active = False
+        self.assert_code("observation_expired", self.store.describe)
+
+    def test_warm_status_observes_other_writer_and_deleted_latest_snapshot(self):
+        first = self.register()
+        expected = self.store.describe()
+        other = PersonalObservationStore(self.root, self.authorize)
+        second = other.register(self.result(count=4), parser_version="parser-v5", mapping_version="mapping-v5")
+        current = self.store.describe()
+        self.assertEqual(current["latest_observations"]["major_academic"]["observation_id"], second["observation_id"])
+        self.assertEqual(len(current["snapshots"]), 2)
+        (self.store.directory / (second["observation_id"] + ".json")).unlink()
+        self.assertEqual(self.store.describe(), expected)
+        self.assertEqual(expected["snapshots"][0]["observation_id"], first["observation_id"])
+
     def test_timetable_metadata_is_preserved_without_making_calendar_facts(self):
         source = self.result(operation="timetable", target_term="2026-2027-AW",
                              period_times=[{"period": 1, "start_time": "08:00", "end_time": "08:45"}],

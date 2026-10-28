@@ -28,7 +28,7 @@ from .personal_drafts import PersonalDraftService
 
 DATA_USE_VERSION = "personal-retrieval-v1"
 SERVICE = "personal-retrieval-chat-v1"
-TOOLS_VERSION = "personal-question-tools-v34-dialogue-quality"
+TOOLS_VERSION = "personal-question-tools-v35-scoped-audit"
 DATA_USE_SUMMARY = "本轮问题及检索到的相关教务记录、培养资料片段会发送给当前模型；不发送账号凭据。"
 SENSITIVE = re.compile(r"(?i)(sk[-_][a-z0-9_-]{12,}|bearer\s+\S+|(?:password|passwd|cookie|token|api[_ -]?key|密码|口令)\s*(?:[:=：]|是|为|\bis\b)\s*\S+|(?:密码|口令)\s+\S+|(?<!\d)\d{10}(?!\d))")
 

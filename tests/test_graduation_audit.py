@@ -87,6 +87,33 @@ class GraduationAuditTests(unittest.TestCase):
         finally:
             h.doCleanups()
 
+    def test_scoped_audit_summary_covers_matches_not_unrelated_modules_or_only_page(self):
+        h = account_tests.SchoolAccountTests()
+        h.setUp()
+        try:
+            rows = deepcopy(ROWS)
+            for row in rows:
+                if row.get('KCDM') and not row['JDDM'].startswith('head_'):
+                    row['ROOT'] = '合成选修模块'
+            response = {'state': 'business', 'http_status': 200, 'content_type': 'application/json',
+                        'payload': project_rows(rows)}
+            _, context, client, _ = h.login(account_tests.FakeSchoolClient(requests=[response]))
+            receipts = []
+            args = {'operation': 'graduation_audit', 'query': '合成选修模块', 'mode': 'records', 'limit': 1}
+            result = h.live(context, 'query_my_records', args, receipts)
+            self.assertEqual((result['matched_records'], result['returned_records']), (6, 1))
+            self.assertEqual(result['graduation_summary']['course_record_count'], 5)
+            self.assertEqual([m['course_name_raw'] for m in result['graduation_summary']['modules']], ['合成选修模块'])
+            self.assertTrue(result['next_cursor'])
+            empty = h.live(context, 'query_my_records', {**args, 'query': '没有匹配的模块'}, receipts)
+            self.assertEqual(empty['graduation_summary']['modules'], [])
+            self.assertEqual(empty['graduation_summary']['course_record_count'], 0)
+            full = h.live(context, 'query_my_records', {**args, 'query': '', 'mode': 'summary'}, receipts)
+            self.assertEqual(len(full['graduation_summary']['modules']), 2)
+            self.assertEqual(len(client.request_calls), 1)
+        finally:
+            h.doCleanups()
+
 class EnrollmentPreviewTests(unittest.TestCase):
     def test_read_only_preview_contract_and_scope(self):
         from course_assistant.school_enrollment_preview import PAGE, COURSES, SECTIONS, CHOSEN

@@ -1,0 +1,386 @@
+{
+  "date": "2026-10-28",
+  "baseline_revision": "0b49d2f",
+  "model": "chatgpt:gpt-6-luna",
+  "reasoning_effort": "high",
+  "changes": [
+    "按具体模块一次返回匹配的自审模块及课程，汇总覆盖全部匹配行而非当前页或无关全树",
+    "保留复合问题已有证据支持的事实；自然模块指代仍须唯一当前来源与精确学分值",
+    "区分来源总数未知、确定缺行及时间地点字段缺项",
+    "有界复用已验证且字节完全一致的本地观察摘要，保留逐次权限和本人校验",
+    "输入版本计算不再重复读取不参与版本的检索准备状态"
+  ],
+  "implementation_sha256": {
+    "course_assistant/personal_chat.py": "8b35b0e83b3cab3fe16b692c63adc324c6c26b742479be592db8e45dc3d41f55",
+    "course_assistant/personal_dialogue.py": "fa02dc2c6286aaa941c50e22922e013feb199fe7c366034ff17c5ab4b8e634a0",
+    "course_assistant/personal_observations.py": "13d929bd1ded45205cb8493f8963db61420e5008e821f97f8e7f7e3422bc1708",
+    "course_assistant/school_accounts.py": "631b289881fd558a2b655bcc7a25cda5aaf01f436c1928720d8923f92aa4c6b1",
+    "scripts/benchmark_observation_status.py": "a15050dd74495faf89cf3bd3c23eb93315376ce47659d2dd6bbcd3ca8a4d3ae8",
+    "tests/test_personal_dialogue.py": "a0b744746733115db556198eb223dd6e58434b0a7213e4d202c2b73212758118",
+    "tests/test_personal_observations.py": "278f219132f42e7101c462ecf510986b8376a51c69d7353f38297f6c82b76afc",
+    "tests/test_graduation_audit.py": "17c8417727630897cf2a98e67e124447c6ec7b90c176d7d72ac7435b609b4cf9"
+  },
+  "live_cases": [
+    {
+      "case_index": 1,
+      "scenario": "模块完成情况与下一步核对",
+      "phase": "baseline",
+      "status": "failed",
+      "error_code": "unsupported_personal_claim",
+      "repair_attempts": 1,
+      "duration_ms": 26272,
+      "model_calls": 4,
+      "model_prompt_tokens": 22129,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ],
+      "quality_accepted": false,
+      "retained_issue": "答案表述被拒，原一次恢复仍失败"
+    },
+    {
+      "case_index": 2,
+      "scenario": "培养原文与学校自审复合比较",
+      "phase": "baseline",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 1,
+      "duration_ms": 48174,
+      "model_calls": 7,
+      "model_prompt_tokens": 55627,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_curriculum",
+        "read_my_graduation_audit",
+        "read_my_major_academic"
+      ],
+      "quality_accepted": false,
+      "retained_issue": "已完成但自审比较不够具体"
+    },
+    {
+      "case_index": 3,
+      "scenario": "指定学期成绩统计与均分含义",
+      "phase": "baseline",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 11345,
+      "model_calls": 2,
+      "model_prompt_tokens": 7906,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_academic"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 4,
+      "scenario": "模块完成情况候选",
+      "phase": "intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 12111,
+      "model_calls": 2,
+      "model_prompt_tokens": 7830,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 5,
+      "scenario": "培养原文与学校自审候选",
+      "phase": "intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 1,
+      "duration_ms": 22725,
+      "model_calls": 4,
+      "model_prompt_tokens": 21073,
+      "record_citations_matched": 3,
+      "source_reads": [
+        "read_my_graduation_audit",
+        "read_my_curriculum"
+      ],
+      "quality_accepted": false,
+      "retained_issue": "已完成但遗漏已取得的具体自审状态"
+    },
+    {
+      "case_index": 6,
+      "scenario": "模块完成情况复测",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 15355,
+      "model_calls": 2,
+      "model_prompt_tokens": 7893,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 7,
+      "scenario": "培养原文与学校自审完整比较复测",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 23085,
+      "model_calls": 3,
+      "model_prompt_tokens": 15339,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit",
+        "read_my_curriculum"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 8,
+      "scenario": "指定学期成绩统计复测",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 10141,
+      "model_calls": 2,
+      "model_prompt_tokens": 8348,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_academic"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 9,
+      "scenario": "最低分追问并继承学期",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 10080,
+      "model_calls": 2,
+      "model_prompt_tokens": 9483,
+      "record_citations_matched": 1,
+      "source_reads": [
+        "read_my_academic"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 10,
+      "scenario": "换题至课表及缺项说明",
+      "phase": "intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 11738,
+      "model_calls": 2,
+      "model_prompt_tokens": 8559,
+      "record_citations_matched": 3,
+      "source_reads": [
+        "read_my_timetable"
+      ],
+      "quality_accepted": false,
+      "retained_issue": "已有安排及字段缺项正确，但未知覆盖被写成确定采集不完整"
+    },
+    {
+      "case_index": 11,
+      "scenario": "未给学期时澄清考试范围",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 3445,
+      "model_calls": 1,
+      "model_prompt_tokens": 2733,
+      "record_citations_matched": 0,
+      "source_reads": [],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 12,
+      "scenario": "补充学期后读取考试安排",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 18355,
+      "model_calls": 3,
+      "model_prompt_tokens": 11303,
+      "record_citations_matched": 2,
+      "source_reads": [
+        "read_my_exams"
+      ],
+      "quality_accepted": true
+    },
+    {
+      "case_index": 13,
+      "scenario": "课表完整性措辞最终复测",
+      "phase": "final_scenario_check",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "duration_ms": 11379,
+      "model_calls": 2,
+      "model_prompt_tokens": 6883,
+      "record_citations_matched": 3,
+      "source_reads": [
+        "read_my_timetable"
+      ],
+      "quality_accepted": true
+    }
+  ],
+  "final_scenarios": {
+    "case_indices": [
+      6,
+      7,
+      8,
+      9,
+      11,
+      12,
+      13
+    ],
+    "completed": 7,
+    "repair_attempts": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "notes": [
+      "这是逐项修复后的七个场景集合，包含考试澄清及其补充，不是宣称最后连续七轮均无历史缺陷。",
+      "最终课表在新会话复测；此前换题场景已验证范围切换，措辞缺陷单独保留。",
+      "前六个场景在最后覆盖措辞调整前验证；该调整仅作用于总数未知的来源。最后实际课表及固定来源模型回放已验证。"
+    ]
+  },
+  "live_performance_comparisons": [
+    {
+      "scenario": "模块完成情况与下一步核对",
+      "baseline_case_index": 1,
+      "final_case_index": 6,
+      "before": {
+        "duration_ms": 26272,
+        "model_calls": 4,
+        "prompt_tokens": 22129
+      },
+      "after": {
+        "duration_ms": 15355,
+        "model_calls": 2,
+        "prompt_tokens": 7893
+      }
+    },
+    {
+      "scenario": "培养原文与学校自审复合比较",
+      "baseline_case_index": 2,
+      "final_case_index": 7,
+      "before": {
+        "duration_ms": 48174,
+        "model_calls": 7,
+        "prompt_tokens": 55627
+      },
+      "after": {
+        "duration_ms": 23085,
+        "model_calls": 3,
+        "prompt_tokens": 15339
+      }
+    },
+    {
+      "scenario": "指定学期成绩统计与均分含义",
+      "baseline_case_index": 3,
+      "final_case_index": 8,
+      "before": {
+        "duration_ms": 11345,
+        "model_calls": 2,
+        "prompt_tokens": 7906
+      },
+      "after": {
+        "duration_ms": 10141,
+        "model_calls": 2,
+        "prompt_tokens": 8348
+      }
+    }
+  ],
+  "synthetic_status_benchmark": {
+    "command": "python3.13 scripts/benchmark_observation_status.py",
+    "before": {
+      "synthetic_only": true,
+      "snapshots": 12,
+      "rows_per_snapshot": 138,
+      "iterations": 25,
+      "cold_ms": 105.188,
+      "median_ms": 103.236,
+      "p95_ms": 107.609
+    },
+    "after": {
+      "synthetic_only": true,
+      "snapshots": 12,
+      "rows_per_snapshot": 138,
+      "iterations": 25,
+      "cold_ms": 102.269,
+      "median_ms": 0.95,
+      "p95_ms": 0.972
+    },
+    "cache_limits": {
+      "entries": 64,
+      "raw_bytes": 8388608
+    },
+    "boundary": "只测本地摘要重复读取；首次读取无明显改善。缓存仍读原文字节与校验权限，未证明超过容量时有同等收益。"
+  },
+  "offline": {
+    "full_suite_after_core_changes_before_final_wording_refinements": {
+      "run": 1609,
+      "passed": 1598,
+      "skipped": 11,
+      "seconds": 66.768
+    },
+    "final_related_suite": {
+      "run": 102,
+      "passed": 102,
+      "seconds": 0.205
+    },
+    "python_compile": "passed",
+    "git_diff_check": "passed",
+    "regressions": [
+      "同大小同mtime篡改、权限变化、失效授权、其他写入方和删除最新快照",
+      "查询汇总与分页分离、空查询全树、同轮同范围复用",
+      "自然模块指代；错误数值、跨段裸指代、无本轮来源、多模块和个人泛化仍拒绝"
+    ]
+  },
+  "source_verification": {
+    "record_citations_checked": 32,
+    "record_check_scope": "各引用对应原观察、operation、学期、源行位置与投影字段",
+    "grade_summaries": "独立Decimal重算记录数量、数字均分、最大最小值；不称GPA",
+    "audit_modules": "按原始自审节点逐字段核对",
+    "curriculum": "三份不同哈希的实际来源PDF分别渲染第5页并核对三行课程、学分、建议学期及模块要求；水印导致自动逐行比对失败，保留该失败。",
+    "exam_clarification_source_reads": 0,
+    "clarified_exam_reads": 1
+  },
+  "browser": {
+    "final_answer_inspected": true,
+    "errors": 0,
+    "model_and_effort_selected": "GPT-6-Luna / high",
+    "screenshot": "private artifact only"
+  },
+  "runtime": {
+    "backend_restarts_this_stage": 3,
+    "school_login_restored": true,
+    "vector_service_restarted": false
+  },
+  "limitations": [
+    "耗时为少量顺序实测，受模型、网络、源请求及会话历史影响，不是受控A/B或稳定SLA；成绩场景输入token稍增。",
+    "本地摘要基准不可外推为学校网络或整体对话百倍提速。",
+    "固定来源真实模型回放不是新学校实时取数；来源字段核对不等于完整语义验证。",
+    "完整语义、正式培养适用和整体用户体验验收仍未完成。",
+    "未新增模型层、重试预算、学校端点、学年范围或学校选退课操作。"
+  ],
+  "evidence": "原始回答、运行事件、诊断回放、源核对及截图仅保存在private；此文件只含聚合脱敏回执。"
+}

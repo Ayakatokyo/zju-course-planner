@@ -173,6 +173,8 @@ class PersonalObservationStore:
             _fail("invalid_observation_request")
         self.authorize = authorize
         self._lock = threading.RLock()
+        self._summary_cache = {}
+        self._summary_cache_bytes = 0
         self._scope = self._authorization()
         from .auth import SCENARIO_REALM
         if data_kind not in {'personal_source', 'synthetic'} or data_kind == 'synthetic' and self._scope['security_realm'] != SCENARIO_REALM:
@@ -310,11 +312,11 @@ class PersonalObservationStore:
     def _sign(self, value):
         return hmac.new(self._key, _json(value), sha256).hexdigest()
 
-    def _load(self, identifier):
+    def _load(self, identifier, *, raw=None):
         if type(identifier) is not str or not OBSERVATION_ID.fullmatch(identifier):
             _fail("inaccessible_observation")
         try:
-            document = json.loads(self._read(self.directory / (identifier + ".json")))
+            document = json.loads(self._read(self.directory / (identifier + ".json")) if raw is None else raw)
         except FileNotFoundError:
             _fail("inaccessible_observation")
         except (ValueError, UnicodeError):
@@ -333,18 +335,44 @@ class PersonalObservationStore:
             _fail("invalid_private_store")
         return snapshot
 
-    def _all(self):
+    def _snapshot_paths(self):
         paths = list(self.directory.iterdir())
         if len(paths) > MAX_SNAPSHOTS + 2:
             _fail("observation_store_limit")
-        rows = []
+        snapshots = []
         for path in paths:
             if path.name in {"publication.lock", "cursor.key"}:
                 continue
             if path.suffix != ".json" or not OBSERVATION_ID.fullmatch(path.stem):
                 _fail("invalid_private_store")
-            rows.append(self._load(path.stem))
+            snapshots.append(path)
+        return snapshots
+
+    def _all(self):
+        rows = [self._load(path.stem) for path in self._snapshot_paths()]
         return sorted(rows, key=lambda row: row["sequence"], reverse=True)
+
+    def _cached_summary(self, path):
+        # Always re-open with the same permission/link checks and read every
+        # byte. Only byte-identical, previously signed content can reuse a
+        # summary; timestamps and a previous authorization are never sufficient.
+        raw = self._read(path)
+        cached = self._summary_cache.pop(path.stem, None)
+        if cached is not None:
+            self._summary_cache_bytes -= len(cached[0])
+        if cached is None or cached[0] != raw:
+            snapshot = self._load(path.stem, raw=raw)
+            cached = (raw, snapshot["sequence"], self._summary(snapshot))
+        # Bounded per-instance cache; it cannot survive a new owner/session.
+        limit = 8 * 1024 * 1024
+        if len(raw) <= limit:
+            while self._summary_cache and (len(self._summary_cache) >= 64 or
+                    self._summary_cache_bytes + len(raw) > limit):
+                oldest = next(iter(self._summary_cache))
+                self._summary_cache_bytes -= len(self._summary_cache.pop(oldest)[0])
+            self._summary_cache[path.stem] = cached
+            self._summary_cache_bytes += len(raw)
+        return cached[1], deepcopy(cached[2])
 
     def _result(self, result):
         if (not isinstance(result, dict) or set(result) - RESULT_FIELDS or
@@ -448,8 +476,8 @@ class PersonalObservationStore:
 
     def describe(self):
         with self._locked():
-            rows = self._all()
-            summaries = [self._summary(row) for row in rows]
+            rows = [self._cached_summary(path) for path in self._snapshot_paths()]
+            summaries = [summary for _, summary in sorted(rows, key=lambda row: row[0], reverse=True)]
             latest = {}
             for summary in summaries:
                 latest.setdefault(summary["operation"], summary)
@@ -565,7 +593,8 @@ class PersonalObservationStore:
                 "row_failures": deepcopy(snapshot["result"].get("row_failures")), "failure": snapshot["result"].get("failure")}
             if operation == "graduation_audit":
                 from .graduation_audit import summary
-                result["graduation_summary"] = summary(snapshot["result"]["records"])
+                result["graduation_summary"] = summary(filtered)
+                result["graduation_summary"]["note"] += "模块及课程计数只对应本次查询的全部匹配行，空查询才是全树概况。"
             if operation in {"academic", "major_academic"}:
                 result["source_grade_summary"] = source_grade_summary(filtered, snapshot["result"]["coverage"])
             for key in ("period_times", "period_times_source"):

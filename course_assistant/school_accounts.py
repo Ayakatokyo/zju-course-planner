@@ -637,12 +637,24 @@ class SchoolAccountService:
         connection = self._connection(context)
         epoch = connection.client.session_epoch
         scope = self._authorize_local(context, connection, epoch)
-        status = self.local_chat_status(context)["local"]
-        plan = status["plan"]
+        # The input version needs observations and the plan, not retrieval
+        # readiness. Avoid describe()'s repeated PDF/status reads here while
+        # retaining the same live authority, signed snapshots and plan checks.
+        from .personal_observations import PersonalObservationError
+        from .personal_evidence import PersonalEvidenceError
+        try:
+            with connection.lock:
+                store, _ = self._personal_services(context, connection)
+                plan_service = self._plan_service(context, connection)
+                profile = parse_payload("profile", connection.profile)["records"][0]
+            plan = plan_service.describe(profile)
+            observations = store.describe()
+        except (PersonalObservationError, PersonalEvidenceError, StudentPlanAcquisitionError, OSError) as error:
+            self._local_error(error)
         # Older events remain immutable audit evidence. Only the newest event
         # per actual query scope is part of the current input version.
         latest = {}
-        for item in status["observations"]["snapshots"]:
+        for item in observations["snapshots"]:
             latest.setdefault((item["operation"], item["target_term"]), item)
         versions = {"observations": [{"observation_id": item["observation_id"], "versions": item["versions"]}
                     for item in latest.values()],
