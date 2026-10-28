@@ -283,6 +283,35 @@ class PersonalDialogueTests(unittest.TestCase):
             self.assertEqual(result["code"], "unsupported_personal_claim")
             self.assertNotIn(text, result["reply"])
 
+    def test_audit_credits_require_current_attributed_module_and_exact_value(self):
+        proof = {"kind": "record", "operation": "graduation_audit", "tool_index": 0,
+                 "record": {"node_kind": "module", "module_name_raw": "合成实践模块",
+                            "earned_credits_raw": "6", "field_states": {"earned_credits_raw": "known"}}}
+        text = "合成实践模块：学校自审不通过，已获6.0学分；这不是最终毕业认定。"
+        def check(value, proofs=None, refs=None):
+            return PersonalDialogueService._final(json.dumps({"kind": "answer", "text": value,
+                "evidence_ids": ["R-test"] if refs is None else refs}), {"R-test": proof} if proofs is None else proofs)
+        self.assertEqual(check(text)[0], text)
+        summary = {"kind": "summary", "operation": "graduation_audit", "tool_index": 0,
+                   "graduation_summary": {"modules": [{"course_name_raw": "合成实践模块", "earned_credits_raw": "6"}]}}
+        self.assertEqual(check(text, {"R-test": summary})[0], text)
+        for value in (text.replace("6.0", "9"), text.replace("合成实践模块", "另一模块"),
+                      text.replace("学校自审", "当前"), text + "已满足毕业资格。", text + "还差3学分。"):
+            with self.assertRaises(PersonalDialogueError) as error:
+                check(value)
+            self.assertEqual(error.exception.code, "unsupported_personal_claim")
+        for record in ({**proof["record"], "earned_credits_raw": None},
+                       {**proof["record"], "earned_credits_raw": "6+2"},
+                       {**proof["record"], "field_states": {"earned_credits_raw": "unknown"}}):
+            with self.assertRaises(PersonalDialogueError):
+                check(text, {"R-test": {**proof, "record": record}})
+        with self.assertRaises(PersonalDialogueError):
+            check(text, {"R-test": {**proof, "operation": "academic"}})
+        with self.assertRaises(PersonalDialogueError):
+            check(text, refs=["R-stale"])
+        with self.assertRaises(PersonalDialogueError):
+            check(text, refs=[])
+
     def test_real_model_style_limits_and_source_caveats_are_not_positive_capability_claims(self):
         disclaimers = ["来源学分不等于已获学分。", "不能判断毕业资格，也未用于推荐。",
             "当前记录不能证明你已获得3学分。", "没有证据证明已满足毕业要求。",

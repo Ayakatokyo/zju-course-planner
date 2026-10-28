@@ -8,6 +8,7 @@ configuration/materials, changes a workspace, or executes model-supplied paths.
 from __future__ import annotations
 
 from copy import deepcopy
+from decimal import Decimal
 from hashlib import sha256
 import json
 import math
@@ -247,6 +248,35 @@ def _guard(text):
         text.encode("utf-8")
     except UnicodeError:
         _fail("sensitive_personal_content")
+
+
+def _audit_credit_statements(text, records):
+    """Mask only attributed, exact module credit values from selected audit proofs."""
+    def sentence(match):
+        value = match.group()
+        if not re.search(r"(?:学校)?(?:毕业资格)?自审", value):
+            return value
+        named = []
+        for row in records:
+            name = row.get("course_name_raw") or row.get("module_name_raw")
+            if row.get("node_kind") == "module" and name and name in value:
+                item = {"name": name, "earned_credits_raw": row.get("earned_credits_raw"),
+                        "field_states": {"earned_credits_raw": row.get("field_states", {}).get("earned_credits_raw", "known")}}
+                if item not in named:
+                    named.append(item)
+        # Ambiguous multi-module prose must use explicit source fields instead.
+        if len(named) != 1:
+            return value
+        row = named[0]
+        raw = str(row.get("earned_credits_raw") or "")
+        if not re.fullmatch(r"\d+(?:\.\d+)?", raw):
+            return value
+        if row.get("field_states", {}).get("earned_credits_raw") not in (None, "known"):
+            return value
+        def credit(found):
+            return "自审来源学分" if Decimal(found[1]) == Decimal(raw) else found[0]
+        return re.sub(r"已(?:获(?:得)?|取得|修得)(?:共|累计)?(\d+(?:\.\d+)?)学分", credit, value)
+    return re.sub(r"[^。！？!?；;\n]+", sentence, re.sub(r"[^\S\n]+", "", text))
 
 
 def _unsupported_claim(text):
@@ -1278,6 +1308,9 @@ class PersonalDialogueService:
                 local["retrieval"]["summary_only"] = remote["retrieval"]["summary_only"] = True
             local["warnings"] = ["仅本机已读取范围；来源成绩/学分不直接证明已获学分、毕业资格或正式中选。"]
             remote["unknown"] = ["earned_credits_not_verified", "full_history_not_assumed", "official_enrollment_not_inferred"]
+            if operation == "graduation_audit":
+                local["warnings"] = ["按学校自审原值说明模块学分及通过/在修状态，不等同最终毕业认定；不由课程名义学分推算认定学分。"]
+                remote["unknown"] = ["final_graduation_not_verified", "full_history_not_assumed", "official_enrollment_not_inferred"]
             if more:
                 remote["unknown"].append("record_query_or_projection_incomplete")
         else:
@@ -1471,9 +1504,22 @@ class PersonalDialogueService:
         if type(text) is not str or not 0 < len(text.strip()) <= MAX_ANSWER_CHARS:
             _final_fail("invalid_final_answer", "answer_text_invalid")
         _guard(text)
-        if _unsupported_claim(text):
-            _fail("unsupported_personal_claim")
         references = value.get("evidence_ids", [])
+        audit_records = []
+        for ref in references if type(references) is list else []:
+            if type(ref) is not str or ref not in proofs:
+                continue
+            proof = proofs[ref]
+            if proof.get("operation") == "graduation_audit":
+                if proof.get("kind") == "record":
+                    audit_records.append(proof.get("record", {}))
+                elif proof.get("kind") == "summary":
+                    audit_records.extend({**row, "node_kind": "module"}
+                                         for row in proof.get("graduation_summary", {}).get("modules", []))
+        # Repeated references to the same source row do not create ambiguity.
+        audit_records = list({_json(row): row for row in audit_records}.values())
+        if _unsupported_claim(_audit_credit_statements(text, audit_records)):
+            _fail("unsupported_personal_claim")
         if (type(references) is not list or len(references) > MAX_ANSWER_REFERENCES
                 or any(type(ref) is not str for ref in references)):
             retained = {ref for ref in references if type(ref) is str and ref in proofs} if type(references) is list else set()

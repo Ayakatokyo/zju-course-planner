@@ -75,6 +75,8 @@ class GraduationAuditTests(unittest.TestCase):
             from course_assistant.personal_dialogue import PersonalDialogueService
             _, remote = PersonalDialogueService._project('query_my_records',result,{'operation':'graduation_audit','mode':'summary','limit':15},'12345678',{},1,[0,0],set())
             self.assertIn('evidence_id',remote['graduation_summary'])
+            self.assertNotIn('earned_credits_not_verified',remote['unknown'])
+            self.assertIn('final_graduation_not_verified',remote['unknown'])
             self.assertEqual(result['graduation_summary']['course_record_count'],5)
             self.assertEqual(result['graduation_summary']['modules'][0]['completion_status_raw'],'通过')
             course=h.live(context,'query_my_records',{'operation':'graduation_audit','query':'SYN002'},receipts)

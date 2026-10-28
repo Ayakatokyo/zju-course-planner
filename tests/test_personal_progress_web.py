@@ -21,6 +21,18 @@ context.turn.citations[1]={...citation,observation_id:'OBS-another'};
 assert.equal((evaluate('renderAgentTurns()').match(/SYN-A/g)||[]).length,3);
 """)
 
+    def test_terminal_failure_takes_precedence_over_earlier_format_rejection(self):
+        self.run_js(r"""
+const events=[{kind:'error',error_code:'unsupported_personal_claim'},
+ {kind:'answer.rejected',error_code:'invalid_final_answer',failure_detail:'invalid_json'}];
+context.events=events;
+let failure=evaluate("agentFailureText(agentTerminalFailure({code:'unsupported_personal_claim'},events))");
+assert.match(failure,/unsupported_personal_claim/);assert.doesNotMatch(failure,/JSON|invalid_final_answer/);
+context.events=[{kind:'error',error_code:'invalid_final_answer'},events[1]];
+failure=evaluate("agentFailureText(agentTerminalFailure({},events))");assert.match(failure,/未返回有效 JSON/);
+assert.match(evaluate("agentFailureText(agentTerminalFailure({code:'model_timeout'},[]))"),/超时/);
+""")
+
     def run_js(self, assertions):
         web_contract.WebContractTests.run_js(self, assertions)
 

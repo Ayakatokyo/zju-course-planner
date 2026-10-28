@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-26",
+  "scope": "graduation self-audit overview and practice-module follow-up",
+  "before_fix_live": "unsupported_personal_claim",
+  "captured_source_model_replay": "completed",
+  "after_fix_live": {
+    "turns": 2,
+    "completed": 2,
+    "repair_attempts": [
+      0,
+      0
+    ],
+    "course_records": 3,
+    "passed": 2,
+    "in_progress": 1,
+    "source_names_present_in_reply": true,
+    "browser_console_errors": 0
+  },
+  "engineering": {
+    "full_suite": {
+      "run": 1580,
+      "passed": 1569,
+      "skipped": 11
+    },
+    "final_targeted_suite": {
+      "run": 121,
+      "passed": 121
+    },
+    "node_syntax": "passed"
+  },
+  "runtime": {
+    "restarted": true,
+    "user_reauthenticated": true
+  },
+  "boundaries": [
+    "No add/drop or collection scope expansion",
+    "Recorded-source replay is not a fresh school fetch",
+    "No commit or push",
+    "Not full semantic or user acceptance"
+  ],
+  "files_sha256": {
+    "course_assistant/personal_dialogue.py": "3c3e45dff84a5404876cce6508d962a8a1efbf19ff753b183ccdaea359975b26",
+    "web/app.js": "e61836fbfc8bb35029f165bc3c8d5cad66107ed88b7c00b6d7da546288e8f077"
+  }
+}

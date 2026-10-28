@@ -486,7 +486,7 @@ function renderAgentTurns(){
     const reply=directAnswer?personalGradeProse(originalReply,grades):grades?.listing?'成绩明细见下表，按本轮引用的来源记录展示。':planBrief?'':originalReply;
     const key=turn.request_id||turn.run_id||`turn-${turn.turn_id??index}`;
     const failedEvents=[...(agentTurnProgress(turn)?.events||[])].map(agentEventData).reverse();
-    const failure=!completed&&isAcademicIdentity()?agentFailureText(failedEvents.find(event=>event.kind==='answer.rejected')||failedEvents.find(event=>event.kind==='error')||{code:turn.code}):'';
+    const failure=!completed&&isAcademicIdentity()?agentFailureText(agentTerminalFailure(turn,failedEvents)):'';
     const evidence=isAcademicIdentity()?'':`${agentVisibleTools(turn).map(tool=>agentToolCard(tool,turn)).join('')}${turn.citations?.length?`<details class="agent-citations"><summary>参考依据</summary><ul>${turn.citations.map(agentCitation).join('')}</ul></details>`:''}`;
     const plans=isAcademicIdentity()?renderPersonalCoursePlans(turn.recommendation_result,turn.is_stale===true):'';
     const analysis=planAnalysis?`<section class="agent-plan-analysis"><h3>选择依据</h3>${planAnalysis.split(/\n\s*\n/).filter(text=>text.trim()).map(text=>`<p>${esc(text)}</p>`).join('')}</section>`:'';
@@ -713,6 +713,12 @@ function agentProcessStage(progress,taskStatus){
 }
 function agentShortId(value){return typeof value==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(value)?value.replace(/^RUN-/,'').slice(0,8):'';}
 function agentDuration(value){return Number.isFinite(value)&&value>=0?(value<1000?`${Math.round(value)} ms`:`${(value/1000).toFixed(1)} 秒`):'';}
+function agentTerminalFailure(turn,events){
+  const terminal=events.find(event=>event.kind==='error');
+  const code=turn.code||terminal?.error_code||terminal?.code;
+  const rejection=events.find(event=>event.kind==='answer.rejected'&&(!code||event.error_code===code));
+  return {...rejection,...terminal,...(code?{error_code:code}:{})};
+}
 function agentFailureText(event){
   const code=event.error_code||event.code||event.error?.code,detail=event.failure_detail;
   if((event.kind||event.type)==='tool.rejected')return '参数未通过检查，未执行；'+(event.status==='retrying'?'正在修正':'本轮未完成');
