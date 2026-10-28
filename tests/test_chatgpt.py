@@ -1,6 +1,7 @@
 """SIWC boundary regression: synthetic keys/transports, no live accounts or schools."""
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
+from http.client import IncompleteRead
 import io
 import json
 import socket
@@ -10,6 +11,7 @@ import tempfile
 import time
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, urlsplit
 
@@ -297,6 +299,38 @@ class ChatGPTTests(unittest.TestCase):
         self.assertEqual(caught.exception.code, "chatgpt_unavailable")
         self.assertEqual(caught.exception.failure_detail, "timeout")
         self.assertNotIn(secret, str(caught.exception))
+
+    def test_connection_time_consumes_stream_deadline_and_incomplete_body_is_discarded(self):
+        client = self.client()
+        client.timeout = 30
+        now, timeouts, observed = [0], [], []
+        wire = self.stream([{"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "synthetic"}]}])
+        class SlowResponse(Response):
+            def read1(self, size=-1):
+                now[0] = 31
+                return super().read1(size)
+        def open_slow(request, timeout):
+            timeouts.append(timeout)
+            now[0] = 20
+            return SlowResponse(wire)
+        with patch("course_assistant.chatgpt_client.time.monotonic", side_effect=lambda: now[0]), patch.object(self.transport, "open", side_effect=open_slow):
+            with self.assertRaises(ModelError) as caught:
+                client.complete([], [], observer=observed.append)
+        self.assertEqual(caught.exception.code, "model_unavailable")
+        self.assertEqual(observed[0]["failure_detail"], "timeout")
+        self.assertEqual(timeouts, [30])
+        self.assertEqual(len(observed), 1)
+        class BrokenResponse(Response):
+            def read1(self, size=-1):
+                raise IncompleteRead(b"SYNTHETIC-PRIVATE-PARTIAL")
+        observed.clear()
+        with patch.object(self.transport, "open", return_value=BrokenResponse(b"")) as transport:
+            with self.assertRaises(ModelError) as caught:
+                client.complete([], [], observer=observed.append)
+        self.assertEqual(caught.exception.code, "model_stream_incomplete")
+        self.assertEqual(observed[0]["failure_detail"], "connection_error")
+        self.assertEqual(transport.call_count, 1)
+        self.assertNotIn("SYNTHETIC-PRIVATE-PARTIAL", json.dumps(observed) + str(caught.exception))
 
     def test_unregistered_tool_and_wrong_namespace_fail_before_execution(self):
         client = self.client()

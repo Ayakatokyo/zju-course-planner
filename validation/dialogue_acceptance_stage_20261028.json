@@ -883,5 +883,122 @@
       "audit_summaries_checked": 0,
       "failure_categories": []
     }
-  ]
+  ],
+  "followup_delivery": {
+    "baseline_revision": "55ab8da07aace0befbbb1b238dd36048769e1454",
+    "tools_version": "personal-question-tools-v41-record-table",
+    "assessment": "限定阶段开发与真实复测完成，待用户体验确认；历史阶段结果及失败保留。",
+    "scope": [
+      "完整成绩清单通过本机受控表格交付，模型只接收汇总与显示范围",
+      "GPT连接与流读取共用总时限，HTTP流中断安全终止，保持原重试预算"
+    ],
+    "baseline_and_candidate": {
+      "input": "列出主修来源里全部成绩记录，保留同名行与未知值；如果一次不能列完，要清楚说明范围。",
+      "baseline": {
+        "matched_rows": 104,
+        "displayed_rows": 42,
+        "model_calls": 5,
+        "elapsed_ms": 41538
+      },
+      "candidate": {
+        "matched_rows": 104,
+        "displayed_rows": 104,
+        "model_calls": 2,
+        "elapsed_ms": 19484
+      },
+      "interpretation": "同一问题的单次前后对照，不作为生产性能或稳定性承诺。"
+    },
+    "local_delivery_bounds": {
+      "rows_per_table": 500,
+      "bytes_per_table": 80000,
+      "shared_local_context_bytes": 160000,
+      "overflow_behavior": "明确说明实际展示范围；保留筛选、来源完整性及未知值，不声称全部。"
+    },
+    "real_ui": {
+      "model": "GPT-6-Luna",
+      "reasoning_effort": "high",
+      "turns": 6,
+      "completed": 6,
+      "passed": 6,
+      "failed": 0,
+      "bounded_answer_repairs": 1,
+      "source_rows_checked": 143,
+      "grade_summaries_independently_recomputed": 3,
+      "audit_summaries_checked": 1,
+      "current_curriculum_pdf_page_rendered": 5,
+      "browser_errors": 0,
+      "elapsed_ms": [
+        19484,
+        12496,
+        11323,
+        17616,
+        14256,
+        29814
+      ]
+    },
+    "engineering_checks": {
+      "full_suite": {
+        "run": 1639,
+        "passed": 1628,
+        "skipped": 11,
+        "elapsed_seconds": 66.575
+      },
+      "subsequent_context_and_school_tests": {
+        "run": 101,
+        "passed": 101,
+        "overlaps_full_suite": true,
+        "note": "含全套运行后补充的一项table追问上下文回归。"
+      },
+      "javascript_syntax": "passed",
+      "python_compile": "passed",
+      "diff_check": "passed"
+    },
+    "regression_inputs": [
+      {
+        "input": "列出主修来源里全部成绩记录，保留同名行与未知值；如果一次不能列完，要清楚说明范围。",
+        "expected": "当前来源匹配记录完整交付，保持原始行位置、同名记录与未知值；页面及来源逐行一致。",
+        "result": "pass"
+      },
+      {
+        "input": "只保留数字成绩不低于85的记录，并告诉我条数和名义学分合计。",
+        "expected": "连续追问保持主修来源，数字阈值交工具筛选；表格与确定性汇总一致。",
+        "result": "pass"
+      },
+      {
+        "input": "这次为什么没有未知成绩？未知是不是就是不及格？只解释含义，不重新查询。",
+        "expected": "仅解释筛选和未知含义，学校读取为零，不把未知认定不及格。",
+        "result": "pass"
+      },
+      {
+        "input": "列出2024—2025学年秋冬学期成绩，保留未知字段，再告诉我来源数字成绩的简单均值。",
+        "expected": "使用明确学期来源，完整表格与独立重算的简单均值一致。",
+        "result": "pass"
+      },
+      {
+        "input": "查2026—2027秋冬课表，告诉我周五已明确的安排，还有哪些课程的时间或地点缺失。",
+        "expected": "课表明确安排与字段缺失准确，未确认来源总量不直接认定漏读。",
+        "result": "pass"
+      },
+      {
+        "input": "把“实践教学环节”的培养要求与当前自审情况并排说明，同时解释建议学期的含义。",
+        "expected": "当轮分别取培养与自审，课程学分、建议学期与自审状态准确；不推断正式毕业认定。",
+        "result": "pass"
+      }
+    ],
+    "remaining_limits": [
+      "TLS/连接失败根因尚未证实；本轮6次成功不能替代长期稳定性观察。",
+      "等待用户以约10个实际任务确认体验，不以工程测试代签。",
+      "正式培养适用及旧新课号对应沿用原范围约定，不纳入本轮追加开发。"
+    ],
+    "source_hashes": {
+      "course_assistant/chatgpt_client.py": "e4a183963a4dfafc107c9c71f974c7a421e487703a60ecbc1777d0e8d8cf6fb1",
+      "course_assistant/personal_chat.py": "6e75ed9506eebde318b0f227a9337aa1c31c298d5f08277d9065f772260933a8",
+      "course_assistant/personal_dialogue.py": "c5fab1bb64c1efa2734433e7cd28fdcbe8595984ec1562b2e24b4e35c6556838",
+      "course_assistant/personal_observations.py": "b2f941e42a9771051e237b68ea842ca3325515d13ba069dcf25069633ce7cfb3",
+      "course_assistant/personal_tasks.py": "9bd68c68d18f459e21e4df8a01c836503306804ecc37a7e1eeb698172e6b3f57",
+      "course_assistant/scenario_accounts.py": "7fea983878093d331239650458286c8197dc366d364e7bcf46aaa28173e26c0b",
+      "web/app.js": "1c551e13825bee48b9088deb6f81a3c6bf1d749c8f245b6a5b8e83741054a03b"
+    },
+    "private_evidence_in_git": false
+  }
 }

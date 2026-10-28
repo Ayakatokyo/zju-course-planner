@@ -1,5 +1,6 @@
 """Responses/SSE adapter for the existing bounded academic Harness."""
 from copy import deepcopy
+from http.client import HTTPException, IncompleteRead
 import json
 import re
 import time
@@ -151,6 +152,7 @@ class ChatGPTClient(ModelClient):
         metadata = {"status": "failed", "provider": "ChatGPT", "model": self.model, "thinking": self.thinking,
                     "reasoning_effort": self.reasoning_effort, "http_status": None, "usage": {}}
         started = time.monotonic()
+        deadline = started + self.timeout
         try:
             token = self.accounts.access(self.context, self.revision)
             functions = [{"type": "function", "name": tool["function"]["name"],
@@ -172,12 +174,15 @@ class ChatGPTClient(ModelClient):
             request = Request(RESOURCE + "/responses", data=raw, headers={"Authorization": "Bearer " + token,
                               "Content-Type": "application/json", "Accept": "text/event-stream"})
             completed = None
-            with self.accounts.opener.open(request, timeout=self.timeout) as response:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError()
+            with self.accounts.opener.open(request, timeout=remaining) as response:
                 metadata["http_status"] = response.status
                 identifier = response.headers.get("x-request-id")
                 if isinstance(identifier, str) and re.fullmatch(r"[A-Za-z0-9_-]{1,150}", identifier):
                     metadata["request_id"] = identifier
-                for raw_event in self._sse_data(response, time.monotonic() + self.timeout):
+                for raw_event in self._sse_data(response, deadline):
                     if raw_event == "[DONE]":
                         break
                     event = strict_json(raw_event)
@@ -212,7 +217,11 @@ class ChatGPTClient(ModelClient):
             if error.failure_detail is not None:
                 metadata["failure_detail"] = error.failure_detail
             raise
-        except (URLError, TimeoutError, OSError) as error:
+        except IncompleteRead:
+            metadata.update(code="model_stream_incomplete", failure_detail="connection_error")
+            raise ModelError("GPT 流中断，未收到完整响应", "model_stream_incomplete",
+                             failure_detail="connection_error") from None
+        except (URLError, TimeoutError, OSError, HTTPException) as error:
             metadata["code"] = "model_unavailable"
             metadata["failure_detail"] = transport_failure_kind(error)
             raise ModelError("ChatGPT 服务超时或不可连接", "model_unavailable",

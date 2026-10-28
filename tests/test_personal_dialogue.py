@@ -50,6 +50,42 @@ class ScriptedModel:
 
 
 class PersonalDialogueTests(unittest.TestCase):
+    def test_table_delivers_all_local_rows_without_sending_them_to_model(self):
+        rows = [{"course_name_raw": "LOCAL-ONLY-COURSE", "grade_raw": "88" if i % 2 else None,
+            "field_states": {"course_name_raw": "known", "grade_raw": "known" if i % 2 else "unknown"},
+            "password": "NEVER-SEND-SECRET"} for i in range(104)]
+        self.records.update(records=rows, source_record_indices=list(range(104)), matched_records=104,
+            mode="table", observation_id="OBS-LOCAL-ONLY", source_grade_summary=source_grade_summary(rows, self.records["coverage"]))
+        def table_answer(messages, tools):
+            remote = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            self.assertEqual(remote["record_table"]["displayed_records"], 104)
+            self.assertTrue(remote["record_table"]["complete_within_loaded_snapshot"])
+            self.assertTrue(remote["retrieval"]["complete_within_loaded_snapshot"])
+            self.assertEqual(remote["records"], [])
+            self.assertNotIn("LOCAL-ONLY-COURSE", json.dumps(messages))
+            return final({"kind": "answer", "text": "本次匹配104条，已在来源表完整展示。未知成绩保留未知。",
+                "evidence_ids": [remote["record_table"]["evidence_id"]]})
+        result, messages, _ = self.run_service([call("query_my_records", {"operation": "academic", "mode": "table"}), table_answer])
+        self.assertEqual(result["status"], "completed", result.get("code"))
+        table = result["citations"][0]["record_table"]
+        self.assertEqual(len(table), 104)
+        self.assertEqual([r["source_record_index"] for r in table], list(range(104)))
+        self.assertIsNone(table[0]["record"]["grade_raw"])
+        self.assertNotIn("NEVER-SEND-SECRET", json.dumps(result) + json.dumps(messages))
+
+    def test_table_local_byte_cap_is_explicit_and_shared_across_queries(self):
+        rows = [{"course_name_raw": "合成课程" * 20, "field_states": {"course_name_raw": "known"}} for _ in range(40)]
+        raw = {**self.records, "records": rows, "source_record_indices": list(range(40)), "matched_records": 40,
+            "source_grade_summary": source_grade_summary(rows, self.records["coverage"])}
+        proofs, budget = {}, [0, 0, {}]
+        with patch("course_assistant.personal_dialogue.MAX_LOCAL_CONTEXT_BYTES", 1000):
+            for _ in range(3):
+                local, remote = PersonalDialogueService._project("query_my_records", raw,
+                    {"operation": "academic", "mode": "table", "limit": 15}, "synthetic", proofs, 0, budget, set())
+                self.assertFalse(remote["retrieval"]["complete_within_loaded_snapshot"])
+                self.assertGreater(remote["projection_omitted_rows"], 0)
+            self.assertLessEqual(budget[1], 1000)
+
     def test_source_row_position_is_local_only_and_not_filtered_offset(self):
         self.records["source_record_indices"] = [17]
         response, messages, model = self.run_service([

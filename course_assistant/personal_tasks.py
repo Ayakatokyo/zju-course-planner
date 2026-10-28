@@ -244,7 +244,8 @@ def _task(row):
         mode = result.get("mode", arguments.get("mode", "records"))
         query = _query(arguments.get("query", ""), 100, empty=True)
         if (not isinstance(operation, str) or operation not in OPERATIONS or arguments.get("operation") != operation
-                or not _term(operation, term) or query is None or not isinstance(mode, str) or mode not in {"records", "summary"}
+                or not _term(operation, term) or query is None or not isinstance(mode, str) or mode not in {"records", "summary", "table"}
+                or mode == "table" and operation not in {"academic", "major_academic"}
                 or "target_term" in arguments and arguments["target_term"] != term
                 or "mode" in arguments and arguments["mode"] != mode):
             return None
@@ -296,7 +297,8 @@ def validate_task_context(value):
             if (set(task) - {"grade_filter"} != {"tool", "operation", "target_term", "query", "mode"}
                     or type(task["operation"]) is not str or task["operation"] not in OPERATIONS
                     or type(task["target_term"]) is not str or not _term(task["operation"], task["target_term"])
-                    or type(task["mode"]) is not str or task["mode"] not in {"summary", "records"}
+                    or type(task["mode"]) is not str or task["mode"] not in {"summary", "records", "table"}
+                    or task["mode"] == "table" and task["operation"] not in {"academic", "major_academic"}
                     or type(task["query"]) is not str or _query(task["query"], 100, empty=True) is None):
                 invalid()
             if "grade_filter" in task:

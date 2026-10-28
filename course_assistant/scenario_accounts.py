@@ -23,7 +23,7 @@ from .academic_harness import AcademicHarness
 from .auth import AccessError
 from .model_client import ModelClient, read_config
 from .personal_dialogue import PersonalDialogueService
-from .personal_observations import source_grade_summary, validate_grade_filter, matches_grade_filter
+from .personal_observations import source_grade_summary, validate_grade_filter, matches_grade_filter, MAX_RECORD_TABLE_ROWS
 from .semantic_retrieval import LocalSemanticRetriever
 from .reference_retrieval import terms
 from scripts.build_curriculum_scenarios import validate_student
@@ -165,7 +165,11 @@ class ScenarioAdapter:
             offset, limit = int(args.get('cursor', 0)), args.get('limit', 15)
             if not 0 <= offset <= len(records) or not 1 <= limit <= 15:
                 raise ValueError('invalid record cursor')
-            selected = [] if args.get('mode') == 'summary' else records[offset:offset + limit]
+            mode = args.get('mode', 'records')
+            if mode not in {'records', 'summary', 'table'} or mode == 'table' and 'cursor' in args:
+                raise ValueError('invalid record mode')
+            page_size = MAX_RECORD_TABLE_ROWS if mode == 'table' else limit
+            selected = [] if mode == 'summary' else records[offset:offset + page_size]
             total = len(self.student['academic_records'])
             coverage = {'complete_within_scope': True, 'captured_rows': total, 'reported_total': total}
             return {**base, 'operation': 'major_academic', 'target_term': 'ALL-HISTORY',
@@ -175,7 +179,7 @@ class ScenarioAdapter:
                 **({'grade_filter': predicate} if predicate is not None else {}),
                 'observation_id': self.version, 'source_alias': 'SYNTHETIC-ACADEMIC',
                 'source_grade_summary': source_grade_summary([r for _, r in records], coverage),
-                'next_cursor': str(offset + limit) if selected and offset + limit < len(records) else None}
+                'next_cursor': str(offset + limit) if mode == 'records' and selected and offset + limit < len(records) else None}
         if name == 'search_my_curriculum':
             query = args['query'].strip().casefold()
             mode, offset, limit = args.get('mode', 'search'), args.get('offset', 0), args.get('limit', 5)

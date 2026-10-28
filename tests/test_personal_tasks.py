@@ -109,6 +109,17 @@ class PreviousPreparationContextTests(unittest.TestCase):
 
 
 class PersonalTaskTests(unittest.TestCase):
+    def test_table_followup_keeps_scope_and_filter_without_local_rows(self):
+        row = record(operation="major_academic", term="ALL-HISTORY", query="合成关键词", mode="table")
+        predicate = {"kind": "unknown"}
+        row["arguments"]["grade_filter"] = predicate
+        row["result"].update(grade_filter=predicate, record_table=[{"record": "PRIVATE-ROW"}])
+        value = previous_task_context(state(row))
+        self.assertEqual(validate_task_context(value), value)
+        self.assertEqual(value["tasks"][0]["mode"], "table")
+        self.assertEqual(value["tasks"][0]["grade_filter"], predicate)
+        self.assertNotIn("PRIVATE-ROW", json.dumps(value))
+
     def test_grade_predicate_survives_intent_projection_without_source_facts(self):
         row = record(operation="major_academic", term="ALL-HISTORY", query="合成关键词", mode="records")
         predicate = {"kind": "numeric", "op": "gte", "value": 80}

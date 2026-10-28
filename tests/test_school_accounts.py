@@ -826,6 +826,11 @@ class SchoolAccountTests(unittest.TestCase):
         summary = self.live(context, "query_my_records", {**args, "mode": "summary"}, receipts)
         self.assertEqual(summary["records"], [])
         self.assertEqual(summary["source_grade_summary"]["matched_records"], 2)
+        table = self.live(context, "query_my_records", {**args, "mode": "table"}, receipts)
+        self.assertEqual(table["observation_id"], first["observation_id"])
+        self.assertEqual(table["source_record_indices"], [0, 1])
+        self.assertEqual(len(table["records"]), 2)
+        self.assertIsNone(table["next_cursor"])
         self.assertEqual(len(client.request_calls), 1)
 
     def test_live_curriculum_force_reads_once_and_reuses_only_this_turn_receipt(self):

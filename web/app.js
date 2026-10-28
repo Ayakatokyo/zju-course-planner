@@ -343,7 +343,7 @@ function personalAnswerText(turn,text){
 function personalGradeAnswer(turn){
   if(!['completed','ok'].includes(turn.status)||turn.error||turn.task_status==='blocked')return null;
   const citations=(turn.citations||[]).map(item=>item.chunk||item);
-  const records=citations.filter(item=>item.kind==='record'&&['academic','major_academic'].includes(item.operation)&&item.record);
+  const records=citations.flatMap(item=>item.kind==='summary'&&Array.isArray(item.record_table)?item.record_table.map(row=>({...item,kind:'record',record:row.record,source_record_index:row.source_record_index})):item).filter(item=>item.kind==='record'&&['academic','major_academic'].includes(item.operation)&&item.record);
   if(!records.length)return null;
   const groups=new Map();
   for(const item of records){

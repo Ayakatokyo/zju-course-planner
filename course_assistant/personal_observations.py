@@ -27,6 +27,7 @@ import uuid
 
 SCHEMA = "personal-observation/1"
 OPERATIONS = frozenset({"academic", "major_academic", "graduation_audit", "timetable", "exams"})
+MAX_RECORD_TABLE_ROWS = 500
 
 
 def normalize_record_query(query, operation):
@@ -553,7 +554,8 @@ class PersonalObservationStore:
         if (type(operation) is not str or operation not in OPERATIONS or type(query) is not str or len(query) > 200 or "\x00" in query or
                 year is not None and (type(year) is not str or not re.fullmatch(r"(?:19|20|21)[0-9]{2}(?:-(?:19|20|21)[0-9]{2})?", year)) or
                 type(limit) is not int or not 1 <= limit <= 20 or
-                type(mode) is not str or mode not in {"records", "summary"}):
+                type(mode) is not str or mode not in {"records", "summary", "table"}
+                or mode == "table" and operation not in {"academic", "major_academic"}):
             _fail("invalid_observation_request")
         predicate = validate_grade_filter(body["grade_filter"], operation) if "grade_filter" in body else None
         return operation, normalize_record_query(query, operation), year, limit, mode, predicate
@@ -625,13 +627,14 @@ class PersonalObservationStore:
             offset = cursor["offset"] if cursor else 0
             if offset > len(filtered):
                 _fail("invalid_observation_cursor")
-            selected = deepcopy(filtered[offset:offset + limit]) if mode == "records" else []
+            page_size = MAX_RECORD_TABLE_ROWS if mode == "table" else limit
+            selected = deepcopy(filtered[offset:offset + page_size]) if mode != "summary" else []
             next_cursor = self._cursor({"scope": self._scope_digest, "observation_id": snapshot["observation_id"],
                 "snapshot_sha256": snapshot_hash, "operation": operation, "query": query,
                 "academic_year": year, "limit": limit, "offset": offset + limit,
                 **({"grade_filter": predicate} if predicate is not None else {})}) if mode == "records" and offset + limit < len(filtered) else None
             result = {**self._summary(snapshot), "records": selected, "total_records": len(records),
-                "source_record_indices": positions[offset:offset + limit] if mode == "records" else [],
+                "source_record_indices": positions[offset:offset + page_size] if mode != "summary" else [],
                 "matched_records": len(filtered), "returned_records": len(selected), "next_cursor": next_cursor,
                 "query": query, "academic_year": year, "offset": offset, "mode": mode,
                 **({"grade_filter": deepcopy(predicate)} if predicate is not None else {}),

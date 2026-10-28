@@ -6,6 +6,18 @@ from tests import test_web_contract as web_contract
 
 @unittest.skipUnless(web_contract.NODE, "Node is needed only for Web progress contracts")
 class PersonalProgressWebTests(unittest.TestCase):
+    def test_local_grade_table_renders_all_rows_and_preserves_duplicate_positions(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
+const record={course_name_raw:'<script>synthetic</script>',course_code_raw:'SYN-A',grade_raw:null,field_states:{grade_raw:'unknown'}};
+const table={kind:'summary',operation:'major_academic',observation_id:'OBS-synthetic',record_table:Array.from({length:104},(_,i)=>({source_record_index:i,record}))};
+context.turn={status:'completed',message:'全部成绩',reply:'见来源表。',model_decision:{answer_protocol:'text-v1'},citations:[table,{kind:'record',operation:'major_academic',observation_id:'OBS-synthetic',source_record_index:0,record}]};
+evaluate('state.agentTurns=[turn]');const original=JSON.stringify(context.turn),html=evaluate('renderAgentTurns()');
+assert.match(html,/本答复展示 104 条/);assert.equal((html.match(/SYN-A/g)||[]).length,104);
+assert.doesNotMatch(html,/<script>synthetic/);assert.match(html,/&lt;script&gt;/);assert.equal(JSON.stringify(context.turn),original);
+context.turn.citations=[{kind:'summary',operation:'major_academic'}];assert.equal(evaluate('personalGradeAnswer(turn)'),null);
+""")
+
     def test_grade_table_merges_overlapping_source_rows_but_keeps_distinct_attempts(self):
         self.run_js(r"""
 evaluate("state.auth={authenticated:true,identity:{auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");

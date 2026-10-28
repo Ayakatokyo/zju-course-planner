@@ -13,6 +13,26 @@ from course_assistant.personal_observations import PersonalObservationStore, Per
 
 
 class PersonalObservationTests(unittest.TestCase):
+    def test_table_keeps_all_positions_unknowns_and_filter_with_bounded_delivery(self):
+        rows = [self.record(i, grade_raw=None if i % 2 else "88",
+            field_states={"course_name_raw": "known", "course_code_raw": "known", "grade_raw": "unknown" if i % 2 else "known"}) for i in range(104)]
+        rows[3] = deepcopy(rows[1])
+        self.register(self.result(records=rows, count=104))
+        table = self.store.query({"operation": "major_academic", "mode": "table", "limit": 1})
+        self.assertEqual(table["records"], rows)
+        self.assertEqual(table["source_record_indices"], list(range(104)))
+        self.assertIsNone(table["next_cursor"])
+        filtered = self.store.query({"operation": "major_academic", "mode": "table", "grade_filter": {"kind": "unknown"}})
+        self.assertEqual(filtered["source_record_indices"], list(range(1, 104, 2)))
+        self.assertEqual(filtered["source_grade_summary"]["unknown_grade_count"], 52)
+        self.register(self.result(count=501))
+        capped = self.store.query({"operation": "major_academic", "mode": "table"})
+        self.assertEqual((capped["matched_records"], capped["returned_records"]), (501, 500))
+        page = self.store.query({"operation": "major_academic", "limit": 1})
+        self.assert_code("invalid_observation_cursor", self.store.query,
+            {"operation": "major_academic", "mode": "table", "cursor": page["next_cursor"]})
+        self.assert_code("invalid_observation_request", self.store.query, {"operation": "timetable", "mode": "table"})
+
     def test_overlapping_queries_keep_original_positions_including_identical_rows(self):
         repeated = self.record(course_name_raw="合成数据分析")
         self.register(self.result(records=[self.record(course_name_raw="无关课程"), repeated, deepcopy(repeated)]))
