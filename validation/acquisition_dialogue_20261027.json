@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-27",
+  "baseline": "0b19314 plus existing uncommitted audit-guard/frontend fixes",
+  "scope": [
+    "major pagination",
+    "same-turn source reuse",
+    "cross-turn fresh acquisition",
+    "source projection",
+    "curriculum retrieval and audit separation"
+  ],
+  "engineering": {
+    "source_dialogue_cache_encoder": {
+      "run": 188,
+      "passed": 188
+    },
+    "pagination_http": {
+      "run": 112,
+      "passed": 112
+    },
+    "isolated_vector_store": {
+      "run": 4,
+      "passed": 4
+    }
+  },
+  "live": {
+    "turns": 8,
+    "completed": 8,
+    "model": "deepseek-flash",
+    "thinking": true,
+    "repair_attempts": [
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      1
+    ],
+    "source_checks": [
+      {
+        "turn": 1,
+        "status": "completed",
+        "record_citations_compared": 0,
+        "snapshots": 0
+      },
+      {
+        "turn": 2,
+        "status": "completed",
+        "record_citations_compared": 14,
+        "snapshots": 1
+      },
+      {
+        "turn": 3,
+        "status": "completed",
+        "record_citations_compared": 10,
+        "snapshots": 1
+      },
+      {
+        "turn": 4,
+        "status": "completed",
+        "record_citations_compared": 3,
+        "snapshots": 1
+      },
+      {
+        "turn": 5,
+        "status": "completed",
+        "record_citations_compared": 9,
+        "snapshots": 1
+      },
+      {
+        "turn": 6,
+        "status": "completed",
+        "record_citations_compared": 0,
+        "snapshots": 0
+      },
+      {
+        "turn": 7,
+        "status": "completed",
+        "record_citations_compared": 4,
+        "snapshots": 1
+      },
+      {
+        "turn": 8,
+        "status": "completed",
+        "record_citations_compared": 0,
+        "snapshots": 0
+      }
+    ],
+    "independent_major_counts": {
+      "rows": 104,
+      "numeric": 39,
+      "mean": "84.33",
+      "data_name_matches": 14
+    },
+    "audit_tool_queries": 2,
+    "audit_acquisitions": 1,
+    "explanation_school_acquisitions": 0,
+    "curriculum_retrieval_mode": "module_course_listing",
+    "curriculum_page": 5,
+    "curriculum_course_rows": 3,
+    "browser_errors": 0
+  },
+  "findings": [
+    {
+      "stage": "answer_semantics",
+      "issue": "Same-name different-code records described as the same course with multiple records; unsupported equivalence or repeat-attempt inference",
+      "status": "Observed; corrected by model after follow-up, no code fix claimed",
+      "source_loss_observed": false
+    },
+    {
+      "stage": "answer_protocol",
+      "issue": "Final explanation returned invalid JSON once; existing automatic repair completed",
+      "status": "Recovered",
+      "source_loss_observed": false
+    }
+  ],
+  "conclusion": "No acquisition regression observed in covered cases; not full semantic acceptance or a controlled before/after A/B test",
+  "limitations": [
+    "No live source-failure injection; covered offline",
+    "Live curriculum query used structured module listing, not dense retrieval",
+    "No performance gain measurement",
+    "No school write actions or expanded collection scopes",
+    "No service restart, business code change, commit or push"
+  ],
+  "source_hashes": {
+    "course_assistant/personal_dialogue.py": "3c3e45dff84a5404876cce6508d962a8a1efbf19ff753b183ccdaea359975b26",
+    "course_assistant/personal_acquisition.py": "5c279c1f94cef733c43a979b7adbbd2ceb5ddcecdaa3251ef60465af9cb7388c",
+    "course_assistant/school_accounts.py": "8736cc4f99cec469f8cc67eb1aaf44b095389297af1a82eb26b54d9c442b0706",
+    "course_assistant/personal_observations.py": "a7b69ffecff3be4b5dbea5a3fc0a3a8bb45df1cff6f3ee0c586d7e6b0768ce91"
+  }
+}
