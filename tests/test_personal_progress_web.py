@@ -84,7 +84,27 @@ assert.match(html,/>88</);assert.doesNotMatch(html,/\| 99/);
 context.turn.reply='| 课程 | 成绩 |\n|---|---|\n| 未引用课程 | 99 |';
 assert.match(evaluate('renderAgentTurns()'),/未引用课程/);
 context.turn.reply='| 方案 | 学分 |\n|---|---|\n| A | 6 |';assert.match(evaluate('renderAgentTurns()'),/<th scope="col">方案<\/th>/);assert.match(evaluate('renderAgentTurns()'),/<tr><td>A<\/td><td>6<\/td><\/tr>/);
-context.turn.message='解释成绩';assert.equal(evaluate('personalGradeAnswer(turn)'),null);
+context.turn.message='解释成绩';assert.ok(evaluate('personalGradeAnswer(turn)'));
+// A follow-up with no newly cited grade rows must not reuse the previous table.
+context.turn.citations=[{kind:'context'},{kind:'academic_term'}];assert.equal(evaluate('personalGradeAnswer(turn)'),null);
+""")
+
+    def test_cited_grade_rows_show_for_paraphrases_and_mixed_evidence(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={}");
+const row={course_name_raw:'合成数据课',course_code_raw:'SYN-A',grade_raw:'88'};
+context.turn={status:'completed',model_decision:{answer_protocol:'text-v1'},reply:'两条来源记录，不能据同名判断重修。',citations:[
+ {kind:'record',operation:'major_academic',record:row},
+ {kind:'record',operation:'major_academic',record:{...row,course_code_raw:'SYN-B',grade_raw:null}},
+ {kind:'academic_term'}, {kind:'curriculum'}]};
+let calls=0;context.fetch=async()=>{calls++;throw Error('render must not query');};
+for(const message of ['找出名称含数据的全部记录，简单说说特点','帮我看看每门课的分数和绩点，并说明能否算GPA','比较成绩和培养要求']){
+ context.turn.message=message;const before=JSON.stringify(context.turn);evaluate('state.agentTurns=[turn]');
+ const html=evaluate('renderAgentTurns()');assert.match(html,/本答复展示 2 条/);assert.match(html,/SYN-A/);assert.match(html,/SYN-B/);
+ assert.match(html,/不能据同名判断重修/);assert.equal((html.match(/<table/g)||[]).length,1);assert.equal(JSON.stringify(context.turn),before);
+}
+context.turn.citations=[{kind:'record',operation:'graduation_audit',record:row}];assert.equal(evaluate('personalGradeAnswer(turn)'),null);
+assert.equal(calls,0);
 """)
 
     def test_provider_402_remains_actionable_after_history_load_without_claiming_data_queries(self):

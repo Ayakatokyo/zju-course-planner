@@ -357,7 +357,9 @@ function personalGradeAnswer(turn){
     if(rowKey!==null)group.seen.add(rowKey);
     group.records.push(item.record);group.citation_numbers.push(item.citation_number);
   }
-  const listing=/(明细|列出|列一下|课程成绩|每门.*成绩|成绩.*表格)/.test(turn.message||'')&&!/(为什么|解释|建议|比较|怎么算)/.test(turn.message||'')&&citations.every(item=>['context','course_reference'].includes(item.kind)||['record','summary'].includes(item.kind)&&['academic','major_academic'].includes(item.operation));
+  // The answer contract delegates cited grade rows to this source table.
+  // A wording heuristic must not hide them for paraphrases or mixed questions.
+  const listing=turn.model_decision?.answer_protocol==='text-v1'||(/(明细|列出|列一下|课程成绩|每门.*成绩|成绩.*表格)/.test(turn.message||'')&&!/(为什么|解释|建议|比较|怎么算)/.test(turn.message||'')&&citations.every(item=>['context','course_reference'].includes(item.kind)||['record','summary'].includes(item.kind)&&['academic','major_academic'].includes(item.operation)));
   if(!listing)return null;
   const html=[...groups.values()].map(group=>`<section class="agent-grade-answer"><h4>${esc(personalTermLabel(group.target_term))} · 成绩明细</h4><p class="field-help">${esc(personalSourceKind(group))} · ${esc(schoolCoverageText(group))} · 本答复展示 ${group.records.length} 条</p>${personalRecordTable({...group,citation_numbers:[],compact:true})}<p class="field-help">表内绩点与学分均为来源字段，未作 GPA 或已获学分认定。</p></section>`).join('');
   return {html,listing,records:records.map(item=>item.record)};

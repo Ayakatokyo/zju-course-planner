@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-28",
+  "baseline": "0b19314 plus pre-existing uncommitted changes",
+  "live_baseline": {
+    "model": "deepseek-flash",
+    "thinking": true,
+    "turns": 4,
+    "completed": 3,
+    "failed": 1,
+    "failure_code": "unsupported_personal_claim",
+    "repair_attempts": [1, 1, 0, 1],
+    "record_citations_verified_against_snapshots": 28,
+    "same_name_explanation_school_reads": 0
+  },
+  "captured_source_baseline_replays": {
+    "runs": 2,
+    "completed": 2,
+    "repair_attempts": [0, 1],
+    "school_reads": 0,
+    "findings": ["incorrect known/unknown record counts despite supplied summary", "bare final prose required existing format repair"]
+  },
+  "implemented_verified": {
+    "change": "Current text-v1 answers display cited grade rows independently of question wording or mixed citations; legacy display behavior retained",
+    "browser_verified_historical_answer_rows": [14, 10],
+    "explanation_without_grade_citations_has_no_table": true,
+    "browser_errors": 0,
+    "backend_restarted": false
+  },
+  "candidate_not_enabled": {
+    "changes": ["Prefer finish_answer delivery", "Use source summary counts", "Avoid unsupported course-identity explanations", "Attribute self-audit status and credit values"],
+    "first_model_retest_status": "failed_before_model_output",
+    "code": "model_http_402",
+    "single_continuation_recheck": "model_http_402; zero model outputs; no school requests",
+    "semantic_improvement_verified": false,
+    "format_improvement_verified": false,
+    "guards_relaxed": false
+  },
+  "engineering": {
+    "web_tests_passed": 25,
+    "answer_dialogue_recovery_audit_tests_passed": 111,
+    "javascript_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "boundaries": ["No new school collection scope", "No school writes", "No credential changes", "No commit or push", "No external publication", "Full semantic and user acceptance remain pending"]
+}
