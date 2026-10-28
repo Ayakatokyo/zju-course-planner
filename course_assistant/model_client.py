@@ -83,8 +83,9 @@ class ModelClient:
         self._opener = opener or build_opener(NoRedirect())
         self.timeout = timeout
         self.thinking = False
+        self.reasoning_effort = "low"
 
-    def with_options(self, model, thinking=False):
+    def with_options(self, model, thinking=False, reasoning_effort="low"):
         """Create a request-scoped client; callers validate model against list_models.
 
         No configuration file is read, no discovery/chat request is sent, and the
@@ -92,15 +93,20 @@ class ModelClient:
         """
         if not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,100}", model) or type(thinking) is not bool:
             raise ModelError("模型或思考选项无效", "model_options_invalid")
+        if not isinstance(reasoning_effort, str) or reasoning_effort not in {"low", "high", "max"}:
+            raise ModelError("该模型不支持所选思考强度", "model_effort_invalid")
         client = ModelClient({"DEEPSEEK_API_KEY": self._key, "DEEPSEEK_MODEL": model,
             "COURSE_ALLOW_REFERENCE_TEXT": "true" if self.allow_reference_text else "false"},
             opener=self._opener, timeout=self.timeout)
         client.thinking = thinking
+        client.reasoning_effort = reasoning_effort
         return client
 
     def status(self):
         return {"configured": bool(self._key), "provider": "DeepSeek", "model": self.model,
-                "remote": True, "thinking": self.thinking, "allow_reference_text": self.allow_reference_text,
+                "remote": True, "thinking": self.thinking, "reasoning_effort": self.reasoning_effort,
+                "effort": {"supported_levels": ["low", "high", "max"], "default_level": "low"},
+                "thinking_toggle": True, "allow_reference_text": self.allow_reference_text,
                 "reason": "" if self._key else "未配置 DEEPSEEK_API_KEY；请在本机 .env 填写并重启服务",
                 "data_scope": "固定 synthetic 夹具与经同意的测试对话；真实学校数据未接入"}
 
@@ -214,7 +220,7 @@ class ModelClient:
                    "max_tokens": 8192 if self.thinking else 1800,
                    "thinking": {"type": "enabled" if self.thinking else "disabled"}}
         if self.thinking:
-            payload["reasoning_effort"] = "low"
+            payload["reasoning_effort"] = self.reasoning_effort
         else:
             payload["temperature"] = 0
         if tools:
@@ -292,7 +298,7 @@ class ModelClient:
         if observer is not None and not callable(observer):
             raise ModelError("模型观察回调无效", "model_options_invalid")
         metadata = {"status": "failed", "provider": "DeepSeek", "model": self.model,
-                    "thinking": self.thinking, "http_status": None, "request_id": None, "usage": {}}
+                    "thinking": self.thinking, "reasoning_effort": self.reasoning_effort, "http_status": None, "request_id": None, "usage": {}}
         start = time.monotonic()
         try:
             result = self._complete(messages, tools, metadata)
@@ -532,7 +538,7 @@ class ModelClient:
                    "stream_options": {"include_usage": True}, "max_tokens": 8192 if self.thinking else 1800,
                    "thinking": {"type": "enabled" if self.thinking else "disabled"}}
         if self.thinking:
-            payload["reasoning_effort"] = "low"
+            payload["reasoning_effort"] = self.reasoning_effort
         else:
             payload["temperature"] = 0
         if tools:
@@ -582,7 +588,7 @@ class ModelClient:
         if any(callback is not None and not callable(callback) for callback in (observer, on_reasoning)):
             raise ModelError("模型观察回调无效", "model_options_invalid")
         metadata = {"status": "failed", "provider": "DeepSeek", "model": self.model,
-                    "thinking": self.thinking, "http_status": None, "request_id": None, "usage": {}, "streaming": True}
+                    "thinking": self.thinking, "reasoning_effort": self.reasoning_effort, "http_status": None, "request_id": None, "usage": {}, "streaming": True}
         start = time.monotonic()
         try:
             result = self._complete_stream(messages, tools, metadata, on_reasoning, start + self.timeout)

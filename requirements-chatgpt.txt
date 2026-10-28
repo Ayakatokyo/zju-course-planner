@@ -1,0 +1,2 @@
+# Optional SIWC ID-token verification; transport remains Python stdlib.
+PyJWT[crypto]==2.15.1

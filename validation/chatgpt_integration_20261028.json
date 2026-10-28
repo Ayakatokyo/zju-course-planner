@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-28",
+  "scope": "ChatGPT SIWC integration, provider-specific reasoning selection and grouped model menu",
+  "official_authentication": "completed",
+  "actual_gpt_catalog_count": 8,
+  "billing": "ChatGPT Work and Codex shared plan usage; no ordinary API key",
+  "browser_checks": [
+    "grouped model/reasoning menu beside Send",
+    "left thinking toggle retained",
+    "no clipped popup",
+    "selection persists on reload",
+    "official login button opens authorization",
+    "provider catalog and capabilities rendered",
+    "no console errors"
+  ],
+  "live_rounds": [
+    {
+      "model": "chatgpt:gpt-6.1-sol",
+      "status": "completed",
+      "repair_attempts": 0,
+      "citations": 0,
+      "tool_names": [
+        "get_my_context"
+      ]
+    },
+    {
+      "model": "chatgpt:gpt-6-luna",
+      "status": "completed",
+      "repair_attempts": 0,
+      "citations": 15,
+      "tool_names": [
+        "get_my_context",
+        "query_my_records"
+      ]
+    },
+    {
+      "model": "chatgpt:gpt-6-luna",
+      "status": "completed",
+      "repair_attempts": 0,
+      "citations": 11,
+      "tool_names": [
+        "get_my_context",
+        "query_my_records"
+      ]
+    }
+  ],
+  "luna_records_check": {
+    "matched_rows": 14,
+    "numeric_grade_count": 5,
+    "text_grade_count": 1,
+    "unknown_grade_count": 8,
+    "arithmetic_mean": "84.8",
+    "not_gpa": true
+  },
+  "offline_checks": {
+    "new_auth_protocol_http_ui": 21,
+    "combined_regressions": 139,
+    "grouped_menu_web": 122,
+    "separate_auth_button_web": 97,
+    "groups_overlap": true,
+    "node_syntax": "passed",
+    "diff_check": "passed"
+  },
+  "limitations": [
+    "No controlled same-provider A/B quality claim",
+    "Other catalog models not individually called",
+    "Refresh, revocation and expiry verified with synthetic transports only",
+    "Formal curriculum applicability, complete semantics and overall user acceptance remain unverified"
+  ],
+  "no_commit_or_push": true,
+  "verified_luna_model": "chatgpt:gpt-6-luna",
+  "verified_luna_effort": "medium",
+  "reasoning_labels": "English protocol value followed by Chinese translation, both menu and summary"
+}

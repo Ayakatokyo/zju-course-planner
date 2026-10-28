@@ -92,7 +92,8 @@ class _ObservedModel:
 class PersonalChatService:
     def __init__(self, app, model):
         self.app, self.model = app, model
-        self.settings = ChatModelSettings(app.auth, lambda: self.model)
+        self.settings = ChatModelSettings(app.auth, lambda: self.model, resolver=lambda context: (
+            app.chatgpt.model_for(context, self.model) if getattr(app, "chatgpt", None) else self.model))
         self._active_model = threading.local()
         self.progress = ChatProgress()
         self.drafts = PersonalDraftService(SENSITIVE)
@@ -229,7 +230,7 @@ class PersonalChatService:
         _, model_status, _ = model_snapshot or self.settings.snapshot(context)
         if type(model_status) is not dict:
             _deny("model_not_configured", "模型尚未配置", 503)
-        egress = {key: model_status.get(key) for key in ("configured", "provider", "model", "remote", "thinking", "settings_revision")}
+        egress = {key: model_status.get(key) for key in ("configured", "provider", "model", "remote", "thinking", "reasoning_effort", "connection_revision", "settings_revision")}
         egress.update(data_use_version=DATA_USE_VERSION, tools_version=TOOLS_VERSION)
         _json_check(egress, 10000)
         versions = {"personal_scope": scope, "input_digest": digest(receipt["versions"]),
@@ -310,7 +311,8 @@ class PersonalChatService:
                 "reason": model_status.get("reason", "") if not model_status.get("configured") else ""}
 
     def models(self, context, *, refresh=False):
-        return self.settings.refresh(context) if refresh else self.settings.catalog(context)
+        return {**(self.settings.refresh(context) if refresh else self.settings.catalog(context)),
+                "chatgpt": self.app.chatgpt.status(context) if getattr(self.app, "chatgpt", None) else None}
 
     def configure(self, body, context):
         self.settings.update(context, body)

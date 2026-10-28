@@ -19,7 +19,7 @@ from .exporter import export_result
 from .importer import ROOT, SOURCE_ROOT, ImportErrorDetail, digest, load_json, read_sources, require, validate_demo
 from .planner import generate_plans, revise_constraints, validate_plan
 from .storage import Store
-from .model_client import ModelClient, read_config, strict_json
+from .model_client import ModelClient, ModelError, read_config, strict_json
 
 
 class Application:
@@ -67,6 +67,8 @@ class Application:
         self.lock = threading.RLock()
         shared_model = model if model is not None else ModelClient()
         from .personal_chat import PersonalChatService
+        from .chatgpt_auth import ChatGPTAccounts
+        self.chatgpt = ChatGPTAccounts(self.auth, database.parent / "chatgpt") if private_mode else None
         self.personal_chat = PersonalChatService(self, shared_model)
         self.curriculum_preparation = None
         if os.environ.get('COURSE_QDRANT_URL') and os.environ.get('COURSE_LOGIN_PREPARE') == 'true':
@@ -145,6 +147,8 @@ class Application:
         return token, response
 
     def close(self):
+        if self.chatgpt:
+            self.chatgpt.close()
         if self.curriculum_preparation:
             self.curriculum_preparation.close()
         self.personal_chat.drafts.close()
@@ -321,6 +325,8 @@ class Application:
                 return self.personal_chat.status(context)
             if path == '/api/chat/draft':
                 return self.personal_chat.read_draft(context)
+            if path == '/api/chat/chatgpt/status':
+                return self.chatgpt_action(context, 'status')
             if path == '/api/chat/models':
                 return self.personal_chat.models(context)
             if parsed.path == '/api/chat/runs':
@@ -357,6 +363,14 @@ class Application:
             return [self.own_saved(context, row['saved_id']) for row in self.store.saved(context)]
         raise AccessError('资源不可访问', 404, 'inaccessible_object')
 
+    def chatgpt_action(self, context, action):
+        if self.chatgpt is None:
+            raise AccessError('当前入口不支持 ChatGPT 连接', 409, 'chatgpt_unavailable')
+        try:
+            return getattr(self.chatgpt, action)(context)
+        except ModelError as error:
+            raise AccessError(str(error), 503, error.code) from None
+
     def post(self, path, body, context=None):
         if context and is_academic_context(context):
             self.auth.require_context(context)
@@ -368,6 +382,9 @@ class Application:
                 return self.personal_chat.write_draft(body, context)
             if path == '/api/chat/history':
                 return self.personal_chat.history(body, context)
+            if path in {'/api/chat/chatgpt/connect', '/api/chat/chatgpt/disconnect'}:
+                require(body == {}, 'ChatGPT 连接不接受额外参数')
+                return self.chatgpt_action(context, 'begin' if path.endswith('/connect') else 'disconnect')
             if path == '/api/chat/settings':
                 return self.personal_chat.configure(body, context)
             if path == '/api/chat/models/refresh':
@@ -543,7 +560,7 @@ def make_handler(app):
                         app.auth.require_context(context)
                         self.response(result)
                     return
-                if path in {'/api/bootstrap', '/api/chat/status', '/api/chat/conversations', '/api/chat/models', '/api/chat/runs', '/api/chat/draft'}:
+                if path in {'/api/bootstrap', '/api/chat/status', '/api/chat/conversations', '/api/chat/models', '/api/chat/chatgpt/status', '/api/chat/runs', '/api/chat/draft'}:
                     context = self.context()
                     if is_academic_context(context):
                         result = app.get(self.path if parsed.query else path, context)

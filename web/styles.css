@@ -824,3 +824,26 @@ input:disabled, select:disabled, textarea:disabled { cursor: not-allowed; }
 .exam-compact-row small { display: block; color: var(--muted); font-size: .8125rem; }
 .exam-compact-time { font-variant-numeric: tabular-nums; }
 .exam-compact-type { color: var(--muted); font-size: .8125rem; }
+
+/* One model menu groups model choice and its supported reasoning levels. */
+.agent-model-menu { position: relative; max-width: 360px; min-width: 0; }
+.agent-model-menu > summary { display: flex; align-items: center; gap: 7px; min-height: 40px; padding: 7px 10px; border-radius: 8px; cursor: pointer; list-style: none; font-size: .8125rem; color: var(--ink); }
+.agent-model-menu > summary::-webkit-details-marker { display: none; }
+.agent-model-menu > summary:hover, .agent-model-menu[open] > summary { background: var(--surface); }
+.agent-model-menu > summary[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+.agent-model-menu > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.agent-model-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-model-level { color: var(--muted); white-space: nowrap; }
+.agent-model-menu summary svg { width: 14px; height: 14px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.agent-model-menu[open] summary svg { transform: rotate(180deg); }
+.agent-model-popover { position: absolute; z-index: 30; right: 0; bottom: calc(100% + 8px); width: 350px; padding: 7px; border: 1px solid var(--line); border-radius: 16px; background: var(--canvas); box-shadow: 0 6px 24px #1f294015; }
+.agent-model-setting { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: center; gap: 8px; padding: 3px 8px; min-height: 44px; font-size: .875rem; }
+.agent-model-setting > span { color: var(--ink); }
+.agent-model-setting select { width: 100%; min-height: 38px; border: 0; padding: 7px 26px 7px 5px; background-color: transparent; text-align: right; font-size: .875rem; color: var(--muted); text-overflow: ellipsis; }
+.agent-model-setting select:hover:not(:disabled) { background-color: var(--surface); color: var(--ink); }
+.agent-model-setting select:disabled { opacity: .6; }
+.dialogue-composer:has(.agent-model-menu[open]) { overflow: visible; }
+
+.agent-model-connection { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); margin: 5px 6px 0; padding: 7px 0 2px; }
+.agent-model-connection button { background: transparent; border: 0; padding: 7px 8px; color: var(--muted); font-size: .8125rem; cursor: pointer; border-radius: 7px; }
+.agent-model-connection button:hover:not(:disabled) { background: var(--surface); color: var(--ink); }

@@ -74,6 +74,22 @@ COURSE_ALLOW_REFERENCE_TEXT=false
 
 Key 仅留在本机配置中。未配置模型时可以查看界面；学校模式仍可使用教务查询页面，但不会得到真实 AI 对话回答。
 
+### 使用 ChatGPT 订阅或调整思考强度
+
+可在输入框旁的模型菜单选择 **Continue with ChatGPT…**，在 OpenAI 官方页面完成登录及订阅额度授权。应用通过官方 Sign in with ChatGPT 本地客户端流程接入，动态读取此账户实际开放的模型；不是把 ChatGPT 网页全部型号固定写进菜单，也不转换为普通 API 余额。此类调用会计入 ChatGPT Work 与 Codex 的共享用量，减少可用于 Codex 的额度；可在 ChatGPT「设置 → 用量 → 应用限额」为本应用设置每周上限，这不是独立额度池。DeepSeek 调用不消耗这份额度。当前官方预览的账户、模型和共享额度限制仍适用。
+
+首次启用需在运行主应用的同一 Python 环境安装可选签名校验依赖：
+
+```sh
+python3 -m pip install --target private/chatgpt_runtime/site-packages -r requirements-chatgpt.txt
+```
+
+若使用隔离环境，也可直接安装到该环境。然后启动/重启主应用。学校登录只负责本人教务数据权限，ChatGPT 登录只负责模型调用。授权凭据按教务助手账号隔离，保存在运行数据库同级的 `chatgpt/` 私有目录，目录权限 0700、文件 0600，自动续期；不进入浏览器存储或 Git。请勿复制该目录到共享位置。主应用重启会清除学校内存登录，需要重新登录学校。
+
+授权成功后会读取模型目录，按本项目当前偏好选择 GPT-6-Luna；目录未提供该型号时提示手动选择，不自动切到其他 GPT。发送按钮旁的模型菜单内，模型和推理等级分成两行；外部显示当前模型及等级，左侧保留深度思考开关。可选思考强度：DeepSeek 当前支持 low（低）/high（高）/max（最高）；GPT 仅显示目录实际声明的档位，未声明时使用模型默认，不虚构可用强度。不支持关闭思考的型号会禁用开关。更改模型或强度会更新出站版本，正在执行的旧版本结果不能混入新轮次。授权/刷新目录/调整强度不发送教务问题；点击发送才开始模型推理。
+
+模型菜单支持重新连接或断开 ChatGPT。断开会尝试远端撤销并移除本机凭据；网络失败时明确提示远端撤销未确认。授权撤销、续期失败或共享额度耗尽会如实报错，不自动改走其他供应商。官方资料：[注册与登录](https://developers.openai.com/siwc/token-sharing-open-source/sign-in)、[模型与推理](https://developers.openai.com/siwc/token-sharing-open-source/models-and-inference)、[预览限制](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)。
+
 ### 用自己的学校账号查询
 
 ```sh

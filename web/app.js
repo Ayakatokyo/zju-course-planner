@@ -8,7 +8,7 @@ const showValue = value => value === null || value === undefined ? '待确认' :
 const state = {agentHistorySearch:'',schoolGradeSort:'source',auth:null, csrfToken:null, loadedSaved:null, comparison:null, savedComparison:null, compareSavedIds:[], agentDraft:'', agentStatus:null, agentTurns:[], agentConversationId:null, agentTurnId:0, agentConsent:false,  agentBusy:false, agentActionBusy:false, agentActionRetries:{}, agentOptionReceipts:{}, agentEpoch:0, agentHistory:[],agentHistoryLoading:false,agentHistoryError:'',agentHistoryHasMore:false,agentHistoryLoadBusy:false,agentHistoryPending:false, previewBusy:false, boot:null, mode:'demo', tab:'assistant', constraints:{}, lastConstraints:null, generated:null, selected:0, audit:null, sourceAudit:null, saved:[], week:1, season:'冬', dirty:false, busy:false};
 state.agentProgressPoll=null;
 state.agentDraftSync=newAgentDraftSync();
-Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRunDetails:{},agentScroll:{initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''}});
+Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentChatGPT:null,agentAuthPolling:false,agentRunDetails:{},agentScroll:{initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''}});
 Object.assign(state,{schoolEpoch:0,schoolBusy:false,schoolEnrollment:null,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});
 const statusNames = {pass:['满足','success'],fail:['不满足','danger'],satisfied:['满足','success'],unsatisfied:['不满足','danger'],pending:['待确认','warning'],unknown:['待确认','warning'],valid:['可行','success'],invalid:['不满足','danger'],passed:['满足','success'],failed:['不满足','danger'],needs_confirmation:['待确认','warning'],not_applicable:['不适用',''],candidate_pending_human_review:['待审核','warning']};
 function statusBadge(result) {const [name, cls] = statusNames[result] || [showValue(result),'']; return `<span class="badge ${cls}">${esc(name)}</span>`;}
@@ -19,7 +19,7 @@ function identityKey(identity){return identity?JSON.stringify([identity.student_
 function isAcademicIdentity(){const identity=state.auth?.identity;return state.auth?.authenticated===true&&((identity?.auth_mode==='school_client'&&identity?.security_realm==='personal_school_client')||(identity?.auth_mode==='synthetic_account'&&identity?.security_realm==='curriculum_synthetic_accounts'));}
 function clearPersonalLocal(){resetSchoolPresentation();if(isAcademicIdentity()){resetAgentDraftSync();clearAgentConversation();state.agentHistory=[];state.agentHistoryError='';state.agentHistoryHasMore=false;state.agentStatus=null;renderAgentHistory();renderAssistant();}}
 function clearSchoolWorkspace(){resetSchoolPresentation();resetAgentDraftSync();state.schoolEpoch+=1;clearAgentDiagnostics();clearPersonalLocal();if(state.schoolCaptchaUrl)URL.revokeObjectURL(state.schoolCaptchaUrl);Object.assign(state,{schoolBusy:false,schoolEnrollment:null,schoolResult:null,schoolProfile:null,schoolPlan:null,schoolStatus:null,schoolOperation:'academic',schoolYear:'2026-2027',schoolSeason:'AW',schoolGradePage:1,schoolGradeSearch:'',schoolGradeYear:'',schoolChallengeId:null,schoolReauth:false,schoolCaptchaUrl:null,schoolNeedsCaptcha:false,schoolPending:null});}
-function clearAgentDiagnostics(){Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentRunDetails:{}});}
+function clearAgentDiagnostics(){Object.assign(state,{agentModels:[],agentModelsStatus:'idle',agentModelsBusy:false,agentSettingsBusy:false,agentModelsError:'',agentChatGPT:null,agentAuthPolling:false,agentRunDetails:{}});}
 function clearAgentConversation(){closeCitationPreview();document.querySelector('.message-dialog')?.remove?.();stopAgentProgress();state.agentEpoch+=1;if(state.agentModelsBusy)state.agentModelsStatus='idle';state.agentModelsBusy=false;state.agentSettingsBusy=false;state.agentScroll={initialized:false,top:0,nearBottom:true,forceLatest:true,newMessages:false,version:''};Object.assign(state,{agentRunDetails:{}});Object.assign(state,{agentDraft:'',agentTurns:[],agentConversationId:null,agentTurnId:0,agentConsent:false,agentBusy:false,agentActionBusy:false,agentActionRetries:{},agentOptionReceipts:{},agentRetry:null,agentHistoryLoadBusy:false,agentHistoryPending:false,agentHistoryLoading:false});const draft=$('#agent-draft');if(draft)draft.value='';}
 function clearWorkspace() {
   resetAgentDraftSync();clearAgentConversation();clearSchoolWorkspace();state.agentStatus=null;
@@ -725,7 +725,7 @@ function agentFailureText(event){
   const code=event.error_code||event.code||event.error?.code,detail=event.failure_detail;
   if((event.kind||event.type)==='tool.rejected')return '参数未通过检查，未执行；'+(event.status==='retrying'?'正在修正':'本轮未完成');
   if(code==='model_http_402')return '模型服务返回 HTTP 402，请核对模型账户计费状态后再试（model_http_402）';
-  const reasons={invalid_final_answer:'模型答复格式未通过检查',unverified_personal_answer:'答复引用未通过本轮证据检查',unsupported_personal_claim:'答复包含当前证据不能确认的结论',model_timeout:'模型服务返回超时',model_service_unavailable:'模型服务暂不可用',model_step_limit:'本轮达到模型调用上限',personal_model_changed:'模型设置已变化',personal_scope_changed:'本人授权范围已变化',source_session_expired:'学校会话已失效',source_unavailable:'学校来源暂不可用',invalid_tool_arguments:'工具参数未通过检查',tool_unavailable:'资料工具暂不可用'};
+  const reasons={invalid_final_answer:'模型答复格式未通过检查',unverified_personal_answer:'答复引用未通过本轮证据检查',unsupported_personal_claim:'答复包含当前证据不能确认的结论',model_timeout:'模型服务返回超时',model_service_unavailable:'模型服务暂不可用',model_step_limit:'本轮达到模型调用上限',chatgpt_reconnect_required:'ChatGPT 授权已失效，请重新连接',subscription_sharing_usage_limit_exceeded:'ChatGPT 订阅共享额度已用完',subscription_sharing_usage_unavailable:'ChatGPT 订阅共享额度暂不可用',model_stream_incomplete:'模型连接中断，本轮未完成',personal_model_changed:'模型设置已变化',personal_scope_changed:'本人授权范围已变化',source_session_expired:'学校会话已失效',source_unavailable:'学校来源暂不可用',invalid_tool_arguments:'工具参数未通过检查',tool_unavailable:'资料工具暂不可用'};
   const details={invalid_json:'未返回有效 JSON',answer_not_object:'答复结构不是对象',clarification_text_invalid:'澄清文本格式无效',answer_shape_invalid:'答复结构不符合约定',claims_not_array:'结论列表格式无效',claim_count_out_of_bounds:'结论条数超出允许范围',claim_shape_invalid:'结论字段格式无效',claim_text_invalid:'结论文字格式无效',evidence_list_invalid:'引用列表格式无效',evidence_not_current:'引用不属于本轮有效证据',repair_evidence_omitted:'修正后遗漏了原有有效依据'};
   const safeCode=/^[a-z][a-z0-9_]{0,79}$/.test(code||'');
   return [reasons[code]||(safeCode?'运行错误':''),details[detail]||''].filter(Boolean).join('：')+(safeCode?`（${code}）`:'');
@@ -739,26 +739,81 @@ async function hydrateAgentProcess(turn,capture=agentDiagnosticsCapture()){
 function agentDiagnosticsCapture(){return {...currentSchoolRequest(),agentEpoch:state.agentEpoch};}
 function sameAgentDiagnostics(capture){return sameSchoolRequest(capture)&&capture.agentEpoch===state.agentEpoch;}
 function agentControlsBusy(){return state.agentBusy||state.agentActionBusy||state.agentHistoryLoadBusy||state.agentSettingsBusy||state.busy;}
+function agentEffortLabel(value){
+  const translations={none:'关闭',minimal:'最低',low:'低',medium:'中',high:'高',xhigh:'更高',max:'最高',ultra:'极致',default:'默认'};
+  return translations[value]?`${value}（${translations[value]}）`:value;
+}
 function renderAgentModelControls(){
   const busy=agentControlsBusy()||state.agentModelsBusy,models=state.agentModels,known=models.some(item=>item.id===state.agentStatus?.model);
-  return `<label class="agent-model-picker" for="agent-model"><span class="sr-only">模型</span><select id="agent-model" title="选择对话模型" ${busy?'disabled':''}>${known?'':`<option value="" selected disabled>${esc(personalText(state.agentStatus?.model,'选择模型'))}（当前配置）</option>`}${models.map(item=>`<option value="${esc(item.id)}" ${item.id===state.agentStatus?.model?'selected':''}>${esc(item.id)}</option>`).join('')}<option value="@refresh">${state.agentModelsBusy?'读取目录中…':'刷新模型目录…'}</option></select></label>`;
+  const current=models.find(item=>item.id===state.agentStatus?.model),name=current?.name||state.agentStatus?.model||'选择模型';
+  const effort=state.agentStatus?.reasoning_effort||current?.effort?.default_level||'default';
+  const level=agentEffortLabel(state.agentStatus?.thinking?effort:'none');
+  return `<details id="agent-model-menu" class="agent-model-menu"><summary id="agent-model-trigger" title="选择模型与推理等级" aria-disabled="${busy}"><span class="agent-model-name">${esc(name)}</span><span class="agent-model-level">${esc(level)}</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 10 4-4 4 4"/></svg></summary><div class="agent-model-popover"><label class="agent-model-setting" for="agent-model"><span>模型</span><select id="agent-model" title="选择对话模型" ${busy?'disabled':''}>${known?'':`<option value="" selected disabled>${esc(personalText(state.agentStatus?.model,'选择模型'))}（当前配置）</option>`}${models.map(item=>`<option value="${esc(item.id)}" ${item.id===state.agentStatus?.model?'selected':''}>${esc(item.name||item.id)}</option>`).join('')}<option value="@refresh">${state.agentModelsBusy?'读取目录中…':'刷新模型目录…'}</option></select></label>${renderAgentEffort()}${state.agentChatGPT?`<div class="agent-model-connection"><button id="agent-chatgpt-connect" type="button" ${busy||state.agentChatGPT.pending?'disabled':''}>${state.agentChatGPT.pending?'等待 ChatGPT 授权…':state.agentChatGPT.connected?'重新连接 ChatGPT':'Continue with ChatGPT'}</button>${state.agentChatGPT.connected||state.agentChatGPT.pending?`<button id="agent-chatgpt-disconnect" type="button" ${busy?'disabled':''}>断开连接</button>`:''}</div>`:''}</div></details>`;
 }
 function renderAgentThinking(){
   const active=state.agentStatus?.thinking===true,busy=agentControlsBusy()||state.agentModelsBusy,known=state.agentModels.some(item=>item.id===state.agentStatus?.model);
-  return `<button id="agent-thinking" class="agent-thinking-toggle" type="button" aria-pressed="${active}" title="${active?'关闭':'开启'}深度思考" ${busy||!known||typeof state.agentStatus?.thinking!=='boolean'?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4a3 3 0 0 0-5.6-1.5A3.8 3.8 0 0 0 3 8.7a4 4 0 0 0 .7 7.5A4 4 0 0 0 12 19M12 4a3 3 0 0 1 5.6-1.5A3.8 3.8 0 0 1 21 8.7a4 4 0 0 1-.7 7.5A4 4 0 0 1 12 19M12 4v15M7 8c0 2 1 3 3 3M17 8c0 2-1 3-3 3M7 16c1-2 2-2 3-2M17 16c-1-2-2-2-3-2"/></svg><span>深度思考</span></button>`;
+  return `<button id="agent-thinking" class="agent-thinking-toggle" type="button" aria-pressed="${active}" title="${state.agentStatus?.thinking_toggle===false?'当前模型不支持关闭思考，可在模型菜单中调整强度':(active?'关闭':'开启')+'深度思考'}" ${busy||!known||state.agentStatus?.thinking_toggle===false||typeof state.agentStatus?.thinking!=='boolean'?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4a3 3 0 0 0-5.6-1.5A3.8 3.8 0 0 0 3 8.7a4 4 0 0 0 .7 7.5A4 4 0 0 0 12 19M12 4a3 3 0 0 1 5.6-1.5A3.8 3.8 0 0 1 21 8.7a4 4 0 0 1-.7 7.5A4 4 0 0 1 12 19M12 4v15M7 8c0 2 1 3 3 3M17 8c0 2-1 3-3 3M7 16c1-2 2-2 3-2M17 16c-1-2-2-2-3-2"/></svg><span>深度思考</span></button>`;
+}
+function renderAgentEffort(){
+  const status=state.agentStatus||{},row=state.agentModels.find(item=>item.id===status.model),cap=row?.effort||status.effort;
+  if(!cap)return '';
+  const levels=(cap.supported_levels||[]).filter(value=>value!=='none'),selected=status.reasoning_effort||cap.default_level||'default';
+  return `<label class="agent-model-setting agent-effort-picker"><span>推理等级</span><select id="agent-reasoning-effort" aria-label="思考强度" title="思考强度" ${agentControlsBusy()||state.agentModelsBusy||!status.thinking||!levels.length?'disabled':''}>${(levels.length?levels:['default']).map(value=>`<option value="${esc(value)}" ${value===selected?'selected':''}>${esc(agentEffortLabel(value))}</option>`).join('')}</select></label>`;
+}
+async function connectAgentChatGPT(){
+  if(agentControlsBusy()||state.agentChatGPT?.pending)return;
+  const capture=agentDiagnosticsCapture(),popup=window.open('','_blank');
+  if(!popup){state.agentModelsError='请允许本机页面打开登录窗口后重试。';renderAssistant();return;}
+  popup.opener=null;state.agentSettingsBusy=true;state.agentModelsError='';renderAssistant();
+  try{
+    const result=await api('/api/chat/chatgpt/connect',{},capture.agentEpoch);
+    if(!sameAgentDiagnostics(capture)){popup.close();return;}
+    const url=new URL(result.authorization_url);
+    if(url.origin!=='https://auth.openai.com'||url.pathname!=='/api/accounts/authorize')throw Error('授权地址校验失败。');
+    popup.location.href=url.href;state.agentChatGPT={...state.agentChatGPT,pending:true};
+    state.agentModelsError='请在 OpenAI 官方页面完成登录与授权，然后返回此页。';pollAgentChatGPT(capture);
+  }catch(error){popup.close();if(sameAgentDiagnostics(capture))state.agentModelsError=error.message||'ChatGPT 连接未启动，请重试。';}
+  finally{if(sameAgentDiagnostics(capture)){state.agentSettingsBusy=false;renderAssistant();}}
+}
+async function pollAgentChatGPT(capture=agentDiagnosticsCapture(),attempt=0){
+  if(!sameAgentDiagnostics(capture)||attempt>=155){state.agentAuthPolling=false;return;}
+  state.agentAuthPolling=true;
+  try{
+    const result=await api('/api/chat/chatgpt/status',undefined,capture.agentEpoch);
+    if(!sameAgentDiagnostics(capture))return;
+    state.agentChatGPT=result;
+    if(!result.pending){
+      state.agentAuthPolling=false;state.agentModelsError=result.error||'';
+      if(result.connected){await refreshAgentModels(true);const preferred=state.agentModels.find(item=>item.id==='chatgpt:gpt-6-luna');if(preferred)await saveAgentSettings({model:preferred.id});else state.agentModelsError='ChatGPT 已授权，但目录尚未提供 GPT-6-Luna；可刷新目录或手动选择模型。';}
+      renderAssistant();return;
+    }
+  }catch(error){if(sameAgentDiagnostics(capture))state.agentModelsError=error.message;}
+  if(sameAgentDiagnostics(capture)){renderAssistant();setTimeout(()=>pollAgentChatGPT(capture,attempt+1),4000);}
+}
+async function disconnectAgentChatGPT(){
+  if(agentControlsBusy())return;
+  const capture=agentDiagnosticsCapture();state.agentSettingsBusy=true;
+  try{const result=await api('/api/chat/chatgpt/disconnect',{},capture.agentEpoch);if(!sameAgentDiagnostics(capture))return;state.agentChatGPT=result;state.agentModelsError=result.error||'';state.agentModels=state.agentModels.filter(item=>!item.id.startsWith('chatgpt:'));await refreshAgentStatus();}
+  catch(error){if(sameAgentDiagnostics(capture))state.agentModelsError=error.message;}
+  finally{if(sameAgentDiagnostics(capture)){state.agentSettingsBusy=false;renderAssistant();}}
 }
 async function refreshAgentModels(remote=false){
   if(!personalChatReady()||state.agentModelsBusy||agentControlsBusy())return;
   const capture=agentDiagnosticsCapture();state.agentModelsBusy=true;state.agentModelsError='';renderAssistant();
-  try{const result=await api(remote?'/api/chat/models/refresh':'/api/chat/models',remote?{}:undefined,capture.agentEpoch);if(!sameAgentDiagnostics(capture))return;if(!Array.isArray(result.models))throw Error('invalid directory');state.agentModels=result.models.filter(item=>item&&typeof item.id==='string'&&item.id.length>0&&item.id.length<=200);state.agentModelsStatus='ready';if(!state.agentModels.length)state.agentModelsError='当前缓存没有可用目录；可点击刷新模型目录。';}
+  try{const result=await api(remote?'/api/chat/models/refresh':'/api/chat/models',remote?{}:undefined,capture.agentEpoch);if(!sameAgentDiagnostics(capture))return;if(!Array.isArray(result.models))throw Error('invalid directory');state.agentModels=result.models.filter(item=>item&&typeof item.id==='string'&&item.id.length>0&&item.id.length<=200);state.agentModelsStatus='ready';state.agentChatGPT=result.chatgpt||null;if(state.agentChatGPT?.error)state.agentModelsError=state.agentChatGPT.error;else if(result.warnings?.length)state.agentModelsError=result.warnings.join(' ');if(state.agentChatGPT?.pending&&!state.agentAuthPolling)pollAgentChatGPT(capture);if(!state.agentModels.length)state.agentModelsError='当前缓存没有可用目录；可点击刷新模型目录。';}
   catch(error){if(sameAgentDiagnostics(capture)){state.agentModelsStatus=error.status===404||error.status===405?'unsupported':'error';state.agentModelsError=state.agentModelsStatus==='unsupported'?'当前服务暂不支持模型切换，可继续使用已配置模型。':'暂时无法读取模型目录，请稍后重试。';}}
   finally{if(sameAgentDiagnostics(capture)){state.agentModelsBusy=false;renderAssistant();}}
 }
 async function saveAgentSettings(options={}){
   if(!personalChatReady()||agentControlsBusy()||state.agentModelsBusy)return;
-  const model=$('#agent-model')?.value,thinking=typeof options.thinking==='boolean'?options.thinking:state.agentStatus?.thinking;if(typeof thinking!=='boolean'||!state.agentModels.some(item=>item.id===model))return;
+  const model=options.model||$('#agent-model')?.value,row=state.agentModels.find(item=>item.id===model);if(!row)return;
+  const changed=model!==state.agentStatus?.model,cap=row.effort,levels=cap?.supported_levels||[];
+  let thinking=typeof options.thinking==='boolean'?options.thinking:changed&&row.thinking_toggle===false?true:state.agentStatus?.thinking;
+  if(typeof thinking!=='boolean')return;
+  const body={model,thinking};
+  if(cap){const value=options.reasoning_effort||(changed?cap.default_level:state.agentStatus?.reasoning_effort)||cap.default_level||'default';body.reasoning_effort=value==='none'&&thinking?(levels.find(level=>level!=='none')||'default'):value;}
   const capture=agentDiagnosticsCapture();state.agentSettingsBusy=true;state.agentModelsError='';renderAssistant();renderAgentHistory();
-  try{const result=await api('/api/chat/settings',{model,thinking},capture.agentEpoch);if(!sameAgentDiagnostics(capture))return;const status=result.chat||result;if(status.data_kind!==agentDataKind()||typeof status.model!=='string')throw Error('invalid settings');state.agentStatus=status;state.agentRetry=null;}
+  try{const result=await api('/api/chat/settings',body,capture.agentEpoch);if(!sameAgentDiagnostics(capture))return;const status=result.chat||result;if(status.data_kind!==agentDataKind()||typeof status.model!=='string')throw Error('invalid settings');state.agentStatus=status;state.agentRetry=null;}
   catch(error){if(sameAgentDiagnostics(capture))state.agentModelsError=error.status===404||error.status===405?'当前服务暂不支持模型切换，原配置继续有效。':'模型设置未更新，请稍后重试。';}
   finally{if(sameAgentDiagnostics(capture)){state.agentSettingsBusy=false;renderAssistant();renderAgentHistory();}}
 }
@@ -850,7 +905,12 @@ function renderAssistant() {
   });
   $('#agent-remote-consent')?.addEventListener('change',event=>{state.agentConsent=event.target.checked;updateAgentSend();});
   $('#agent-draft-form').addEventListener('submit',event=>{event.preventDefault();sendAgentTurn();});
-  $('#agent-model')?.addEventListener('change',event=>{if(event.target.value==='@refresh')refreshAgentModels(true);else saveAgentSettings();});
+  $('#agent-chatgpt-connect')?.addEventListener('click',connectAgentChatGPT);
+  $('#agent-chatgpt-disconnect')?.addEventListener('click',disconnectAgentChatGPT);
+  $('#agent-model-trigger')?.addEventListener('click',event=>{if(agentControlsBusy()||state.agentModelsBusy)event.preventDefault();});
+  $('#agent-model-menu')?.addEventListener('keydown',event=>{if(event.key==='Escape'){$('#agent-model-menu').open=false;$('#agent-model-trigger')?.focus();event.stopPropagation();}});
+  $('#agent-model')?.addEventListener('change',event=>{if(event.target.value==='@refresh')refreshAgentModels(true);else if(event.target.value==='@connect')connectAgentChatGPT();else if(event.target.value==='@disconnect')disconnectAgentChatGPT();else saveAgentSettings();});
+  $('#agent-reasoning-effort')?.addEventListener('change',event=>saveAgentSettings({reasoning_effort:event.target.value}));
   $('#agent-thinking')?.addEventListener('click',()=>saveAgentSettings({thinking:state.agentStatus?.thinking!==true}));
   restoreAgentScroll();
 }
@@ -2014,6 +2074,7 @@ $('.app-shell').addEventListener('keydown',event=>{
   if(!event.repeat){try{select.showPicker?.();}catch{/* Unsupported pickers retain Space/arrow navigation. */}}
 });
 $('.app-shell').addEventListener('click',async event=>{
+  const modelMenu=$('#agent-model-menu');if(modelMenu?.open&&!event.target.closest('#agent-model-menu'))modelMenu.open=false;
   const button=event.target.closest('[data-action]');if(!button||button.disabled)return;
   switch(button.dataset.action){
     case'mock-login':await mockLogin(button.dataset.profileId);break;
