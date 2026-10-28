@@ -50,7 +50,7 @@ UNAVAILABLE_CLAIM = re.compile(
     r"|课表(?:已经|已|确定|确认|现在|当前|目前|经核验)?(?:可行|可选|就绪)"
     r"|保证.{0,10}可选|保证.{0,10}中选|已经?正式中选|已完成选课|选课成功|退课成功"
 )
-NEGATED_CAPABILITY = re.compile(r"(?:不能|无法|尚不能|尚未|未能|不(?:是|能|会|表示|代表|证明|等于|推断|保证)|未经|没有(?:依据|证据)|尚无(?:依据|证据)|不用于|未用于|不构成|不意味着|不应|不要|未(?:进行|完成|审核|评定|核验|确认|计算|执行)).{0,16}$")
+NEGATED_CAPABILITY = re.compile(r"(?:不能|无法|尚不能|尚未|未能|不足以(?:直接)?(?:认定|判断|证明|说明|推断)|不(?:是|能|会|表示|代表|证明|等于|推断|保证)|未经|没有(?:依据|证据)|尚无(?:依据|证据)|不用于|未用于|不构成|不意味着|不应|不要|未(?:进行|完成|审核|评定|核验|确认|计算|执行)).{0,16}$")
 PRIVATE_KEYS = {"ownerstudentid", "studentid", "sourcesubjectid", "securityrealm", "scopekey",
     "sourcealias", "observationid", "reference", "pdfpath", "textpath", "sourceurl", "password",
     "passwd", "cookie", "token", "apikey", "csrftoken", "authorization", "name", "account", "profile"}
@@ -284,6 +284,9 @@ def _unsupported_claim(text):
     for clause in re.split(r"[，,。！？!?；;\n]", re.sub(r"\s+", "", text)):
         for match in UNAVAILABLE_CLAIM.finditer(clause):
             prefix = clause[max(0, match.start() - 24):match.start()]
+            # "不足以认定" denies a conclusion; its double negation does not.
+            if re.search(r"(?:并非|不是|并不是|不能说|不能认为)不足以.{0,16}$", prefix):
+                return True
             # A leading '不保证/不确保' explicitly denies the guarantee.
             # Do not generalize to nested/double negation or later assertions.
             if re.fullmatch(r"(?:不是|并非)不", prefix) and match.group().startswith(("保证", "确保")):
@@ -505,9 +508,11 @@ def _model_context(messages, proofs):
                 guidance["record_detail"] = ("这是汇总查询，records为空是因为没有请求明细；"
                     "不能据此判断某门课程没有成绩记录。确需判断具体课程时，再用records模式定向查询。")
         if value.get("operation") == "graduation_audit":
-            guidance["meaning"] = "本次学校毕业资格自审；以模块审核状态和课程明确状态为准。报告学分时保留同句的学校自审归属、模块名称及来源要求/已获原值，不将两者差值直接认定为本人还缺的学分。在修不等于通过，不承诺通过某课后模块一定达标。空状态不等于未修必修。已达标模块仍列有备选课；被替代不应重复计欠课；层级学分不可重复相加，150+8等复合值原样解释。summary模式没有请求课程明细，不能用空records认定不存在。"
+            guidance["meaning"] = "本次学校毕业资格自审；以模块审核状态和课程明确状态为准。报告学分时，每个数值句都写明学校自审、完整模块名和来源字段，例如“学校自审中，〈模块全名〉已获X学分，要求Y学分”。不要压缩为“已获X/Y学分”，不要把模块名或自审归属仅放在前一句或表头。X/Y分别取本轮该模块原值，不将差值直接认定为本人还缺的学分。在修不等于通过，不承诺通过某课后模块一定达标。空状态不等于未修必修。已达标模块仍列有备选课；被替代不应重复计欠课；层级学分不可重复相加，150+8等复合值原样解释。summary模式没有请求课程明细，不能用空records认定不存在，也不能沿用历史回答列出每门课程当前状态；需要这些细节时按模块查询本轮records，否则只解释两类来源的区别。"
         if value.get("matches"):
-            guidance["meaning"] = "培养命中是有限原文片段；不能推断本人适用、跨代码等价或未命中课程不存在。"
+            guidance["meaning"] = ("培养命中是有限原文片段；不能推断本人适用、跨代码等价或未命中课程不存在。"
+                "培养原文不能支持本人自审状态或已获学分；回答确需这些事实时先查询本轮graduation_audit，"
+                "不能沿用历史答复数字。仅解释两类来源的作用时，无需重复个人数值或修读状态。")
         value["answer_context"] = guidance
         reference = value.get("evidence_id")
         if reference not in proofs or "course_data_plan" not in proofs[reference]:
@@ -1522,6 +1527,10 @@ class PersonalDialogueService:
         # Repeated references to the same source row do not create ambiguity.
         audit_records = list({_json(row): row for row in audit_records}.values())
         if _unsupported_claim(_audit_credit_statements(text, audit_records)):
+            curriculum_refs = any(proofs.get(ref, {}).get("kind") == "curriculum"
+                                  for ref in references if type(ref) is str) if type(references) is list else False
+            if audit_records or curriculum_refs:
+                _final_fail("unsupported_personal_claim", "source_claim_not_supported")
             _fail("unsupported_personal_claim")
         if (type(references) is not list or len(references) > MAX_ANSWER_REFERENCES
                 or any(type(ref) is not str for ref in references)):
@@ -1729,15 +1738,22 @@ class PersonalDialogueService:
             if latest_plan and latest_plan["result"].get("evidence_id") in proofs:
                 repair_required_evidence.add(latest_plan["result"]["evidence_id"])
             # Keep the same authorized tool results and evidence.
-            # This extra completion repairs the final representation
-            # only; it cannot acquire sources or execute tools again.
+            # This single correction repairs representation or audit wording;
+            # it cannot acquire sources or execute tools again.
             # The rejected draft is untrusted and may have failed
             # before its references could be checked. Do not
             # send its text or reasoning back to the provider.
             if discard_assistant:
                 messages.pop()
+            audit_guidance = ("培养或自审表述未通过来源检查。不得承诺毕业或把名义学分当认定学分。"
+                "若本轮只有培养原文，只回答原文内容和两类来源的作用；不要复述历史答复中的个人数值或修读状态。"
+                "报告模块已获学分时，单独成句写‘学校自审中，〈完整模块名〉已获X学分，要求Y学分’，"
+                "逐项使用本轮引用原值；不要用‘该模块’、X/Y或前句指代省略归属。"
+                "没有对应本轮来源的数值或课程状态就不报告，说明具体缺项。\n"
+                if detail.get("failure_detail") == "source_claim_not_supported" else "")
             messages.append({"role": "system", "content":
                 "本轮最终表示未通过校验：" + _json(detail) + "。仅单独调用finish_answer修正答复，不查询或计算、不新增事实。\n" +
+                audit_guidance +
                 "\n继续使用已返回的有效数据；未执行的工具不能视为已取得资料。必须保留的当前引用：" +
                 _json(sorted(repair_required_evidence)) + "。\n本轮可引用编号按来源类型列出：" +
                 _json(_current_evidence_catalog(proofs)) +
@@ -1900,7 +1916,9 @@ class PersonalDialogueService:
                         if omitted_evidence:
                             _final_fail("unverified_personal_answer", "repair_evidence_omitted", count=len(omitted_evidence))
                     except PersonalDialogueError as error:
-                        if error.code not in {"invalid_final_answer", "unverified_personal_answer"}:
+                        audit_repair = (error.code == "unsupported_personal_claim" and
+                            getattr(error, "validation_diagnostic", {}).get("failure_detail") == "source_claim_not_supported")
+                        if error.code not in {"invalid_final_answer", "unverified_personal_answer"} and not audit_repair:
                             raise
                         repair_final(error, discard_assistant=True)
                         continue

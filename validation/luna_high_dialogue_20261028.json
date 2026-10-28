@@ -1,0 +1,199 @@
+{
+  "date": "2026-10-28",
+  "model": "chatgpt:gpt-6-luna",
+  "reasoning_effort": "high",
+  "live_cases": [
+    {
+      "case_index": 1,
+      "phase": "baseline_or_intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ]
+    },
+    {
+      "case_index": 2,
+      "phase": "baseline_or_intermediate",
+      "status": "failed",
+      "error_code": "unsupported_personal_claim",
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_curriculum",
+        "read_my_graduation_audit"
+      ]
+    },
+    {
+      "case_index": 3,
+      "phase": "baseline_or_intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 2,
+      "record_citations_matched": 10,
+      "source_reads": [
+        "read_my_academic"
+      ]
+    },
+    {
+      "case_index": 4,
+      "phase": "baseline_or_intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 2,
+      "record_citations_matched": 3,
+      "source_reads": [
+        "read_my_timetable"
+      ]
+    },
+    {
+      "case_index": 5,
+      "phase": "baseline_or_intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ]
+    },
+    {
+      "case_index": 6,
+      "phase": "baseline_or_intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_curriculum",
+        "read_my_graduation_audit"
+      ]
+    },
+    {
+      "case_index": 7,
+      "phase": "baseline_or_intermediate",
+      "status": "failed",
+      "error_code": "unsupported_personal_claim",
+      "repair_attempts": 1,
+      "model_calls": 4,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_graduation_audit",
+        "read_my_curriculum"
+      ]
+    },
+    {
+      "case_index": 8,
+      "phase": "baseline_or_intermediate",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ]
+    },
+    {
+      "case_index": 9,
+      "phase": "baseline_or_intermediate",
+      "status": "failed",
+      "error_code": "unsupported_personal_claim",
+      "repair_attempts": 0,
+      "model_calls": 2,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_curriculum"
+      ]
+    },
+    {
+      "case_index": 10,
+      "phase": "final",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 4,
+      "source_reads": [
+        "read_my_graduation_audit"
+      ]
+    },
+    {
+      "case_index": 11,
+      "phase": "final",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 0,
+      "model_calls": 3,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_curriculum"
+      ]
+    },
+    {
+      "case_index": 12,
+      "phase": "final",
+      "status": "completed",
+      "error_code": null,
+      "repair_attempts": 1,
+      "model_calls": 4,
+      "record_citations_matched": 0,
+      "source_reads": [
+        "read_my_graduation_audit",
+        "read_my_curriculum"
+      ]
+    }
+  ],
+  "final_sequence": [
+    "graduation audit details",
+    "curriculum listing and source distinction",
+    "suggested term and insufficient graduation evidence"
+  ],
+  "final_sequence_status": "3 completed",
+  "final_repair_attempts": [
+    0,
+    0,
+    1
+  ],
+  "final_repair_source_calls": 0,
+  "record_citations_checked": 29,
+  "offline": {
+    "pre_change_full_suite": {
+      "run": 1602,
+      "passed": 1591,
+      "skipped": 11
+    },
+    "final_related_suite": {
+      "run": 101,
+      "passed": 101
+    },
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "browser": {
+    "final_three_turns_inspected": true,
+    "curriculum_table_rows": 3,
+    "errors": 0
+  },
+  "repairs": [
+    "one existing final-only correction shared across format and current curriculum/audit claim errors",
+    "reject historical personal credits unsupported by current curriculum-only evidence",
+    "recognize insufficient-evidence negation, retaining assertions and double-negation rejection"
+  ],
+  "limitations": [
+    "bounded surface guard, not full semantic verification",
+    "fixed-source model replay is not a school-live test",
+    "three prior real failed turns retained",
+    "formal curriculum applicability and overall user acceptance unverified",
+    "no school enrollment changes or expanded data scope"
+  ],
+  "evidence": "Private raw responses and events retained locally; only aggregate receipts committed."
+}

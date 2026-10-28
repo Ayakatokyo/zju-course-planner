@@ -49,6 +49,67 @@ class PersonalDialogueRecoveryTests(unittest.TestCase):
         value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
         return final({'kind': 'answer', 'text': "合成课程的来源分数是88。", 'evidence_ids': [value["records"][0]["evidence_id"]]})
 
+    def audit_answer(self, text):
+        self.context["operations"] = [{"operation": "graduation_audit", "target_term": "ALL-HISTORY"}]
+        self.records.update(operation="graduation_audit", target_term="ALL-HISTORY", records=[{
+            "node_kind": "module", "course_name_raw": "合成实践模块", "earned_credits_raw": "6",
+            "required_credits_raw": "9", "field_states": {"earned_credits_raw": "known"}}])
+        def answer(messages, tools):
+            value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+            return final({"kind": "answer", "text": text, "evidence_ids": [value["records"][0]["evidence_id"]]})
+        return answer
+
+    def test_audit_wording_can_recover_once_without_reacquiring_or_replaying_rejected_draft(self):
+        rejected = "合成实践模块。学校自审中该模块已获6/要求9学分。"
+        valid = "学校自审中，合成实践模块已获6学分，要求9学分。"
+        result, history, model = self.run_model([
+            call("query_my_records", {"operation": "graduation_audit"}),
+            self.audit_answer(rejected), self.audit_answer(valid)])
+        self.assertEqual(result["status"], "completed", result)
+        self.assertEqual(result["reply"], valid)
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "query_my_records"])
+        messages, tools = model.calls[-1]
+        self.assertEqual([tool["function"]["name"] for tool in tools], ["finish_answer"])
+        self.assertNotIn(rejected, json.dumps(messages, ensure_ascii=False))
+        self.assertNotIn(rejected, json.dumps(history, ensure_ascii=False))
+        self.assertEqual(result["validation_diagnostics"][0]["failure_detail"], "source_claim_not_supported")
+
+    def test_audit_repair_still_rejects_wrong_values_and_stops_after_one_attempt(self):
+        bad = self.audit_answer("学校自审中，合成实践模块已获9学分，要求9学分。")
+        result, _, model = self.run_model([
+            call("query_my_records", {"operation": "graduation_audit"}), bad, bad])
+        self.assertEqual(result["code"], "unsupported_personal_claim")
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual(len(model.calls), 3)
+
+    def test_audit_repair_cannot_execute_another_tool(self):
+        bad = self.audit_answer("合成实践模块。学校自审已获6/9学分。")
+        result, _, _ = self.run_model([
+            call("query_my_records", {"operation": "graduation_audit"}), bad,
+            call("query_my_records", {"operation": "graduation_audit"}, identifier="extra-query")])
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "query_my_records"])
+
+    def test_curriculum_only_repair_does_not_reuse_historical_personal_credits(self):
+        self.records = {"status": "pending_review", "coverage": {"physical_pages": 1},
+            "matches": [{"reference": "PERSONAL-REF-" + "A" * 43, "source_alias": "SYNTHETIC-PLAN",
+                "title": "合成实践模块", "text": "合成实践模块要求9学分。", "page": 1,
+                "review_status": "unreviewed", "locator": {"physical_page": 1}}]}
+        def answer(text):
+            def respond(messages, tools):
+                value = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
+                return final({"kind": "answer", "text": text, "evidence_ids": [value["matches"][0]["evidence_id"]]})
+            return respond
+        valid = "培养原文中合成实践模块要求9学分；当前未查询自审，不能确认个人认定学分。"
+        result, _, _ = self.run_model([
+            call("search_my_curriculum", {"query": "合成实践模块"}),
+            answer("学校自审中，合成实践模块已获6学分。"), answer(valid)])
+        self.assertEqual(result["status"], "completed", result)
+        self.assertEqual(result["reply"], valid)
+        self.assertEqual(result["repair_attempts"], 1)
+        self.assertEqual([name for name, _ in self.executed], ["get_my_context", "search_my_curriculum"])
+
     def set_summary(self, operation="academic", term="2023-2024-SS", *, complete=True):
         self.context["operations"] = [{"operation": operation, "target_term": term}]
         rows = [{"course_name_raw": "合成课程", "grade_raw": grade,

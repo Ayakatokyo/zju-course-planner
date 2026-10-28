@@ -275,6 +275,9 @@ class PersonalDialogueTests(unittest.TestCase):
                      "已获3学分。", "保证无冲突。",
                      "不能只看原始分数，但你已满足毕业条件。", "无法保证有余量，但这套课表可选。",
                      "不保证当前可选，但保证之后可选。", "不保证当前可选，但课表完全无冲突。",
+                     "资料不足以说明课程内容，但你已满足毕业要求。",
+                     "并非不足以证明已经满足毕业资格。", "不是不足以认定还差3学分。",
+                     "不能说不足以证明已经满足毕业要求。",
                      "不是不保证可选，是已经确认可选。"):
             def unsafe(messages, tools, value=text):
                 result = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
@@ -314,6 +317,8 @@ class PersonalDialogueTests(unittest.TestCase):
 
     def test_real_model_style_limits_and_source_caveats_are_not_positive_capability_claims(self):
         disclaimers = ["来源学分不等于已获学分。", "不能判断毕业资格，也未用于推荐。",
+            "两者不足以直接认定你个人还差3学分，也不能据此认定已满足毕业要求。",
+            "这些资料不足以证明已经满足毕业资格。",
             "当前记录不能证明你已获得3学分。", "没有证据证明已满足毕业要求。",
             "目前课表尚未就绪，不能保证完全无冲突。", "本轮只解释来源记录，不能据此推断还差多少学分。",
             "方案只基于本学期历史课程观察，不保证当前开课、可选或有余量。",
