@@ -179,6 +179,28 @@ class PersonalTaskTests(unittest.TestCase):
         self.assertIsNone(previous_clarification_context({"turns": [earlier, {"status": "completed"}]}))
         self.assertIsNone(next_clarification_context("继续", self.clarify(basis="pending_task")))
 
+    def test_exact_failed_retry_restores_only_immediately_preceding_clarification_intent(self):
+        pending = next_clarification_context("帮我安排课表，周五不要有课", self.clarify("安排哪些课程？"))
+        scope = {"personal_scope": "synthetic-owner", "versions": {"egress_digest": "synthetic-egress"}}
+        earlier = {**self.clarify(), **scope, "task_status": "awaiting_user", "pending_clarification": pending}
+        message = "挑三门管理类的课，凑够6学分。"
+        failed = {**scope, "status": "failed", "task_status": "failed", "code": "model_unavailable",
+                  "reply_origin": "service_error", "message": message, "pending_clarification": None,
+                  "tool_results": [{"records": "FAILED-FACT-NEVER-REUSE"}]}
+        trail = {"turns": [earlier, failed]}
+        restored = previous_clarification_context(trail, retry_message=message)
+        self.assertEqual(restored, pending)
+        self.assertNotIn("FAILED-FACT", str(restored))
+        self.assertIsNone(previous_clarification_context(trail))
+        self.assertIsNone(previous_clarification_context(trail, retry_message="换成两门"))
+        for patch in ({"code": "personal_input_changed"}, {"status": "completed"},
+                      {"personal_scope": "other-owner"}, {"versions": {"egress_digest": "other-egress"}}):
+            with self.subTest(patch=patch):
+                self.assertIsNone(previous_clarification_context(
+                    {"turns": [earlier, {**failed, **patch}]}, retry_message=message))
+        self.assertIsNone(previous_clarification_context(
+            {"turns": [earlier, {"status": "completed"}, failed]}, retry_message=message))
+
     def test_pending_contract_rejects_facts_privilege_sensitive_and_oversized_trails(self):
         value = next_clarification_context("查课表", self.clarify())
         invalid = [[], {}, {**value, "records": []}, {**value, "authorization_granted": 0},

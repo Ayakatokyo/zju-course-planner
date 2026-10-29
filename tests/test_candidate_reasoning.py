@@ -129,6 +129,51 @@ class CandidateReasoningTests(unittest.TestCase):
             with self.assertRaises(PersonalDialogueError):
                 PersonalDialogueService._final(json.dumps(content), proofs)
 
+    def test_labelled_plan_credit_totals_are_checked_per_option(self):
+        proofs, search, reference = self.proofs()
+        plan = proofs[reference]['course_data_plan']
+        plan['options'].append({'label': 'B', 'total_credits': '6.5'})
+        for text in ('A、B均恰好6学分；B比A多0.5学分。', '方案B为6学分。', '方案D为6学分。'):
+            with self.subTest(text=text), self.assertRaises(PersonalDialogueError) as caught:
+                PersonalDialogueService._final(json.dumps({'kind': 'answer', 'text': text, 'evidence_ids': [search, reference]}), proofs)
+            self.assertEqual(caught.exception.validation_diagnostic['failure_detail'], 'plan_credit_mismatch')
+        for text in ('A为6学分，B为6.5学分，B比A多0.5学分。', 'A、B均至少6学分。',
+                     '不是A、B均恰好6学分；A为6.0学分，B为6.5学分。'):
+            PersonalDialogueService._final(json.dumps({'kind': 'answer', 'text': text, 'evidence_ids': [reference]}), proofs)
+        plan['action'] = 'inspect'
+        plan['computation_summary'] = {'options': plan.pop('options')}
+        with self.assertRaises(PersonalDialogueError):
+            PersonalDialogueService._final(json.dumps({'kind': 'answer', 'text': 'B为6学分。', 'evidence_ids': [reference]}), proofs)
+
+    def test_credit_repair_runs_once_without_repeating_source_or_calculation(self):
+        for corrected in (True, False):
+            with self.subTest(corrected=corrected):
+                service, executed, turn = self.service(), [], []
+                def execute(name, args):
+                    executed.append(name)
+                    if name == 'get_my_context':
+                        return {'status': 'available', 'operations': [], 'api_operations': [],
+                            'capabilities': {'course_data_test': True}, 'course_data_test': service.describe()}
+                    return service.execute(name, args, sources=sources(), turn_identity=turn)
+                def answer(messages, tools, repair=False):
+                    result = json.loads(next(row['content'] for row in reversed(messages) if row['role'] == 'tool'))
+                    if repair:
+                        self.assertEqual([t['function']['name'] for t in tools], ['finish_answer'])
+                        self.assertNotIn('NEVER-REPLAY-DRAFT', json.dumps(messages))
+                        self.assertIn('total_credits', messages[-1]['content'])
+                    text = '方案A为6学分。' if repair and corrected else 'NEVER-REPLAY-DRAFT 方案A为999学分。'
+                    return final({'kind': 'answer', 'text': text, 'evidence_ids': [result['evidence_id']]})
+                model = ScriptedModel([call('search_current_term_courses', {'query': 'Synthetic', 'target_term': TERM}),
+                    call('generate_current_term_plan', {'recommendation_kind': 'courses', 'target_term': TERM,
+                        'course_codes': ['SYN-A', 'SYN-B'], 'target_credits': 6, 'friday_free': 'soft'}, 'generate'),
+                    answer, lambda messages, tools: answer(messages, tools, repair=True)])
+                response, _ = PersonalDialogueService(model, lambda: {'scope_key': 'synthetic-only'}, execute).run(
+                    '生成至少6学分的合成方案并比较。', data_use='personal_retrieval')
+                self.assertEqual(response['status'], 'completed' if corrected else 'failed', response)
+                self.assertEqual(response['repair_attempts'], 1)
+                self.assertEqual(executed.count('generate_current_term_plan'), 1)
+                self.assertEqual(len(model.calls), 4)
+
     def test_repeated_current_curriculum_span_reuses_budget_but_changed_source_does_not(self):
         item = {'source_alias': 'SYNTHETIC-PLAN-v1', 'locator': {'physical_page': 1, 'char_start': 0, 'char_end': 8},
             'text': '合成课程为选修。', 'page': 1, 'required_context': [{'page': 1, 'text': '合成课程模块'}]}
@@ -281,7 +326,9 @@ class CandidateReasoningTests(unittest.TestCase):
             self.assertEqual(facts['options'][1]['friday_observed_slots'][0]['slot'], '周五第1、2节')
             self.assertEqual(result['result']['computation_summary']['credit_target']['minimum'], '6')
             self.assertEqual(result['answer_context']['current_conditions']['target_credits'], '6')
-            self.assertIn('finish_answer', result['answer_context']['delivery'])
+            self.assertNotIn('delivery', result['answer_context'])
+            self.assertEqual(messages[-1]['role'], 'system')
+            self.assertIn('finish_answer', messages[-1]['content'])
             self.assertIn('半天', result['reasoning_facts']['interpretation']['time'])
             return final({'kind': 'answer', 'text': 'B比A换掉了Synthetic B，加入Synthetic C；保存的观察是周五第1、2节，不能换算成半天。目标仍是至少6学分。', 'evidence_ids': ([result['evidence_id']]) + ([])})
         model = ScriptedModel([call('get_current_term_plan', {}), explain])

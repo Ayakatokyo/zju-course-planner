@@ -162,6 +162,28 @@ class PersonalTaskJourneyTests(unittest.TestCase):
         self.assertEqual(self.stored(third)["pending_clarification"]["request"], "春夏")
         self.assertEqual(self.school.request_calls, [])
 
+    def test_user_retries_same_failed_supplement_without_losing_original_conditions(self):
+        message = "三门管理类的课，凑够6学分"
+
+        def retry(messages, tools):
+            self.assert_pending_wire(messages, request="帮我安排课表，周五不要有课", supplements=[],
+                                     question="安排哪类课程？")
+            return final({'kind': "clarify", 'text': "要安排哪个学期？", 'request_basis': "pending_task"})
+
+        self.model.responses.extend([
+            final({'kind': "clarify", 'text': "安排哪类课程？"}),
+            ModelError("model_unavailable", "合成连接失败"), retry])
+        first = self.turn("帮我安排课表，周五不要有课")
+        failed = self.turn(message, first)
+        self.assertEqual(failed["status"], "failed")
+        self.assertIsNone(self.stored(failed)["pending_clarification"])
+        retried = self.turn(message, failed)
+        self.assertEqual(retried["task_status"], "awaiting_user")
+        pending = self.stored(retried)["pending_clarification"]
+        self.assertEqual(pending["request"], "帮我安排课表，周五不要有课")
+        self.assertEqual(pending["supplements"], [message])
+        self.assertEqual(self.school.request_calls, [])
+
 
 if __name__ == "__main__":
     unittest.main()

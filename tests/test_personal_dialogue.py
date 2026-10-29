@@ -50,6 +50,52 @@ class ScriptedModel:
 
 
 class PersonalDialogueTests(unittest.TestCase):
+    def test_shared_delivery_guidance_does_not_repeat_inside_each_observation(self):
+        from course_assistant.personal_dialogue import _model_context, FINAL_WRITING_GUIDE
+        messages = [{"role": "assistant", "content": None, "tool_calls": [
+            {"id": "grade", "type": "function", "function": {"name": "query_my_records", "arguments": "{}"}},
+            {"id": "terms", "type": "function", "function": {"name": "lookup_academic_terms", "arguments": "{}"}}]},
+            {"role": "tool", "tool_call_id": "grade", "content": json.dumps({"operation": "academic",
+                "record_source": {"source_kind": "term_grades"}, "mode": "table", "records": [],
+                "record_table": {"evidence_id": "S-test", "displayed_records": 5, "matched_records": 5}})},
+            {"role": "tool", "tool_call_id": "terms", "content": json.dumps({
+                "data_kind": "service_reference", "entries": [{"topic": "numeric_average"}]})}]
+        original = deepcopy(messages)
+        projected = _model_context(messages, {})
+        self.assertEqual(messages, original)
+        self.assertEqual(projected[0], original[0])
+        self.assertEqual([m.get("tool_call_id") for m in projected if m["role"] == "tool"], ["grade", "terms"])
+        for before, after in zip(messages[1:], projected[1:3]):
+            value = json.loads(after["content"])
+            context = value.pop("answer_context")
+            self.assertEqual(value, json.loads(before["content"]))
+            self.assertNotIn("delivery", context)
+            self.assertNotIn("style", context)
+            self.assertIn("meaning", context)
+        self.assertIn("record_table.evidence_id", json.loads(projected[1]["content"])["answer_context"]["record_detail"])
+        self.assertEqual(projected[-1]["role"], "system")
+        self.assertEqual(projected[-1]["content"].count(FINAL_WRITING_GUIDE), 1)
+        self.assertIn("严格JSON对象", projected[-1]["content"])
+        self.assertIn("不能裸写正文", projected[-1]["content"])
+
+    def test_compact_context_retains_current_plan_conditions_and_rejects_old_plan(self):
+        from course_assistant.personal_dialogue import _model_context
+        old = {"plan_ref": "PLN-" + "a" * 48, "revision": 0, "action": "generate"}
+        current = {**old, "revision": 1, "action": "revise", "locked_class_refs": ["locked"],
+            "constraints": {"course_count": 3, "target_credits": "6", "friday_free": "soft"}}
+        proofs = {"T-old": {"kind": "course_data_plan", "tool_index": 0, "course_data_plan": old},
+                  "T-now": {"kind": "course_data_plan", "tool_index": 1, "course_data_plan": current}}
+        messages = [{"role": "tool", "tool_call_id": ref, "content": json.dumps({"evidence_id": ref, "result": plan})}
+            for ref, plan in (("T-old", old), ("T-now", current))]
+        projected = _model_context(messages, proofs)
+        stale, active = [json.loads(m["content"]) for m in projected]
+        self.assertEqual(stale["citation_status"], "superseded")
+        self.assertNotIn("result", stale)
+        self.assertEqual(stale["current_evidence_ids"], ["T-now"])
+        self.assertEqual(active["answer_context"]["current_conditions"], current["constraints"])
+        self.assertEqual(active["answer_context"]["locked_class_count"], 1)
+        self.assertIn("继续调整", active["answer_context"]["change"])
+
     def test_table_delivers_all_local_rows_without_sending_them_to_model(self):
         rows = [{"course_name_raw": "LOCAL-ONLY-COURSE", "grade_raw": "88" if i % 2 else None,
             "field_states": {"course_name_raw": "known", "grade_raw": "known" if i % 2 else "unknown"},
@@ -267,6 +313,35 @@ class PersonalDialogueTests(unittest.TestCase):
         self.assertEqual(result["tool_results"][-1]["result"]["records"], [])
         self.assertNotIn("合成算法", json.dumps(messages, ensure_ascii=False))
 
+    def test_missing_term_with_grade_filter_keeps_clarification_instead_of_projection_error(self):
+        raw = {'status': 'not_ready', 'operation': 'academic', 'target_term': None,
+            'data_source': 'none', 'records': [], 'coverage': {}, 'matched_records': None,
+            'returned_records': 0, 'query_executed': False, 'reason': 'target_term_required'}
+        grade_filter = {'kind': 'numeric', 'op': 'lt', 'value': 60}
+        for mode in ('table', 'records', 'summary'):
+            with self.subTest(mode=mode):
+                proofs = {}
+                args = {'operation': 'academic', 'mode': mode, 'limit': 15, 'grade_filter': grade_filter}
+                local, remote = PersonalDialogueService._project('query_my_records', raw,
+                    args, 'synthetic', proofs, 0, [0, 0, {}], set())
+                for result in (local, remote):
+                    self.assertEqual(result['status'], 'not_ready')
+                    self.assertEqual(result['reason'], 'target_term_required')
+                    self.assertFalse(result['query_executed'])
+                    self.assertIsNone(result['retrieval']['matched_records'])
+                    self.assertIsNone(result['retrieval']['complete_within_loaded_snapshot'])
+                    self.assertNotIn('grade_filter', result)
+                self.assertEqual(proofs, {})
+                with self.assertRaises(PersonalDialogueError):
+                    PersonalDialogueService._project('query_my_records', self.records,
+                        args, 'synthetic', {}, 0, [0, 0, {}], set())
+        self.records = raw
+        result, _, _ = self.run_service([call('query_my_records', args),
+            final({'kind': 'clarify', 'text': '你想查哪个学年、哪个学期的成绩？', 'evidence_ids': []})])
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['model_decision']['kind'], 'clarify')
+        self.assertEqual(result['citations'], [])
+
     def test_old_history_evidence_cannot_support_current_turn_or_collide_with_new_aliases(self):
         service, model = self.service([call("query_my_records", {"operation": "academic"}), answer_from_last_tool])
         first, history = service.run("查询算法", data_use="personal_retrieval")
@@ -314,6 +389,8 @@ class PersonalDialogueTests(unittest.TestCase):
                      "资料不足以说明课程内容，但你已满足毕业要求。",
                      "并非不足以证明已经满足毕业资格。", "不是不足以认定还差3学分。",
                      "不能说不足以证明已经满足毕业要求。",
+                     "是否满足毕业要求已经确认。", "是否满足毕业要求可以直接确认。",
+                     "是否满足毕业要求还要看其他条件，但你已满足毕业要求。",
                      "不是不保证可选，是已经确认可选。"):
             def unsafe(messages, tools, value=text):
                 result = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
@@ -372,6 +449,8 @@ class PersonalDialogueTests(unittest.TestCase):
         disclaimers = ["来源学分不等于已获学分。", "不能判断毕业资格，也未用于推荐。",
             "两者不足以直接认定你个人还差3学分，也不能据此认定已满足毕业要求。",
             "这些资料不足以证明已经满足毕业资格。",
+            "不能仅凭这门课通过就直接断定你满足毕业要求。是否满足毕业要求还要看培养适用与其他毕业条件。",
+            "能否满足毕业条件仍需核对学校审核结果。",
             "当前记录不能证明你已获得3学分。", "没有证据证明已满足毕业要求。",
             "目前课表尚未就绪，不能保证完全无冲突。", "本轮只解释来源记录，不能据此推断还差多少学分。",
             "方案只基于本学期历史课程观察，不保证当前开课、可选或有余量。",

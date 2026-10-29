@@ -64,7 +64,7 @@ def course_plan_tool_schemas(*, managed_dependencies=False):
     """Fresh strict JSON schemas; no identity, path or observation arguments."""
     dependencies = (" 必要本轮来源由Harness自动补齐；已读范围同轮复用，失败不使用旧缓存。"
         if managed_dependencies else " 每轮生成或调整前须先有本轮主修与培养，缺少时调用prepare_recommendation_inputs。")
-    inspect_hint = " 仅解释已有计算时使用get_current_term_plan，不搜索、准备或求解。"
+    inspect_hint = " 仅解释已有计算时使用get_current_term_plan，不搜索、准备或求解。已有保存方案只改时间偏好、学分或锁定时，先get再update_current_term_plan，不重新generate或擅自改变候选池。"
     string = lambda **extra: {"type": "string", **extra}
     decimal = {"type": "number", "exclusiveMinimum": 0, "maximum": 100}
     codes = {"type": "array", "minItems": 1, "maxItems": 12, "uniqueItems": True,
@@ -77,7 +77,7 @@ def course_plan_tool_schemas(*, managed_dependencies=False):
         {"name": NAMES[0], "description": "按用户已明确的课程名称或代码范围检索已授权本学期课程观察；未给候选范围先澄清，不用“课”等泛词代替整个课程池；支持来源标题明确并列的另一代码，返回observed关系，不证明课程等价或培养适用。observation_summary给出与计算器相同的历史观察筛查、周五空闲候选与节次；不是当前余量或本人可选结论。",
          "properties": {"query": string(minLength=1, maxLength=100), "target_term": string(enum=[CURRENT_TERM]),
                         "limit": {"type": "integer", "minimum": 1, "maximum": 10}}, "required": ["query", "target_term"]},
-        {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；执行层保留用户在任意星期的明确节次禁排；下午等未明确节次须先澄清。courses仅课程组合，timetable另避开本人课表。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。" + dependencies + inspect_hint,
+        {"name": NAMES[1], "description": "在明确课程池内实算本学期课程数据测试组合；执行层保留用户在任意星期的明确节次禁排；下午等未明确节次须先澄清。courses也检查候选课程之间的时间冲突和周五等条件；尚无保存的课表方案时，用户明确先不管已选课或原有课表、只看候选之间怎么排，应选courses。timetable另外避开本人课表，用于需要核对现有安排的排课。已有课表方案的固定项不能借courses移除。本轮初次计算尚无任何方案且无必选、锁定、排除时，可同版本保留原条件，用本轮已检索的严格更大课程池追加重算一次；其他范围变更仍受保护。" + dependencies + inspect_hint,
          "properties": {"recommendation_kind": string(enum=["courses", "timetable"]), "target_term": string(enum=[CURRENT_TERM]),
              "course_codes": codes, "target_credits": decimal, "max_credits": decimal,
              "friday_free": string(enum=["none", "soft", "hard"]),

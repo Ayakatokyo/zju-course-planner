@@ -57,7 +57,7 @@ class PersonalCoursePlanTests(unittest.TestCase):
 
     def test_human_course_count_reaches_solver_projection_inspect_and_revision(self):
         self.search()
-        context = {"user_message": "选3门课程，至少6学分，周五尽量空", "hard_preferences": [], "active_plan_ref": None}
+        context = {"user_message": "选课程名含“Synthetic”的3门课程，至少6学分，周五尽量空", "hard_preferences": [], "active_plan_ref": None}
         first = self.service.execute(NAMES[1], {"recommendation_kind": "courses", "target_term": CURRENT_TERM,
             "course_codes": ["SYN-A", "SYN-B", "SYN-C"], "target_credits": 7, "max_credits": 8, "friday_free": "soft"},
             sources=sources(), turn_identity=self.turn, policy_context=context, enforce_policy=True)
@@ -76,7 +76,7 @@ class PersonalCoursePlanTests(unittest.TestCase):
             "action": "revise", "lock_class_refs": [locked_ref]}, sources=sources(), turn_identity=[],
             policy_context=context, enforce_policy=True)
         self.assertEqual(locked["result"]["locked_class_refs"], [locked_ref])
-        context["user_message"] = "现在把周五改成必须空，课程范围、锁定、3门课和至少6学分都保留。"
+        context["user_message"] = "现在把周五改成必须空，候选范围、锁定、原来的3门课和至少6学分都保留。"
         revised = self.service.execute(NAMES[2], {"plan_ref": plan["plan_ref"], "expected_revision": 1,
             "action": "revise", "friday_free": "hard"}, sources=sources(), turn_identity=[],
             policy_context=context, enforce_policy=True)
@@ -85,6 +85,8 @@ class PersonalCoursePlanTests(unittest.TestCase):
         self.assertEqual(result["constraints"]["target_credits"], "6")
         self.assertEqual(result["constraints"]["friday_free"], "hard")
         self.assertEqual(result["locked_class_refs"], [locked_ref])
+        self.assertEqual(result["data_version"], plan["data_version"])
+        self.assertEqual(self.service._plans[plan["plan_ref"]]["codes"], ["SYN-A", "SYN-B", "SYN-C"])
         self.assertIsNone(result["constraints"]["max_credits"])
         self.assertEqual(result["options"], [])
 
@@ -629,7 +631,8 @@ class PersonalCoursePlanTests(unittest.TestCase):
 
     def test_initial_friday_uses_explicit_human_level_in_one_calculation(self):
         self.search()
-        for phrase, expected in (("周五尽量空", "soft"), ("周五必须空", "hard")):
+        for phrase, expected in (("周五尽量空", "soft"), ("周五必须空", "hard"),
+                ("周五不要有课", "hard"), ("周五还是别排", "hard")):
             for proposed in ("none", "soft", "hard"):
                 with self.subTest(phrase=phrase, proposed=proposed):
                     args = {"recommendation_kind": "courses", "target_term": CURRENT_TERM,
@@ -641,6 +644,37 @@ class PersonalCoursePlanTests(unittest.TestCase):
                     self.assertIsNone(result["reason"])
                     self.assertEqual(result["constraints"]["friday_free"], expected)
                     self.assertEqual(args, original)
+
+    def test_colloquial_pending_minimum_is_bound_even_when_model_omits_it(self):
+        self.search()
+        context = {**self.policy('先只看这两门怎么排'), 'pending_messages': [
+            '帮我安排课表，周五不要有课', '就2026-2027秋冬，先帮我挑两门课，凑够6学分。']}
+        result = self.service.execute(NAMES[1], {'recommendation_kind': 'courses', 'target_term': CURRENT_TERM,
+            'course_codes': ['SYN-A', 'SYN-B', 'SYN-C'], 'target_credits': 3, 'friday_free': 'none'},
+            sources=sources(), turn_identity=self.turn, policy_context=context)['result']
+        self.assertIsNone(result['reason'])
+        self.assertTrue(result['options'])
+        self.assertEqual(result['constraints']['target_credits'], '6')
+        self.assertEqual(result['constraints']['course_count'], 2)
+        self.assertEqual(result['constraints']['friday_free'], 'hard')
+        self.assertTrue(all({c['course_code'] for c in option['classes']} == {'SYN-A', 'SYN-B'} for option in result['options']))
+
+    def test_colloquial_named_lock_keeps_plan_version_pool_and_conditions(self):
+        first = self.generate_with_policy('选两门课，凑够6学分，周五不要有课')['result']
+        chosen = first['options'][0]['classes'][0]
+        context = self.policy('把A方案的' + chosen['course_name'] + '锁住，别的照旧。', first['plan_ref'])
+        result = self.service.execute(NAMES[2], {'plan_ref': first['plan_ref'], 'action': 'revise',
+            'expected_revision': first['revision'], 'lock_class_refs': [chosen['class_ref']]},
+            sources=sources(), policy_context=context)['result']
+        self.assertIsNone(result['reason'])
+        self.assertEqual(result['plan_ref'], first['plan_ref'])
+        self.assertEqual(result['data_version'], first['data_version'])
+        self.assertEqual(result['revision'], first['revision'] + 1)
+        self.assertEqual(result['constraints']['course_count'], 2)
+        self.assertEqual(result['constraints']['target_credits'], '6')
+        self.assertEqual(result['constraints']['friday_free'], 'hard')
+        self.assertEqual(result['locked_class_refs'], [chosen['class_ref']])
+        self.assertTrue(all(any(c['class_ref'] == chosen['class_ref'] and c['locked'] for c in option['classes']) for option in result['options']))
 
     def test_initial_friday_period_scope_is_not_silently_widened_to_a_whole_day(self):
         self.search()

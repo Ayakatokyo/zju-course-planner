@@ -14,22 +14,26 @@ import re
 from .planner import _number
 
 
-VERSION = "course-plan-policy/5"
+VERSION = "course-plan-policy/9"
 _DAY = re.compile(r"(?:周|星期)([一二三四五六日天1-7])")
 _PERIOD_TOKEN = r"第?\s*[0-9]+\s*节?"
 _PERIOD_CONNECTOR = r"(?:到|至|[-—–~～、,，]|和|及)"
 _PERIOD_START = r"(?:第\s*[0-9]+|(?<![0-9.\-—–~～第])[0-9]+)\s*节?"
 _PERIOD = re.compile(_PERIOD_START + r"(?:\s*" + _PERIOD_CONNECTOR + r"\s*" + _PERIOD_TOKEN + r")*")
-_HARD = re.compile(r"必须|务必|一定|不得|不能|不许|不要(?:排|选|安排)|别(?:给我)?(?:排|选|安排)|只能|不接受|绝不|硬(?:性|条件)|至少|最多|最低|最高|不少于|不超过|上限|下限|正好|恰好|刚好")
+_NO_CLASS = r"(?:(?:不能|不得|不许|不要|别)(?:给我)?(?:有课|上课|排(?:课)?|安排课))"
+_HARD = re.compile(_NO_CLASS + r"|必须|务必|一定|不得|不能|不许|不要(?:排|选|安排)|别(?:给我)?(?:排|选|安排)|只能|不接受|绝不|硬(?:性|条件)|至少|凑够|最多|最低|最高|不少于|不超过|上限|下限|正好|恰好|刚好")
 _SPACE = re.compile(r"\s+")
 _SOFT = re.compile(r"尽量|最好|优先|不强求|不一定|不必|不用非得|没必要")
 _SOFT_ADDITIVE = r"(?:也|同样(?:地)?|另外|此外|还)"
 _REPORTED = re.compile(r"如果|假如|假设|要是|比如|例如|示例|引用|原文|(?:老师|资料|他|她|你)(?:说|建议)|会怎样|会有什么|有什么影响|为什么|怎么样|是否已经|有没有(?:被)?(?:取消|解除)")
-_NEGATED_CHANGE = re.compile(r"(?:不要|别|不能|不得|不许|不想|不希望)(?:给我|帮我|去|再|把.{0,20})?(?:生成|解除|解锁|取消|放宽|收紧|调整|变更|降低|调低|去掉|改|设为|设置为|解开|锁定|固定住|保留|排除|禁用)")
-_DENIED_INTENT = re.compile(r"不是|并非|(?:没有|没|未曾|从未)(?:说|要求|希望|打算|同意|授权|让|想)|不(?:需要|打算|准备|希望|想要|想|愿意|同意).*(?:生成|解除|解锁|取消|放宽|收紧|调整|变更|改|设为|设置为|锁定|保留|排除)|不接受|不行")
+_NEGATED_CHANGE = re.compile(r"(?:不要|别|不能|不得|不许|不想|不希望)(?:给我|帮我|去|再|把.{0,20})?(?:生成|解除|解锁|取消|放宽|收紧|调整|变更|降低|调低|去掉|改|设为|设置为|解开|锁(?:定|住)|固定住|保留|排除|禁用|凑够|只排(?=这|那))")
+_DENIED_INTENT = re.compile(r"不是|并非|(?:没有|没|未曾|从未)(?:说|要求|希望|打算|同意|授权|让|想)|不(?:需要|打算|准备|希望|想要|想|愿意|同意).*(?:生成|解除|解锁|取消|放宽|收紧|调整|变更|改|设为|设置为|锁(?:定|住)|保留|排除|凑够)|不接受|不行")
 _NUMBER = r"(?:[0-9]+(?:\.[0-9]+)?|[一二三四五六七八九十百]+)"
-_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|生成|给我|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要)(" + _NUMBER + r"|两)门")
-_COURSE_COUNT_LITERAL = re.compile(r"(?:" + _NUMBER + r"|两)门(?:课程|课)?\Z")
+_COURSE_COUNT = re.compile(r"(?:选择?|挑选?|安排|推荐|生成|给我|改成|改为|调整为|正好|恰好|刚好|必须|只要|就要|只排(?:这|那))(" + _NUMBER + r"|两)门")
+_QUALIFIED_COURSE_COUNT = re.compile(r"^(?:请帮我|帮我|请|麻烦)?(?:选择?|挑选?|安排|推荐|生成|给我)"
+    r"[^，,。；;?？门]{1,60}的(" + _NUMBER + r"|两)门")
+_REFERENCED_COURSE_COUNT = re.compile(r"(?:这|那)(" + _NUMBER + r"|两)门(?:课程|课)?(?:之间)?(?:能|可以)?(?:怎么|如何)排")
+_COURSE_COUNT_LITERAL = re.compile(r"(?:刚才的?|原来的?|原有的?|现有的?)?(" + _NUMBER + r"|两)门(?:课程|课)?\Z")
 _PROCESS_ITEM = r"(?:来源|依据|证据|引用|未知项|未知部分|未确认项|未确认部分|未确认内容|未核实项|不确定项|不确定性|限制|边界|哪些(?:尚未|还未|没有|未)(?:确认|核实))"
 _PROCESS_ITEMS = _PROCESS_ITEM + r"(?:(?:以及|和|及|与|、)" + _PROCESS_ITEM + r")*"
 _PROCESS_OBLIGATION = re.compile(
@@ -46,7 +50,7 @@ _PROCESS_OBLIGATION = re.compile(
     r")(?:一下|一遍|一次)?[。.!！]?\Z")
 _PRESERVE_REFERENCE = (r"(?:(?:其他|其余|其它|剩余|原有|原来|之前|此前|已有|既有|原先|原)(?:的)?(?:条件|要求|偏好|约束)"
     r"|(?:(?:其他|其余|其它|剩余|原有|原来|之前|此前|已有|既有|原先|上轮|先前|刚才|当前|原)(?:的)?)?"
-    r"(?:课程范围|课程池|学分条件|学分要求|目标学分|最低学分|最高学分|学分上限|学分下限)"
+    r"(?:课程范围|候选(?:课程)?范围|课程池|候选池|学分条件|学分要求|目标学分|最低学分|最高学分|学分上限|学分下限)"
     r"|(?:之前|此前|原有|已有|既有|原来|原先|上轮|先前|刚才|当前|原)(?:的)?(?:锁定(?:项|条件|班次)?|锁|固定项|固定安排|固定课程)"
     r"|锁定(?:项|条件|班次)?|固定项|固定安排|既有锁定|已锁定的?(?:班次|课程|项)?|已固定的?(?:安排|课程))")
 _PRESERVE_NOUN = re.compile(_PRESERVE_REFERENCE + r"\Z")
@@ -57,7 +61,7 @@ _PRESERVE_CONDITIONS = re.compile(r"(?:请|必须|务必|继续|仍然)?(?:" + _
 _FRIDAY = r"(?:周五|星期五|周5|星期5)"
 _EMPTY = r"(?:空闲|没课|无课|留空|空)"
 _FRIDAY_PREDICATES = {
-    "hard": r"(?:(?:必须|务必|一定)(?:保持|留出|留)?" + _EMPTY + r"|(?:不能|不得|不许)(?:有课|上课|排课)|(?:不要|别)(?:给我)?(?:排课|安排课))",
+    "hard": r"(?:(?:必须|务必|一定)(?:保持|留出|留)?" + _EMPTY + "|" + _NO_CLASS + ")",
     "soft": r"(?:尽量|最好|优先|不强求|不一定|不必|不用非得|没必要)(?:保持|留出|留)?" + _EMPTY,
     "none": r"(?:(?:可以|允许|接受)(?:有课|上课|排课)|(?:有课|上课|排课)(?:也可以|也行|能接受|没关系|可以))",
 }
@@ -75,7 +79,7 @@ def _norm(value):
 def _strong_hard(text):
     # A soft modal has priority over the embedded positive word 一定/必须.
     masked = re.sub(r"不一定|不必|不用非得|没必要|不强求", "", text)
-    return re.search(r"必须|务必|一定|不得|不能|不许|只能|硬|至少|最多|最低|最高|不少于|不超过|上限|下限|正好|恰好|刚好", masked) is not None
+    return re.search(r"必须|务必|一定|不得|不能|不许|只能|硬|至少|凑够|最多|最低|最高|不少于|不超过|上限|下限|正好|恰好|刚好", masked) is not None
 
 
 def _asserted_request(clause):
@@ -87,7 +91,7 @@ def _asserted_request(clause):
     masked = re.sub(r"能不能|可不可以", "可以", clause)
     if _REPORTED.search(masked) or _DENIED_INTENT.search(masked) or _NEGATED_CHANGE.search(masked):
         return False
-    if re.search(r"[?？吗]", clause) and not re.search(r"(?:帮我|帮忙|麻烦|请|能否|能不能|可以|我想|我要|我希望).*(?:解除|解锁|取消|解开|放宽|改|调|设为|设置为|锁定|保留|排除|留空|空闲)", clause):
+    if re.search(r"[?？吗]", clause) and not re.search(r"(?:帮我|帮忙|麻烦|请|能否|能不能|可以|我想|我要|我希望).*(?:解除|解锁|取消|解开|放宽|改|调|设为|设置为|锁(?:定|住)|保留|排除|留空|空闲)", clause):
         return False
     return True
 
@@ -192,10 +196,14 @@ def _period_scope(text):
 
 def _course_count_records(text):
     normalized = _norm(text)
+    # A quoted course-name filter is a noun qualifier, not a count request.
+    # Keep the surrounding '选…的N门' grammar while excluding quoted commands.
+    normalized = re.sub(r'“[^”]*”|"[^"]*"|‘[^’]*’', "范围", normalized)
     if re.search(r"(?:至少|最多|不少于|不超过)(?:选)?" + _NUMBER + r"门", normalized):
         return [{"text": text, "kind": "unresolved", "code": "course_count_range_requires_review"}]
     records = []
-    for match in _COURSE_COUNT.finditer(normalized):
+    for match in (list(_COURSE_COUNT.finditer(normalized)) + list(_QUALIFIED_COURSE_COUNT.finditer(normalized))
+                  + list(_REFERENCED_COURSE_COUNT.finditer(normalized))):
         value = _number_text(match[1].replace("两", "二"))
         number = _number(value) if value is not None else None
         if number is None or number != int(number) or not 1 <= number <= 12:
@@ -236,12 +244,13 @@ def _parse_hard(text):
         # Restating a count is a constraint, not permission to change an
         # inherited count. Keep both so conflicting preservation is rejected.
         records = [{**record, "text": text} for record in _course_count_records("选" + preserved_count[1] + "门")]
-    if not records and _COURSE_COUNT_LITERAL.fullmatch(normalized):
+    literal_count = _COURSE_COUNT_LITERAL.fullmatch(normalized)
+    if not records and literal_count:
         # A conjunct such as '课程范围、3门课和至少6学分都保留'
         # restates the count. Retain inherited requirements so a different
         # number conflicts instead of silently changing the saved count.
-        records = [{**record, "text": text} for record in _course_count_records("选" + normalized)]
-    for prefix, kind in ((r"至少|最低|不少于|下限", "target_credits"), (r"最多|最高|不超过|上限", "max_credits"),
+        records = [{**record, "text": text} for record in _course_count_records("选" + literal_count[1] + "门")]
+    for prefix, kind in ((r"至少|凑够|最低|不少于|下限", "target_credits"), (r"最多|最高|不超过|上限", "max_credits"),
                          (r"正好|恰好|刚好", "exact_credits")):
         match = re.search(r"(?:" + prefix + r")(?:学分)?(?:改为|调整为|设为|为|是|到)?(" + _NUMBER + r")(?:个)?学分", normalized)
         if match and (number := _number_text(match[1])) is not None:
@@ -262,7 +271,7 @@ def _parse_hard(text):
             records.append({"text": text, "kind": "busy", "value": {"weekday": day, "periods": period["periods"]}})
         elif re.search(r"上午|下午|晚上|早八|早上|中午|[0-9一二三四五六七八九十]+点|[0-9]+[:：][0-9]+", normalized):
             return [{"text": text, "kind": "unresolved", "code": "clock_period_mapping_unverified", "weekday": day}]
-        elif re.search(r"空|没课|无课|不(?:要|能|许|得).*(?:上课|有课|排课|安排课)|别.*(?:排课|安排课)|整天", normalized):
+        elif re.search(_NO_CLASS + r"|空|没课|无课|不(?:要|能|许|得).*(?:上课|有课|排课|安排课)|别.*(?:排课|安排课)|整天", normalized):
             if day == 5:
                 records.append({"text": text, "kind": "friday_free", "value": "hard"})
             else:
@@ -391,7 +400,7 @@ def _soft_requirements(user_message, soft_preferences, inherited_policy, overrid
             continue
         preserve = re.search(r"保留|不变|不动|照旧|沿用|维持|保持原样", part)
         if preserve:
-            scope = _soft_scope(re.sub(r"(?:请)?(?:保留|继续保留|不变|不动|照旧|沿用|维持|保持不变|保持原样)", "", part))
+            scope = _soft_scope(re.sub(r"(?:请)?(?:都|均|全部)?(?:保留|继续保留|不变|不动|照旧|沿用|维持|保持不变|保持原样)", "", part))
             if scope is not None and any(all(row[key] == scope[key] for key in ("weekday", "periods")) for row in records):
                 handled.append(part)
                 continue
@@ -597,7 +606,7 @@ def _evidence_clauses(message, quote):
         return []
     for clause in clauses:
         if (not _asserted_request(clause)
-                or re.search(r"[“\"‘][^”\"’]*(?:取消|解锁|解除|放宽|收紧|改成|改为|调整|设为|设置为)[^”\"’]*[”\"’]", clause)):
+                or re.search(r"[“\"‘][^”\"’]*(?:取消|解锁|解除|锁(?:定|住)|放宽|收紧|改成|改为|调整|设为|设置为)[^”\"’]*[”\"’]", clause)):
             return []
     return clauses + [quote] if len(clauses) > 1 else clauses
 
@@ -658,7 +667,7 @@ def _consumed_class_expressions(clause, field, refs, metadata):
     academic condition which still requires independent compilation.
     """
     verb = {"unlock_class_refs": r"解除|解锁|解开|取消",
-            "lock_class_refs": r"锁定|保留|固定住",
+            "lock_class_refs": r"锁(?:定|住)|保留|固定住",
             "exclude_class_refs": r"排除|不选|不要(?:排|选|安排)|别(?:给我)?(?:排|选|安排)"}[field]
     expressions = []
     if field == "unlock_class_refs" and len(refs) == 1 and {ref for ref, row in metadata.items() if row.get("locked") is True} == set(refs):
@@ -779,12 +788,12 @@ def authorize_changes(user_message, proposed_patch, *, prior_constraints, class_
                     if bare:
                         numbers.append(_number_text(bare[1]))
                     authorized = _number(value) is not None and any(_number(n) == _number(value) for n in numbers if n is not None)
-                    authorized &= bool(bare or re.search(r"改|调|按|目标|至少|最多|最低|最高|上限|下限|推荐|算|就行|就好|即可", text))
+                    authorized &= bool(bare or re.search(r"改|调|按|目标|至少|凑够|最多|最低|最高|上限|下限|推荐|算|就行|就好|即可", text))
                     if field == "max_credits":
                         authorized &= re.search(r"最高|最多|上限|不超过", text) is not None
                 else:
                     verbs = {"unlock_class_refs": r"解除|解锁|解开|取消.*锁|锁.*取消|不(?:用再|再|必).*(?:锁|保留)",
-                             "lock_class_refs": r"锁定|保留|固定住", "exclude_class_refs": r"排除|不选|不要(?:排|选|安排)|别(?:排|选|安排)"}
+                             "lock_class_refs": r"锁(?:定|住)|保留|固定住", "exclude_class_refs": r"排除|不选|不要(?:排|选|安排)|别(?:排|选|安排)"}
                     if rows and any("class_refs" in row and set(row["class_refs"]) != set(value) for row in rows):
                         continue
                     authorized = (type(value) is list and all(ref in class_metadata for ref in value)

@@ -101,7 +101,9 @@ class PersonalAnswerProtocolTests(unittest.TestCase):
             result = json.loads(next(row["content"] for row in reversed(messages) if row["role"] == "tool"))
             self.assertNotIn("answer_claim", result)
             self.assertIn("有分数不能证明已修完成", result["answer_context"]["meaning"])
-            self.assertIn("finish_answer", result["answer_context"]["delivery"])
+            self.assertNotIn("delivery", result["answer_context"])
+            self.assertEqual(messages[-1]["role"], "system")
+            self.assertIn("finish_answer", messages[-1]["content"])
             return final({"kind": "answer", "text": body, "evidence_ids": [result["records"][0]["evidence_id"]]})
         response, _, model = fixtures.run_service([
             call("query_my_records", {"operation": "academic", "target_term": "2099-2100-AW"}), respond])

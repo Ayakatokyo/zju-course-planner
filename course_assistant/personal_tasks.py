@@ -418,12 +418,31 @@ def validate_clarification_context(value):
     return deepcopy(value)
 
 
-def previous_clarification_context(state):
-    """Return only the latest turn's validated pending request, fail closed."""
+def previous_clarification_context(state, *, retry_message=None):
+    """Return current pending intent, or its immediately failed exact retry.
+
+    A user resending the same failed message may recover the clarification
+    directly before it. This carries no failed facts or authority and never
+    searches past a topic change, completion, or another failed turn.
+    """
     turns = state.get("turns") if isinstance(state, dict) else None
     if not isinstance(turns, list) or not turns or not isinstance(turns[-1], dict):
         return None
     turn = turns[-1]
+    if (turn.get("status") == "failed" and turn.get("task_status") == "failed"
+            and turn.get("reply_origin") == "service_error"
+            and turn.get("code") in {"model_unavailable", "model_call_failed", "model_http_429", "model_incomplete"}
+            and isinstance(retry_message, str) and retry_message == turn.get("message")
+            and len(turns) >= 2 and isinstance(turns[-2], dict)):
+        previous = turns[-2]
+        scope = turn.get("personal_scope")
+        versions = turn.get("versions")
+        earlier_versions = previous.get("versions")
+        if (isinstance(scope, str) and scope and previous.get("personal_scope") == scope
+                and isinstance(versions, dict) and isinstance(earlier_versions, dict)
+                and isinstance(versions.get("egress_digest"), str) and versions["egress_digest"]
+                and earlier_versions.get("egress_digest") == versions["egress_digest"]):
+            turn = previous
     if (turn.get("status") != "completed" or turn.get("task_status") != "awaiting_user"
             or turn.get("reply_origin") != "personal_model_clarification"):
         return None

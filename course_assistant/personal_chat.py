@@ -492,7 +492,8 @@ class PersonalChatService:
                 state.update(personal_service=SERVICE, personal_scope=scope)
                 same_egress = (state.get("workspace_versions") or {}).get("egress_digest") == versions["egress_digest"]
                 task_context = previous_task_context(state) if same_egress else None
-                clarification_context = previous_clarification_context(state) if same_egress else None
+                clarification_context = previous_clarification_context(state,
+                    retry_message=body["message"]) if same_egress else None
                 # Both school and synthetic providers share the same bounded
                 # dialogue history; stored tool payloads are audit evidence only.
                 history = self._conversation_history(state) if same_egress else []

@@ -5,6 +5,46 @@ from course_assistant.course_plan_policy import compile_hard_constraints, author
 
 
 class CoursePlanPolicyTests(unittest.TestCase):
+    def test_colloquial_friday_and_credit_minimum_survive_natural_followups(self):
+        first = compile_hard_constraints('帮我安排课表，周五不要有课', [])
+        self.assertEqual(first['engine_patch'], {'friday_free': 'hard'})
+        second = compile_hard_constraints('就2026-2027秋冬，先帮我挑三门管理类的课，凑够6学分。', [], inherited_policy=first)
+        self.assertEqual(second['engine_patch'], {'friday_free': 'hard', 'course_count': 3, 'target_credits': '6'})
+        third = compile_hard_constraints('那先不管我已经选的课，给我看看这三门课能怎么排，周五还是别排。', [], inherited_policy=second)
+        self.assertEqual(third['status'], 'ready', third)
+        self.assertEqual(third['engine_patch'], second['engine_patch'])
+        for phrase in ('周五不要有课', '周五还是别排', '周五不要上课'):
+            with self.subTest(phrase=phrase):
+                self.assertEqual(authorize_changes(phrase, {'friday_free': 'hard'}, prior_constraints={'friday_free': 'none'}, class_metadata={})['status'], 'ready')
+        for phrase in ('假如周五不要有课', '不是要求周五不要有课', '“周五不要有课”', '周五上午不要有课'):
+            with self.subTest(unverified=phrase):
+                proof = authorize_changes(phrase, {'friday_free': 'hard'}, prior_constraints={'friday_free': 'none'}, class_metadata={})
+                self.assertEqual(proof['status'], 'needs_clarification')
+        for phrase in ('假如凑够6学分', '我不想凑够6学分'):
+            self.assertNotIn('target_credits', compile_hard_constraints(phrase, [])['engine_patch'])
+        conflict = compile_hard_constraints('最多5学分', [], inherited_policy=second)
+        self.assertIn('conflicting_credit_bounds', str(conflict['unresolved']))
+
+    def test_count_after_qualified_course_scope_is_bound_without_reading_quoted_commands(self):
+        for request in ('选课程名含“管理”的3门课', '请帮我挑选管理类的三门课程',
+                        '选课程名含“选9门”的3门课', '给我看看这三门课能怎么排', '只排这三门之间的时间'):
+            with self.subTest(request=request):
+                policy = compile_hard_constraints(request + '，至少6学分，尽量周五空闲。', [])
+                self.assertEqual(policy['status'], 'ready', policy)
+                self.assertEqual(policy['engine_patch'], {'course_count': 3, 'target_credits': '6', 'friday_free': 'soft'})
+                continued = compile_hard_constraints('先仅用本次返回的10门历史候选计算，原来的3门课、至少6学分、尽量周五空闲都保留。', [], inherited_policy=policy)
+                self.assertEqual(continued['status'], 'ready', continued)
+                self.assertEqual(continued['engine_patch'], policy['engine_patch'])
+                self.assertEqual(continued['unhandled_soft_preferences'], [])
+                conflict = compile_hard_constraints('原来的2门课、至少6学分都保留。', [], inherited_policy=policy)
+                self.assertIn('conflicting_course_count', str(conflict['unresolved']))
+        for request in ('不要选课程名含“管理”的3门课', '假如选管理类的3门课',
+                        '引用：“选管理类的3门课”', '“选3门课”', '选管理类的3.5门课',
+                        '这三门课一共多少学分', '假如这三门课怎么排', '不要只排这三门'):
+            with self.subTest(request=request):
+                self.assertNotIn('course_count', compile_hard_constraints(request, [])['engine_patch'])
+        self.assertEqual(compile_hard_constraints('这三门课里选两门', [])['engine_patch']['course_count'], 2)
+
     def test_ordered_option_and_course_reference_is_exact(self):
         metadata = {"first": {"course_name": "合成甲", "course_code": "SYN-A", "option_positions": {"A": 1, "B": 2}},
             "second": {"course_name": "合成乙", "course_code": "SYN-B", "option_positions": {"A": 2, "B": 1}}}
@@ -25,6 +65,17 @@ class CoursePlanPolicyTests(unittest.TestCase):
         proof = authorize_changes(message, {"lock_class_refs": ["first"]}, prior_constraints={}, class_metadata=metadata)
         consumed = [x for row in proof["verified_changes"].values() for x in row.get("consumed_expressions", [])]
         self.assertEqual(compile_hard_constraints(message, [], consumed_expressions=consumed)["status"], "needs_clarification")
+
+    def test_colloquial_lock_synonym_still_requires_asserted_current_target(self):
+        metadata = {'one': {'course_name': '合成甲', 'course_code': 'SYN-A', 'option_positions': {'A': 1}}}
+        for message in ('把A方案的合成甲锁住，别的照旧。', '帮我锁住A方案的合成甲可以吗？'):
+            proof = authorize_changes(message, {'lock_class_refs': ['one']}, prior_constraints={}, class_metadata=metadata)
+            self.assertEqual(proof['status'], 'ready', proof)
+            consumed = [x for row in proof['verified_changes'].values() for x in row.get('consumed_expressions', [])]
+            self.assertTrue(consumed)
+            self.assertEqual(compile_hard_constraints(message, [], consumed_expressions=consumed)['status'], 'ready')
+        for message in ('不要把A方案的合成甲锁住', '如果把A方案的合成甲锁住', '“锁住A方案的合成甲”', '锁住A方案的合成乙'):
+            self.assertEqual(authorize_changes(message, {'lock_class_refs': ['one']}, prior_constraints={}, class_metadata=metadata)['status'], 'needs_clarification')
 
     def test_generated_condition_plan_keeps_count_and_soft_scope_after_supplement(self):
         request = "用已获准的2026—2027秋冬历史班次，生成3门课、至少6学分、尽量周五空闲的条件方案。"
@@ -94,6 +145,16 @@ class CoursePlanPolicyTests(unittest.TestCase):
             ['锁定'], inherited_policy=initial)
         self.assertEqual(retained['status'], 'ready', retained)
         self.assertEqual(retained['engine_patch'], result['engine_patch'])
+        for scope in ('候选范围', '候选课程范围', '候选池'):
+            with self.subTest(scope=scope):
+                message = '原来的3门课、至少6学分和' + scope + '都保留，把周五改成必须空闲。'
+                preserved = compile_hard_constraints(message, [scope], inherited_policy=initial)
+                self.assertEqual(preserved['status'], 'ready', preserved)
+                self.assertEqual(preserved['engine_patch'], result['engine_patch'])
+        for scope in ('新增候选范围', '候选范围改为全校所有课程', '候选范围和必须同校区'):
+            with self.subTest(unsupported_scope=scope):
+                pending = compile_hard_constraints('至少6学分和' + scope + '都保留。', [], inherited_policy=initial)
+                self.assertEqual(pending['status'], 'needs_clarification')
         for clause in ('锁定新课程', '新增锁定', '锁定那门课'):
             pending = compile_hard_constraints('课程范围、' + clause + '、3门课和至少6学分都保留。', [], inherited_policy=initial)
             self.assertNotEqual(pending['status'], 'ready', clause)
