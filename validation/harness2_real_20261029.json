@@ -1,0 +1,536 @@
+{
+  "schema": "academic-harness2-real-validation/1",
+  "date": "2026-10-29",
+  "base_commit": "56ee70b5ef4475b5f87ec14d98214a6d4b16bb47",
+  "upstream_revision": "1cfe254e8d25b15f37048c3730134686abe60335",
+  "model": "chatgpt:gpt-6-luna",
+  "reasoning_effort": "high",
+  "scope": {
+    "school_access": "authorized read-only personal sources",
+    "course_data_term": "2026-2027-AW",
+    "course_data_freshness": "historical observations only",
+    "new_school_endpoints": false,
+    "enrollment_writes": false,
+    "committed": false,
+    "pushed": false
+  },
+  "live_attempts": {
+    "total": 21,
+    "completed_protocol": 19,
+    "failed_protocol": 2,
+    "completed_is_not_semantic_acceptance": true,
+    "preserved_issues": [
+      {
+        "type": "failed_transport",
+        "detail": "tls_error before HTTP response; connection durability unresolved"
+      },
+      {
+        "type": "failed_validation",
+        "detail": "source claim rejected after one correction; original draft unavailable"
+      },
+      {
+        "type": "incorrect_result",
+        "detail": "exact course count omitted; four-course option and inconsistent text"
+      },
+      {
+        "type": "unnecessary_clarification",
+        "detail": "retained count phrase was not recognized"
+      },
+      {
+        "type": "incorrect_explanation",
+        "detail": "joint credit total contradicted a returned option"
+      },
+      {
+        "type": "correct_calculation_with_incorrect_notice",
+        "detail": "inherited soft preference executed but reported unhandled"
+      }
+    ]
+  },
+  "source_review": {
+    "record_citations_checked": 135,
+    "table_rows_checked": 113,
+    "grade_summaries_independently_recomputed": 2,
+    "pdf_original_page_visually_checked": true,
+    "final_generated_and_revised_plans": {
+      "plans_checked": 2,
+      "options_checked": 6,
+      "class_rows_checked": 18,
+      "raw_name_credit_meeting_checks": "passed",
+      "decimal_totals_and_course_counts": "passed",
+      "cross_course_observed_slot_conflicts": 0,
+      "same_plan_version_and_locked_target": "passed",
+      "formal_applicability": "unverified"
+    },
+    "inspect_only": {
+      "school_reads": 0,
+      "searches": 0,
+      "calculations": 0
+    }
+  },
+  "harness2_replay": {
+    "initial_experiments": "ledger and resume failures retained; original overwritten proposal receipts unavailable and not used for adoption",
+    "clean_k1": {
+      "execution_count": 4,
+      "completed": 3,
+      "failed": 1,
+      "selected": "base1",
+      "automatic_prompt_edit_adopted": false,
+      "transferable_reflection_retained": false
+    },
+    "fixed_graduation_replay_completed": true,
+    "forced_original_credit_draft": {
+      "source": "authorized frozen plan",
+      "initial_fixture_attempt": "failed before network due to missing tool protocol context",
+      "real_repair_calls": 1,
+      "repair_completed": true,
+      "new_school_reads": 0
+    }
+  },
+  "adopted_changes": [
+    "retain the previous removal of repeated tool-result writing guidance",
+    "bind qualified exact course counts and retain original count expressions",
+    "recognize retained soft preference suffix without false unhandled notice",
+    "allow explicit deferred graduation questions while rejecting affirmative outcomes",
+    "check explicit labelled plan credit totals against current calculation and reuse one final-only correction",
+    "reject overwriting proposal receipts and started optimization work directories; handle missing deliverables"
+  ],
+  "regression": {
+    "full_suite_run": 1652,
+    "passed": 1641,
+    "skipped": 11,
+    "failed": 0,
+    "elapsed_seconds": 66.209,
+    "related_tests": 205,
+    "pinned_upstream_dry_run": "passed",
+    "diff_check": "passed"
+  },
+  "runtime": {
+    "port": 18875,
+    "qdrant_port": 6333,
+    "qdrant_restarted": false,
+    "school_login_restored": true,
+    "source_sha256": {
+      "course_assistant/course_plan_policy.py": "190c338448f14e41d1e917bd21957b94721fa9c6975db7f4d48538ccaf538d2e",
+      "course_assistant/personal_dialogue.py": "4e89743d05c1475ebce9c1da1ada5e7bbed82d1592efc0ecbd7b5ba960d91593",
+      "validation/harness2_adapter.py": "9929164a1cf5bbb65e9da15000a277d0a9e9de085d009c4e4f5ae10b205846d5"
+    },
+    "final_generation_and_lock_adjustment": "completed, zero repair, source and UI checked",
+    "final_soft_preference_notice": "correct; no false unhandled preference",
+    "graduation_followup": "completed with current audit source; formal recognition not inferred",
+    "browser_console_errors": 0
+  },
+  "limitations": [
+    "One TLS failure was observed; no claim of durable connection stability",
+    "Labelled credit checks are bounded and do not prove arbitrary answer semantics",
+    "No formal curriculum applicability, course equivalence, graduation eligibility or current enrollment availability acceptance",
+    "User experience acceptance remains with the user"
+  ],
+  "private_evidence_directory": "private/harness2_real_20261029",
+  "previous_synthetic_receipt": "validation/harness2_20261029.json",
+  "usage_followup": {
+    "date": "2026-10-29",
+    "purpose": "fixed daily-use tasks, source review, targeted repair and bounded connection observation",
+    "harness2_search_run": false,
+    "tasks": [
+      {
+        "id": "U01",
+        "title": "完整成绩",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U02",
+        "title": "成绩筛选与汇总",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U03",
+        "title": "纯概念追问",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U04",
+        "title": "培养原文与自审",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U05",
+        "title": "毕业判断边界",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U06",
+        "title": "课表与未知字段",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U07",
+        "title": "考试安排",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U08",
+        "title": "当前选课",
+        "final_assessment": "passed"
+      },
+      {
+        "id": "U09",
+        "title": "方案生成与锁定调整",
+        "final_assessment": "passed_after_fix"
+      },
+      {
+        "id": "U10",
+        "title": "只解释方案",
+        "final_assessment": "passed"
+      }
+    ],
+    "task_count": 10,
+    "actual_ui_requests": 13,
+    "protocol_completed": 13,
+    "protocol_completed_is_not_semantic_pass": true,
+    "preserved_failed_task": {
+      "id": "U09",
+      "type": "unnecessary_clarification",
+      "trigger": "锁定方案A里的第一门课，原来的3门课、至少6学分和候选范围都保留，把周五改成必须空闲，再重新计算。",
+      "cause": "existing candidate-scope preservation phrase parsed as unsupported new hard constraint"
+    },
+    "existing_final_only_corrections": 1,
+    "adopted_change": {
+      "module": "course_assistant/course_plan_policy.py",
+      "version": "course-plan-policy/7",
+      "behavior": "recognize bounded references to an existing candidate scope in preservation clauses; retain course codes, count, credit bounds and authorized locks",
+      "boundary": "no new candidate scope authorization, school endpoint, semantic router or retry budget"
+    },
+    "runtime_verification": {
+      "read_tasks_before_targeted_policy_fix": 8,
+      "final_policy_version_scenario": "original generation, original failed lock-and-hard-Friday revision, then inspect-only explanation",
+      "same_plan_and_data_version": true,
+      "revision_change": "0 to 1",
+      "locked_target_preserved": true,
+      "hard_friday_enforced": true,
+      "plan_options_checked": 5,
+      "class_rows_checked": 15,
+      "raw_course_credit_and_slot_checks": "passed",
+      "cross_course_observed_slot_conflicts": 0,
+      "inspect_only_school_reads": 0,
+      "inspect_only_searches": 0,
+      "inspect_only_calculations": 0,
+      "browser_console_errors": 0,
+      "actual_page_visually_checked": true
+    },
+    "source_review": {
+      "record_citations_checked": 129,
+      "table_rows_checked": 113,
+      "grade_summaries_checked": 2,
+      "audit_summaries_checked": 2
+    },
+    "pdf_current_citation_hash_and_page_visual_check": "passed",
+    "connection_observation": {
+      "model": "chatgpt:gpt-6-luna",
+      "reasoning_effort": "high",
+      "reasoning_effort_evidence": "UI setting checked before sending; model.end does not store this field",
+      "model_calls": 36,
+      "model_failures": 0,
+      "http_statuses": [
+        200
+      ],
+      "durable_stability": "unverified; previous TLS failure remains unresolved",
+      "transport_or_retry_changes": false
+    },
+    "sample_latency_seconds": {
+      "min": 9.533,
+      "median": 19.131,
+      "max": 30.251,
+      "scope": "13 actual UI requests including the preserved blocked adjustment; small-sample observation only"
+    },
+    "regression": {
+      "before_fix": "policy scope cases and service revision reproduced the failure",
+      "related_run": 120,
+      "related_passed": 120,
+      "full_suite_run": 1652,
+      "passed": 1641,
+      "skipped": 11,
+      "failed": 0,
+      "elapsed_seconds": 67.305,
+      "diff_check": "passed"
+    },
+    "runtime": {
+      "source_sha256": {
+        "course_assistant/course_plan_policy.py": "c8260c3ac87e73c2f43eed89fc9467d059126e509b5404321bfd6c031febf1ab",
+        "course_assistant/personal_dialogue.py": "4e89743d05c1475ebce9c1da1ada5e7bbed82d1592efc0ecbd7b5ba960d91593",
+        "validation/harness2_adapter.py": "9929164a1cf5bbb65e9da15000a277d0a9e9de085d009c4e4f5ae10b205846d5"
+      },
+      "port": 18875,
+      "main_restarts": 1,
+      "school_login_restored": true,
+      "qdrant_restarted": false
+    },
+    "committed": false,
+    "pushed": false,
+    "limitations": [
+      "Agent-executed usage checks do not substitute for subjective user acceptance",
+      "Formal applicability, course equivalence, graduation eligibility and current enrollment availability remain outside acceptance",
+      "The original rejected draft in the successful curriculum correction was unavailable; its precise cause remains unknown"
+    ],
+    "private_evidence_directory": "private/harness_usage_20261029"
+  },
+  "colloquial_followup": {
+    "date": "2026-10-29",
+    "purpose": "natural-language daily conversation checks, fixes for reproduced defects, and bounded final replay",
+    "harness2_search_run": false,
+    "task_count": 10,
+    "task_design_note": "10 colloquial scenarios recorded after the first four observed requests; adaptive follow-ups and retries included; not an untouched holdout benchmark",
+    "tasks": [
+      {
+        "id": "C01",
+        "prompt": "帮我安排课表，周五不要有课",
+        "result": "asks for necessary scope and retains Friday intent"
+      },
+      {
+        "id": "C02",
+        "prompt": "就2026-2027秋冬，先帮我挑三门管理类的课，凑够6学分。",
+        "result": "conditions retained into computation; additional category confirmation observed"
+      },
+      {
+        "id": "C03",
+        "prompt": "那先不管我已经选的课，给我看看这三门课能怎么排，周五还是别排。",
+        "result": "final candidate returns 3 courses, 6 credits, no observed Friday occupancy"
+      },
+      {
+        "id": "C04",
+        "prompt": "第一门课我挺喜欢的，帮我锁住，其他照旧。",
+        "followup": "explicit option A and course name supplied",
+        "result": "ambiguous option not mutated; named 锁住 request passed after synonym fix"
+      },
+      {
+        "id": "C05",
+        "prompt": "周五可以有课了，其他都别动。",
+        "result": "Friday condition relaxed; lock, count, credit minimum and course pool preserved"
+      },
+      {
+        "id": "C06",
+        "prompt": "现在这套一共几学分？不用重新排，简单说一下。",
+        "result": "correct saved total; no school reads, search or solve"
+      },
+      {
+        "id": "C07",
+        "prompt": "帮我看看成绩，有没有没过的？",
+        "result": "asks for missing term instead of rejecting valid not-ready receipt"
+      },
+      {
+        "id": "C08",
+        "prompt": "先看主修成绩吧。",
+        "result": "reports numeric below-60 scope accurately; unknowns not inferred"
+      },
+      {
+        "id": "C09",
+        "prompt": "90分以上的有哪些？一共多少学分？",
+        "result": "source-bound table and nominal credit sum checked independently"
+      },
+      {
+        "id": "C10",
+        "prompt": "没出分的是不是都算没过？",
+        "result": "correct concept explanation; no personal source reads"
+      }
+    ],
+    "actual_ui_requests": 28,
+    "protocol_statuses": {
+      "completed": 26,
+      "failed": 2
+    },
+    "protocol_completed_is_not_semantic_pass": true,
+    "preserved_failures": [
+      "Friday prohibition and colloquial minimum initially rejected or lost",
+      "grade-filter projection rejected a non-executed missing-term response",
+      "model chose full timetable despite explicit candidate-only request",
+      "repeated historical-data confirmation made ordinary requests awkward",
+      "one retry returned four courses in a requested three-course option",
+      "explicit named 锁住 action required unnecessary literal 锁定 confirmation",
+      "exact retry after connection failure lost the earlier Friday condition",
+      "existing-plan adjustment attempted a protected candidate-pool change and was blocked",
+      "two model connection failures"
+    ],
+    "adopted_changes": [
+      {
+        "module": "course_assistant/course_plan_policy.py",
+        "version": "course-plan-policy/9",
+        "behavior": "bounded colloquial Friday exclusion, minimum credits, referenced course count and lock synonym; preserve denial, quotation, target and scope checks"
+      },
+      {
+        "module": "course_assistant/personal_dialogue.py",
+        "behavior": "preserve non-executed query reasons without faking applied filters or facts; use already authorized ready historical course scope with a brief limitation"
+      },
+      {
+        "module": "course_assistant/personal_course_plans.py",
+        "behavior": "clarify candidate-only schedule checks and get-then-update for existing saved conditions; existing scope and fixed-item guards unchanged"
+      },
+      {
+        "modules": [
+          "course_assistant/personal_tasks.py",
+          "course_assistant/personal_chat.py"
+        ],
+        "behavior": "exact user resend of an immediately failed supplement may recover only the preceding validated clarification intent in the same owner and egress scope; no failed facts, authorization, automatic retry or search past intervening turns"
+      }
+    ],
+    "verification_layers": {
+      "real_page": "final six-turn scheduling chain completed with zero final-answer repairs",
+      "grade_chain": "four real turns verified on the preceding policy-8 candidate; later changes targeted planning and exact retry, not rerun as final-code grade acceptance",
+      "saved_real_failure_replay": "final exact-retry function restored the Friday request from the saved failed real conversation; no new model or school request; no network failure deliberately induced",
+      "source_review": {
+        "record_citations_checked": 18,
+        "table_rows_checked": 9,
+        "grade_summaries_checked": 2
+      },
+      "plan_source_review": {
+        "computations": 3,
+        "options_checked": 3,
+        "class_rows_checked": 9,
+        "course_names_credits_weekday_periods": "passed",
+        "decimal_totals": "passed",
+        "observed_cross_course_slot_conflicts": 0,
+        "same_plan_and_data_version": true,
+        "revisions": [
+          0,
+          1,
+          2
+        ],
+        "lock_preserved": true,
+        "only_friday_relaxed": true
+      },
+      "inspect_only": {
+        "school_reads": 0,
+        "searches": 0,
+        "calculations": 0,
+        "answer_matches_saved_result": true
+      },
+      "browser_console_errors": 0,
+      "actual_page_visually_checked": true,
+      "user_acceptance": "unverified"
+    },
+    "connection_observation": {
+      "model": "chatgpt:gpt-6-luna",
+      "reasoning_effort": "high",
+      "effort_evidence": "UI checked before calls; model.end schema does not store effort",
+      "model_calls": 80,
+      "model_statuses": {
+        "completed": 78,
+        "failed": 2
+      },
+      "http_status_counts": {
+        "200": 79,
+        "None": 1
+      },
+      "failures": [
+        {
+          "status": "failed",
+          "http_status": 200,
+          "error_code": "model_stream_incomplete",
+          "failure_detail": "connection_error",
+          "elapsed_ms": 7829
+        },
+        {
+          "status": "failed",
+          "http_status": null,
+          "error_code": "model_unavailable",
+          "failure_detail": "connection_error",
+          "elapsed_ms": 10262
+        }
+      ],
+      "tls_failure_observed_in_this_round": false,
+      "prior_tls_root_cause": "unresolved",
+      "unauthenticated_probe": {
+        "system_proxy_http_status": 401,
+        "direct_connection": "timed out",
+        "certificate_verification": "unchanged default"
+      },
+      "transport_or_automatic_retry_changes": false,
+      "durable_stability": "unverified"
+    },
+    "sample_latency_seconds": {
+      "min": 5.54,
+      "median": 19.012,
+      "max": 65.752,
+      "scope": "all 28 attempts including failures and blocked requests; not an overall performance guarantee"
+    },
+    "existing_final_only_corrections": 1,
+    "regression": {
+      "related_run": 255,
+      "related_passed": 255,
+      "full_suite_run": 1659,
+      "passed": 1648,
+      "skipped": 11,
+      "failed": 0,
+      "elapsed_seconds": 66.696,
+      "diff_check": "passed"
+    },
+    "runtime": {
+      "source_sha256": {
+        "course_assistant/course_plan_policy.py": "917e0b828792f97aac5fd61825880836adea21fb5de41a81ad72ce2317974636",
+        "course_assistant/personal_dialogue.py": "1dd552019e2bff6bf1f813cd234fef1c5066263aa7b15382e55d9f95a8cd1988",
+        "course_assistant/personal_course_plans.py": "afa47bb34ef4aa4ed88c8ae0686f2eaa1d595b056a2d612e4a29479c9ecc7b4c",
+        "course_assistant/personal_tasks.py": "4478998162e306480b49e5806912fff06e2af590f46a1285bf8610f0c6128a1c",
+        "course_assistant/personal_chat.py": "684d691fb51f4154aef3f33310b3bf56fa4c43f0fa7dae959b2a846b47542724"
+      },
+      "port": 18875,
+      "main_restarts": 4,
+      "school_login_restored": true,
+      "qdrant_restarted": false
+    },
+    "committed": false,
+    "pushed": false,
+    "limitations": [
+      "Management-course category can still prompt an additional range clarification.",
+      "Failure recovery is bounded to an exact resend immediately after one eligible model failure; arbitrary follow-up semantics are not guaranteed.",
+      "Only pre-authorized 2026-2027-AW historical observations were used for course combinations; current enrollment availability, full timetable/exam conflicts and formal applicability are unverified.",
+      "Agent testing does not replace subjective user acceptance."
+    ],
+    "private_evidence_directory": "private/harness_colloquial_20261029"
+  },
+  "stage_closeout": {
+    "date": "2026-10-29",
+    "user_requested": true,
+    "optimization_stage": "closed",
+    "time_windows": [
+      {
+        "progress_sections": "166-167",
+        "scope": "Harness2 development adapter and evidence preservation",
+        "commit": "df6489f7f8a4f423cc63ec66c47ccf510b10d74a"
+      },
+      {
+        "progress_sections": "166-169",
+        "scope": "integrated runtime fixes and regressions from real conversations",
+        "commit": "89957ba68a6ad5c3e38670d89d8ca61ed46335a5"
+      },
+      {
+        "progress_sections": "166-170",
+        "scope": "documentation and sanitized validation receipts",
+        "commit": "the Git commit containing this closeout record"
+      }
+    ],
+    "code_pushed_to": "origin/main",
+    "code_remote_tip_verified": "89957ba68a6ad5c3e38670d89d8ca61ed46335a5",
+    "history_rewritten": false,
+    "historical_dates_fabricated": false,
+    "shared_files": "final integrated state retained within the documented windows",
+    "verification": {
+      "staged_paths_reviewed": true,
+      "added_content_sensitive_pattern_scan": "passed",
+      "diff_check": "passed",
+      "runtime_hashes_match_tested_candidate": true,
+      "previous_full_suite_passed": 1648,
+      "previous_full_suite_skipped": 11,
+      "additional_offline_adapter_tests_passed": 7
+    },
+    "new_school_calls": 0,
+    "new_model_calls": 0,
+    "application_restarted": false,
+    "qdrant_restarted": false,
+    "historical_phase_status_fields": "preserved as facts at the time of each phase; this record supplies current closeout status",
+    "remaining_acceptance": [
+      "connection root cause and durable stability",
+      "occasional category-scope clarification",
+      "subjective user experience",
+      "arbitrary natural-language coverage",
+      "current enrollment availability and formal curriculum applicability"
+    ]
+  }
+}

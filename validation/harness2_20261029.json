@@ -1,0 +1,456 @@
+{
+  "schema": "academic-harness2-validation-v1",
+  "date": "2026-10-29",
+  "baseline_commit": "56ee70b5ef4475b5f87ec14d98214a6d4b16bb47",
+  "upstream": {
+    "repository": "https://github.com/google-research/harness2",
+    "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+    "unmodified": true,
+    "interfaces_executed": [
+      "run_sequential(k=1)",
+      "run_selection",
+      "reflect_adoption"
+    ],
+    "execution": "bounded text adapter; no upstream shell executor or online reviewer"
+  },
+  "adopted_change": "Remove repeated delivery/style guidance from each observation; keep trusted final guide, source meaning and current plan constraints. No automatic prompt candidate adopted.",
+  "runtime_source_sha256": "476d62bf34f98dc2d4c87aa61c74d7127833db0b3af626e051a5bd8059ee53cd",
+  "deterministic_context_comparison": {
+    "compared_contexts": 24,
+    "all_other_fields_identical": true,
+    "total_before_bytes": 203154,
+    "total_after_bytes": 188398,
+    "saved_bytes_range": [
+      434,
+      1302
+    ],
+    "scope": "same recorded final contexts; does not estimate whole-conversation provider tokens"
+  },
+  "runtime_model_comparison": {
+    "model": "chatgpt:gpt-6-luna",
+    "reasoning_effort": "high",
+    "data_kind": "frozen_synthetic",
+    "first_attempt_checks": {
+      "development-base1": {
+        "cases": [
+          {
+            "id": "D01",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "table_rows": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8547,
+            "elapsed_ms": 12288
+          },
+          {
+            "id": "D02",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "table_rows": true,
+              "filter": true
+            },
+            "model_calls": 3,
+            "repairs": 0,
+            "input_tokens": 14101,
+            "elapsed_ms": 15242
+          },
+          {
+            "id": "D03",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "audit_records": true,
+              "audit_cited": true
+            },
+            "model_calls": 4,
+            "repairs": 1,
+            "input_tokens": 18847,
+            "elapsed_ms": 21099
+          },
+          {
+            "id": "D04",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "both_sources": true,
+              "both_sources_cited": true
+            },
+            "model_calls": 3,
+            "repairs": 0,
+            "input_tokens": 14506,
+            "elapsed_ms": 16063
+          },
+          {
+            "id": "D05",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "current_timetable": true,
+              "timetable_cited": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8085,
+            "elapsed_ms": 10829
+          },
+          {
+            "id": "D06",
+            "checks": {
+              "completed": false,
+              "requested_outcome": false,
+              "no_personal_reads": true,
+              "no_old_numbers": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 3565,
+            "elapsed_ms": 10863
+          }
+        ],
+        "mechanical_passed": 5,
+        "semantic_acceptance": "requires_source_review"
+      },
+      "development-compact": {
+        "cases": [
+          {
+            "id": "D01",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "table_rows": true
+            },
+            "model_calls": 3,
+            "repairs": 0,
+            "input_tokens": 13681,
+            "elapsed_ms": 20844
+          },
+          {
+            "id": "D02",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "table_rows": true,
+              "filter": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8465,
+            "elapsed_ms": 8421
+          },
+          {
+            "id": "D03",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "audit_records": true,
+              "audit_cited": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8517,
+            "elapsed_ms": 7758
+          },
+          {
+            "id": "D04",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "both_sources": true,
+              "both_sources_cited": true
+            },
+            "model_calls": 3,
+            "repairs": 0,
+            "input_tokens": 14198,
+            "elapsed_ms": 12524
+          },
+          {
+            "id": "D05",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "current_timetable": true,
+              "timetable_cited": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 7983,
+            "elapsed_ms": 8803
+          },
+          {
+            "id": "D06",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "no_personal_reads": true,
+              "no_old_numbers": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8436,
+            "elapsed_ms": 9813
+          }
+        ],
+        "mechanical_passed": 6,
+        "semantic_acceptance": "requires_source_review"
+      },
+      "heldout-base1": {
+        "cases": [
+          {
+            "id": "H01",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true
+            },
+            "model_calls": 3,
+            "repairs": 0,
+            "input_tokens": 13757,
+            "elapsed_ms": 12457
+          },
+          {
+            "id": "H02",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "no_personal_reads": true,
+              "clarification": true
+            },
+            "model_calls": 1,
+            "repairs": 0,
+            "input_tokens": 3415,
+            "elapsed_ms": 6672
+          },
+          {
+            "id": "H03",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "table_rows": true
+            },
+            "model_calls": 3,
+            "repairs": 0,
+            "input_tokens": 13947,
+            "elapsed_ms": 13679
+          },
+          {
+            "id": "H04",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "no_personal_reads": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8231,
+            "elapsed_ms": 7984
+          }
+        ],
+        "mechanical_passed": 4,
+        "semantic_acceptance": "requires_source_review"
+      },
+      "heldout-compact": {
+        "cases": [
+          {
+            "id": "H01",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8409,
+            "elapsed_ms": 9946
+          },
+          {
+            "id": "H02",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "no_personal_reads": true,
+              "clarification": true
+            },
+            "model_calls": 1,
+            "repairs": 0,
+            "input_tokens": 3417,
+            "elapsed_ms": 9456
+          },
+          {
+            "id": "H03",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "table_rows": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8432,
+            "elapsed_ms": 9183
+          },
+          {
+            "id": "H04",
+            "checks": {
+              "completed": false,
+              "requested_outcome": false,
+              "no_personal_reads": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 3426,
+            "elapsed_ms": 7507
+          }
+        ],
+        "mechanical_passed": 3,
+        "semantic_acceptance": "requires_source_review"
+      }
+    },
+    "isolated_failure_rechecks": {
+      "base-D06-recheck": {
+        "cases": [
+          {
+            "id": "D06",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "no_personal_reads": true,
+              "no_old_numbers": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8526,
+            "elapsed_ms": 8636
+          }
+        ],
+        "mechanical_passed": 1,
+        "semantic_acceptance": "requires_source_review"
+      },
+      "compact-H04-recheck": {
+        "cases": [
+          {
+            "id": "H04",
+            "checks": {
+              "completed": true,
+              "requested_outcome": true,
+              "no_personal_reads": true
+            },
+            "model_calls": 2,
+            "repairs": 0,
+            "input_tokens": 8095,
+            "elapsed_ms": 8213
+          }
+        ],
+        "mechanical_passed": 1,
+        "semantic_acceptance": "requires_source_review"
+      }
+    },
+    "selection": {
+      "chosen_label": "compact",
+      "ok": true,
+      "reason": "A wins on task completion: it answers D06 directly and accurately, distinguishing the arithmetic difference from an officially recognized shortfall. B’s D06 is marked failed and gives no requested explanation. B is the closest runner-up; its D03/D04 caveats about the unknown course-completion status are precise, but that does not offset the missing answer.",
+      "limitation": "Choice was driven by a failed baseline D06 request; it does not establish stable semantic, latency or success-rate superiority."
+    },
+    "manual_source_review": {
+      "D01": "5 rows; same-name records and unknown grade preserved; 91.67 is simple mean, not GPA",
+      "D02": "2 records >=90, nominal credits 7; no earned-credit claim",
+      "D03": "module required 9/earned 6; SYN201 passed, SYN202 study note in progress; no graduation claim",
+      "D04": "both sources cited; original course credits 2/4, suggested terms 二短/四秋冬; partial module and applicability stated",
+      "D05": "2 records; missing time/location and unknown source completeness kept separate; cannot confirm Friday free",
+      "D06": "concept only; no personal query or old 9/6 values",
+      "H01": "same name, different codes: 2 rows; no retake/equivalence conclusion",
+      "H02": "clarifies exam scope without guessing term or querying personal records",
+      "H03": "1 unknown-grade row; does not classify it as failed",
+      "H04_recheck": "plan requirements and school self-audit distinguished; no graduation guarantee or personal query"
+    },
+    "first_failure_codes": [
+      {
+        "run": "development-base1",
+        "case": "D06",
+        "code": "model_unavailable"
+      },
+      {
+        "run": "heldout-compact",
+        "case": "H04",
+        "code": "model_unavailable"
+      }
+    ]
+  },
+  "exploration": {
+    "experiment": "fixture grade_filter receipt missing; original evidence preserved",
+    "experiment_v2": "upstream rejected custom surface name; original evidence preserved",
+    "experiment_v3": "fixture default term and selection format issues; c1/D04 model unavailable; exploratory only",
+    "experiment_v4": "24 probes; selection kept base1; dom1/c1 missing edit field caused fallback; reflection model unavailable; prompt candidates not adopted",
+    "adapter_repairs": "fixed filter echo/default audit term, upstream surface/choice formatting, omitted edits inherit base; no production permissions expanded"
+  },
+  "engineering": {
+    "command": "python3.13 -m unittest discover -s tests -q",
+    "run": 1647,
+    "passed": 1636,
+    "skipped": 11,
+    "failed": 0,
+    "elapsed_s": 67.695,
+    "first_run": "2 failures from old assertions requiring per-observation delivery instructions; changed to require trusted final instructions, then full suite passed",
+    "diff_check": "passed",
+    "dry_run": "passed"
+  },
+  "browser": {
+    "data": "synthetic school transport; real GPT-6-Luna/high; actual application and browser UI",
+    "runs": [
+      {
+        "case": "full_grade_table",
+        "status": "completed",
+        "model": "chatgpt:gpt-6-luna",
+        "model_calls": 2,
+        "elapsed_ms": 10225,
+        "repairs": 0,
+        "tool_names": [
+          "get_my_context",
+          "query_my_records"
+        ]
+      },
+      {
+        "case": "concept_followup",
+        "status": "completed",
+        "model": "chatgpt:gpt-6-luna",
+        "model_calls": 2,
+        "elapsed_ms": 6186,
+        "repairs": 0,
+        "tool_names": [
+          "get_my_context",
+          "lookup_academic_terms"
+        ]
+      }
+    ],
+    "source_rows_compared": 75,
+    "fields_compared_per_row": 6,
+    "all_grade_points_unknown": true,
+    "independent_numeric_count": 60,
+    "independent_numeric_mean": "77.85",
+    "browser_data_rows": 75,
+    "browser_duplicate_rows": 3,
+    "browser_unknown_grade_point_cells": 75,
+    "browser_injected_images": 0,
+    "browser_console_errors": 0,
+    "followup_personal_reads": 0,
+    "screenshot": "private/harness2_20261029/ui_concept_check.jpg"
+  },
+  "activation": {
+    "port": 18875,
+    "health_http_status": 200,
+    "qdrant_reused": true,
+    "historical_term": "2026-2027-AW",
+    "scenario_config_preserved": true,
+    "main_login_page_verified": true,
+    "school_memory_login": "cleared_by_restart; requires user login"
+  },
+  "boundaries": [
+    "No live school data was read in this experiment.",
+    "Heldout prompts were excluded from improvement context; all four reuse frozen source fixtures, not an external benchmark.",
+    "Retests are separate attempts and do not overwrite first failures.",
+    "No stable latency/cost/SLA claim; deterministic byte reduction applies only to the same 24 recorded final contexts.",
+    "User experience acceptance, formal curriculum applicability and course equivalence remain unverified."
+  ],
+  "private_evidence_root": "private/harness2_20261029/",
+  "git_status": "implemented and verified locally; no commit or push in this task"
+}

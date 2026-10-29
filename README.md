@@ -156,6 +156,22 @@ python3 -m course_assistant.server --enable-mock --recommendation-demo --port 18
 
 技术实现采用单 Python 服务、SQLite、原生 HTML/CSS/JavaScript、DeepSeek 工具调用，以及本地词法 / 可选语义检索。模块分工见[执行流程](docs/本地运行与开发指南.md#执行流程)。
 
+## Harness² 开发对照
+
+`scripts/optimize_academic_harness.py` 接入 [google-research/harness2](https://github.com/google-research/harness2) 的递归改进、选择和反思接口，用固定合成教务来源比较提示词候选。它是独立开发工具，主应用不依赖 Harness²；候选不会自动写入生产代码。
+
+使用 Python 3.12 或 3.13，将上游检出到 Git 忽略的本机目录，并固定在 `1cfe254e8d25b15f37048c3730134686abe60335`。无需安装上游执行器，可先运行无模型调用的检查：
+
+```sh
+python3.13 scripts/optimize_academic_harness.py --upstream private/harness2_20261029/upstream --output private/harness2_20261029/new_run --dry-run
+```
+
+真实实验需显式增加 `--real-model --model-factory <本机私有适配文件>`；该文件的 `create_model()` 返回已授权的 GPT-6-Luna/high 客户端，提供 `status()` 和 `complete_stream_with_metadata()`，凭据不写入实验材料。`--phase optimize` 执行一轮候选改进及选择；`--phase verify --candidate <候选名>` 使用保留问题；`--phase compare-runtime --baseline-ref <提交>` 对照仅涉及 `personal_dialogue.py` 的运行时改动。每个不同实现使用新的输出目录，避免覆盖失败记录。检查分数、模型选择与人工来源核对分别记录，不等同用户验收。
+
+候选改进一旦开始，即使中途失败，也需换用新输出目录重新运行；已有提案回执禁止覆盖。失败执行没有交付物时仍保留失败信息，供后续选择与反思读取。
+
+已采用工具结果中的重复写作指引精简；真实账号续测还修复了门数及原条件保留的解析、毕业判断的误拦截，并增加方案学分陈述与当前计算结果的校验，沿用一次终局修正预算。口语续测补充了“周五不要有课”“凑够学分”“锁住”等表达，并修复紧邻失败问题原样重发时的条件接续。提示词自动改写未显示稳定收益，未采用。证据、收尾状态与限制见 [初轮对照回执](validation/harness2_20261029.json)、[真实账号续测回执](validation/harness2_real_20261029.json) 和开发进度第166—170节。
+
 ## 进一步了解
 
 | 我想了解…… | 阅读入口 |
