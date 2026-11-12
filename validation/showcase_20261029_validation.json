@@ -1,0 +1,126 @@
+{
+  "date": "2026-10-29",
+  "presentation_date": "2026-10-30",
+  "business_commit": "96e1a10474132d18d6a9c8863c8560b25fe442aa",
+  "business_code_changed": false,
+  "runtime_source_matches_last_start_receipt": true,
+  "served_static_matches_disk": true,
+  "application_restarted": false,
+  "model": "GPT-6-Luna",
+  "reasoning_effort_observed_in_ui": "high",
+  "formal_turns": 8,
+  "setup_turns": 1,
+  "formal_completed": 8,
+  "formal_failed": 0,
+  "formal_model_calls": 22,
+  "final_repair_attempts": 0,
+  "source_record_citations_checked": 16,
+  "source_table_rows_checked": 9,
+  "source_grade_summaries_checked": 1,
+  "source_audit_summaries_checked": 2,
+  "counting_note": "引用与表行有重叠，不相加。",
+  "curriculum_cited_text_check": {
+    "courses": 3,
+    "page": 5,
+    "credits_and_recommended_terms": "checked",
+    "independent_pdf_visual_recheck": "not_completed_browser_blob_policy"
+  },
+  "plan_check": {
+    "plans_checked": 3,
+    "options_checked": 7,
+    "class_rows_checked": 21,
+    "raw_name_credit_meeting_checks": "passed",
+    "decimal_totals_and_course_counts": "passed",
+    "cross_course_observed_slot_conflicts": 0,
+    "formal_applicability": "unverified"
+  },
+  "plan_continuity": {
+    "same_plan": true,
+    "same_data_version": true,
+    "same_candidate_courses": true,
+    "revisions": [
+      0,
+      1,
+      2
+    ],
+    "lock_preserved": true,
+    "only_requested_friday_change": true
+  },
+  "comparison": {
+    "school_read": false,
+    "search": false,
+    "recalculation": false
+  },
+  "latency_seconds": {
+    "min": 8.89,
+    "median": 18.0985,
+    "max": 35.478,
+    "sample": 8
+  },
+  "pages": [
+    "培养进度",
+    "成绩记录",
+    "我的课表",
+    "考试安排",
+    "当前选课"
+  ],
+  "browser_errors": 0,
+  "unit_tests_rerun": false,
+  "school_write_actions": 0,
+  "public_upload": false,
+  "business_acceptance": "not_claimed",
+  "notes": [
+    "录制前一次成绩查询单列。",
+    "采集初始化失败一次，正式CDP采集重新开始；未混入旧素材。",
+    "放开周五后正文“仍有3个方案”措辞不严谨：之前为2个，本轮为3个；数量以卡片和计算结果为准。未修改应用。",
+    "八轮有限实测不代表100%成功率、完整语义或正式培养适用。"
+  ],
+  "media": {
+    "screenshots": 17,
+    "screenshot_pixels": [
+      1600,
+      900
+    ],
+    "videos": [
+      {
+        "file": "最新版真实操作_完整时序版.mp4",
+        "seconds": 520.787,
+        "pixels": [
+          1600,
+          960
+        ],
+        "fps": 30,
+        "audio": false,
+        "decode_check": "passed"
+      },
+      {
+        "file": "最新版真实操作_等待加速版.mp4",
+        "seconds": 190.723,
+        "pixels": [
+          1600,
+          960
+        ],
+        "fps": 30,
+        "audio": false,
+        "decode_check": "passed"
+      }
+    ],
+    "old_media_included": false,
+    "login_recorded": false
+  },
+  "preview_check": {
+    "short_video": {
+      "currentTime": 107.2698,
+      "duration": 190.733333,
+      "error": null,
+      "height": 960,
+      "paused": false,
+      "readyState": 4,
+      "width": 1600
+    },
+    "seek_target_seconds": 53.942,
+    "seek_verified": true,
+    "browser_errors": [],
+    "full_video_browser_playback": "not_run; full decode checked"
+  }
+}
