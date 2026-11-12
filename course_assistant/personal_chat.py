@@ -16,7 +16,7 @@ import uuid
 from .auth import AccessError, SCHOOL_MODE, SCHOOL_REALM, SCENARIO_MODE, is_academic_context, academic_data_kind
 from .importer import digest
 from .model_client import ModelError
-from .storage import chat_title
+from .storage import chat_title, chat_search_query
 from .chat_model_settings import ChatModelSettings
 from .chat_runs import ChatRunStore, ChatRunError
 from .chat_progress import ChatProgress
@@ -96,7 +96,7 @@ class PersonalChatService:
             app.chatgpt.model_for(context, self.model) if getattr(app, "chatgpt", None) else self.model))
         self._active_model = threading.local()
         self.progress = ChatProgress()
-        self.drafts = PersonalDraftService(SENSITIVE)
+        self.drafts = PersonalDraftService(SENSITIVE, session_active=getattr(app.auth, 'session_active', None))
         try:
             self.runs = ChatRunStore(app.store, authorize=self._run_authorize)
         except ChatRunError:
@@ -353,18 +353,21 @@ class PersonalChatService:
                             "code": event["fields"].get("error_code"), "at": event["created_at"]}
                            for event in result["events"]]}
 
-    def conversations(self, context, limit=50):
+    def conversations(self, context, limit=50, *, query=""):
         if type(limit) is not int or not 1 <= limit <= 100:
             _deny("invalid_chat_limit", "历史列表数量须为 1 至 100", 400)
+        query = chat_search_query(query)
         scope, versions, _ = self._current(context)
         with self.app.lock:
             self.app.auth.require_context(context)
             with self.app.store.connect() as db:
+                db.create_function('chat_search_title', 1, lambda value: chat_title(value).casefold(), deterministic=True)
                 rows = db.execute("SELECT id,turn,pending_request,updated_at,json_extract(state,'$.title') "
                     "FROM owned_conversations WHERE realm=? AND owner=? "
                     "AND json_extract(state,'$.personal_scope')=? AND json_extract(state,'$.personal_service')=? "
+                    "AND (?='' OR instr(chat_search_title(json_extract(state,'$.title')),?)>0) "
                     "ORDER BY updated_at DESC,id DESC LIMIT ?",
-                    (context.security_realm, context.student_id, scope, SERVICE, limit + 1)).fetchall()
+                    (context.security_realm, context.student_id, scope, SERVICE, query, query, limit + 1)).fetchall()
             result = {"conversations": [{"conversation_id": row[0], "turn_id": row[1], "in_progress": row[2] is not None,
                     "updated_at": row[3], "title": chat_title(row[4])} for row in rows[:limit]],
                     "limit": limit, "has_more": len(rows) > limit, "data_kind": academic_data_kind(context),
@@ -478,7 +481,8 @@ class PersonalChatService:
                 self._owned_state(self.app.store.chat_one(context, body["conversation_id"]), scope)
             reservation = self.app.store.chat_begin(context, body.get("conversation_id"), body["request_id"],
                 digest({"body": body, "personal_scope": scope, "egress_digest": versions["egress_digest"]}),
-                body["expected_turn"], first_message=body["message"])
+                body["expected_turn"], first_message=body["message"],
+                initial_state={"personal_service": SERVICE, "personal_scope": scope})
             if "replay" in reservation:
                 replay = reservation["replay"]
                 if replay.get("personal_scope") != scope or replay.get("data_kind") != academic_data_kind(context):
@@ -489,7 +493,6 @@ class PersonalChatService:
                 self.drafts.consume(self._draft_key(context, scope), body.get("conversation_id"), body["message"])
                 identifier, turn_id, state = reservation["conversation_id"], reservation["turn_id"], reservation["state"]
                 reset = state.get("workspace_versions") != versions
-                state.update(personal_service=SERVICE, personal_scope=scope)
                 same_egress = (state.get("workspace_versions") or {}).get("egress_digest") == versions["egress_digest"]
                 task_context = previous_task_context(state) if same_egress else None
                 clarification_context = previous_clarification_context(state,

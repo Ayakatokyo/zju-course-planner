@@ -663,6 +663,40 @@ class SchoolHTTPTests(unittest.TestCase):
                 self.assertEqual(self.http.session_epoch, epoch)
                 self.assertEqual(parse_qs(self.opener.requests[-2]["body"].decode())["captcha_value"], ["AB12"])
 
+    def test_enrollment_captcha_value_reaches_only_existing_read_requests(self):
+        from course_assistant.school_enrollment_preview import PAGE, COURSES, CHOSEN, SECTIONS
+        page = ''.join(f'<input id="{key}" value="{value}">' for key, value in
+                       {"xn": "2026-2027", "xq": "1", "nj": "2023", "zydm": "SYN-MAJOR", "ylxs": "1"}.items())
+        courses = [{"kcdm": "SYN-A", "kcmc": "Synthetic course"}]
+        for failure_route in (COURSES, CHOSEN, SECTIONS):
+            with self.subTest(failure_route=failure_route):
+                initial = [Response(page)]
+                for route, rows in [(COURSES, courses), (CHOSEN, []), (SECTIONS, [])]:
+                    initial.append(Response("captcha_error", content_type="text/plain") if route == failure_route else Response(rows))
+                    if route == failure_route:
+                        break
+                client = self.client(initial + [Response(b"\x89PNG\r\n\x1a\nSYNTHETIC", content_type="image/png"),
+                    Response(page), Response(courses), Response([]), Response([])])
+                client._captcha_text = "OLD"
+                client._captcha_pending = False
+                epoch = client.session_epoch
+                self.assertEqual(client.enrollment_preview("SYN-A")["state"], "captcha_required")
+                for item in self.opener.requests[-len(initial):]:
+                    self.assertNotIn("captcha_value", parse_qs((item["body"] or b"").decode()))
+                self.assertEqual(client.get_captcha()["state"], "captcha_ready")
+                self.assertEqual(client.submit_captcha("AB12")["state"], "captcha_submitted")
+                result = client.enrollment_preview("SYN-A")
+                self.assertEqual(result["state"], "business")
+                self.assertEqual(client.session_epoch, epoch)
+                retry = self.opener.requests[-4:]
+                self.assertEqual([urlsplit(item["url"]).path for item in retry], [PAGE, COURSES, CHOSEN, SECTIONS])
+                for item in retry[1:]:
+                    self.assertEqual(item["method"], "POST")
+                    self.assertEqual(parse_qs(item["body"].decode()).get("captcha_value"), ["AB12"])
+                self.assertFalse(client._captcha_pending)
+                self.assertIsNone(client._captcha_text)
+                self.assertNotIn("AB12", json.dumps(result))
+
     def test_login_challenge_does_not_keep_password_or_create_identity(self):
         opener = ScriptOpener([Response(LOGIN + '<label>滑块验证码</label>')])
         client = SchoolHTTPClient(opener=opener)

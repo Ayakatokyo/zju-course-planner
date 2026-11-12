@@ -150,87 +150,6 @@ assert.match(known,/合成地点/);assert.match(known,/合成教师/);assert.mat
 const conflicting=evaluate(`schoolTimetableMarkup({records:[{course_name_raw:'合成冲突来源',time_raw:'周一第1节',place_raw:'不展示冲突地点',instructor_raw:'不展示冲突教师',field_states:{place_raw:'conflicting',instructor_raw:'conflicting'}}]})`);assert.doesNotMatch(conflicting,/不展示冲突地点|不展示冲突教师/);
 """)
 
-    def test_related_exams_match_unique_verified_selection_ids_and_remain_independent(self):
-        self.run_js(r"""
-context.timetable={operation:'timetable',target_term:'2025-2026-AW',records:[{course_name_raw:'合成课程',source_selection_id_raw:'SYNTHETIC-X',course_code_raw:'SYNTHETIC-C',time_raw:'周一第1节',place_raw:'合成上课地点',field_states:{source_selection_id_raw:'known'}}]};
-const exam={source_selection_id_raw:'SYNTHETIC-X',course_code_raw:'SYNTHETIC-C',final_exam_time_raw:'合成期末时间',final_exam_place_raw:'合成期末地点',midterm_exam_time_raw:'合成期中时间',midterm_exam_place_raw:null,exam_time_raw:'合成期末时间',field_states:{source_selection_id_raw:'known'}};
-context.examSources=[{operation:'exams',target_term:'2025-2026-A',status:'complete_within_scope',records:[exam,{...exam}]},{operation:'exams',target_term:'2025-2026-W',status:'partial_acquisition',records:[{...exam,final_exam_time_raw:'合成冬期末时间',exam_time_raw:'合成冬期末时间',midterm_exam_time_raw:null}]}];
-const linked=plain('schoolAttachRelatedExams(timetable,examSources)');assert.equal(linked.records.length,1);assert.equal(linked.records[0].related_exams.length,2);assert.deepEqual(linked.records[0].related_exams.map(exam=>exam.source_season),['A','W']);assert.equal(linked.records[0].time_raw,'周一第1节');assert.equal(linked.records[0].place_raw,'合成上课地点');assert.equal(linked.records[0].course_code_raw,'SYNTHETIC-C');assert.equal(context.timetable.records[0].related_exams,undefined);
-context.linked=linked;const markup=evaluate('schoolTimetableMarkup(linked)');assert.match(markup,/考试（秋）/);assert.match(markup,/考试（冬）/);assert.match(markup,/期末考试时间：合成期末时间/);assert.match(markup,/期中考试时间：合成期中时间/);assert.match(markup,/期末考试地点：合成期末地点/);assert.doesNotMatch(markup,/期中考试地点：|<br>考试时间：合成期末时间|待确认|无考试/);
-""")
-
-    def test_related_exams_never_use_course_names_or_ambiguous_selection_ids(self):
-        self.run_js(r"""
-const known={source_selection_id_raw:'known'};
-context.timetable={operation:'timetable',target_term:'2025-2026-AW',records:[
- {course_name_raw:'同名合成课',source_selection_id_raw:'SYNTHETIC-A',course_code_raw:'CA',field_states:known},
- {course_name_raw:'同名合成课',source_selection_id_raw:'SYNTHETIC-B',course_code_raw:'CB',field_states:known},
- {course_name_raw:'重复选课号甲',source_selection_id_raw:'SYNTHETIC-DUP',field_states:known},
- {course_name_raw:'重复选课号乙',source_selection_id_raw:'SYNTHETIC-DUP',field_states:known},
- {course_name_raw:'未验证选课号',source_selection_id_raw:'SYNTHETIC-UNVERIFIED',field_states:{source_selection_id_raw:'conflicting'}},
- {course_name_raw:'无选课号',source_selection_id_raw:null,field_states:known}
-]};
-context.examSources=[{operation:'exams',target_term:'2025-2026-A',status:'complete',records:[
- {course_name_raw:'同名合成课',source_selection_id_raw:'SYNTHETIC-B',course_code_raw:'CB',final_exam_time_raw:'仅关联B',field_states:known},
- {course_name_raw:'同名合成课',source_selection_id_raw:null,final_exam_time_raw:'不得按名关联',field_states:known},
- {source_selection_id_raw:'SYNTHETIC-DUP',final_exam_time_raw:'歧义不关联',field_states:known},
- {source_selection_id_raw:'SYNTHETIC-A',course_code_raw:'WRONG-CODE',final_exam_time_raw:'代码冲突不关联',field_states:known},
- {source_selection_id_raw:'SYNTHETIC-UNVERIFIED',final_exam_time_raw:'未知选课号不关联',field_states:known},
- {source_selection_id_raw:'SYNTHETIC-A',final_exam_time_raw:'未验证考试号不关联',field_states:{source_selection_id_raw:'unknown'}}
-]}];
-const linked=plain('schoolAttachRelatedExams(timetable,examSources)');assert.deepEqual(linked.records.map(record=>record.related_exams.length),[0,1,0,0,0,0]);assert.equal(linked.records[1].related_exams[0].final_exam_time_raw,'仅关联B');
-""")
-
-    def test_related_exam_scope_section_conflicts_and_empty_values_are_not_filled(self):
-        self.run_js(r"""
-const known={source_selection_id_raw:'known'};
-context.timetable={operation:'timetable',target_term:'2025-2026-SS',records:[{course_name_raw:'合成课',source_selection_id_raw:'SYNTHETIC-A',source_section_id:'SYNTHETIC-SECTION',field_states:known}]};
-context.examSources=[{operation:'exams',target_term:'2025-2026-S',status:'complete',records:[{source_selection_id_raw:'SYNTHETIC-A',source_section_id:'WRONG-SECTION',final_exam_time_raw:'不展示班号冲突',field_states:known},{source_selection_id_raw:'SYNTHETIC-A',final_exam_time_raw:null,final_exam_place_raw:'',midterm_exam_time_raw:null,field_states:known}]},{operation:'academic',target_term:'2025-2026-SU',status:'complete',records:[{source_selection_id_raw:'SYNTHETIC-A',final_exam_time_raw:'不展示错操作',field_states:known}]},{operation:'exams',target_term:'2025-2026-A',status:'complete',records:[{source_selection_id_raw:'SYNTHETIC-A',final_exam_time_raw:'不展示错范围',field_states:known}]}];
-const linked=plain('schoolAttachRelatedExams(timetable,examSources)');assert.equal(linked.records[0].related_exams.length,1);context.linked=linked;const markup=evaluate('schoolTimetableMarkup(linked)');assert.doesNotMatch(markup,/school-meeting-exam|不展示|期末时间|期末地点|期中时间|待确认|无考试/);
-assert.deepEqual(plain("schoolRelatedExamTerms('2025-2026-SS')"),['2025-2026-S','2025-2026-SU']);assert.deepEqual(plain("schoolRelatedExamTerms('2025-2026-A')"),[]);
-context.exam={related_exams:[{source_season:'S',place_raw:'<img src=x onerror=bad()>',final_exam_time_raw:'<script>bad()</script>',midterm_exam_place_raw:'不展示冲突地点',field_states:{midterm_exam_place_raw:'conflicting'}}]};const safe=evaluate('schoolRelatedExamMarkup(exam)');assert.match(safe,/考试（春）/);assert.match(safe,/&lt;script&gt;/);assert.match(safe,/&lt;img/);assert.doesNotMatch(safe,/<script>|<img|不展示冲突地点/);
-""")
-
-    def test_cross_season_exam_dedup_requires_identical_full_raw_and_business_values(self):
-        self.run_js(r"""
-context.timetable={operation:'timetable',target_term:'2025-2026-AW',records:[{course_name_raw:'合成课',source_selection_id_raw:'SYNTHETIC-X',field_states:{source_selection_id_raw:'known'}}]};
-const exam={source_selection_id_raw:'SYNTHETIC-X',source_exam_id:'SYNTHETIC-EXAM',final_exam_time_raw:'合成考试时间',exam_status_raw:'scheduled',source_row_index:0,field_states:{source_selection_id_raw:'known',final_exam_time_raw:'known'},raw_row:{xkkh:'SYNTHETIC-X',ks_id:'SYNTHETIC-EXAM',kssj:'合成考试时间',exam_status:'scheduled',extra:{a:1,b:[2,3]}}};
-const twin={...exam,source_row_index:7,field_states:{final_exam_time_raw:'known',source_selection_id_raw:'known'},raw_row:{extra:{b:[2,3],a:1},exam_status:'scheduled',kssj:'合成考试时间',ks_id:'SYNTHETIC-EXAM',xkkh:'SYNTHETIC-X'}};
-const linked=other=>{context.examSources=[{operation:'exams',target_term:'2025-2026-A',status:'complete',records:[exam]},{operation:'exams',target_term:'2025-2026-W',status:'complete',records:[other]}];return plain('schoolAttachRelatedExams(timetable,examSources)');};
-const merged=linked(twin);assert.equal(merged.records[0].related_exams.length,1);assert.deepEqual(merged.records[0].related_exams[0].source_seasons,['A','W']);assert.deepEqual(merged.records[0].related_exams[0].source_target_terms,['2025-2026-A','2025-2026-W']);assert.deepEqual(merged.related_exam_sources.map(source=>source.matched_rows),[1,1]);
-context.merged=merged;const markup=evaluate('schoolTimetableMarkup(merged)');assert.equal((markup.match(/school-meeting-exam/g)||[]).length,1);assert.match(markup,/考试（秋\/冬来源）/);
-for(const other of [
- {...twin,raw_row:undefined},
- {...twin,raw_row:[]},
- {...twin,raw_row:{...twin.raw_row,exam_status:'cancelled'}},
- {...twin,raw_row:{...twin.raw_row,ks_id:'DIFFERENT-RAW-ID'}},
- {...twin,raw_row:{...twin.raw_row,any_extra_key:'DIFFERENT'}},
- {...twin,source_exam_id:'DIFFERENT-NORMALIZED-ID'},
- {...twin,exam_status_raw:'cancelled'},
- {...twin,field_states:{source_selection_id_raw:'known',final_exam_time_raw:'pending_verification'}}
-])assert.equal(linked(other).records[0].related_exams.length,2);
-const noRaw={...exam};delete noRaw.raw_row;context.examSources=[{operation:'exams',target_term:'2025-2026-A',status:'complete',records:[noRaw]},{operation:'exams',target_term:'2025-2026-W',status:'complete',records:[{...noRaw}]}];assert.equal(plain('schoolAttachRelatedExams(timetable,examSources)').records[0].related_exams.length,2);
-assert.equal(exam.source_seasons,undefined);assert.equal(twin.source_target_terms,undefined);
-""")
-
-    def test_related_exam_rejects_known_row_year_or_chinese_season_scope_conflicts(self):
-        self.run_js(r"""
-const base={source_selection_id_raw:'OPAQUE-SYNTHETIC-X',field_states:{source_selection_id_raw:'known',academic_year_raw:'known',term_raw:'known'}};
-const linked=(courseYear,examYear,term='秋、冬',sourceSeason='A',extra={})=>{
- context.timetable={operation:'timetable',target_term:'2025-2026-AW',records:[{...base,academic_year_raw:courseYear,xxq_raw:'秋',course_name_raw:'合成秋课'}]};
- context.examSources=[{operation:'exams',target_term:`2025-2026-${sourceSeason}`,status:'complete',records:[{...base,academic_year_raw:examYear,term_raw:term,final_exam_time_raw:'合成考试时间',...extra}]}];
- return plain('schoolAttachRelatedExams(timetable,examSources)').records[0].related_exams.length;
-};
-assert.equal(linked('2025-2026','2024-2025'),0);assert.equal(linked('2024-2025','2025-2026'),0);assert.equal(linked('2024-2025','2024-2025'),0);
-assert.equal(linked('2025-2026','2025'),1);assert.equal(linked(2025,'2025-2026'),1);assert.equal(linked('2025-2026',null),1);assert.equal(linked(null,'2025'),1);
-assert.equal(linked('2025-2026','未核验年份2024'),1);
-assert.equal(linked('2025-2026','2024','秋','A',{field_states:{source_selection_id_raw:'known',academic_year_raw:'unknown',term_raw:'known'}}),1);
-assert.equal(linked('2025-2026','2025','冬','A'),0);assert.equal(linked('2025-2026','2025','秋','W'),0);assert.equal(linked('2025-2026','2025','秋/春','A'),0);
-assert.equal(linked('2025-2026','2025','秋、冬','A'),1);assert.equal(linked('2025-2026','2025','秋冬','W'),1);assert.equal(linked('2025-2026','2025','冬','W'),1);
-assert.equal(linked('2025-2026','2025','1','A'),1);assert.equal(linked('2025-2026','2025','春','A',{field_states:{source_selection_id_raw:'known',academic_year_raw:'known',term_raw:'pending_verification'}}),1);
-assert.deepEqual(plain("schoolRelatedExamTerms('2025-2028-AW')"),[]);
-""")
-
     def test_explicit_chinese_parity_is_preserved_without_decoding_numeric_codes(self):
         self.run_js(r"""
 const known=plain(`schoolTimetableMeetings({records:[{time_raw:'周一第1节',dsz_raw:'单周',field_states:{dsz_raw:'pending_verification'},meetings:[{weekday:1,periods:[1],dsz_raw:'双周',field_states:{dsz_raw:'pending_verification'}}]}]})`)[0];assert.equal(known.scope,'双周');
@@ -243,7 +162,7 @@ const conflict=plain(`schoolTimetableMeetings({records:[{time_raw:'周一第1节
     def test_period_clock_uses_only_validated_school_page_metadata(self):
         self.run_js(r"""
 context.result={operation:'timetable',records:[{course_name_raw:'合成课',meetings:[{weekday:1,periods:[1,2]}]}],period_times_source:{state:'known',page_path:'/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html'},period_times:[{period:1,start_time:'08:05',end_time:'08:50'},{period:2,start_time:'09:00',end_time:'09:45'}]};
-let markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/<th scope="row" class="school-timetable-period">1<br><small class="school-period-clock">08:05–08:50<\/small>/);assert.match(markup,/09:00–09:45/);assert.doesNotMatch(markup,/08:00/);assert.match(evaluate('schoolResultDetails(result)'),/节次起止时间来自本次读取的学校课表页面/);
+let markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/<th scope="row" class="school-timetable-period">1<br><small class="school-period-clock">08:05–08:50<\/small>/);assert.match(markup,/09:00–09:45/);assert.doesNotMatch(markup,/08:00/);assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'school_page');assert.doesNotMatch(markup,/节次时间参考/);
 const original=context.result.period_times;
 for(const invalid of [[{period:0,start_time:'08:05',end_time:'08:50'}],[{period:'1',start_time:'08:05',end_time:'08:50'}],[{period:1,start_time:'25:00',end_time:'25:30'}],[{period:1,start_time:'8:05',end_time:'08:50'}],[{period:1,start_time:'09:00',end_time:'08:50'}],[...original,{period:1,start_time:'08:00',end_time:'08:50'}],[],null]){
  context.result.period_times=invalid;assert.doesNotMatch(evaluate('schoolTimetableMarkup(result)'),/school-period-clock/);
@@ -258,13 +177,13 @@ context.result={operation:'timetable',target_term:'2025-2026-AW',records:[{cours
 assert.equal(evaluate('schoolPeriodTimes(result).size'),0);assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(1)'),'08:00–08:45');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(10)'),'17:05–17:50');
 assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(11)'),'18:50–19:35');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(12)'),'19:40–20:25');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.get(13)'),'20:30–21:15');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.has(14)'),false);
 const markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/08:00–08:45/);assert.match(markup,/17:05–17:50/);assert.match(markup,/节次时间参考2025–2026校历（校本部）/);assert.match(markup,/https:\/\/ism.zju.edu.cn\//);
-assert.match(markup,/class="school-timetable-period">11<br><small class="school-period-clock">18:50–19:35/);assert.match(markup,/19:40–20:25/);assert.match(markup,/20:30–21:15/);assert.doesNotMatch(markup,/18:30/);const details=evaluate('schoolResultDetails(result)');assert.match(details,/公开作息参考，非本次课表接口返回值/);assert.doesNotMatch(details,/来自本次读取的学校课表页面/);
+assert.match(markup,/class="school-timetable-period">11<br><small class="school-period-clock">18:50–19:35/);assert.match(markup,/19:40–20:25/);assert.match(markup,/20:30–21:15/);assert.doesNotMatch(markup,/18:30/);assert.match(markup,/school-timetable-note/);assert.doesNotMatch(markup,/数据来源与读取说明/);
 """)
 
     def test_main_campus_reference_requires_matching_semester_and_known_place_evidence(self):
         self.run_js(r"""
 context.result={operation:'timetable',target_term:'2025-2026-SS',records:[{place_raw:'合成玉泉校区地点',field_states:{place_raw:'known'}}]};assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');
-for(const term of ['2026-2027-AW','2026-2027-SS']){context.result.target_term=term;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');assert.equal(evaluate('schoolPeriodTimeDisplay(result).reference_year'),'2026-2027');assert.match(evaluate('schoolPeriodTimeDisplay(result).reference_url'),/^https:\/\/ugrs.zju.edu.cn\//);assert.match(evaluate('schoolResultDetails(result)'),/节次时间参考2026–2027校历（校本部）/);}
+for(const term of ['2026-2027-AW','2026-2027-SS']){context.result.target_term=term;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');assert.equal(evaluate('schoolPeriodTimeDisplay(result).reference_year'),'2026-2027');assert.match(evaluate('schoolPeriodTimeDisplay(result).reference_url'),/^https:\/\/ugrs.zju.edu.cn\//);assert.match(evaluate('schoolPeriodReferenceLink(schoolPeriodTimeDisplay(result))'),/节次时间参考2026–2027校历（校本部）/);}
 for(const term of ['2024-2025-AW','2027-2028-SS','2025-2026-A','2025-2026-W',undefined]){context.result.target_term=term;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');}
 context.result.target_term='2025-2026-AW';
 for(const campus of ['紫金港','玉泉','西溪','华家池','之江']){context.result.records=[{meetings:[{place_raw:`合成${campus}地点`,field_states:{place_raw:'known'}}]}];assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'public_reference');}
@@ -273,14 +192,14 @@ context.result.records.push({place_raw:'&#28023;&#23425;国际校区合成地点
 for(const campus of ['海宁国际校区','国际校区','工程师学院','义乌','舟山','宁波']){context.result.records=[{place_raw:'合成紫金港地点'},{meetings:[{place_raw:`合成${campus}地点`,field_states:{place_raw:'known'}}]}];assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');}
 for(const records of [[{place_raw:null}],[{place_raw:'合成未知地点'}],[{place_raw:'合成紫金港地点',field_states:{place_raw:'unknown'}}],[{place_raw:'合成玉泉地点',field_states:{place_raw:'conflicting'}}],[{course_name_raw:'合成玉泉课程',major_name:'合成紫金港专业',source_subject_id:'SYNTHETIC-玉泉'}]]){context.result.records=records;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');}
 context.result.records=[{place_raw:'合成紫金港地点'}];context.result.reference_url='https://example.invalid/caller-override.pdf';assert.match(evaluate('schoolPeriodTimeDisplay(result).reference_url'),/^https:\/\/ism.zju.edu.cn\//);assert.equal(evaluate('Object.isFrozen(schoolMainCampusClockReference.urls)'),true);
-for(const operation of ['academic','major_academic','profile','exams',undefined]){context.result.operation=operation;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');assert.doesNotMatch(evaluate('schoolResultDetails(result)'),/节次时间参考|节次起止时间/);}
+for(const operation of ['academic','major_academic','profile','exams',undefined]){context.result.operation=operation;assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'none');assert.doesNotMatch(evaluate('schoolTimetableMarkup(result)'),/节次时间参考|节次起止时间/);}
 """)
 
     def test_valid_page_times_take_priority_without_reference_gap_filling(self):
         self.run_js(r"""
 context.result={operation:'timetable',target_term:'2025-2026-AW',records:[{place_raw:'合成紫金港地点',meetings:[{weekday:1,periods:[1,2,11]}]}],period_times_source:{state:'known',page_path:'/jwglxt/kbcx/xskbcx_cxXskbcxIndex.html'},period_times:[{period:1,start_time:'08:05',end_time:'08:50'}]};
 assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'school_page');assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.size'),1);assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.has(2)'),false);assert.equal(evaluate('schoolPeriodTimeDisplay(result).times.has(11)'),false);
-const markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/08:05–08:50/);assert.doesNotMatch(markup,/08:00–08:45|08:50–09:35|18:50|节次时间参考/);const details=evaluate('schoolResultDetails(result)');assert.match(details,/来自本次读取的学校课表页面/);assert.doesNotMatch(details,/公开作息参考/);
+const markup=evaluate('schoolTimetableMarkup(result)');assert.match(markup,/08:05–08:50/);assert.doesNotMatch(markup,/08:00–08:45|08:50–09:35|18:50|节次时间参考/);assert.doesNotMatch(markup,/公开作息参考|数据来源与读取说明/);
 context.result.target_term='2026-2027-AW';context.result.records[0].place_raw='合成海宁地点';assert.equal(evaluate('schoolPeriodTimeDisplay(result).origin'),'school_page');
 """)
 

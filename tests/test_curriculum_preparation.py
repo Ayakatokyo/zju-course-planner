@@ -2,6 +2,7 @@ from types import SimpleNamespace
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from course_assistant.curriculum_preparation import CurriculumPreparation
 
 class Auth:
@@ -49,3 +50,79 @@ class PreparationTests(unittest.TestCase):
                 time.sleep(.005)
             self.assertEqual(state,'failed')
         finally:release.set();jobs.close()
+
+    def test_submit_failure_returns_safe_status_and_releases_capacity(self):
+        calls = []
+        def prepare(context):
+            calls.append(context.session_ref)
+            return {'status': 'ready'}
+        jobs = CurriculumPreparation(Auth(), lambda _: SimpleNamespace(prepare_curriculum=prepare), capacity=1)
+        failed = SimpleNamespace(session_ref='failed')
+        recovered = SimpleNamespace(session_ref='recovered')
+        try:
+            with patch.object(jobs.pool, 'submit', side_effect=RuntimeError('synthetic private failure')):
+                result = jobs.enqueue(failed)
+            self.assertEqual(result, {'status': 'failed', 'reason': 'preparation_unavailable'})
+            self.assertEqual(jobs.status(failed), result)
+            self.assertEqual(jobs.enqueue(recovered)['status'], 'queued')
+            self.wait(jobs, recovered, 'ready')
+            self.assertEqual(calls, ['recovered'])
+        finally:
+            jobs.close()
+            jobs.pool.shutdown(wait=True)
+
+    def test_worker_start_failure_cannot_run_abandoned_job_after_recovery(self):
+        calls = []
+        def prepare(context):
+            calls.append(context.session_ref)
+            return {'status': 'ready'}
+        jobs = CurriculumPreparation(Auth(), lambda _: SimpleNamespace(prepare_curriculum=prepare), capacity=1)
+        failed = SimpleNamespace(session_ref='failed')
+        recovered = SimpleNamespace(session_ref='recovered')
+        try:
+            with patch('threading.Thread.start', side_effect=RuntimeError('synthetic worker start failure')):
+                self.assertEqual(jobs.enqueue(failed)['status'], 'failed')
+            self.assertEqual(jobs.enqueue(recovered)['status'], 'queued')
+            self.wait(jobs, recovered, 'ready')
+            self.assertEqual(jobs.status(failed)['status'], 'failed')
+            self.assertEqual(calls, ['recovered'])
+        finally:
+            jobs.close()
+            jobs.pool.shutdown(wait=True)
+
+    def test_close_cancels_queued_jobs_and_releases_each_slot_once(self):
+        entered = threading.Barrier(3)
+        release = threading.Event()
+        calls = []
+        def prepare(context):
+            calls.append(context.session_ref)
+            entered.wait(timeout=2)
+            release.wait(3)
+            return {'status': 'ready'}
+        jobs = CurriculumPreparation(Auth(), lambda _: SimpleNamespace(prepare_curriculum=prepare))
+        contexts = [SimpleNamespace(session_ref=str(index)) for index in range(4)]
+        try:
+            for context in contexts[:2]:
+                self.assertEqual(jobs.enqueue(context)['status'], 'queued')
+            entered.wait(timeout=2)
+            for context in contexts[2:]:
+                self.assertEqual(jobs.enqueue(context)['status'], 'queued')
+            jobs.close()
+            jobs.close()
+            self.assertFalse(release.is_set())
+            for context in contexts:
+                self.assertEqual(jobs.status(context), {'status': 'cancelled', 'reason': 'preparation_stopped'})
+            self.assertEqual(jobs.enqueue(SimpleNamespace(session_ref='new')),
+                             {'status': 'cancelled', 'reason': 'preparation_stopped'})
+            release.set()
+            jobs.pool.shutdown(wait=True)
+            self.assertCountEqual(calls, ['0', '1'])
+            for context in contexts:
+                self.assertEqual(jobs.status(context)['status'], 'cancelled')
+            for _ in contexts:
+                self.assertTrue(jobs.slots.acquire(blocking=False))
+            self.assertFalse(jobs.slots.acquire(blocking=False))
+        finally:
+            release.set()
+            jobs.close()
+            jobs.pool.shutdown(wait=True)

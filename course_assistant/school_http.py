@@ -841,6 +841,10 @@ class SchoolHTTPClient:
                     return self._result("awaiting_user_login")
                 self._operation_epoch = self._epoch
             def read_json(route, form):
+                with self._state_lock:
+                    self._check_active()
+                    if self._captcha_pending and self._captcha_text:
+                        form["captcha_value"] = self._captcha_text
                 response = self._raw("POST", self._school_url(route, {"gnmkdm": "N253530"}), form)
                 state = _classify(response)
                 if state != "business":
@@ -875,12 +879,21 @@ class SchoolHTTPClient:
                     sections = project_list(read_json(SECTIONS, {"dl": "xk_1", "xn": ctx["xn"], "xq": ctx["xq"],
                         "kcdm": course_code, "xkkh": course.get("xkkh") or "", "ylxs": ctx["ylxs"]}),
                         {"xkkh", "kcdm", "jsxm", "xxq", "sksj", "skdd", "kssj", "rs", "sfxz"}, 100)
+                with self._state_lock:
+                    self._check_active()
+                    self._captcha_pending = False
+                    self._captcha_text = None
                 return self._result("business", response, preview={"academic_year": ctx["xn"], "season": ctx["xq"],
                     "courses": courses, "sections": sections, "selected": selected, "submission_enabled": False,
                     "official_url": PUBLIC_URL, "scope": "本类(专业)前10条课程及页面已选教学班；非全校可选目录"})
             try:
                 return self._with_refresh(preview)
             except SchoolHTTPError as error:
+                if error.code == "captcha_required":
+                    with self._state_lock:
+                        self._check_active()
+                        self._captcha_text = None
+                        self._captcha_pending = True
                 return self._result(error.code)
             except (ValueError, UnicodeError):
                 return self._result("schema_changed")

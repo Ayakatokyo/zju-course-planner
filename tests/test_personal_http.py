@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from types import SimpleNamespace
 import json
 import shutil
 import tempfile
@@ -11,6 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from course_assistant.server import Application, make_handler
+from course_assistant.curriculum_preparation import CurriculumPreparation
 from validation.personal_fixture_data import synthetic_pdf
 from validation.run_school_ui_fixture import NoOutboundModel
 from validation.run_personal_ui_fixture import PersonalSyntheticSchool
@@ -105,6 +107,21 @@ class PersonalHTTPTests(unittest.TestCase):
             self.assertFalse(status["local"]["evidence"]["ready"])
             self.assertEqual(status["local"]["observations"]["snapshots"], [])
         self.assertEqual(self.clients[0].calls, [])
+
+    def test_background_submit_failure_keeps_successful_login_and_queries_usable(self):
+        self.app.curriculum_preparation = CurriculumPreparation(self.app.auth,
+            lambda _: SimpleNamespace(prepare_curriculum=lambda context: {'status': 'ready'}))
+        with patch.object(self.app.curriculum_preparation.pool, 'submit',
+                          side_effect=RuntimeError('synthetic private worker failure')):
+            self.login()
+        code, status, fields = self.request('GET', '/api/auth/session')
+        self.assertEqual(code, 200, status)
+        self.assertTrue(status['authenticated'])
+        self.assertEqual(status['curriculum_preparation'],
+                         {'status': 'failed', 'reason': 'preparation_unavailable'})
+        self.assertEqual(fields['Cache-Control'], 'no-store')
+        self.assertEqual(self.clients[0].calls, [])
+        self.assertEqual(len(self.sync()['records']), 75)
 
     def test_registered_scope_is_partial_duplicates_and_unknown_credits_survive_query(self):
         self.login()
@@ -248,6 +265,88 @@ class PersonalHTTPTests(unittest.TestCase):
         self.assertEqual(code, 200, status)
         self.assertFalse(status["local"]["available"])
         self.assertEqual(self.request("POST", "/api/personal/records", {"operation": "major_academic"})[0], 409)
+
+    def test_enrollment_captcha_image_binds_retry_and_rejects_expired_or_reused_challenges(self):
+        self.login()
+        client = self.clients[0]
+        preview = {"state": "business", "source_subject_id": client.owner, "preview": {
+            "academic_year": "2026-2027", "season": "1", "selected": [],
+            "courses": [{"kcdm": "SYN-A", "kcmc": "Synthetic candidate"}],
+            "sections": [{"kcdm": "SYN-A", "xkkh": "SYN-SECTION"}]}}
+        image = b"\x89PNG\r\n\x1a\nSYNTHETIC-CAPTCHA"
+
+        def read_challenge():
+            connection = HTTPConnection("127.0.0.1", self.server.server_port, timeout=8)
+            try:
+                connection.request("GET", "/api/school/captcha", headers={"Cookie": self.cookie})
+                response = connection.getresponse()
+                self.assertEqual((response.status, response.read()), (200, image))
+                self.assertEqual(response.getheader("Cache-Control"), "no-store")
+                policy = dict(directive.strip().split(" ", 1)
+                              for directive in response.getheader("Content-Security-Policy").split(";"))
+                self.assertEqual(policy.get("img-src"), "'self' blob:")
+                self.assertEqual(policy["script-src"], "'self'")
+                self.assertEqual(policy["connect-src"], "'self'")
+                challenge = response.getheader("X-School-Captcha-Id")
+                self.assertTrue(challenge)
+                return challenge
+            finally:
+                connection.close()
+
+        with patch.object(client, "enrollment_preview", create=True,
+                          side_effect=[{"state": "captcha_required"}, preview]) as query, \
+             patch.object(client, "get_captcha", create=True, return_value={"state": "captcha_ready",
+                          "content_type": "image/png", "image": image}), \
+             patch.object(client, "submit_captcha", create=True,
+                          return_value={"state": "captcha_submitted"}) as submit:
+            code, result, _ = self.request("POST", "/api/school/enrollment-preview", {"course_code": "SYN-A"})
+            self.assertEqual((code, result["status"]), (200, "captcha_required"))
+            old, current = read_challenge(), read_challenge()
+            self.assertNotEqual(old, current)
+            body = {"text": "TEST", "challenge_id": old}
+            self.assertEqual(self.request("POST", "/api/school/captcha", body)[0], 400)
+            with patch.object(self.app.school, "clock", return_value=self.app.school.clock() + 301):
+                self.assertEqual(self.request("POST", "/api/school/captcha",
+                    {"text": "TEST", "challenge_id": current})[0], 400)
+            self.assertEqual(submit.call_count, 0)
+            body["challenge_id"] = read_challenge()
+            code, result, _ = self.request("POST", "/api/school/captcha", body)
+            self.assertEqual((code, result["status"]), (200, "available"))
+            self.assertEqual(result["sections"], preview["preview"]["sections"])
+            self.assertEqual([call.args for call in query.call_args_list], [("SYN-A",), ("SYN-A",)])
+            self.assertEqual(submit.call_count, 1)
+            self.assertEqual(client.calls, [])
+            self.assertEqual(self.request("POST", "/api/school/captcha", body)[0], 400)
+            self.assertEqual(submit.call_count, 1)
+
+    def test_selection_expiry_invalidates_cached_sources_and_fresh_read_recovers(self):
+        self.login()
+        original = self.sync()
+        client = self.clients[0]
+        calls = len(client.calls)
+        client.expired = True
+        with patch.object(client, "enrollment_preview", create=True,
+                          return_value={"state": "source_session_expired"}):
+            code, result, _ = self.request("POST", "/api/school/enrollment-preview", {})
+        self.assertEqual((code, result["status"]), (200, "source_session_expired"))
+        self.assertEqual(self.request("POST", "/api/personal/records",
+            {"operation": "major_academic", "observation_id": original["observation_id"]})[0], 409)
+        failed = self.sync(force=False)
+        self.assertEqual((failed["status"], failed["data_source"], failed["records"]),
+                         ("source_session_expired", "none", []))
+        self.assertEqual(len(client.calls), calls + 1)
+        self.assertFalse(self.request("GET", "/api/chat/status")[1]["local"]["available"])
+        with patch.object(client, "request", return_value={"state": "source_unavailable", "session_epoch": client.session_epoch}):
+            self.assertEqual(self.sync(force=False)["status"], "source_unavailable")
+        self.assertEqual(self.request("POST", "/api/personal/records", {"operation": "major_academic"})[0], 409)
+        self.assertEqual(self.request("GET", "/api/school/status")[1]["personal_data_source_status"], "source_session_expired")
+        client.expired = False
+        recovered = self.sync(force=False)
+        self.assertEqual(recovered["data_source"], "live")
+        code, result, _ = self.request("POST", "/api/personal/records",
+            {"operation": "major_academic", "observation_id": recovered["observation_id"]})
+        self.assertEqual(code, 200, result)
+        self.assertEqual(result["observation_id"], recovered["observation_id"])
 
     def test_http_epoch_change_starts_fresh_local_registry(self):
         self.login()

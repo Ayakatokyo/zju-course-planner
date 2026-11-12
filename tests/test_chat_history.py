@@ -1,6 +1,7 @@
 """Owned history projections and reload/continue; all models are test doubles."""
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 from http.client import HTTPConnection
 from http.server import ThreadingHTTPServer
 import json
@@ -122,6 +123,34 @@ class ChatHistoryTests(unittest.TestCase):
             with self.subTest(query=query), self.assertRaises(AccessError):
                 self.app.get('/api/chat/conversations?' + query, self.context)
         with self.assertRaises(AccessError): self.app.chat.conversations(self.context, limit=True)
+
+    def test_title_search_reaches_older_history_and_uses_literal_display_titles(self):
+        start = datetime.now(timezone.utc) - timedelta(hours=3)
+        oldest = self.insert_conversation(state={'title': 'Straße 管理_%', 'turns': []}, updated_at=start.isoformat())
+        recent = [self.insert_conversation(state={'title': f'合成近期 {i}', 'turns': []},
+                    updated_at=(start + timedelta(minutes=i + 1)).isoformat()) for i in range(105)]
+        self.insert_conversation(context=self.other, state={'title': 'Straße 管理_%', 'turns': []})
+        self.insert_conversation(state={'title': '正文隐藏', 'messages': [{'content': 'BODY-ONLY-MARKER'}], 'turns': []})
+        legacy = self.insert_conversation(state={'turns': [{'message': '旧\n  管理档案'}]})
+        self.assertNotIn(oldest, [row['conversation_id'] for row in self.app.get('/api/chat/conversations?limit=100', self.context)['conversations']])
+        for query in ('STRASSE 管理_%', '_%', '  Straße 管理_%  '):
+            result = self.app.get('/api/chat/conversations?query=' + quote(query), self.context)
+            self.assertEqual([row['conversation_id'] for row in result['conversations']], [oldest])
+        result = self.app.get('/api/chat/conversations?limit=3&query=' + quote('合成近期'), self.context)
+        self.assertEqual([row['conversation_id'] for row in result['conversations']], list(reversed(recent[-3:])))
+        self.assertTrue(result['has_more'])
+        result = self.app.get('/api/chat/conversations?query=' + quote('旧 管理'), self.context)
+        self.assertEqual(result['conversations'][0]['conversation_id'], legacy)
+        self.assertEqual(self.app.get('/api/chat/conversations?query=BODY-ONLY-MARKER', self.context)['conversations'], [])
+
+    def test_title_search_rejects_invalid_queries_and_scope_injection(self):
+        for query in ('query=a&query=b', 'query=' + 'x' * 101, 'query=%00', 'query=a&owner=other'):
+            with self.subTest(query=query), self.assertRaises(AccessError):
+                self.app.get('/api/chat/conversations?' + query, self.context)
+        for query in (None, [], {}, 1, True):
+            with self.subTest(query=query), self.assertRaises(AccessError):
+                self.app.chat.conversations(self.context, query=query)
+        self.assertEqual(self.app.get('/api/chat/conversations?query=', self.context)['conversations'], [])
 
     def test_first_user_title_is_short_and_preserved_across_followups(self):
         original = '优先补合成专业选修，偏向AI，保留体育。' * 5

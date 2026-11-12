@@ -2,6 +2,7 @@
 from __future__ import annotations
 import argparse
 import copy
+import hashlib
 import json
 import mimetypes
 import os
@@ -307,6 +308,16 @@ class Application:
             require(not parsed.query, '接口不接受查询身份或资源范围')
             return {'status': 'ok', 'version': __version__, 'school_auth_status': 'not_configured',
                     'school_client_enabled': self.school_enabled}
+        if parsed.path == '/api/chat/conversations':
+            parameters = parse_qs(parsed.query, keep_blank_values=True)
+            if (set(parameters) - {'limit', 'query'} or len(parameters.get('limit', ['50'])) != 1
+                    or not re.fullmatch(r'[1-9][0-9]{0,2}', parameters.get('limit', ['50'])[0])):
+                raise AccessError('历史列表只接受 limit 数量和 query 标题搜索', 400, 'invalid_chat_limit')
+            if len(parameters.get('query', [''])) != 1:
+                raise AccessError('历史列表只接受单个标题搜索文本', 400, 'invalid_chat_query')
+            service = self.personal_chat if context and is_academic_context(context) else self.require_demo_chat(context)
+            return service.conversations(context, limit=int(parameters.get('limit', ['50'])[0]),
+                                         query=parameters.get('query', [''])[0])
         if context and is_academic_context(context):
             self.auth.require_context(context)
             require(not parsed.query or parsed.path in {'/api/chat/conversations', '/api/chat/runs'}, '接口不接受查询身份或资源范围')
@@ -335,21 +346,9 @@ class Application:
                         or not re.fullmatch(r'(?:[1-9]|[1-4][0-9]|50)', query.get('limit', ['20'])[0])):
                     raise AccessError('运行列表只接受单个 1–50 的 limit 数量', 400, 'invalid_run_request')
                 return self.personal_chat.recent_runs(context, limit=int(query.get('limit', ['20'])[0]))
-            if parsed.path == '/api/chat/conversations':
-                query = parse_qs(parsed.query, keep_blank_values=True)
-                if (set(query) - {'limit'} or len(query.get('limit', ['50'])) != 1
-                        or not re.fullmatch(r'[1-9][0-9]{0,2}', query.get('limit', ['50'])[0])):
-                    raise AccessError('历史列表只接受单个 limit 数量', 400, 'invalid_chat_limit')
-                return self.personal_chat.conversations(context, limit=int(query.get('limit', ['50'])[0]))
             raise AccessError('本人教务数据尚未形成可执行推荐输入', 409, 'real_recommendation_not_ready')
         if parsed.path == '/api/chat/draft':
             raise AccessError('请先连接学校本人账号', 403, 'school_connection_required')
-        if parsed.path == '/api/chat/conversations':
-            query = parse_qs(parsed.query, keep_blank_values=True)
-            if (set(query) - {'limit'} or len(query.get('limit', ['50'])) != 1
-                    or not re.fullmatch(r'[1-9][0-9]{0,2}', query.get('limit', ['50'])[0])):
-                raise AccessError('历史列表只接受单个 limit 数量', 400, 'invalid_chat_limit')
-            return self.require_demo_chat(context).conversations(context, limit=int(query.get('limit', ['50'])[0]))
         require(not parsed.query, '接口不接受查询身份或资源范围')
         if path == '/api/chat/status':
             return self.require_demo_chat(context).status(context)
@@ -495,20 +494,36 @@ class Application:
 
 def make_handler(app):
     class Handler(BaseHTTPRequestHandler):
-        def send_bytes(self, data, content_type, code=200, cookie=None, suffix=None, filename=None):
+        def send_bytes(self, data, content_type, code=200, cookie=None, suffix=None, filename=None,
+                       *, cache_control='no-store', etag=None, challenge_id=None):
             self.send_response(code)
             self.send_header('Content-Type', content_type)
             self.send_header('Content-Length', str(len(data)))
-            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Cache-Control', cache_control)
+            if etag is not None:
+                self.send_header('ETag', etag)
+            if challenge_id is not None:
+                self.send_header('X-School-Captcha-Id', challenge_id)
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'no-referrer')
-            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             if cookie is not None:
                 self.send_header('Set-Cookie', cookie)
             if suffix:
                 self.send_header('Content-Disposition', f'attachment; filename="{filename or "synthetic-plan." + suffix}"')
             self.end_headers()
-            self.wfile.write(data)
+            if code != 304:
+                self.wfile.write(data)
+
+        def send_static(self, filename):
+            file = ROOT / 'web' / filename
+            data = file.read_bytes()
+            etag = '"' + hashlib.sha256(data).hexdigest() + '"'
+            candidates = {value.strip().removeprefix('W/')
+                          for value in self.headers.get('If-None-Match', '').split(',')}
+            code = 304 if '*' in candidates or etag in candidates else 200
+            self.send_bytes(data, mimetypes.guess_type(file)[0] or 'application/octet-stream', code,
+                            cache_control='no-cache', etag=etag)
 
         def response(self, value, code=200, cookie=None):
             self.send_bytes(json.dumps(value, ensure_ascii=False, allow_nan=False).encode(),
@@ -546,6 +561,10 @@ def make_handler(app):
                 parsed = urlparse(self.path)
                 path = parsed.path
                 require(not parsed.query or path in {'/api/chat/conversations', '/api/chat/runs'}, '接口不接受查询身份或资源范围')
+                if path in {'/', '/index.html', '/app.js', '/styles.css', '/pdf-lib.min.js'}:
+                    # Public assets have no workspace state and must not hold its lock while sending.
+                    self.send_static('index.html' if path == '/' else path.lstrip('/'))
+                    return
                 if path in {'/api/school/profile', '/api/school/captcha'}:
                     context = self.context()
                     service = app.academic_provider(context)
@@ -554,7 +573,7 @@ def make_handler(app):
                     if path == '/api/school/captcha':
                         result = service.captcha(context)
                         app.auth.require_context(context)
-                        self.send_bytes(result['image'], result['content_type'])
+                        self.send_bytes(result['image'], result['content_type'], challenge_id=result['challenge_id'])
                     else:
                         result = service.profile(context)
                         app.auth.require_context(context)
@@ -587,10 +606,7 @@ def make_handler(app):
                             raise AccessError('资源不可访问', 404, 'inaccessible_object')
                         file = SOURCE_ROOT / 'sources' / filename
                     else:
-                        filename = 'index.html' if path == '/' else path.lstrip('/')
-                        if filename not in {'index.html', 'app.js', 'styles.css'}:
-                            raise AccessError('资源不可访问', 404, 'inaccessible_object')
-                        file = ROOT / 'web' / filename
+                        raise AccessError('资源不可访问', 404, 'inaccessible_object')
                     self.send_bytes(file.read_bytes(), mimetypes.guess_type(file)[0] or 'application/octet-stream')
             except (ValueError, OSError, TypeError) as error:
                 self.failure(error, 'get', context)
@@ -694,14 +710,14 @@ def main():
                       model=ModelClient(read_config(args.model_env_file)), scenario_bundle=args.scenario_bundle,
                       scenario_accounts=args.scenario_accounts,
                       scenario_pdfs=json.loads(args.scenario_pdfs.read_text()) if args.scenario_pdfs else None)
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(app))
-    print(f'浙大教务助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校账号连接 {"开启" if args.enable_school else "关闭"}', flush=True)
     try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
+        with ThreadingHTTPServer(('127.0.0.1', args.port), make_handler(app)) as server:
+            print(f'浙大教务助手 http://127.0.0.1:{server.server_port} · mock {"开启（synthetic）" if args.enable_mock else "关闭"} · 学校账号连接 {"开启" if args.enable_school else "关闭"}', flush=True)
+            try:
+                server.serve_forever()
+            except KeyboardInterrupt:
+                pass
     finally:
-        server.server_close()
         app.close()
 
 

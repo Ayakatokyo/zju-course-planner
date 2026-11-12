@@ -24,6 +24,13 @@ def chat_title(value):
     return (title[:59] + '…') if len(title) > 60 else title or "新对话"
 
 
+def chat_search_query(value):
+    from .auth import AccessError
+    if type(value) is not str or len(value) > 100 or re.search(r'[\x00-\x1f\x7f]', value):
+        raise AccessError("历史标题搜索须为100字以内的文本", 400, "invalid_chat_query")
+    return ' '.join(value.split()).casefold()
+
+
 class Store:
     def __init__(self, path):
         self.path = Path(path)
@@ -357,18 +364,22 @@ class Store:
                 raise AccessError("对话版本已变化", 409, "turn_version_changed")
             return deepcopy(response)
 
-    def chat_list(self, context, limit=50):
+    def chat_list(self, context, limit=50, *, query=""):
         """Project only owned summary fields; never return entire tool history."""
         from .auth import AccessError
         if type(limit) is not int or not 1 <= limit <= 100:
             raise AccessError("历史列表数量须为 1 至 100", 400, "invalid_chat_limit")
+        query = chat_search_query(query)
         with self.connect() as db:
+            db.create_function('chat_search_title', 1, lambda value: chat_title(value).casefold(), deterministic=True)
             rows = db.execute(
                 "SELECT id,turn,pending_request,updated_at,"
                 "COALESCE(json_extract(state,'$.title'),json_extract(state,'$.turns[0].message')) "
                 "FROM owned_conversations WHERE realm=? AND owner=? "
+                "AND (?='' OR instr(chat_search_title(COALESCE(json_extract(state,'$.title'),"
+                "json_extract(state,'$.turns[0].message'))),?)>0) "
                 "ORDER BY updated_at DESC,id DESC LIMIT ?",
-                (context.security_realm, context.student_id, limit + 1)).fetchall()
+                (context.security_realm, context.student_id, query, query, limit + 1)).fetchall()
         return {"conversations": [{"conversation_id": row[0], "title": chat_title(row[4]),
                                     "turn_id": row[1], "updated_at": row[3], "in_progress": row[2] is not None}
                                    for row in rows[:limit]],
@@ -398,8 +409,13 @@ class Store:
         return {"conversation_id": identifier, "turn_id": row[0], "state": json.loads(row[1]),
                 "in_progress": row[2] is not None, "updated_at": row[3]} if row else None
 
-    def chat_begin(self, context, identifier, request_id, request_digest, expected_turn, *, first_message=None):
-        """Reserve one turn atomically. IDs locate resources, never grant access."""
+    def chat_begin(self, context, identifier, request_id, request_digest, expected_turn, *,
+                   first_message=None, initial_state=None):
+        """Reserve one turn atomically, including server-owned initial metadata.
+
+        Initial metadata is applied only when creating the conversation.
+        IDs locate resources, never grant access.
+        """
         from .auth import AccessError
         realm, owner = context.security_realm, context.student_id
         with self.connect() as db:
@@ -416,7 +432,8 @@ class Store:
                 if expected_turn != 0:
                     raise AccessError("新对话应从第 0 轮开始", 409, "turn_version_changed")
                 identifier = str(uuid.uuid4())
-                state = {"messages": [], "turns": [], "preview_constraints": None, "workspace_versions": None}
+                state = deepcopy(initial_state or {})
+                state.update(messages=[], turns=[], preview_constraints=None, workspace_versions=None)
                 db.execute("INSERT INTO owned_conversations VALUES(?,?,?,?,?,?,?)",
                            (identifier, realm, owner, 0, encoded(state), None, datetime.now(timezone.utc).isoformat()))
                 turn, pending = 0, None

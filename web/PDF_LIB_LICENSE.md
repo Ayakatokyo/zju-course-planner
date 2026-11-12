@@ -22,4 +22,4 @@ SOFTWARE.
 
 Source: https://registry.npmjs.org/pdf-lib/-/pdf-lib-1.17.1.tgz
 Package SHA-256: a7cc1eaf12e41e612a7be581162a63b18118aefc01e90f6a1f35347b1f324a1c
-The fixed browser bundle is embedded at the end of app.js because the running server exposes only its existing static entrypoints. No runtime CDN request.
+The fixed browser bundle is stored in pdf-lib.min.js and loaded from the local server when a PDF citation needs highlighting. The original bundle and its bundled notices are preserved.

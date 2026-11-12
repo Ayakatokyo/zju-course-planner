@@ -208,6 +208,14 @@ class AuthManager:
             raise AccessError("身份绑定不可用", 403, "binding_unavailable")
         return row
 
+    def session_active(self, session_ref):
+        """Check local authority without extending the session's idle deadline."""
+        try:
+            self._session(session_ref)
+        except AccessError:
+            return False
+        return True
+
     def authenticate(self, token):
         if not isinstance(token, str) or not token or len(token) > 256:
             raise AccessError()

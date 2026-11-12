@@ -168,6 +168,72 @@ class SchoolAccountTests(unittest.TestCase):
             self.assertEqual(result['records'], [])
         self.assertEqual(len(client.selection_calls), 2)
 
+    def test_selection_auth_failures_block_local_records_and_invalidate_source_cache(self):
+        for status in ('source_session_expired', 'permission_denied', 'awaiting_user_login',
+                       'captcha_required', 'user_confirmation_required'):
+            with self.subTest(status=status):
+                _, context, client, _ = self.login(self.selection_client())
+                source = self.fetch(context)
+                client.selection_result = {'state': status}
+                self.assertEqual(self.service.enrollment_preview(context, {})['status'], status)
+                self.assertEqual(self.service.status(context)['personal_data_source_status'], status)
+                with self.assertRaises(AccessError):
+                    self.service.local_query(context, '/api/personal/records',
+                        {'operation': 'academic', 'observation_id': source['observation_id'], 'query': '', 'limit': 15})
+                client.requests.append({'state': status})
+                result = self.fetch(context)
+                self.assertEqual(len(client.request_calls), 2)
+                self.assertEqual((result['status'], result['records'], result['data_source']), (status, [], 'none'))
+                client.selection_result = {'state': 'source_unavailable'}
+                self.assertEqual(self.service.enrollment_preview(context, {})['status'], 'source_unavailable')
+                self.assertEqual(self.service.status(context)['personal_data_source_status'], status)
+                with self.assertRaises(AccessError):
+                    self.service.personal_chat_scope(context)
+
+    def test_profile_auth_failure_cannot_be_cleared_by_cached_grades(self):
+        for status in ('source_session_expired', 'permission_denied', 'awaiting_user_login',
+                       'captcha_required', 'user_confirmation_required'):
+            with self.subTest(status=status):
+                _, context, client, _ = self.login()
+                self.fetch(context)
+                client.login_state = status
+                with self.assertRaises(AccessError) as error:
+                    self.service.profile(context)
+                self.assertEqual(error.exception.reason, status)
+                client.requests.append({'state': status})
+                result = self.fetch(context)
+                self.assertEqual(len(client.request_calls), 2)
+                self.assertEqual((result['status'], result['records']), (status, []))
+                with self.assertRaises(AccessError):
+                    self.service.personal_chat_scope(context)
+                client.requests.extend([{'state': 'source_unavailable'}] * 2)
+                self.assertEqual(self.fetch(context)['status'], 'source_unavailable')
+                self.assertEqual(self.service.status(context)['personal_data_source_status'], status)
+                client.login_state = 'source_unavailable'
+                with self.assertRaises(AccessError):
+                    self.service.profile(context)
+                self.assertEqual(self.service.status(context)['personal_data_source_status'], status)
+                with self.assertRaises(AccessError):
+                    self.service.personal_chat_scope(context)
+
+    def test_selection_subject_change_closes_connection_and_malformed_results_are_controlled(self):
+        _, context, client, _ = self.login(self.selection_client())
+        self.fetch(context)
+        for result in (None, [], {'state': 'business', 'source_subject_id': PROFILE_A['source_subject_id'], 'preview': None}):
+            client.selection_result = result
+            with self.subTest(result=result), self.assertRaises(AccessError) as error:
+                self.service.enrollment_preview(context, {})
+            self.assertEqual(error.exception.reason, 'schema_changed')
+        client.selection_result = {'state': 'business', 'source_subject_id': PROFILE_B['source_subject_id'],
+                                   'preview': {'selected': [{'kcmc': 'SYNTHETIC-OTHER-OWNER'}]}}
+        with self.assertRaises(AccessError) as error:
+            self.service.enrollment_preview(context, {})
+        self.assertEqual(error.exception.reason, 'source_subject_changed')
+        self.assertTrue(client.closed)
+        self.assertEqual(self.service.status(context)['personal_data_source_status'], 'source_subject_changed')
+        with self.assertRaises(AccessError):
+            self.service.personal_chat_scope(context)
+
     def test_current_selection_rejects_scope_injection_before_read_and_subject_change_after_read(self):
         _, context, client, _ = self.login(self.selection_client())
         for args in ({'owner': 'SYNTHETIC-B'}, {'target_term': '2024-2025-AW'}, {'course_code': 'SYN-1'},
@@ -181,13 +247,23 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertEqual(error.exception.reason, 'source_subject_changed')
 
     def test_current_selection_rechecks_authorization_after_transport(self):
-        token, context, client, _ = self.login(self.selection_client())
+        _, context, client, _ = self.login(self.selection_client())
         def revoked(course_code=None):
-            self.auth.logout(token)
+            self.auth.logout(context)
             return deepcopy(client.selection_result)
         client.enrollment_preview = revoked
         with self.assertRaises(AccessError):
             self.live(context, 'query_current_enrollment', {}, [])
+
+    def test_selection_transport_errors_preserve_authorization_and_hide_internal_details(self):
+        _, context, client, _ = self.login(self.selection_client())
+        for failure, expected in ((AccessError(reason='permission_denied'), 'permission_denied'),
+                                  (ValueError('SYNTHETIC-PRIVATE-TRANSPORT-DETAIL'), 'source_unavailable')):
+            with self.subTest(expected=expected), patch.object(client, 'enrollment_preview', side_effect=failure):
+                with self.assertRaises(AccessError) as error:
+                    self.service.enrollment_preview(context, {})
+                self.assertEqual(error.exception.reason, expected)
+                self.assertNotIn('SYNTHETIC-PRIVATE-TRANSPORT-DETAIL', str(error.exception))
 
     def test_query_context_uses_authenticated_cohort_without_new_school_requests(self):
         _, context, client, _ = self.login()
@@ -440,10 +516,60 @@ class SchoolAccountTests(unittest.TestCase):
             self.service.submit_captcha(context, {"text": "1234"})
         client.requests.append({"state": "captcha_required"})
         self.fetch(context, force_refresh=True)
+        client.requests.extend([{"state": "source_unavailable"}] * 2)
+        self.assertEqual(self.fetch(context)["status"], "source_unavailable")
         self.service.captcha(context)
         self.now[0] += 301
         with self.assertRaises(AccessError):
             self.service.submit_captcha(context, {"text": "1234"})
+
+    def test_enrollment_captcha_resumes_only_its_original_course_query(self):
+        for course_code in (None, "SYNTHETIC-COURSE"):
+            with self.subTest(course_code=course_code):
+                _, context, client, _ = self.login(self.selection_client())
+                business = deepcopy(client.selection_result)
+                client.requests.append({"state": "captcha_required"})
+                self.fetch(context)
+                client.selection_result = {"state": "captcha_required"}
+                body = {} if course_code is None else {"course_code": course_code}
+                self.assertEqual(self.service.enrollment_preview(context, body)["status"], "captcha_required")
+                captcha = self.service.captcha(context)
+                client.selection_result = business
+                with self.assertRaises(AccessError):
+                    self.service.submit_captcha(context, {"text": "TEST", "challenge_id": "wrong"})
+                self.assertEqual(client.captcha_submissions, 0)
+                result = self.service.submit_captcha(context, {"text": "TEST", "challenge_id": captcha["challenge_id"]})
+                self.assertEqual(result["status"], "available")
+                self.assertEqual(client.selection_calls, [course_code, course_code])
+                self.assertEqual(len(client.request_calls), 1)
+                self.assertEqual(client.captcha_submissions, 1)
+                self.assertIsNone(self.service._connection(context).pending)
+                with self.assertRaises(AccessError):
+                    self.service.submit_captcha(context, {"text": "TEST", "challenge_id": captcha["challenge_id"]})
+
+    def test_replaced_query_invalidates_captcha_and_enrollment_reauth_can_resume(self):
+        _, context, client, _ = self.login(self.selection_client())
+        client.selection_result = {"state": "captcha_required"}
+        self.service.enrollment_preview(context, {"course_code": "SYNTHETIC-A"})
+        first = self.service.captcha(context)
+        client.requests.append({"state": "captcha_required"})
+        self.fetch(context, force_refresh=True)
+        with self.assertRaises(AccessError):
+            self.service.submit_captcha(context, {"text": "TEST", "challenge_id": first["challenge_id"]})
+        self.assertEqual(client.captcha_submissions, 0)
+        self.service.enrollment_preview(context, {"course_code": "SYNTHETIC-B"})
+        self.service.captcha(context)
+        client.selection_result = {"state": "source_unavailable"}
+        self.assertEqual(self.service.enrollment_preview(context, {})["status"], "source_unavailable")
+        self.assertEqual(self.service._connection(context).pending,
+                         {"operation": "enrollment", "course_code": "SYNTHETIC-B"})
+        replacement = self.selection_client()
+        self.clients.append(replacement)
+        result = self.service.reauthenticate(context, {"username": "SYNTHETIC-A", "password": "SYNTHETIC-FRESH"})
+        self.assertEqual(result["retry"]["status"], "available")
+        self.assertEqual(replacement.selection_calls, ["SYNTHETIC-B"])
+        self.assertEqual(replacement.request_calls, [])
+        self.assertTrue(client.closed)
 
     def test_initial_login_captcha_stores_no_password_and_requires_fresh_credentials(self):
         client = FakeSchoolClient(login_state="captcha_required")
@@ -1006,6 +1132,69 @@ class SchoolAccountTests(unittest.TestCase):
         self.assertEqual(self.service.discard_revoked_sessions()["discarded_sessions"], 1)
         self.assertTrue(next_client.closed)
         self.assertEqual(next_client.request_calls, [])
+
+    def test_bounded_cleanup_rotates_past_live_sessions_to_reach_revoked_clients(self):
+        sessions = [self.login() for _ in range(65)]
+        self.auth.logout(sessions[-1][1])
+        self.assertEqual(self.service.discard_revoked_sessions()['discarded_sessions'], 0)
+        self.assertEqual(self.service.discard_revoked_sessions()['discarded_sessions'], 1)
+        self.assertTrue(sessions[-1][2].closed)
+        self.assertTrue(all(not session[2].closed for session in sessions[:-1]))
+        self.assertTrue(all(session[2].request_calls == [] for session in sessions))
+
+    def test_normal_login_reclaims_expired_connections_without_an_old_cookie(self):
+        sessions = [self.login() for _ in range(3)]
+        self.now[0] += 1801
+        _, context, current, _ = self.login()
+        self.assertTrue(all(session[2].closed for session in sessions))
+        self.assertFalse(current.closed)
+        self.assertEqual(list(self.service._sessions), [context.session_ref])
+        self.assertTrue(all(session[2].request_calls == [] for session in sessions))
+
+    def test_full_login_challenge_capacity_allows_an_existing_challenge_to_finish(self):
+        clients = []
+        body = {'username': 'SYNTHETIC-INPUT', 'password': 'SYNTHETIC-TRANSIENT'}
+        for _ in range(16):
+            client = FakeSchoolClient(login_state='captcha_required')
+            clients.append(client)
+            self.clients.append(client)
+            token, challenge = self.service.login(body)
+            self.assertIsNone(token)
+            self.assertEqual(challenge['state'], 'captcha_required')
+        with patch.object(self.service, 'client_factory') as factory, self.assertRaises(AccessError) as caught:
+            self.service.login(body)
+        self.assertEqual(caught.exception.status, 503)
+        factory.assert_not_called()
+        token, result = self.service.login({**body, 'challenge_id': challenge['challenge_id'], 'captcha_text': 'TEST'})
+        self.assertTrue(result['authenticated'])
+        self.assertIsNotNone(token)
+        self.assertEqual(clients[-1].captcha_submissions, 1)
+        self.assertEqual(len(self.service._login_challenges), 15)
+
+    def test_concurrent_login_challenges_do_not_exceed_the_pending_limit(self):
+        body = {'username': 'SYNTHETIC-INPUT', 'password': 'SYNTHETIC-TRANSIENT'}
+        for _ in range(15):
+            self.clients.append(FakeSchoolClient(login_state='captcha_required'))
+            self.service.login(body)
+        gate = threading.Barrier(2)
+        racing = [FakeSchoolClient(login_state='captcha_required') for _ in range(2)]
+        def captcha():
+            gate.wait(3)
+            return {'state': 'captcha_ready', 'content_type': 'image/png',
+                    'image': b'\x89PNG\r\n\x1a\nSYNTHETIC-CAPTCHA'}
+        for client in racing:
+            client.get_captcha = captcha
+            self.clients.append(client)
+        def login(_):
+            try:
+                return self.service.login(body)[1]['state']
+            except AccessError as error:
+                return error.reason
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(login, range(2)))
+        self.assertCountEqual(results, ['captcha_required', 'source_unavailable'])
+        self.assertEqual(len(self.service._login_challenges), 16)
+        self.assertEqual(sum(client.closed for client in racing), 1)
 
 
 if __name__ == "__main__":

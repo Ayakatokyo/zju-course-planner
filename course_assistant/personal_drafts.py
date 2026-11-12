@@ -2,7 +2,8 @@
 
 Text becomes unavailable after thirty minutes. Any draft access purges all
 expired text; there is no background erasure thread. Revision tombstones remain
-until close so delayed writes cannot resurrect cleared or expired content.
+for active sessions so delayed writes cannot resurrect cleared or expired content.
+At capacity, the caller's local session check can reclaim invalid sessions.
 This service does not read school data, create chats, persist text or call a
 model. Its caller supplies only a trusted local identity key.
 """
@@ -18,9 +19,10 @@ from .auth import AccessError
 
 
 class PersonalDraftService:
-    def __init__(self, sensitive, *, clock=time.time, ttl_seconds=1800, capacity=128):
+    def __init__(self, sensitive, *, clock=time.time, ttl_seconds=1800, capacity=128, session_active=None):
         self.sensitive, self.clock = sensitive, clock
         self.ttl_seconds, self.capacity = ttl_seconds, capacity
+        self.session_active = session_active
         self._lock = threading.RLock()
         self._entries = {}
         self._closed = False
@@ -75,6 +77,16 @@ class PersonalDraftService:
         for key in self._entries:
             self._expire(key, now)
 
+    def _ensure_capacity(self):
+        if len(self._entries) < self.capacity:
+            return
+        if self.session_active is not None:
+            sessions = {key[2] for key in self._entries}
+            inactive = {session for session in sessions if not self.session_active(session)}
+            self._entries = {key: row for key, row in self._entries.items() if key[2] not in inactive}
+        if len(self._entries) >= self.capacity:
+            raise AccessError("当前草稿会话容量已满", 503, "personal_draft_capacity")
+
     def read(self, key, authorize):
         self._key(key)
         authorize()
@@ -84,8 +96,7 @@ class PersonalDraftService:
             self._expire_all(self.clock())
             row = self._entries.get(key)
             if row is None:
-                if len(self._entries) >= self.capacity:
-                    raise AccessError("当前草稿会话容量已满", 503, "personal_draft_capacity")
+                self._ensure_capacity()
                 # Establish revision 0 before an autosave is in flight, so a
                 # subsequent accepted send can invalidate that delayed write.
                 row = {"value": self._empty(), "expires": None}
@@ -107,10 +118,9 @@ class PersonalDraftService:
             revision = row["value"]["revision"] if row else 0
             if body["expected_revision"] != revision:
                 raise AccessError("草稿已在其他页面更新，请重新读取", 409, "personal_draft_revision_conflict")
-            if row is None and len(self._entries) >= self.capacity:
-                # A live session's cleared/expired revision is still needed.
-                # Never evict it and accidentally admit an old revision 0.
-                raise AccessError("当前草稿会话容量已满", 503, "personal_draft_capacity")
+            if row is None:
+                # Active sessions keep their revisions to reject delayed writes.
+                self._ensure_capacity()
             expires = now + self.ttl_seconds if body["text"] else None
             value = ({"text": body["text"], "conversation_id": body["conversation_id"], "revision": revision + 1,
                       "expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")}

@@ -63,6 +63,27 @@ class PersonalDraftHTTPTests(unittest.TestCase):
         self.assertEqual(self.request("GET", "/api/chat/draft")[0], 401)
         self.assertEqual(self.request("POST", "/api/chat/draft", self.body("不应写入", 2))[0], 401)
 
+    def test_repeated_logins_reclaim_revoked_draft_scopes_without_restoring_old_text(self):
+        self.app.personal_chat.drafts.capacity = 2
+        previous_cookie = previous_csrf = None
+        for index in range(4):
+            self.login()
+            code, result, _ = self.request('GET', '/api/chat/draft')
+            self.assertEqual(code, 200, result)
+            self.assertEqual(result['draft']['text'], '')
+            self.assertEqual(result['draft']['revision'], 0)
+            code, saved, _ = self.request('POST', '/api/chat/draft', self.body('当前登录的合成草稿'))
+            self.assertEqual(code, 200, saved)
+            if index == 0:
+                previous_cookie, previous_csrf = self.cookie, self.csrf
+        current_cookie, current_csrf = self.cookie, self.csrf
+        self.cookie, self.csrf = previous_cookie, previous_csrf
+        self.assertEqual(self.request('POST', '/api/chat/draft', self.body('旧页面迟到草稿', 1))[0], 401)
+        self.cookie, self.csrf = current_cookie, current_csrf
+        self.assertEqual(self.request('GET', '/api/chat/draft')[1]['draft']['text'], '当前登录的合成草稿')
+        self.assertLessEqual(len(self.app.personal_chat.drafts._entries), 2)
+        self.assertTrue(all(client.calls == [] for client in self.clients))
+
 
 if __name__ == "__main__":
     unittest.main()

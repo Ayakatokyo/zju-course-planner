@@ -86,6 +86,75 @@ evaluate("state.agentDraftSync.enabled=true;state.agentDraftSync.revision=0;stat
 evaluate("suspendAgentDraftForSend();state.agentDraft=''");release(ok(envelope('准备发送',null,1)));await settle();assert.equal(writes.length,1);assert.equal(evaluate('state.agentDraft'),'');assert.equal(evaluate('state.agentDraftSync.dirty'),false);assert.equal(evaluate('state.agentDraftSync.savedText'),'');
 """)
 
+    def test_regeneration_preserves_unflushed_followup_while_the_model_is_running(self):
+        self.run_js(r"""
+const nodes={};const node=key=>nodes[key]||(nodes[key]={value:'',textContent:'',disabled:false,onclick:null,addEventListener(){}});
+const dialog={querySelector:node,setAttribute(){},addEventListener(){},showModal(){},close(){},remove(){}};
+context.document.createElement=()=>dialog;
+context.document.querySelector=selector=>selector==='.message-dialog'?null:element(selector);
+context.button={dataset:{turnIndex:'0'},closest:()=>({querySelector:()=>null}),isConnected:false};
+const id='12345678-1234-1234-1234-123456789abc';context.id=id;
+evaluate("state.agentConversationId=id;state.agentTurnId=1;state.agentTurns=[{message:'原问题',status:'completed',reply:'原回答',tool_results:[],citations:[]}];state.agentDraftSync.enabled=true;state.agentDraftSync.revision=1;state.agentDraftSync.savedText='追问旧片段';state.agentDraft='完整的新追问';queueAgentDraftSave()");
+let stored=envelope('追问旧片段',id,1),release;const writes=[],sent=[];
+context.fetch=async(path,options)=>{
+  if(path==='/api/chat/draft'){
+    if(options.method){const body=JSON.parse(options.body);writes.push(body);assert.equal(body.expected_revision,stored.draft.revision);stored=envelope(body.text,body.conversation_id,body.expected_revision+1);}
+    return ok(stored);
+  }
+  if(path==='/api/chat/turn'){
+    const body=JSON.parse(options.body);sent.push(body);
+    stored=stored.draft.text.trim()===body.message?envelope('',null,stored.draft.revision+1):envelope(stored.draft.text,stored.draft.conversation_id,stored.draft.revision+1);
+    return new Promise(resolve=>release=()=>resolve(ok({conversation_id:id,turn_id:2,status:'completed',reply:'重新回答结果',tool_results:[],citations:[],data_kind:'personal_source'})));
+  }
+  if(path==='/api/chat/progress')return ok({status:'completed',terminal:true,events:[],available:false});
+  if(path.startsWith('/api/chat/conversations'))return ok({data_kind:'personal_source',conversations:[]});
+  throw Error(path);
+};
+evaluate("openMessageDialog(button,'regenerate')");const executing=node('.dialog-confirm').onclick();await settle();
+assert.equal(sent.length,1);assert.equal(sent[0].message,'原问题');assert.equal(evaluate('state.agentBusy'),true);
+assert.equal(stored.draft.text,'完整的新追问');assert.equal(stored.draft.conversation_id,id);
+assert.deepEqual(writes,[{text:'完整的新追问',conversation_id:id,expected_revision:1}]);
+release();await executing;assert.equal(evaluate('state.agentDraft'),'完整的新追问');
+assert.equal(evaluate('state.agentTurns.length'),2);assert.equal(evaluate('state.agentTurns[1].reply'),'重新回答结果');
+assert.equal(stored.draft.text,'完整的新追问');
+""")
+
+    def test_regeneration_waits_for_draft_and_stops_after_cancel_or_save_failure(self):
+        self.run_js(r"""
+for(const mode of ['cancel','identity','save-failed','save-conflict','double-click']){
+  const nodes={};const node=key=>nodes[key]||(nodes[key]={value:'',textContent:'',disabled:false,onclick:null,addEventListener(){}});
+  const dialog={querySelector:node,setAttribute(){},addEventListener(){},showModal(){},close(){},remove(){}};
+  context.document.createElement=()=>dialog;
+  context.document.querySelector=selector=>selector==='.message-dialog'?null:element(selector);
+  context.button={dataset:{turnIndex:'0'},closest:()=>({querySelector:()=>null}),isConnected:false};
+  evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYNTHETIC-OWNER',auth_mode:'school_client',security_realm:'personal_school_client'}};state.boot={drafts:{available:true,storage:'server_session_memory'}};state.agentStatus={configured:true,available:true,remote:true,data_kind:'personal_source',personal_data_use:{version:'personal-retrieval-v1'}};state.agentDraftSync.enabled=true;state.agentDraftSync.revision=1;state.agentDraft='待保存追问';state.agentTurns=[{message:'原问题',status:'completed',reply:'原回答',tool_results:[],citations:[]}];queueAgentDraftSave()");
+  let release;const writes=[],sent=[];
+  context.fetch=async(path,options)=>{
+    if(path==='/api/chat/draft'){
+      if(!options.method)return ok(envelope('另一页面草稿',null,9));
+      writes.push(JSON.parse(options.body));return new Promise(resolve=>release=resolve);
+    }
+    if(path==='/api/chat/turn'){sent.push(JSON.parse(options.body));return ok({conversation_id:'12345678-1234-1234-1234-123456789abc',turn_id:1,status:'completed',reply:'结果',tool_results:[],citations:[],data_kind:'personal_source'});}
+    if(path==='/api/chat/progress')return ok({status:'completed',terminal:true,events:[],available:false});
+    if(path.startsWith('/api/chat/conversations'))return ok({data_kind:'personal_source',conversations:[]});
+    throw Error(path);
+  };
+  evaluate("openMessageDialog(button,'regenerate')");const executing=node('.dialog-confirm').onclick();await settle();
+  assert.equal(node('.dialog-confirm').disabled,true,mode);assert.equal(sent.length,0,mode);
+  assert.equal(writes.length,1);assert.equal(writes[0].text,'待保存追问');
+  if(mode==='cancel')node('.dialog-cancel').onclick();
+  if(mode==='identity')evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN-B',auth_mode:'school_client',security_realm:'personal_school_client'}};state.agentDraft='新账号草稿'");
+  if(mode==='double-click')await node('.dialog-confirm').onclick();
+  const failed=mode==='save-failed'||mode==='save-conflict';
+  release(failed?{ok:false,status:mode==='save-conflict'?409:503,text:async()=>JSON.stringify({code:mode==='save-conflict'?'personal_draft_revision_conflict':'local_service_unavailable'})}:ok(envelope('待保存追问',null,2)));
+  await executing;assert.equal(sent.length,mode==='double-click'?1:0,mode);
+  assert.equal(evaluate('state.agentDraft'),mode==='identity'?'新账号草稿':'待保存追问',mode);
+  if(failed)assert.match(node('[role="status"]').textContent,/当前输入尚未暂存/);
+  if(mode==='save-conflict')assert.equal(evaluate('state.agentDraftSync.revision'),9);
+  assert.equal(writes.length,1,mode);
+}
+""")
+
 
 if __name__ == '__main__':
     unittest.main()

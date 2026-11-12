@@ -257,10 +257,10 @@ class ChatService:
                     "updated_at": row["updated_at"], "action_pending": bool(turns and turns[-1].get("action_pending")),
                     "option_receipts": receipts, "option_receipts_has_more": receipts_more}
 
-    def conversations(self, context, *, limit=50):
+    def conversations(self, context, *, limit=50, query=""):
         with self.app.lock:
             self.app.auth.require_context(context)
-            return self.app.store.chat_list(context, limit)
+            return self.app.store.chat_list(context, limit, query=query)
 
     @staticmethod
     def _uuid(value):

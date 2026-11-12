@@ -1,4 +1,4 @@
-"""Session-scoped display merging and invalidation, using synthetic records only."""
+"""Independent school pages and session-scoped invalidation, using synthetic records only."""
 import unittest
 from tests import test_web_contract as web
 
@@ -28,6 +28,7 @@ assert.equal(requests.length,1);assert.deepEqual(requests[0].body,{operation:'ac
     def test_progress_never_mixes_grade_or_major_sources(self):
         self.run_js(r"""
 evaluate("resetSchoolPresentation();state.schoolViews={'graduation_audit:ALL-HISTORY':{operation:'graduation_audit',target_term:'ALL-HISTORY',status:'complete',records:[{node_kind:'module',node_id:'M',course_name_raw:'Module'},{node_kind:'course',node_id:'N',parent_node_id:'M',course_code_raw:'C',course_name_raw:'Audit course',completion_status_raw:'通过',grade_raw:'80'}]},grades:{operation:'academic',status:'complete',records:[{course_code_raw:'C',course_name_raw:'Audit course',grade_raw:'90'},{course_name_raw:'Grade only'}]},major:{operation:'major_academic',status:'complete',records:[{course_name_raw:'Major only'}]}}");
+assert.equal(evaluate("schoolAuditStatus({completion_status:'unknown'})"),'未明确');assert.equal(evaluate("schoolAuditStatus({completion_status:'in_progress'})"),'在修');
 const before=evaluate('JSON.stringify(state.schoolViews)'),html=evaluate('schoolProgressMarkup(false)');assert.match(html,/Audit course/);assert.match(html,/通过/);assert.equal((html.match(/<tr class="school-course-row">/g)||[]).length,1);assert.doesNotMatch(html,/Grade only|Major only|未关联|补充学期成绩|school-year|多条成绩/);assert.equal(evaluate('JSON.stringify(state.schoolViews)'),before);
 """)
 
@@ -75,10 +76,44 @@ context.detailRecord={course_name_raw:'Course',time_raw:'Friday 2-3',place_raw:'
 context.detailRecord.meetings[0].place_raw='Room-B';html=evaluate('schoolTimetableDetailMarkup(detailRecord)');assert.match(html,/Room-A/);assert.match(html,/Room-B/);
 """)
 
-    def test_grouping_keeps_attempts_recognitions_and_ambiguous_names(self):
+    def test_timetable_season_filter_uses_each_meeting_and_keeps_unknowns(self):
         self.run_js(r"""
-context.sources=[{operation:'academic',status:'complete',records:[{course_code_raw:'C',course_name_raw:'Course',grade_raw:'60'},{course_code_raw:'C',course_name_raw:'Course',grade_raw:'90'},{course_name_raw:'Course',grade_raw:'80'}]},{operation:'graduation_audit',status:'complete',records:[{node_kind:'module',node_id:'M',course_name_raw:'Module'},{node_kind:'course',node_id:'N1',parent_node_id:'M',course_code_raw:'C',course_name_raw:'Course',grade_raw:'60'},{node_kind:'course',node_id:'N2',parent_node_id:'M2',course_code_raw:'C',course_name_raw:'Course',completion_status:'unknown'},{node_kind:'course',node_id:'N3',course_code_raw:'C',course_name_raw:'Conflicting name'}]}];
-const before=JSON.stringify(context.sources);const groups=evaluate('schoolCourseGroups(sources)');assert.equal(groups.length,3);assert.equal(groups[0].entries.length,4);assert.equal(JSON.stringify(context.sources),before);assert.equal(evaluate("schoolAuditStatus({completion_status:'unknown'})"),'未明确');assert.equal(evaluate("schoolAuditStatus({completion_status:'in_progress'})"),'在修');
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};resetSchoolPresentation();state.schoolOperation='timetable';state.schoolYear='2026-2027';state.schoolSeason='AW'");
+context.source={operation:'timetable',target_term:'2026-2027-AW',status:'complete',records:[
+ {course_name_raw:'双分学期课程',xxq_raw:'秋冬',meetings:[{weekday:1,periods:[1],season_codes:['秋'],place_raw:'秋教室'},{weekday:3,periods:[3],season_codes:['冬'],place_raw:'冬教室'}]},
+ {course_name_raw:'时段明确冬课',xxq_raw:'秋',meetings:[{weekday:2,periods:[2],xxq_raw:'冬'}]},
+ {course_name_raw:'分学期缺失',meetings:[{weekday:4,periods:[4]}]},
+ {course_name_raw:'分学期冲突',xxq_raw:'秋',meetings:[{weekday:5,periods:[5],season_codes:['秋'],field_states:{season_codes:'conflicting'}}]},
+ {course_name_raw:'来源代码待核验',meetings:[{weekday:6,periods:[6],xxq_raw:'1',field_states:{xxq_raw:'pending_verification'}}]}
+]};
+evaluate("state.schoolViews={'timetable:2026-2027-AW':source};state.schoolSeasonFilter='冬';renderSchool()");
+const before=JSON.stringify(context.source),winter=element('#panel-school').innerHTML;
+assert.doesNotMatch(winter,/秋教室|data-weekday="1" data-period="1"/);assert.match(winter,/冬教室/);assert.match(winter,/时段明确冬课/);assert.match(winter,/5条课表记录 · 已定位5个时段/);
+for(const name of ['分学期缺失','分学期冲突','来源代码待核验'])assert.ok(winter.includes(name));
+element('#school-season-filter').listeners.change({target:{value:'秋'}});
+const autumn=element('#panel-school').innerHTML;assert.match(autumn,/秋教室/);assert.doesNotMatch(autumn,/冬教室|时段明确冬课/);assert.match(autumn,/4条课表记录 · 已定位4个时段/);
+element('#school-season-filter').listeners.change({target:{value:''}});assert.match(element('#panel-school').innerHTML,/5条课表记录 · 已定位6个时段/);assert.equal(JSON.stringify(context.source),before);
+""")
+
+    def test_timetable_raw_segment_seasons_override_course_wide_range(self):
+        self.run_js(r"""
+evaluate("resetSchoolPresentation();state.schoolYear='2026-2027';state.schoolSeason='AW';state.schoolSeasonFilter='冬'");
+context.source={operation:'timetable',target_term:'2026-2027-AW',status:'complete',records:[{course_name_raw:'原文跨季课程',xxq_raw:'秋冬',time_raw:'秋周一第1节&lt;br&gt;冬周三第3节',place_raw:'秋地点<br>冬地点'}]};
+const before=JSON.stringify(context.source);evaluate("state.schoolViews={'timetable:2026-2027-AW':source}");
+let html=evaluate('schoolTimetableWorkspaceMarkup(false)');assert.match(html,/冬地点/);assert.doesNotMatch(html,/秋地点|data-weekday="1" data-period="1"/);assert.match(html,/1条课表记录 · 已定位1个时段/);
+evaluate("state.schoolSeasonFilter='秋'");html=evaluate('schoolTimetableWorkspaceMarkup(false)');assert.match(html,/秋地点/);assert.doesNotMatch(html,/冬地点|data-weekday="3" data-period="3"/);assert.equal(JSON.stringify(context.source),before);
+""")
+
+    def test_timetable_filter_hides_unmatched_detail_and_retains_source_record_key(self):
+        self.run_js(r"""
+evaluate("resetSchoolPresentation();state.schoolYear='2026-2027';state.schoolSeason='AW';state.schoolSeasonFilter='冬';state.schoolArrangementKey='0'");
+context.source={operation:'timetable',target_term:'2026-2027-AW',status:'complete',records:[
+ {course_name_raw:'秋课',xxq_raw:'秋',course_code_raw:'AUTUMN-DETAIL',time_raw:'周一第1节'},
+ {course_name_raw:'冬课',xxq_raw:'冬',course_code_raw:'WINTER-DETAIL',time_raw:'周二第2节'}
+]};evaluate("state.schoolViews={'timetable:2026-2027-AW':source}");
+let html=evaluate('schoolTimetableWorkspaceMarkup(false)');assert.doesNotMatch(html,/AUTUMN-DETAIL|school-arrangement-detail/);assert.match(html,/data-arrangement-key="1"/);
+evaluate("state.schoolArrangementKey='1'");html=evaluate('schoolTimetableWorkspaceMarkup(false)');assert.match(html,/WINTER-DETAIL/);
+context.source.records=[context.source.records[0]];html=evaluate('schoolTimetableWorkspaceMarkup(false)');assert.match(html,/当前分学期筛选下没有可展示的时段/);assert.doesNotMatch(html,/本次未返回可展示课表|school-timetable-pending|school-arrangement-detail/);
 """)
 
     def test_enrollment_fields_have_separate_columns_and_keep_unknowns(self):
@@ -88,6 +123,110 @@ const html=evaluate('schoolEnrollmentMarkup()'),table=html.match(/<table[^>]*sch
 assert.equal((table.match(/<th scope="col">/g)||[]).length,8);
 for(const row of rows.match(/<tr>[\s\S]*?<\/tr>/g))assert.equal((row.match(/<td>/g)||[]).length,8);
 assert.match(rows,/<td>待筛选<\/td><td>0<\/td><td>Teacher<\/td><td>秋<\/td><td>周五2-3节<\/td><td>Room<\/td>/);assert.match(rows,/状态待核对/);assert.match(rows,/<td>—<\/td>/);assert.doesNotMatch(html,/提交选课<\/button>/);
+""")
+
+    def test_enrollment_refresh_preserves_last_result_until_successful_retry(self):
+        self.run_js(r"""
+evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment'");
+const preview={status:'available',academic_year:'2026-2027',season:'1',checked_at:1793971200,
+  selected:[{kcmc:'Previously selected',kcdm:'SELECTED',sxbj:'0',xkzy:0}],
+  courses:[{kcmc:'Candidate A',kcdm:'A'},{kcmc:'Candidate B',kcdm:'B'}],
+  sections:[{kcdm:'A',xkkh:'A-SECTION'}]};
+const original=JSON.stringify(preview),requests=[];
+context.fetch=async(path,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>preview};};
+await evaluate("loadEnrollmentPreview('A')");
+const stored=evaluate('JSON.stringify(state.schoolEnrollment)');
+let release;
+context.fetch=(path,options)=>{requests.push(JSON.parse(options.body));return new Promise(resolve=>{release=resolve;});};
+const pending=evaluate("loadEnrollmentPreview('B')");
+assert.equal(evaluate('JSON.stringify(state.schoolEnrollment)'),stored);
+assert.match(element('#panel-school').innerHTML,/Previously selected|A-SECTION/);
+await evaluate('loadEnrollmentPreview()');assert.equal(requests.length,2);
+release({ok:false,status:503,text:async()=>JSON.stringify({code:'source_unavailable'})});await pending;
+assert.equal(evaluate('JSON.stringify(state.schoolEnrollment)'),stored);
+assert.match(element('#panel-school').innerHTML,/本次更新未完成.*保留上次数据/);
+assert.match(element('#panel-school').innerHTML,/Candidate A的教学班/);
+assert.doesNotMatch(element('#panel-school').innerHTML,/Candidate B的教学班/);
+assert.equal(evaluate('state.schoolBusy'),false);
+context.fetch=async(path,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>({status:'source_unavailable'})};};
+await evaluate('loadEnrollmentPreview()');
+assert.equal(evaluate('JSON.stringify(state.schoolEnrollment)'),stored);
+assert.match(element('#panel-school').innerHTML,/本次更新未完成.*保留上次数据/);
+for(const invalidJson of [false,true]){
+  context.fetch=async(path,options)=>{
+    requests.push(JSON.parse(options.body));
+    if(!invalidJson)throw new TypeError('synthetic connection failure');
+    return {ok:true,json:async()=>{throw new SyntaxError('synthetic invalid JSON');}};
+  };
+  await evaluate('loadEnrollmentPreview()');
+  assert.equal(evaluate('JSON.stringify(state.schoolEnrollment)'),stored);
+  assert.match(element('#panel-school').innerHTML,invalidJson?/本机响应不完整或格式无效.*保留上次数据/:/本机服务暂不可用.*保留上次数据/);
+}
+const refreshed={...preview,academic_year:'2027-2028',season:'2',checked_at:1793971800,
+  selected:[{kcmc:'Refreshed selected',sxbj:'1'}],sections:[{kcdm:'B',xkkh:'B-SECTION'}]};
+context.fetch=async(path,options)=>{requests.push(JSON.parse(options.body));return {ok:true,json:async()=>refreshed};};
+await evaluate("loadEnrollmentPreview('B')");
+assert.match(element('#panel-school').innerHTML,/Refreshed selected|B-SECTION|Candidate B的教学班|2027-2028 春夏/);
+assert.doesNotMatch(element('#panel-school').innerHTML,/Previously selected|A-SECTION|保留上次数据|本次更新未完成/);
+assert.equal(element('#global-status').hidden,true);
+assert.deepEqual(requests,[{course_code:'A'},{course_code:'B'},{},{},{},{course_code:'B'}]);
+assert.equal(JSON.stringify(preview),original);
+""")
+
+    def test_malformed_enrollment_does_not_replace_rows_or_break_retry(self):
+        self.run_js(r"""
+evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment'");
+const preview={status:'available',academic_year:'2026-2027',season:'1',selected:[{kcmc:'Verified old rows'}],courses:[{kcmc:'Candidate A',kcdm:'A'}],sections:[]};
+context.fetch=async()=>({ok:true,json:async()=>preview});await evaluate('loadEnrollmentPreview()');
+const old=evaluate('JSON.stringify(state.schoolEnrollment)');
+for(const result of [null,[],{status:'available'},{...preview,selected:{}},{...preview,courses:[null]},
+  {...preview,sections:['malformed']},{...preview,selected:null},{...preview,academic_year:'2026-2029'},
+  {...preview,season:'3'},{...preview,courses:[]},{...preview,sections:[{kcdm:'B',xkkh:'WRONG-SECTION'}]}]){
+  context.fetch=async()=>({ok:true,json:async()=>result});
+  await evaluate("loadEnrollmentPreview('A')");
+  assert.equal(evaluate('JSON.stringify(state.schoolEnrollment)'),old);
+  assert.equal(evaluate('state.schoolBusy'),false);
+  assert.match(element('#panel-school').innerHTML,/学校响应格式尚未适配.*保留上次数据/);
+  assert.doesNotMatch(element('#panel-school').innerHTML,/WRONG-SECTION/);
+}
+evaluate('state.schoolEnrollment=null');context.fetch=async()=>({ok:true,json:async()=>({status:'available',selected:{}})});
+await evaluate('loadEnrollmentPreview()');
+assert.equal(evaluate('state.schoolEnrollment'),null);
+assert.match(element('#panel-school').innerHTML,/本次更新未完成/);
+assert.doesNotMatch(element('#panel-school').innerHTML,/保留上次数据|school-selected-table/);
+""")
+
+    def test_enrollment_auth_failures_and_late_results_clear_or_preserve_current_scope(self):
+        self.run_js(r"""
+const setup=()=>evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment';state.schoolEnrollment={status:'available',academic_year:'2026-2027',season:'1',selected:[{kcmc:'OLD OWNER'}],courses:[],sections:[]};state.schoolViews={'academic:2026-2027-AW':{records:[{course_name_raw:'OLD GRADES'}]}}");
+for(const status of ['source_session_expired','permission_denied','source_subject_changed','user_confirmation_required']){
+  setup();context.fetch=async()=>({ok:true,json:async()=>({status})});await evaluate('loadEnrollmentPreview()');
+  assert.equal(evaluate('state.schoolEnrollment'),null,status);
+  assert.equal(evaluate('Object.keys(state.schoolViews).length'),0);
+  assert.doesNotMatch(element('#panel-school').innerHTML,/OLD OWNER|OLD GRADES|保留上次数据/);
+}
+for(const successful of [true,false]){
+  setup();let release;context.fetch=()=>new Promise(resolve=>{release=resolve;});const pending=evaluate('loadEnrollmentPreview()');
+  evaluate("clearSchoolWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN-B',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment';state.schoolEnrollment={status:'available',academic_year:'2026-2027',season:'1',selected:[{kcmc:'CURRENT OWNER'}],courses:[],sections:[]};renderSchool()");
+  release(successful?{ok:true,json:async()=>({status:'available',academic_year:'2026-2027',season:'1',selected:[{kcmc:'LATE PRIVATE'}],courses:[],sections:[]})}:{ok:false,status:401,text:async()=>JSON.stringify({code:'auth_expired'})});
+  await pending;
+  assert.equal(evaluate('state.auth.authenticated'),true);
+  assert.match(element('#panel-school').innerHTML,/CURRENT OWNER/);
+  assert.doesNotMatch(element('#panel-school').innerHTML,/LATE PRIVATE|保留上次数据/);
+}
+""")
+
+    def test_enrollment_empty_response_and_course_empty_sections_are_explicit(self):
+        self.run_js(r"""
+evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment'");
+const preview={status:'available',academic_year:'2026-2027',season:'1',selected:[],courses:[{kcmc:'<img>Candidate',kcdm:'A'}],sections:[]};
+context.fetch=async()=>({ok:true,json:async()=>preview});await evaluate("loadEnrollmentPreview('A')");
+assert.match(element('#panel-school').innerHTML,/本次未返回页面已选教学班/);
+assert.match(element('#panel-school').innerHTML,/&lt;img&gt;Candidate的教学班/);
+assert.match(element('#panel-school').innerHTML,/本次未返回该课程的教学班/);
+assert.doesNotMatch(element('#panel-school').innerHTML,/<img>|已选课程数为0/);
+let calls=0;context.fetch=()=>{calls++;throw Error('unexpected request');};evaluate('state.auth={authenticated:false}');
+await evaluate('loadEnrollmentPreview()');assert.equal(calls,0);
 """)
 
     def test_failed_refresh_preserves_old_source_with_explicit_label(self):
@@ -102,15 +241,115 @@ evaluate("state.auth={authenticated:true,identity:{student_id:'A',auth_mode:'sch
 evaluate("state.schoolYear='2026-2027';state.schoolSeason='AW';state.schoolProfile={cohort:2023};state.schoolViews={secret:{records:[]}};state.schoolEnrollment={status:'available'}");context.fetch=async()=>({ok:false,status:409,text:async()=>JSON.stringify({code:'source_session_expired'})});await evaluate("schoolLoadPresentation('academic')");assert.equal(evaluate('Object.keys(state.schoolViews).length'),0);assert.equal(evaluate('state.schoolProfile'),null);assert.equal(evaluate('state.schoolEnrollment'),null);assert.equal(evaluate('state.schoolReauth'),true);
 """)
 
-    def test_exam_link_does_not_turn_duplicate_selection_into_unique_match(self):
+    def test_enrollment_captcha_retries_with_image_challenge_and_publishes_the_course(self):
         self.run_js(r"""
-context.source={operation:'timetable',target_term:'2026-2027-AW',records:[{course_name_raw:'One',source_selection_id_raw:'X',field_states:{source_selection_id_raw:'known'}},{course_name_raw:'Two',source_selection_id_raw:'X',field_states:{source_selection_id_raw:'known'}}]};context.exams=[{operation:'exams',target_term:'2026-2027-A',status:'complete',records:[{source_selection_id_raw:'X',field_states:{source_selection_id_raw:'known'},final_exam_time_raw:'2026-11-01',midterm_exam_time_raw:'2026-10-01'}]}];assert.equal(evaluate('schoolAttachRelatedExams(source,exams).records.flatMap(r=>r.related_exams).length'),0);const html=evaluate('schoolExamAgenda(exams[0].records)');assert.match(html,/期中考试/);assert.match(html,/期末考试/);
+evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment'");
+const preview={status:'available',academic_year:'2026-2027',season:'1',selected:[{kcmc:'Old selection'}],courses:[{kcdm:'SYN-A',kcmc:'Candidate A'}],sections:[],checked_at:1};
+context.fetch=async()=>({ok:true,json:async()=>preview});await evaluate('loadEnrollmentPreview()');
+const requests=[];let imageCount=0,submissions=0;
+context.fetch=async(path,options)=>{
+  const body=options.body?JSON.parse(options.body):null;requests.push({path,body});
+  if(path==='/api/school/enrollment-preview')return {ok:true,json:async()=>({status:'captcha_required'})};
+  assert.equal(path,'/api/school/captcha');
+  if(!body){imageCount++;return {ok:true,headers:{get:()=>`SYN-IMAGE-${imageCount}`},blob:async()=>new Blob(['synthetic'],{type:'image/png'})};}
+  submissions++;assert.equal(body.challenge_id,`SYN-IMAGE-${imageCount}`);
+  return {ok:true,json:async()=>submissions===1?{status:'captcha_required'}:{...preview,checked_at:2,sections:[{kcdm:'SYN-A',xkkh:'SYN-SECTION'}]}};
+};
+await evaluate("loadEnrollmentPreview('SYN-A')");
+assert.equal(evaluate('state.schoolPending.course_code'),'SYN-A');
+assert.equal(evaluate('state.schoolNeedsCaptcha'),true);assert.equal(imageCount,1);
+assert.match(element('#panel-school').innerHTML,/Old selection|school-captcha-form/);
+element('#school-captcha-text').value='WRONG';await evaluate('submitSchoolCaptcha()');
+assert.equal(imageCount,2);assert.equal(evaluate('state.schoolNeedsCaptcha'),true);
+assert.equal(evaluate('state.schoolEnrollment.checked_at'),1);
+element('#school-captcha-text').value='TEST';await evaluate('submitSchoolCaptcha()');
+assert.equal(evaluate('state.schoolEnrollment.checked_at'),2);
+assert.equal(evaluate('state.schoolEnrollment.queried_course_code'),'SYN-A');
+assert.equal(evaluate('state.schoolPending'),null);assert.equal(evaluate('state.schoolCaptchaUrl'),null);
+assert.equal(evaluate('state.schoolQueryChallengeId'),null);
+assert.match(element('#panel-school').innerHTML,/Candidate A的教学班/);
+assert.match(element('#panel-school').innerHTML,/SYN-SECTION/);
+assert.doesNotMatch(element('#panel-school').innerHTML,/school-captcha-form|本次更新未完成/);
+await evaluate('submitSchoolCaptcha()');assert.equal(submissions,2);assert.equal(requests.length,5);
 """)
 
-    def test_selected_enrollment_requires_same_term_unique_instance(self):
+    def test_new_query_clears_obsolete_captcha_and_discards_its_late_image(self):
         self.run_js(r"""
-context.record={course_code_raw:'C',source_selection_id_raw:'X',field_states:{source_selection_id_raw:'known'}};context.preview={status:'available',academic_year:'2026-2027',season:'1',selected:[{xkkh:'X',kcdm:'C',sxbj:'1'}]};
-assert.equal(evaluate("schoolSelectedEnrollment(record,[record],preview,'2026-2027','AW').sxbj"),'1');assert.equal(evaluate("schoolSelectedEnrollment(record,[record],preview,'2025-2026','AW')"),null);assert.equal(evaluate("schoolSelectedEnrollment(record,[record,record],preview,'2026-2027','AW')"),null);context.preview.selected.push({...context.preview.selected[0]});assert.equal(evaluate("schoolSelectedEnrollment(record,[record],preview,'2026-2027','AW')"),null);
+evaluate("clearWorkspace();state.auth={authenticated:true,identity:{student_id:'SYN',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolOperation='enrollment';state.schoolNeedsCaptcha=true;state.schoolPending={operation:'academic',target_term:'2026-2027-AW'};state.schoolQueryChallengeId='OLD';state.schoolCaptchaUrl='blob:old'");
+evaluate('renderSchool()');assert.doesNotMatch(element('#panel-school').innerHTML,/school-captcha-form/);
+evaluate("selectSchoolSection('academic')");assert.match(element('#panel-school').innerHTML,/school-captcha-form/);
+evaluate("selectSchoolSection('enrollment')");assert.doesNotMatch(element('#panel-school').innerHTML,/school-captcha-form/);
+let release;context.fetch=()=>new Promise(resolve=>release=resolve);
+const image=evaluate('loadSchoolCaptcha()');
+context.fetch=async()=>({ok:true,json:async()=>({status:'available',academic_year:'2026-2027',season:'1',selected:[],courses:[],sections:[]})});
+await evaluate('loadEnrollmentPreview()');
+release({ok:true,headers:{get:()=> 'LATE'},blob:async()=>new Blob(['synthetic'],{type:'image/png'})});await image;
+assert.equal(evaluate('state.schoolPending'),null);assert.equal(evaluate('state.schoolNeedsCaptcha'),false);
+assert.equal(evaluate('state.schoolQueryChallengeId'),null);assert.equal(evaluate('state.schoolCaptchaUrl'),null);
+assert.doesNotMatch(element('#panel-school').innerHTML,/school-captcha-form/);
+""")
+
+    def test_captcha_retry_rechecks_session_and_query_scope_before_publishing(self):
+        self.run_js(r"""
+const setup=()=>evaluate("state.auth={authenticated:true,identity:{student_id:'SYNTHETIC-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolBusy=false;state.schoolReauth=false;state.schoolYear='2026-2027';state.schoolSeason='AW';state.schoolOperation='academic';resetSchoolPresentation();state.schoolNeedsCaptcha=true;state.schoolQueryChallengeId='SYN-IMAGE';state.schoolPending={operation:'academic',target_term:'2026-2027-AW',force_refresh:true};state.schoolViews={'academic:2026-2027-AW':{operation:'academic',target_term:'2026-2027-AW',status:'complete',records:[{course_name_raw:'SYNTHETIC OLD'}]}};");
+for(const status of ['source_session_expired','authentication_required','source_subject_changed','source_epoch_changed','permission_denied','user_confirmation_required']){
+  setup();element('#school-captcha-text').value='TEST';
+  context.fetch=async()=>({ok:true,json:async()=>({status,records:[]})});
+  await evaluate('submitSchoolCaptcha()');
+  assert.equal(evaluate('Object.keys(state.schoolViews).length'),0,status);
+  assert.equal(evaluate('state.schoolPending'),null);assert.equal(evaluate('state.schoolNeedsCaptcha'),false);
+  assert.doesNotMatch(element('#global-status').textContent,/已提交|已完成验证/);
+}
+for(const target_term of ['2025-2026-AW','2026-2027-AW']){
+  setup();element('#school-captcha-text').value='TEST';
+  context.fetch=async()=>({ok:true,json:async()=>({operation:'academic',target_term,status:'complete',records:[{course_name_raw:'SYNTHETIC NEW'}]})});
+  await evaluate('submitSchoolCaptcha()');
+  const record=evaluate("schoolView('academic','2026-2027-AW').records[0].course_name_raw");
+  assert.equal(record,target_term==='2026-2027-AW'?'SYNTHETIC NEW':'SYNTHETIC OLD');
+  if(target_term!=='2026-2027-AW')assert.match(element('#panel-school').innerHTML,/本次更新未完成.*保留上次数据/);
+}
+""")
+
+    def test_captcha_image_auth_failure_clears_source_views_without_retry_loop(self):
+        self.run_js(r"""
+for(const code of ['source_session_expired','permission_denied','user_confirmation_required','source_unavailable']){
+  evaluate("state.auth={authenticated:true,identity:{student_id:'SYNTHETIC-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolReauth=false;state.schoolOperation='academic';state.schoolYear='2026-2027';state.schoolSeason='AW';resetSchoolPresentation();state.schoolNeedsCaptcha=true;state.schoolQueryChallengeId='SYN-IMAGE';state.schoolPending={operation:'academic',target_term:'2026-2027-AW'};state.schoolViews={'academic:2026-2027-AW':{operation:'academic',target_term:'2026-2027-AW',status:'complete',records:[{course_name_raw:'SYNTHETIC OLD'}]}}");
+  let calls=0;context.fetch=async()=>{calls++;return {ok:false,status:403,text:async()=>JSON.stringify({code})};};
+  await evaluate("schoolFailure('captcha_required',currentSchoolRequest(),state.schoolPending)");assert.equal(calls,1);
+  if(code==='source_unavailable'){
+    assert.equal(evaluate('Object.keys(state.schoolViews).length'),1);
+    assert.equal(evaluate('state.schoolNeedsCaptcha'),true);
+    assert.match(element('#global-status').textContent,/验证码图片读取失败/);
+  }else{
+    assert.equal(evaluate('Object.keys(state.schoolViews).length'),0,code);
+    assert.equal(evaluate('state.schoolNeedsCaptcha'),false);
+    assert.equal(evaluate('state.schoolPending'),null);
+    assert.doesNotMatch(element('#panel-school').innerHTML,/SYNTHETIC OLD/);
+    assert.doesNotMatch(element('#global-status').textContent,/需要验证码/);
+  }
+}
+""")
+
+    def test_malformed_query_response_keeps_previous_data_and_allows_retry(self):
+        self.run_js(r"""
+evaluate("state.auth={authenticated:true,identity:{student_id:'SYNTHETIC-A',auth_mode:'school_client',security_realm:'personal_school_client'}};state.schoolYear='2026-2027';state.schoolSeason='AW';state.schoolOperation='academic';resetSchoolPresentation();state.schoolViews={'academic:2026-2027-AW':{operation:'academic',target_term:'2026-2027-AW',status:'complete',records:[{course_name_raw:'SYNTHETIC OLD'}]}}");
+for(const response of [null,[],{status:'complete',operation:'academic',target_term:'2026-2027-AW'}]){
+  context.fetch=async()=>({ok:true,json:async()=>response});
+  await evaluate("schoolLoadPresentation('academic')");
+  assert.equal(evaluate('state.schoolBusy'),false);
+  assert.equal(evaluate("schoolView('academic','2026-2027-AW').records[0].course_name_raw"),'SYNTHETIC OLD');
+  assert.match(element('#panel-school').innerHTML,/本次更新未完成.*保留上次数据/);
+}
+""")
+
+    def test_exam_events_preserve_duplicate_source_rows(self):
+        self.run_js(r"""
+context.records=Array.from({length:2},()=>({source_selection_id_raw:'X',course_name_raw:'独立来源记录',field_states:{source_selection_id_raw:'known'},final_exam_time_raw:'2026-11-01',midterm_exam_time_raw:'2026-10-01'}));
+const before=JSON.stringify(context.records),html=evaluate('schoolExamAgenda(records)');
+assert.equal((html.match(/期中考试/g)||[]).length,2);
+assert.equal((html.match(/期末考试/g)||[]).length,2);
+assert.equal((html.match(/独立来源记录/g)||[]).length,4);
+assert.equal(JSON.stringify(context.records),before);
 """)
 
     def test_grade_search_is_local_and_sort_keeps_unknowns_and_source_records(self):
@@ -127,6 +366,25 @@ evaluate("state.schoolGradeSort='source'");assert.equal(evaluate("JSON.stringify
         self.run_js(r"""
 context.events=[{course_name_raw:'Two events',final_exam_time_raw:'2026年11月10日(08:00-10:00)',final_exam_place_raw:'A',midterm_exam_time_raw:'2026-10-26 09:00-11:00',midterm_exam_place_raw:'B'},{course_name_raw:'Unknown',final_exam_time_raw:'按学校通知（待确认）',final_exam_place_raw:'<img>'}];
 const html=evaluate('schoolExamAgenda(events)');assert.equal((html.match(/class="exam-compact-row"/g)||[]).length,3);assert.equal((html.match(/Two events/g)||[]).length,2);assert.match(html,/08:00-10:00/);assert.match(html,/按学校通知（待确认）/);assert.match(html,/&lt;img&gt;/);assert.doesNotMatch(html,/<img>|<dl>/);assert.ok(html.indexOf('2026-10-26')<html.indexOf('2026-11-10'));assert.ok(html.indexOf('2026-11-10')<html.indexOf('日期未明确'));
+""")
+
+    def test_same_day_exams_sort_known_times_stably_without_rewriting_sources(self):
+        self.run_js(r"""
+context.events=[
+  {course_name_raw:'Afternoon',final_exam_time_raw:'2026-11-10(14:00-16:00)'},
+  {course_name_raw:'Unknown clock',final_exam_time_raw:'2026-11-10 时间待通知'},
+  {course_name_raw:'Morning',midterm_exam_time_raw:'2026年11月10日(8:30-10:30)'},
+  {course_name_raw:'Same time',exam_date:'2026-11-10',start_time:'08:30',end_time:'09:00'},
+  {course_name_raw:'Invalid clock',final_exam_time_raw:'2026-11-10(25:70-26:90)'},
+  {course_name_raw:'Conflicting clock',exam_date:'2026-11-10',start_time:'07:00',field_states:{start_time:'conflicting'}},
+  {course_name_raw:'Undated afternoon',final_exam_time_raw:'14:00-16:00'},
+  {course_name_raw:'Undated morning',final_exam_time_raw:'08:00-10:00'}
+];
+const original=JSON.stringify(context.events),html=evaluate('schoolExamAgenda(events)');
+const order=['Morning','Same time','Afternoon','Unknown clock','Invalid clock','Conflicting clock','Undated afternoon','Undated morning'];
+for(let i=1;i<order.length;i++)assert.ok(html.indexOf(order[i-1])<html.indexOf(order[i]),order.join(','));
+assert.equal(JSON.stringify(context.events),original);assert.equal((html.match(/class="exam-compact-row"/g)||[]).length,context.events.length);
+assert.match(html,/时间待通知/);assert.match(html,/25:70-26:90/);
 """)
 
     def test_normalized_exam_fields_are_not_discarded(self):

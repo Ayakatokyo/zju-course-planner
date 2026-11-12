@@ -130,6 +130,11 @@ class StudentSourceClient:
         self._cache, self._subjects = {}, {}
         self._last_epoch, self._pending = None, None
 
+    def invalidate_cache(self):
+        """Forget reusable responses while preserving any in-flight transport guard."""
+        with self._lock:
+            self._cache.clear()
+
     def _now(self):
         now = self.clock()
         if not _finite(now):

@@ -20,7 +20,7 @@ import threading
 import time
 
 from .auth import AccessError, SCHOOL_MODE, SCHOOL_REALM
-from .student_source_client import DOMAINS, StudentSourceClient, SourceClientError
+from .student_source_client import DOMAINS, HARD_STOPS, StudentSourceClient, SourceClientError
 from .student_source_parsers import PARSER_VERSION, MAPPING_VERSION, parse_payload
 from .student_sources import CREDENTIAL_VALUE, _observed_subjects, digest, sanitize_payload
 from .school_period_times import period_source
@@ -174,6 +174,18 @@ class SchoolAccountService:
         connection.source = StudentSourceClient(_BoundTransport(connection), authorize,
             clock=self.clock, major_page_size=100)
 
+    def _set_source_state(self, connection, state):
+        if (connection.state in self._LOCAL_BLOCKED and state not in self._LOCAL_BLOCKED
+                and state != "connected"):
+            return False
+        connection.state = state
+        if state in self._LOCAL_BLOCKED:
+            connection.source.invalidate_cache()
+        if state == "source_subject_changed":
+            connection.pending = None
+            self._close_client(connection.client)
+        return True
+
     @staticmethod
     def _close_client(client):
         try:
@@ -209,17 +221,15 @@ class SchoolAccountService:
 
     def _login(self, body):
         username, password = self._credentials(body)
-        with self._lock:
-            expired = [key for key, (_, expiry) in self._login_challenges.items() if self.clock() >= expiry]
-            for key in expired:
-                self._close_client(self._login_challenges.pop(key)[0])
-            if len(self._login_challenges) >= 16:
-                self._record_login_failure("source_unavailable")
-                _error("source_unavailable", 503)
+        self.discard_revoked_sessions()
         challenge_id = body.get("challenge_id")
         if challenge_id is None:
             if "captcha_text" in body:
                 _error("invalid_login_challenge")
+            with self._lock:
+                if len(self._login_challenges) >= 16:
+                    self._record_login_failure("source_unavailable")
+                    _error("source_unavailable", 503)
             try:
                 client = self.client_factory()
             except Exception:
@@ -285,10 +295,14 @@ class SchoolAccountService:
             if captcha:
                 nonce = secrets.token_urlsafe(24)
                 with self._lock:
-                    self._login_challenges[nonce] = (client, self.clock() + 300)
-                return None, None, None, {"authenticated": False, "state": "captcha_required", "challenge_id": nonce,
-                                          "captcha": {"content_type": captcha["content_type"],
-                                                      "data_base64": base64.b64encode(captcha["image"]).decode("ascii")}}
+                    if len(self._login_challenges) < 16:
+                        self._login_challenges[nonce] = (client, self.clock() + 300)
+                        return None, None, None, {"authenticated": False, "state": "captcha_required", "challenge_id": nonce,
+                                                  "captcha": {"content_type": captcha["content_type"],
+                                                              "data_base64": base64.b64encode(captcha["image"]).decode("ascii")}}
+                self._close_client(client)
+                self._record_login_failure("source_unavailable")
+                _error("source_unavailable", 503)
         self._close_client(client)
         state = state if isinstance(state, str) and state in LOGIN_FAILURE_STATES else "source_unavailable"
         diagnostics = self._record_login_failure(state, diagnostic_result)
@@ -367,7 +381,7 @@ class SchoolAccountService:
                 result = connection.client.get_profile()
                 if not isinstance(result, dict) or result.get("state") != "authenticated":
                     state = result.get("state") if isinstance(result, dict) else "schema_changed"
-                    connection.state = state if state in {"source_session_expired", "captcha_required", "permission_denied"} else "source_unavailable"
+                    self._set_source_state(connection, state if state in self._LOCAL_BLOCKED else "source_unavailable")
                     _error(connection.state, 409 if connection.state == "source_session_expired" else 403)
                 projection, profile = _safe_profile(result)
             except AccessError:
@@ -376,11 +390,10 @@ class SchoolAccountService:
                 _error("source_unavailable", 503)
             self._authorize(context, connection)
             if profile["source_subject_id"] != connection.owner:
-                connection.state = "source_subject_changed"
-                connection.pending = None
-                self._close_client(connection.client)
+                self._set_source_state(connection, "source_subject_changed")
                 _error("source_subject_changed", 403)
             connection.profile = projection
+            self._set_source_state(connection, "connected")
             alias = self._capture(context, "profile", None, [projection])
             return {"status": "complete_within_scope", "data_kind": "personal_source", "data_source": "live",
                     "profile": profile, "source_alias": alias, "captured_at": self.clock()}
@@ -390,12 +403,33 @@ class SchoolAccountService:
             _error("invalid_school_request")
         connection = self._connection(context)
         with connection.lock:
-            result = connection.client.enrollment_preview(body.get("course_code"))
+            try:
+                result = connection.client.enrollment_preview(body.get("course_code"))
+            except AccessError:
+                raise
+            except Exception:
+                self._authorize(context, connection)
+                _error("source_unavailable", 503)
             self._authorize(context, connection)
+            if not isinstance(result, dict):
+                _error("schema_changed", 502)
             if result.get("state") != "business":
-                return {"status": result.get("state", "source_unavailable"), "submission_enabled": False}
+                state = result.get("state", "source_unavailable")
+                if not isinstance(state, str):
+                    _error("schema_changed", 502)
+                if self._set_source_state(connection, state):
+                    connection.pending = ({"operation": "enrollment", "course_code": body.get("course_code")}
+                                          if state == "captcha_required" else None)
+                    connection.captcha_id = None
+                return {"status": state, "submission_enabled": False}
             if result.get("source_subject_id") != connection.owner:
+                self._set_source_state(connection, "source_subject_changed")
                 _error("source_subject_changed", 403)
+            if not isinstance(result.get("preview"), dict):
+                _error("schema_changed", 502)
+            self._set_source_state(connection, "connected")
+            connection.pending = None
+            connection.captcha_id = None
             return {"status": "available", **result["preview"], "checked_at": self.clock()}
 
     @staticmethod
@@ -432,9 +466,7 @@ class SchoolAccountService:
             if result["status"] == "source_session_expired" and connection.client.session_epoch != before:
                 projection, profile = _safe_profile(connection.client.get_profile())
                 if profile["source_subject_id"] != connection.owner:
-                    connection.state = "source_subject_changed"
-                    connection.pending = None
-                    self._close_client(connection.client)
+                    self._set_source_state(connection, "source_subject_changed")
                     _error("source_subject_changed", 403)
                 self._authorize(context, connection)
                 connection.profile = projection
@@ -442,10 +474,9 @@ class SchoolAccountService:
                 result = connection.source.fetch(**{**request, "force_refresh": True})
             self._authorize(context, connection)
             state = result["status"]
-            connection.state = "connected" if result["data_source"] == "live" else state
-            connection.pending = deepcopy(request) if state in {"captcha_required", "source_session_expired", "awaiting_user_login"} else None
-            if state == "source_subject_changed":
-                self._close_client(connection.client)
+            if self._set_source_state(connection, "connected" if result["data_source"] == "live" else state):
+                connection.pending = deepcopy(request) if state in {"captcha_required", "source_session_expired", "awaiting_user_login"} else None
+                connection.captcha_id = None
             records, issues, failures = [], [], []
             period_metadata = {"period_times": [], "period_times_source": period_source()}
             payloads = []
@@ -504,8 +535,7 @@ class SchoolAccountService:
                 self._authorize_local(context, connection, epoch)
             return public
 
-    _LOCAL_BLOCKED = frozenset({"source_subject_changed", "permission_denied", "source_session_expired",
-                                "awaiting_user_login", "captcha_required"})
+    _LOCAL_BLOCKED = HARD_STOPS
 
     def _authorize_local(self, context, connection, epoch):
         scope = self._authorize(context, connection)
@@ -1141,7 +1171,12 @@ class SchoolAccountService:
                 return {"state": "captcha_required", "status": "captcha_required", "records": []}
             pending = deepcopy(connection.pending)
             connection.pending = None
-            return self.fetch(context, {**pending, "force_refresh": True})
+            return self._retry_pending(context, pending)
+
+    def _retry_pending(self, context, pending):
+        if pending["operation"] == "enrollment":
+            return self.enrollment_preview(context, {"course_code": pending.get("course_code")})
+        return self.fetch(context, {**pending, "force_refresh": True})
 
     def reauthenticate(self, context, body):
         old = self._connection(context)
@@ -1165,7 +1200,7 @@ class SchoolAccountService:
                     installed = True
                 self._close_client(old.client)
             if pending is not None:
-                return {"authenticated": True, "state": "authenticated", "retry": self.fetch(context, {**pending, "force_refresh": True})}
+                return {"authenticated": True, "state": "authenticated", "retry": self._retry_pending(context, pending)}
             return {"authenticated": True, "state": "authenticated", "personal_data_source_status": "connected"}
         finally:
             if not installed:
@@ -1186,9 +1221,8 @@ class SchoolAccountService:
                     and result.get("failure") == "page_limit_exceeded"):
                 raise StudentPlanAcquisitionError("invalid_plan_catalogue")
             if result.get("failure") or result.get("data_source") != "live" or not result.get("pages"):
-                if result.get("status") in {"source_subject_changed", "permission_denied", "source_session_expired",
-                                            "awaiting_user_login", "captcha_required"}:
-                    connection.state = result["status"]
+                if result.get("status") in self._LOCAL_BLOCKED:
+                    self._set_source_state(connection, result["status"])
                 raise StudentPlanAcquisitionError(result.get("failure") or "source_unavailable")
             return result
         def catalogue(scope):
@@ -1202,8 +1236,7 @@ class SchoolAccountService:
             return capture("plan_document", plan_ref=ref)["pages"][0]["payload"]
         def authorize_plan():
             scope = self._authorize(context, connection)
-            if connection.state in {"source_subject_changed", "permission_denied", "source_session_expired",
-                                     "awaiting_user_login", "captcha_required"}:
+            if connection.state in self._LOCAL_BLOCKED:
                 raise StudentPlanAcquisitionError(connection.state)
             return scope
         owner_path = _private_directory(self.root / digest({"realm": SCHOOL_REALM, "owner": connection.owner}))
@@ -1243,9 +1276,11 @@ class SchoolAccountService:
         self._close_client(connection.client)
 
     def discard_revoked_sessions(self):
-        """Release at most 64 revoked/expired clients without a school request."""
+        """Reclaim invalid clients in rotating batches of at most 64 local checks."""
         with self._lock:
             refs = list(self._sessions)[:64]
+            for ref in refs:
+                self._sessions[ref] = self._sessions.pop(ref)
         live = set()
         if refs:
             placeholders = ",".join("?" for _ in refs)

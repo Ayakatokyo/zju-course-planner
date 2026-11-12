@@ -135,6 +135,34 @@ class PersonalDraftStoreTests(unittest.TestCase):
         self.assert_code("personal_scope_changed", self.store.write, self.key, self.body(), authorize)
         self.assertEqual(self.store._entries, {})
 
+    def test_capacity_reclaims_only_invalid_sessions_and_keeps_live_revision_tombstones(self):
+        current = self.key
+        inactive = (*self.key[:2], 'old-session', *self.key[3:])
+        incoming = (*self.key[:2], 'new-session', *self.key[3:])
+        live = {current[2], inactive[2], incoming[2]}
+        store = PersonalDraftService(SENSITIVE, capacity=2, session_active=live.__contains__)
+        store.write(current, self.body(''), self.authorize)
+        store.write(inactive, self.body('旧登录草稿'), self.authorize)
+        self.assert_code('personal_draft_capacity', store.read, incoming, self.authorize)
+        self.assertEqual(store.read(current, self.authorize)['revision'], 1)
+        live.remove(inactive[2])
+        self.assertEqual(store.read(incoming, self.authorize)['revision'], 0)
+        self.assertNotIn(inactive, store._entries)
+        self.assertEqual(store.read(current, self.authorize)['revision'], 1)
+        self.assert_code('personal_draft_revision_conflict', store.write, current,
+                         self.body('有效旧页面迟到写', 0), self.authorize)
+
+    def test_failed_session_check_preserves_existing_drafts(self):
+        def unavailable(_):
+            raise OSError('synthetic local authorization storage failure')
+        store = PersonalDraftService(SENSITIVE, capacity=1, session_active=unavailable)
+        saved = store.write(self.key, self.body('保留的合成草稿'), self.authorize)
+        other = (*self.key[:2], 'other-session', *self.key[3:])
+        with self.assertRaises(OSError):
+            store.read(other, self.authorize)
+        self.assertEqual(store.read(self.key, self.authorize), saved)
+        self.assertEqual(len(store._entries), 1)
+
     def test_accepted_send_fences_late_saves_and_preserves_a_newer_different_draft(self):
         self.store.read(self.key, self.authorize)
         self.assertFalse(self.store.consume(self.key, None, "已接纳的问题"))

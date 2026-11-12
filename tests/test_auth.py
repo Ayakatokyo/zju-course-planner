@@ -66,6 +66,22 @@ class AuthorizationTests(unittest.TestCase):
         with self.assertRaises(AccessError):
             self.app.auth.authenticate(self.token_b)
 
+    def test_cleanup_session_check_preserves_idle_deadline_and_rejects_revoked_or_expired_sessions(self):
+        with self.app.store.connect() as db:
+            before = db.execute('SELECT last_activity,idle_expires FROM login_sessions WHERE token_hash=?',
+                                (self.a.session_ref,)).fetchone()
+        self.now[0] += 900
+        self.assertTrue(self.app.auth.session_active(self.a.session_ref))
+        with self.app.store.connect() as db:
+            after = db.execute('SELECT last_activity,idle_expires FROM login_sessions WHERE token_hash=?',
+                               (self.a.session_ref,)).fetchone()
+        self.assertEqual(after, before)
+        self.app.auth.logout(self.b)
+        self.assertFalse(self.app.auth.session_active(self.b.session_ref))
+        self.assertFalse(self.app.auth.session_active('synthetic-unknown-session'))
+        self.now[0] = before[1]
+        self.assertFalse(self.app.auth.session_active(self.a.session_ref))
+
     def test_absolute_expiry_even_with_activity(self):
         for _ in range(15):
             self.now[0] += 1799
@@ -236,6 +252,48 @@ class HTTPAuthorizationTests(unittest.TestCase):
         cookie = headers['Set-Cookie']
         self.assertIn('HttpOnly', cookie); self.assertIn('SameSite=Strict', cookie)
         return {'Cookie': cookie.split(';')[0], 'X-CSRF-Token': value['csrf_token']}
+
+    def test_static_assets_revalidate_without_caching_personal_api(self):
+        def read(path, headers=None):
+            connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=2)
+            try:
+                connection.request('GET', path, headers=headers or {})
+                response = connection.getresponse()
+                return response.status, dict(response.getheaders()), response.read()
+            finally:
+                connection.close()
+
+        for path in ('/', '/index.html', '/app.js', '/styles.css', '/pdf-lib.min.js'):
+            with self.subTest(path=path):
+                code, headers, body = read(path)
+                self.assertEqual(code, 200)
+                self.assertTrue(body)
+                self.assertEqual(headers['Cache-Control'], 'no-cache')
+                tag = headers['ETag']
+                for conditional in (tag, 'W/' + tag, '"older", ' + tag, '*'):
+                    code, cached, body = read(path, {'If-None-Match': conditional})
+                    self.assertEqual(code, 304)
+                    self.assertEqual(body, b'')
+                    self.assertEqual(cached['ETag'], tag)
+                self.assertEqual(read(path, {'If-None-Match': '"outdated"'})[0], 200)
+        code, headers, _ = self.request('GET', '/api/auth/session', headers={'If-None-Match': '*'})
+        self.assertEqual(code, 200)
+        self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertNotIn('ETag', headers)
+        authenticated = self.login()
+        _, headers, _ = self.request('GET', '/api/bootstrap', headers={**authenticated, 'If-None-Match': '*'})
+        self.assertEqual(headers['Cache-Control'], 'no-store')
+        self.assertNotIn('ETag', headers)
+        self.assertEqual(read('/private/anything', {'If-None-Match': '*'})[0], 404)
+
+    def test_static_download_does_not_wait_for_workspace_lock(self):
+        connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=1)
+        self.addCleanup(connection.close)
+        with self.app.lock:
+            connection.request('GET', '/app.js')
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertTrue(response.read())
 
     def test_public_minimal_health_and_anonymous_personal_denial(self):
         self.assertEqual(self.request('GET', '/api/health')[0], 200)
