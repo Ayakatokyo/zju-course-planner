@@ -272,6 +272,76 @@ class ChatGPTTests(unittest.TestCase):
             self.assertEqual(observed[0]["status"], "failed")
             self.assertNotIn("partial", json.dumps(observed))
 
+    @staticmethod
+    def item_event(item, index=0, kind="response.output_item.done"):
+        return ("data: " + json.dumps({"type": kind, "output_index": index, "item": item}) + "\n\n").encode()
+
+    def test_empty_terminal_output_uses_completed_text_item(self):
+        client = self.client()
+        item = {"type": "message", "role": "assistant", "status": "completed",
+                "content": [{"type": "output_text", "text": "synthetic greeting"}]}
+        self.transport.replies.append(
+            self.item_event({**item, "status": "in_progress", "content": []}, kind="response.output_item.added")
+            + self.item_event(item) + self.stream([]))
+        result, metadata = client.complete_with_metadata([{"role": "user", "content": "hello"}], [])
+        self.assertEqual(result["content"], "synthetic greeting")
+        self.assertEqual(metadata["status"], "completed")
+        self.assertEqual(metadata["usage"]["total_tokens"], 12)
+
+    def test_empty_terminal_tool_items_preserve_order_and_private_reasoning(self):
+        client = self.client()
+        tools = [{"type": "function", "function": {"name": "query_my_records", "parameters": {"type": "object"}}}]
+        reasoning = {"type": "reasoning", "id": "rs_test", "summary": [], "encrypted_content": "synthetic-private"}
+        call = {"type": "function_call", "id": "fc_test", "namespace": "academic", "name": "query_my_records",
+                "status": "completed", "arguments": "{}", "call_id": "call_test"}
+        self.transport.replies.append(self.item_event(call, 1) + self.item_event(reasoning, 0) + self.stream([]))
+        messages = [{"role": "user", "content": "synthetic courses"}]
+        result, metadata = client.complete_with_metadata(messages, tools)
+        self.assertEqual(result["tool_calls"][0]["id"], "call_test")
+        self.assertNotIn("synthetic-private", json.dumps([result, metadata]))
+        messages += [result, {"role": "tool", "tool_call_id": "call_test", "content": "synthetic records"}]
+        final = {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "synthetic answer"}]}
+        self.transport.replies.append(self.item_event(final) + self.stream([]))
+        self.assertEqual(client.complete(messages, tools)["content"], "synthetic answer")
+        payload = json.loads(self.transport.calls[-1].data)
+        self.assertEqual(payload["input"][1:3], [reasoning, call])
+        self.assertEqual(payload["input"][3]["call_id"], "call_test")
+
+    def test_stream_items_cannot_turn_failed_partial_or_invalid_output_into_success(self):
+        client = self.client()
+        item = {"type": "message", "role": "assistant", "status": "completed",
+                "content": [{"type": "output_text", "text": "synthetic private answer"}]}
+        done = self.item_event(item)
+        streams = [done, done + b'data: [DONE]\n\n',
+                   done + b'data: {"type":"response.failed"}\n\n',
+                   done + self.stream([], status="incomplete"),
+                   done + self.stream([], status="in_progress"),
+                   done + self.stream(None),
+                   self.item_event(item, kind="response.output_item.added") + self.stream([]),
+                   done + self.item_event(item, 1, "response.output_item.added") + self.stream([]),
+                   self.item_event(item, 1) + self.stream([]),
+                   done + done + self.stream([]),
+                   self.item_event(item, True) + self.stream([]),
+                   self.item_event(item, 100) + self.stream([]),
+                   self.item_event({**item, "status": "in_progress"}) + self.stream([]),
+                   self.item_event({"type": "computer_call"}) + self.stream([]),
+                   self.item_event({"type": "function_call", "namespace": "shell", "name": "exec",
+                                    "call_id": "c", "arguments": "{}"}) + self.stream([])]
+        for index, wire in enumerate(streams):
+            with self.subTest(index=index):
+                self.transport.replies.append(wire)
+                observed = []
+                with self.assertRaises(ModelError):
+                    client.complete([], [], observer=observed.append)
+                self.assertEqual(observed[0]["status"], "failed")
+                self.assertNotIn("synthetic private answer", json.dumps(observed))
+
+    def test_nonempty_terminal_output_remains_authoritative(self):
+        client = self.client()
+        item = {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "terminal"}]}
+        self.transport.replies.append(self.item_event({**item, "content": []}) + self.stream([item]))
+        self.assertEqual(client.complete([], [])["content"], "terminal")
+
     def test_transport_failures_keep_safe_categories_without_retry_or_error_text(self):
         client = self.client()
         secret = "SYNTHETIC-PRIVATE-URL-AND-TOKEN"

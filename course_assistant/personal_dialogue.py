@@ -89,6 +89,28 @@ FINAL_ANSWER_TOOL = _tool("finish_answer", "交付最终正文与来源，结束
 }, ["kind", "text", "evidence_ids"])
 
 
+def _model_route_context(status):
+    """Expose only public routing fields from this turn's selected client."""
+    route = {}
+    if isinstance(status.get("provider"), str) and status["provider"] in {"ChatGPT", "DeepSeek"}:
+        route["provider"] = status["provider"]
+    model = status.get("model")
+    if (isinstance(model, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,100}", model)
+            and not SENSITIVE.search(model)):
+        route["model"] = model.removeprefix("chatgpt:")
+    if type(status.get("thinking")) is bool:
+        route["thinking"] = status["thinking"]
+    if (status.get("thinking") is not False and isinstance(status.get("reasoning_effort"), str)
+            and status["reasoning_effort"] in {"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra", "default"}):
+        route["reasoning_effort"] = status["reasoning_effort"]
+    return ("\n本轮服务端模型路由（当前实际请求配置，不是用户自述）："
+            + json.dumps(route, ensure_ascii=False, separators=(",", ":"))
+            + "\n被问到当前模型、供应商或思考设置时，直接依据这些字段回答；ChatGPT表示ChatGPT订阅通道，DeepSeek表示DeepSeek API通道。"
+              "缺失字段才说明未提供，不根据用户自述、历史回复或模型自我认知改写本轮路由。"
+              "只简洁报出所问字段，不主动附加内部权重或隐藏路由的免责声明，也不推断未提供的内部版本。"
+              "仅询问模型身份或路由无需查询教务资料，使用answer及空evidence_ids即可；未被问及无需主动介绍。")
+
+
 TOOLS = [
     _tool("get_my_context", "查询已知入学年/专业及本机已读operation范围。不是身份输入，不刷新学校数据。"),
     _tool("lookup_academic_terms", "解释本系统的成绩、学分、来源和方案术语。纯概念问题仅用本工具；当前问题明确了个人学期、课程或模块并询问其记录、覆盖或认定时，还须读取对应当前来源。只读公开字段说明不能替代该核对，也不能证明个人事实或学校正式政策。", {
@@ -1781,7 +1803,7 @@ class PersonalDialogueService:
         if not isinstance(status, dict) or status.get("configured") is not True:
             _fail("model_not_configured")
         previous, history_reset = self._history(history)
-        system = SYSTEM
+        system = SYSTEM + _model_route_context(status)
         if data_use == "synthetic_retrieval":
             system += "\n当前账号身份和成绩为隔离的模拟数据，未连接学校；培养文档是已绑定的来源PDF，课程条目不是合成内容。工具、检索、计算和回答流程与真实账号相同。只能根据工具返回的能力和来源回答，未提供的课表、考试、认定等不能补造。简短说明数据性质即可，不重复免责声明。"
         if data_use == "synthetic_scenario":

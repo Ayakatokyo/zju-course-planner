@@ -50,6 +50,52 @@ class ScriptedModel:
 
 
 class PersonalDialogueTests(unittest.TestCase):
+    def test_selected_route_reaches_each_turn_without_private_status_or_stale_model(self):
+        service, model = self.service()
+        history = []
+        cases = [("ChatGPT", "chatgpt:gpt-6.1-terra", True, "high"),
+                 ("DeepSeek", "deepseek-flash", False, "low"),
+                 ("DeepSeek", "deepseek-flash", True, "high"),
+                 ("ChatGPT", "chatgpt:gpt-6-luna", True, "high")]
+        for provider, identifier, thinking, effort in cases:
+            with self.subTest(model=identifier):
+                status = {"configured": True, "provider": provider, "model": identifier,
+                          "thinking": thinking, "reasoning_effort": effort,
+                          "connection_revision": "NEVER-SEND-REVISION", "settings_revision": 987654,
+                          "api_key": "NEVER-SEND-KEY", "endpoint": "https://private.invalid",
+                          "reason": "NEVER-SEND-STATUS-REASON"}
+                model.responses = [final({"kind": "answer", "text": "本轮调用模型为" + identifier.removeprefix("chatgpt:"),
+                                          "evidence_ids": []})]
+                with patch.object(model, "status", return_value=status):
+                    result, history = service.run("你是什么模型？我猜是另一个型号。", data_use="personal_retrieval", history=history)
+                self.assertEqual(result["status"], "completed")
+                system = model.calls[-1][0][0]["content"]
+                route_line = next(line for line in system.splitlines() if line.startswith("本轮服务端模型路由"))
+                expected_route = {
+                    "provider": provider, "model": identifier.removeprefix("chatgpt:"),
+                    "thinking": thinking}
+                if thinking:
+                    expected_route["reasoning_effort"] = effort
+                self.assertEqual(json.loads(route_line.split("：", 1)[1]), expected_route)
+                self.assertNotIn("NEVER-SEND", system)
+                self.assertNotIn("private.invalid", system)
+                self.assertNotIn("987654", system)
+                self.assertNotIn("本轮服务端模型路由", json.dumps(history, ensure_ascii=False))
+        self.assertTrue(all(name == "get_my_context" for name, _ in self.executed))
+
+    def test_missing_or_unsafe_route_fields_are_not_invented_or_forwarded(self):
+        service, model = self.service([final({"kind": "answer", "text": "当前未提供模型信息。", "evidence_ids": []})])
+        with patch.object(model, "status", return_value={"configured": True,
+                "provider": "NEVER-SEND-PROVIDER", "model": "sk-" + "x" * 24,
+                "thinking": "true", "reasoning_effort": "NEVER-SEND-EFFORT"}):
+            result, _ = service.run("你是什么模型", data_use="personal_retrieval")
+        self.assertEqual(result["status"], "completed")
+        system = model.calls[0][0][0]["content"]
+        route_line = next(line for line in system.splitlines() if line.startswith("本轮服务端模型路由"))
+        self.assertEqual(json.loads(route_line.split("：", 1)[1]), {})
+        self.assertNotIn("NEVER-SEND", system)
+        self.assertNotIn("sk-" + "x" * 24, system)
+
     def test_shared_delivery_guidance_does_not_repeat_inside_each_observation(self):
         from course_assistant.personal_dialogue import _model_context, FINAL_WRITING_GUIDE
         messages = [{"role": "assistant", "content": None, "tool_calls": [

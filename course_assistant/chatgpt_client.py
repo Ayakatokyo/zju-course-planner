@@ -174,6 +174,7 @@ class ChatGPTClient(ModelClient):
             request = Request(RESOURCE + "/responses", data=raw, headers={"Authorization": "Bearer " + token,
                               "Content-Type": "application/json", "Accept": "text/event-stream"})
             completed = None
+            stream_items, pending_items = {}, set()
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise TimeoutError()
@@ -189,11 +190,30 @@ class ChatGPTClient(ModelClient):
                     kind = event.get("type")
                     if kind in {"error", "response.failed", "response.incomplete"}:
                         raise self._failure(event)
+                    if kind in {"response.output_item.added", "response.output_item.done"}:
+                        index, item = event.get("output_index"), event.get("item")
+                        if (type(index) is not int or not 0 <= index < 100
+                                or not isinstance(item, dict) or index in stream_items):
+                            raise ModelError("GPT 流式输出项无效", "model_protocol_error")
+                        if kind == "response.output_item.added":
+                            if index in pending_items:
+                                raise ModelError("GPT 流式输出项重复", "model_protocol_error")
+                            pending_items.add(index)
+                        else:
+                            stream_items[index] = item
+                            pending_items.discard(index)
                     if kind == "response.completed":
                         completed = event.get("response")
                         break
             if not isinstance(completed, dict):
                 raise ModelError("GPT 流中断，未收到完成事件", "model_stream_incomplete")
+            # Some streaming responses leave the terminal output array empty.
+            # Only completed items may fill it, and only after the whole response
+            # completes. Deltas and partially added items are never executable.
+            if completed.get("output") == [] and stream_items:
+                if pending_items or set(stream_items) != set(range(len(stream_items))):
+                    raise ModelError("GPT 流式输出项不完整", "model_protocol_error")
+                completed = {**completed, "output": [stream_items[i] for i in range(len(stream_items))]}
             result = self._output(completed, allowed)
             # Revalidate connection and academic session after the network wait.
             self.accounts.owner(self.context)
